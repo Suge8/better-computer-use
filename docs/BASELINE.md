@@ -55,24 +55,25 @@ Diagnostics RTT 原始样本（ms）：`0.44, 0.30, 0.29, 0.31, 0.27, 0.27, 0.21
 
 | 指标 | G1 / 前序事实 | G5 | 结论 |
 |---|---:|---:|---|
-| client → broker → helper diagnostics RTT 中位数 | Flow 参考值 16.6 ms；G3 实测 1.09 ms | **0.55 ms** | 低于 `<5 ms` 门；仓库 G1 的 0.27 ms 是 helper 直连，不是同口径 |
-| semantic observe CLI wall time 中位数（5 次） | 未测 | **222.01 ms** | TextEdit，`semantic + image never + read-text never` |
+| client → broker → helper diagnostics RTT 中位数 | Flow 参考值 16.6 ms；G3 实测 1.09 ms | **1.02 ms** | 低于 `<5 ms` 门；仓库 G1 的 0.27 ms 是 helper 直连，不是同口径 |
+| semantic observe CLI wall time 中位数（5 次） | 未测 | **255.93 ms** | TextEdit，`semantic + image never + read-text never` |
 | semantic observe outline | 未测 | **1,371 B** | 5 次输出一致 |
-| helper 空闲 RSS | 31.81 MiB | **31.91 MiB** | 同为基准脚本冷启动后的空闲口径 |
-| broker 空闲 RSS | 无 Broker | **51.56 MiB** | 隔离 Broker，握手、预热和 diagnostics 后取样 |
-| broker + helper 空闲 RSS | 无 Broker | **83.47 MiB** | 两个进程 RSS 相加 |
+| helper 空闲 RSS | 31.81 MiB | **32.23 MiB** | 同为基准脚本冷启动后的空闲口径 |
+| broker 空闲 RSS | 无 Broker | **51.73 MiB** | 隔离 Broker，握手、预热和 diagnostics 后取样 |
+| broker + helper 空闲 RSS | 无 Broker | **83.96 MiB** | 两个进程 RSS 相加 |
 
-G5 diagnostics RTT 原始样本（ms）：`1.10, 0.54, 0.62, 0.41, 0.56, 0.75, 0.57, 0.41, 0.40, 0.38`。
+G5 diagnostics RTT 原始样本（ms）：`1.07, 0.97, 1.80, 0.75, 1.11, 1.17, 0.80, 0.86, 0.89, 1.43`。
 
-Semantic observe wall time 原始样本（ms）：`222.01, 216.69, 208.05, 225.89, 313.97`。每次 outline 均为 `1,371 B`。
+Semantic observe wall time 原始样本（ms）：`395.53, 245.72, 242.33, 255.93, 345.40`。每次 outline 均为 `1,371 B`。
 
-同次 `node scripts/bench.mjs` 还测得 raw helper look 端到端 `665.99 ms`（capture `320 ms`、describe `30 ms`、readText `289 ms`）和冷启动 `165.85 ms`。首次复测曾在 raw `look` 路径超时 20 秒；不改代码复查 semantic 与 fused 路径后，连续两次完整复测通过。该单次抖动保留为已知风险。
+同次 `node scripts/bench.mjs` 还测得 raw helper look 端到端 `771.50 ms`（capture `327 ms`、describe `29 ms`、readText `385 ms`）和冷启动 `250.26 ms`。首次 G5 复测曾在 raw `look` 路径超时 20 秒；不改代码复查 semantic 与 fused 路径后，连续两次完整复测通过。该单次抖动保留为已知风险。
 
 ## 测量口径
 
 - diagnostics RTT：冷启动完成后串行请求 10 次，每次新建 Unix socket 连接，取中位数。
 - look：脚本打开固定 TextEdit 文本，以 `readText: "always"` 执行一次真实窗口观察；分段值来自 helper 返回的 `timings`，端到端 RTT 在 Node 调用侧测量。
-- 空闲 RSS：diagnostics 请求全部完成、没有请求在途时，通过 `ps` 读取 helper RSS。
+- G5 semantic observe：脚本复用隔离 Broker，通过构建后的 public CLI 先执行一次 `find-roots`，再串行执行 5 次 `observe-ui --mode semantic --image never --read-text never`；wall time 包含每次 CLI 进程与完整 Broker 往返，字节数取 `result.text` 的 UTF-8 长度。
+- 空闲 RSS：diagnostics 请求完成且没有请求在途时，通过 `ps` 在 semantic workload 前读取 broker 与 helper RSS。
 - 冷启动：先通过协议关闭已有 daemon，从调用 LaunchServices `open` 前开始计时，到新 daemon 首次返回协议版本正确的 diagnostics 为止。
 - 冷启动和 look 各为单次样本，用于同机回归对比，不代表跨机器统计结论。
 
@@ -81,7 +82,8 @@ Semantic observe wall time 原始样本（ms）：`222.01, 216.69, 208.05, 225.8
 确保 bcu 已获得辅助功能和屏幕录制权限，然后运行：
 
 ```bash
-node scripts/bench.mjs
+node scripts/bench.mjs | tee /tmp/bcu-bench.json
+python3 -c "import json;x=json.load(open('/tmp/bcu-bench.json')); assert x['semanticObserve']['medianWallMs'] > 0; assert x['semanticObserve']['medianOutlineBytes'] > 0; assert len(x['semanticObserve']['samples']) == 5"
 ```
 
-脚本会重启 helper、打开固定 TextEdit 基准文档，并以 JSON 输出同一组指标。
+脚本会重启 helper、打开固定 TextEdit 基准文档，并以 JSON 输出 diagnostics RTT、semantic observe、raw look、空闲 RSS 和冷启动指标。
