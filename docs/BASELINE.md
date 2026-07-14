@@ -1,6 +1,6 @@
 # 性能基线
 
-本文件冻结 G1 完成时的本机 helper 性能，后续优化使用同一脚本和目标窗口复测。
+本文件记录 G1 helper 性能、G3 Broker 复测和 G5 真实任务基线。后续优化沿用相同口径。
 
 ## 环境
 
@@ -28,6 +28,45 @@ BuildVersion:		25E253
 | daemon 冷启动 | 103.71 ms |
 
 Diagnostics RTT 原始样本（ms）：`0.44, 0.30, 0.29, 0.31, 0.27, 0.27, 0.21, 0.24, 0.16, 0.16`。
+
+## G3 Broker 复测
+
+共享 broker 与 helper 长连接落地后，内核启动锁分支复测的 `client → broker → helper diagnostics` 往返中位数为 **1.09 ms**（目标 < 5 ms）。原始样本（ms）：`1.34, 1.02, 1.49, 0.94, 0.88, 1.09, 1.57, 1.10, 0.48, 1.48`。
+
+复测使用当前工作区构建产物（基于 `cafabd4`），以隔离 socket 启动 broker；握手并预热一次 helper 长连接后，在同一 broker IPC 连接上串行采样 10 次。该口径包含 broker JSON-lines 往返和 broker 到持久 helper 连接的完整开销。
+
+## v1 任务基线
+
+测量日期为 2026-07-14。测量时 HEAD 为 `cafabd4`，工作区包含 G2–G5 实现。每轮指一次 `bcu` CLI 调用，包括失败与恢复调用；wall time 从首个 bcu 调用开始，到最终行为取证结束。outline 字节数是所有成功响应中，含 `details.outline` 的 `result.text` UTF-8 字节总和。
+
+| 真实任务 | 结果 | 调用轮数 | Wall time | Outline 输出字节 | 证据 |
+|---|---|---:|---:|---:|---|
+| TextEdit 输入文本并验证 | 成功 | 4 | 28.42 s | 2,241 | `setText` 返回 `worked`，`--expect-text` 返回 `verified` |
+| Finder 重命名文件 | 失败 | 35 | 976.97 s | 662,660 | column view 产生大量占位节点；文件仍为 `before-g5.txt`，helper 经 `stop`/`doctor` 恢复 |
+| 系统设置切换开关 | 成功 | 8 | 160.26 s | 31,508 | `AX_SHOW_WINDOW_TITLEBAR_ICONS` 截图验证 off → on → off，原值已恢复 |
+| Finder 新建文件夹 | 成功 | 3 | 101.60 s | 19,160 | `Cmd-Shift-N` 后文件系统出现 `未命名文件夹` |
+| 浏览器打开 URL 并点击 | 成功 | 5 | 80.90 s | 432 | 从 `example.com` 点击到 IANA；恢复观察得到 `Example Domains` 和目标 URL |
+| 备忘录新建笔记 | 成功 | 6 | 84.02 s | 22,087 | 新笔记写入 `bcu G5 baseline 2026-07-14`，后置条件 verified，计数 176 → 177 |
+| **合计** | **5/6（83.3%）** | **61** | **1,432.17 s** | **738,088** | 验收线为至少 5/6 |
+
+这组数字是任务级 v1 绝对基线，不是理想值。Finder 重命名暴露 outline 膨胀；系统设置、Finder 新建文件夹、浏览器和备忘录还出现“动作已发生但 CLI 返回失败或超时”的假阴性。后续优化先保持成功率，再减少轮数和输出量。
+
+## G1→G5 对比
+
+| 指标 | G1 / 前序事实 | G5 | 结论 |
+|---|---:|---:|---|
+| client → broker → helper diagnostics RTT 中位数 | Flow 参考值 16.6 ms；G3 实测 1.09 ms | **0.55 ms** | 低于 `<5 ms` 门；仓库 G1 的 0.27 ms 是 helper 直连，不是同口径 |
+| semantic observe CLI wall time 中位数（5 次） | 未测 | **222.01 ms** | TextEdit，`semantic + image never + read-text never` |
+| semantic observe outline | 未测 | **1,371 B** | 5 次输出一致 |
+| helper 空闲 RSS | 31.81 MiB | **31.91 MiB** | 同为基准脚本冷启动后的空闲口径 |
+| broker 空闲 RSS | 无 Broker | **51.56 MiB** | 隔离 Broker，握手、预热和 diagnostics 后取样 |
+| broker + helper 空闲 RSS | 无 Broker | **83.47 MiB** | 两个进程 RSS 相加 |
+
+G5 diagnostics RTT 原始样本（ms）：`1.10, 0.54, 0.62, 0.41, 0.56, 0.75, 0.57, 0.41, 0.40, 0.38`。
+
+Semantic observe wall time 原始样本（ms）：`222.01, 216.69, 208.05, 225.89, 313.97`。每次 outline 均为 `1,371 B`。
+
+同次 `node scripts/bench.mjs` 还测得 raw helper look 端到端 `665.99 ms`（capture `320 ms`、describe `30 ms`、readText `289 ms`）和冷启动 `165.85 ms`。首次复测曾在 raw `look` 路径超时 20 秒；不改代码复查 semantic 与 fused 路径后，连续两次完整复测通过。该单次抖动保留为已知风险。
 
 ## 测量口径
 
