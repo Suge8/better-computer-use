@@ -1,17 +1,9 @@
 #!/usr/bin/env node
-import {
-	executeAct,
-	executeFind,
-	executeObserve,
-	executeSearchUi,
-	shutdownComputerUseSession,
-} from "../src/bridge.ts";
+import { requestBroker } from "../src/client.ts";
 
 const gateway = process.env.CUBENCH_GATEWAY;
 if (!gateway) throw new Error("CUBENCH_GATEWAY is required");
 
-const ctx = { cwd: process.cwd(), sessionManager: { getBranch: () => [] } };
-let calls = 0;
 let stateId;
 let root;
 
@@ -26,8 +18,6 @@ try {
 } catch (error) {
 	console.error(error instanceof Error ? error.stack ?? error.message : String(error));
 	process.exitCode = 1;
-} finally {
-	await shutdownComputerUseSession();
 }
 
 async function request(method, pathname, body) {
@@ -40,13 +30,12 @@ async function request(method, pathname, body) {
 	return await response.json();
 }
 
-async function tool(executor, params) {
-	calls += 1;
-	return await executor(`cubench-${calls}`, params, undefined, undefined, ctx);
+async function tool(command, params) {
+	return await requestBroker(command, params);
 }
 
 async function selectRoot() {
-	const found = await tool(executeFind, { app: "Chromium", kind: "window" });
+	const found = await tool("find-roots", { app: "Chromium", kind: "window" });
 	const windows = found.details?.windows ?? [];
 	const candidate = windows.find((item) => /cubench/i.test(item.windowTitle)) ?? windows.find((item) => item.isFocused) ?? windows[0];
 	if (!candidate) throw new Error("Could not find the headed Cubench Chromium window");
@@ -55,14 +44,14 @@ async function selectRoot() {
 }
 
 async function observe() {
-	const result = await tool(executeObserve, { root, mode: "fused", image: "auto" });
+	const result = await tool("observe-ui", { root, mode: "fused", image: "auto" });
 	stateId = result.details?.capture?.stateId;
 	if (!stateId) throw new Error("Cubench observation did not return a desktop state");
 	return result;
 }
 
 async function search(params) {
-	const result = await tool(executeSearchUi, { stateId, ...params, limit: 50 });
+	const result = await tool("search-ui", { stateId, ...params, limit: 50 });
 	return result.details?.matches ?? [];
 }
 
@@ -72,7 +61,7 @@ async function exact(text) {
 }
 
 async function act(actions, expect) {
-	const result = await tool(executeAct, { stateId, actions, expect, image: "auto" });
+	const result = await tool("act-ui", { stateId, actions, expect, image: "auto" });
 	stateId = result.details?.capture?.stateId;
 	if (!stateId) throw new Error("Cubench action did not return a resulting desktop state");
 	if (process.env.CUBENCH_PI_DEBUG === "1") console.error(JSON.stringify({

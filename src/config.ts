@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
 export interface ComputerUseConfig {
 	browser_use: boolean;
@@ -74,16 +74,11 @@ function readEnv(): Partial<ComputerUseConfig> {
 	return out;
 }
 
-export function loadComputerUseConfig(cwd: string): LoadedComputerUseConfig {
-	const sources = [
-		readConfigFile(path.join(getAgentDir(), "extensions", "bcu.json")),
-		readConfigFile(path.join(cwd, ".pi", "computer-use.json")),
-	];
+export function loadComputerUseConfig(): LoadedComputerUseConfig {
+	const sources = [readConfigFile(path.join(os.homedir(), ".config", "bcu", "config.json"))];
 	const env = readEnv();
 	const config = { ...DEFAULT_CONFIG };
-	for (const source of sources) {
-		if (source.values) Object.assign(config, source.values);
-	}
+	if (sources[0].values) Object.assign(config, sources[0].values);
 	Object.assign(config, env);
 	activeConfig = config;
 	activeLoadedConfig = { config, sources, env };

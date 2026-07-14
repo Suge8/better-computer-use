@@ -2,6 +2,25 @@ export type RootSelector = string | number;
 export type ImageMode = "auto" | "always" | "never";
 export type MouseButtonName = "left" | "right" | "middle";
 
+export interface ToolImage {
+	data: string;
+	mimeType: "image/jpeg" | "image/png";
+}
+
+export interface ScreenshotArtifact {
+	path: string;
+	mimeType: ToolImage["mimeType"];
+	width: number;
+	height: number;
+}
+
+export interface ToolResult<Details = unknown> {
+	text: string;
+	details: Details;
+	image?: ToolImage;
+	screenshot?: ScreenshotArtifact;
+}
+
 export interface ObserveTargetParams {
 	app?: string;
 	windowTitle?: string;
@@ -102,16 +121,35 @@ export interface WaitForParams extends StateTargetParams {
 	timeoutMs?: number;
 }
 
-export const AGENT_TOOL_NAMES = new Set([
-	"find_roots",
-	"read_text",
-	"wait_for",
-	"observe_ui",
-	"search_ui",
-	"expand_ui",
-	"inspect_ui",
-	"act_ui",
-	"navigate_browser",
-	"evaluate_browser",
-	"launch_browser",
-]);
+export interface CliCommandParams {
+	"find-roots": FindParams;
+	"observe-ui": ObserveParams;
+	"search-ui": SearchUiParams;
+	"expand-ui": ExpandUiParams;
+	"inspect-ui": InspectUiParams;
+	"act-ui": ActParams;
+	"read-text": ReadTextParams;
+	"wait-for": WaitForParams;
+	"launch-browser": LaunchBrowserParams;
+	"navigate-browser": NavigateBrowserParams;
+	"evaluate-browser": EvaluateBrowserParams;
+}
+
+export const CLI_COMMAND_NAMES = [
+	"find-roots",
+	"observe-ui",
+	"search-ui",
+	"expand-ui",
+	"inspect-ui",
+	"act-ui",
+	"read-text",
+	"wait-for",
+	"launch-browser",
+	"navigate-browser",
+	"evaluate-browser",
+] as const satisfies readonly (keyof CliCommandParams)[];
+export type CliCommandName = typeof CLI_COMMAND_NAMES[number];
+export type CliCommandExecutor<Name extends CliCommandName> = (
+	params: CliCommandParams[Name],
+	signal?: AbortSignal,
+) => Promise<ToolResult>;

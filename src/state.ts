@@ -133,7 +133,11 @@ export class SavedStates {
 					lookId: state.currentLook.lookId,
 					capturedAt: state.currentLook.capturedAt,
 					window: structuredClone(state.currentLook.window),
-					image: state.currentLook.image ? { ...state.currentLook.image } : undefined,
+					image: state.currentLook.image ? {
+						mimeType: state.currentLook.image.mimeType,
+						width: state.currentLook.image.width,
+						height: state.currentLook.image.height,
+					} : undefined,
 					timings: { ...state.currentLook.timings },
 					readText: state.currentLook.readText ? { ...state.currentLook.readText } : undefined,
 				},

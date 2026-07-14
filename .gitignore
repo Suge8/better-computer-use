@@ -1,6 +1,7 @@
 .DS_Store
 .pi/
 node_modules/
+dist/
 index-*.js
 main.js
 

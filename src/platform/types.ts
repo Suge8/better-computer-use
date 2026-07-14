@@ -1,4 +1,3 @@
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { LookResponse } from "../outline.ts";
 import type { PermissionStatus } from "../permissions.ts";
 
@@ -201,9 +200,9 @@ export interface PlatformWaitForResponse {
 
 export interface ComputerUsePlatformBackend {
 	name: PlatformName;
-	/** Release process-local resources when the Pi session is torn down. */
+	/** Release process-local resources when the current session is torn down. */
 	shutdown?(): void | Promise<void>;
-	ensureReady(ctx: ExtensionContext, state: PlatformReadyState, signal?: AbortSignal): Promise<PlatformReadyState>;
+	ensureReady(state: PlatformReadyState, signal?: AbortSignal): Promise<PlatformReadyState>;
 	listApps(signal?: AbortSignal): Promise<PlatformApp[]>;
 	listRoots(query: PlatformRootQuery, signal?: AbortSignal): Promise<PlatformRoot[]>;
 	getFrontmost(signal?: AbortSignal): Promise<PlatformFrontmostResult>;

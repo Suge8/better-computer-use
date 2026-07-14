@@ -21,14 +21,37 @@ export class StaleResourceStateError extends Error {
 	}
 }
 
-/** Bounded insertion-ordered store for immutable agent-facing observations. */
+export interface StateStoreOptions {
+	maxEntries?: number;
+	maxBytes?: number;
+	maxRecordBytes?: number;
+	ttlMs?: number;
+	now?: () => number;
+}
+
+interface StateStoreRecord<T> {
+	record: StoredState<T>;
+	bytes: number;
+	storedAt: number;
+}
+
+/** Count-, byte-, record-, and TTL-bounded store for immutable observations. */
 export class StateStore<T> {
-	private readonly records = new Map<string, StoredState<T>>();
+	private readonly records = new Map<string, StateStoreRecord<T>>();
+	private readonly maxEntries: number;
+	private readonly maxBytes: number;
+	private readonly maxRecordBytes: number;
+	private readonly ttlMs: number;
+	private readonly now: () => number;
+	private totalBytes = 0;
 
-	private readonly limit: number;
-
-	constructor(limit = 128) {
-		this.limit = limit;
+	constructor(options: number | StateStoreOptions = {}) {
+		const resolved = typeof options === "number" ? { maxEntries: options } : options;
+		this.maxEntries = resolved.maxEntries ?? 128;
+		this.maxBytes = resolved.maxBytes ?? 32 * 1024 * 1024;
+		this.maxRecordBytes = resolved.maxRecordBytes ?? 4 * 1024 * 1024;
+		this.ttlMs = resolved.ttlMs ?? 10 * 60 * 1_000;
+		this.now = resolved.now ?? Date.now;
 	}
 
 	create(resourceKey: string, epoch: number, value: T): StoredState<T> {
@@ -38,25 +61,57 @@ export class StateStore<T> {
 	}
 
 	set(record: StoredState<T>): void {
-		this.records.delete(record.stateId);
-		this.records.set(record.stateId, record);
-		while (this.records.size > this.limit) {
-			const oldest = this.records.keys().next().value as string | undefined;
+		const storedAt = this.now();
+		this.removeExpired(storedAt);
+		const bytes = Buffer.byteLength(JSON.stringify(record));
+		if (bytes > this.maxRecordBytes || bytes > this.maxBytes) {
+			throw Object.assign(new Error(`State '${record.stateId}' is ${bytes} bytes, above the configured per-state capacity.`), { code: "state_too_large" });
+		}
+		this.remove(record.stateId);
+		this.records.set(record.stateId, { record, bytes, storedAt });
+		this.totalBytes += bytes;
+		while (this.records.size > this.maxEntries || this.totalBytes > this.maxBytes) {
+			const oldest = this.records.keys().next().value;
 			if (!oldest) break;
-			this.records.delete(oldest);
+			this.remove(oldest);
 		}
 	}
 
 	get(stateId: string): StoredState<T> | undefined {
-		return this.records.get(stateId);
+		const stored = this.records.get(stateId);
+		if (!stored) return undefined;
+		if (this.now() - stored.storedAt >= this.ttlMs) {
+			this.remove(stateId);
+			return undefined;
+		}
+		return stored.record;
 	}
 
 	clear(): void {
 		this.records.clear();
+		this.totalBytes = 0;
 	}
 
 	get size(): number {
 		return this.records.size;
+	}
+
+	get byteSize(): number {
+		return this.totalBytes;
+	}
+
+	private removeExpired(now: number): void {
+		for (const [stateId, stored] of this.records) {
+			if (now - stored.storedAt < this.ttlMs) continue;
+			this.remove(stateId);
+		}
+	}
+
+	private remove(stateId: string): void {
+		const stored = this.records.get(stateId);
+		if (!stored) return;
+		this.records.delete(stateId);
+		this.totalBytes -= stored.bytes;
 	}
 }
 

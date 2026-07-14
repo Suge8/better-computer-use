@@ -53,7 +53,7 @@ export interface Outline {
 }
 
 export interface LookImage {
-	jpegBase64: string;
+	jpegBase64?: string;
 	mimeType?: "image/jpeg" | "image/png";
 	width: number;
 	height: number;

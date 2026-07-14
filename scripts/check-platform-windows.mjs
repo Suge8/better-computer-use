@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import { defaultBrokerSocketPath, brokerSocketUsesFilesystem } from "../src/ipc.ts";
 import { platformBackendForRuntime } from "../src/platform/index.ts";
 import { assertPlatformArchitecture, PLATFORM_ARCHITECTURE_VERSION, REQUIRED_PLATFORM_INVARIANTS } from "../src/platform/architecture.ts";
 
@@ -11,6 +12,11 @@ assert.equal(typeof win.listRoots, "function");
 assert.equal(typeof win.observe, "function");
 assert.equal(typeof win.act, "function");
 assert.equal(typeof win.actBatch, "function");
+const windowsPipe = defaultBrokerSocketPath("win32", "C:\\Users\\Agent");
+assert.match(windowsPipe, /^\\\\\.\\pipe\\bcu-broker-[a-f0-9]{16}$/);
+assert.equal(brokerSocketUsesFilesystem("win32"), false);
+assert.equal(brokerSocketUsesFilesystem("darwin"), true);
+assert.equal(defaultBrokerSocketPath("darwin", "/Users/agent"), "/Users/agent/Library/Caches/bcu/broker.sock");
 
 const mac = platformBackendForRuntime("darwin");
 assert.equal(mac.name, "macos");

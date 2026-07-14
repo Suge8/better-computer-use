@@ -4,13 +4,13 @@
  * Smoke tests for Windows build/install script paths (Task 7).
  *
  * Exercises --platform windows argument routing and path alignment
- * without requiring Windows or a committed prebuilt binary.
+ * without requiring a Windows host or modifying committed prebuilt binaries.
  *
  * Verifies:
  *   1. Path constants stay aligned with the Windows backend helper path
  *   2. windowsBinaryPath() candidate logic
  *   3. --platform windows CLI routing in both scripts
- *   4. Expected error messages when prebuilt/cargo are absent
+ *   4. Packaged prebuilt installation without Cargo
  *   5. Existing macOS/Linux skip/fallback paths remain unchanged
  */
 
@@ -37,6 +37,8 @@ function fileFingerprint(filePath) {
 
 const liveHelperBefore = fileFingerprint(LIVE_HELPER);
 const armPrebuiltBefore = fileFingerprint(path.join(ROOT, "prebuilt", "macos", "arm64", "bridge"));
+const windowsPrebuilt = path.join(ROOT, "prebuilt", "windows", "windows-bridge.exe");
+const windowsPrebuiltBefore = fileFingerprint(windowsPrebuilt);
 
 // ---------------------------------------------------------------------------
 // Path constants – replicated to avoid crossing the TS/ESM module boundary
@@ -161,9 +163,6 @@ tap(
 // 2. CLI routing – build-native.mjs
 // ---------------------------------------------------------------------------
 
-// Start fresh: ensure prebuilt/windows/ does not exist from a prior run.
-rmSilent(path.join(ROOT, "prebuilt", "windows"));
-
 console.log(`\n${LABEL} build-native.mjs --platform windows (output to tmpdir)`);
 
 // Use a temp output path so we never pollute prebuilt/windows/ during tests.
@@ -183,11 +182,8 @@ const tmpBuildOut = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "pi-windows-
 }
 rmSilent(path.dirname(tmpBuildOut));
 
-// After the build above, cargo may have left target/release/windows-bridge but
-// the prebuilt directory in the repo should be untouched. Verify it still
-// doesn't exist (the script used --output → our tmpdir, not the default path).
-const prebuiltDir = path.join(ROOT, "prebuilt", "windows");
-tap(!fs.existsSync(prebuiltDir), true, "prebuilt/windows/ not created in repo (used --output)");
+// The explicit output must not replace the packaged helper.
+tap(fileFingerprint(windowsPrebuilt), windowsPrebuiltBefore, "temporary build does not replace packaged Windows helper");
 
 function isWin32() { return process.platform === "win32"; }
 function isDarwin() { return process.platform === "darwin"; }
@@ -327,6 +323,7 @@ tap(
 console.log(`\n${LABEL} Live-install isolation`);
 tap(fileFingerprint(LIVE_HELPER), liveHelperBefore, "tests do not modify the installed macOS helper");
 tap(fileFingerprint(path.join(ROOT, "prebuilt", "macos", "arm64", "bridge")), armPrebuiltBefore, "tests do not rebuild the committed macOS helper");
+tap(fileFingerprint(windowsPrebuilt), windowsPrebuiltBefore, "tests do not remove or replace the committed Windows helper");
 
 // ---------------------------------------------------------------------------
 // Summary

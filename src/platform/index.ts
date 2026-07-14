@@ -1,11 +1,13 @@
 import { macosBackend } from "./macos/backend.ts";
 import { isBrowserApp, isChromeFamilyApp, openBrowserLocationWithAppleScript } from "./macos/browser.ts";
+import { macosHelper } from "./macos/helper.ts";
 import { ensureMacosReady } from "./macos/permissions.ts";
 import type { ComputerUsePlatformBackend, PlatformName } from "./types.ts";
 import { windowsBackend } from "./windows/backend.ts";
 
 const macosPlatformBackend: ComputerUsePlatformBackend = {
 	name: "macos",
+	shutdown: () => macosHelper.dispose(),
 	ensureReady: ensureMacosReady,
 	listApps: macosBackend.listApps,
 	listRoots: macosBackend.listRoots,

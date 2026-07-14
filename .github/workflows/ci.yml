@@ -41,3 +41,66 @@ jobs:
         env:
           GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: npm run test:commits
+
+  broker-windows:
+    name: Windows package and broker
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Record committed helper hash
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash prebuilt/windows/windows-bridge.exe -Algorithm SHA256).Hash
+          "PACKAGED_WINDOWS_HELPER_HASH=$hash" >> $env:GITHUB_ENV
+
+      - name: Run Windows checks
+        run: npm test && npm run test:windows-scripts
+
+      - name: Link CLI
+        run: npm link && where.exe bcu
+
+      - name: Install and smoke-test committed package
+        shell: pwsh
+        run: |
+          $checkoutHash = (Get-FileHash prebuilt/windows/windows-bridge.exe -Algorithm SHA256).Hash
+          if ($checkoutHash -ne $env:PACKAGED_WINDOWS_HELPER_HASH) { throw "Committed prebuilt changed before package smoke" }
+          $report = npm pack --json --ignore-scripts | ConvertFrom-Json
+          $tarball = Join-Path $PWD $report[0].filename
+          npm install --global $tarball
+          where.exe bcu
+          $installedHelper = Join-Path $HOME ".bcu/helpers/windows-bridge.exe"
+          $installedHash = (Get-FileHash $installedHelper -Algorithm SHA256).Hash
+          if ($installedHash -ne $env:PACKAGED_WINDOWS_HELPER_HASH) { throw "Installed helper differs from committed prebuilt" }
+          $doctor = bcu doctor --json | ConvertFrom-Json
+          if (-not $doctor.ok) { throw "bcu doctor failed" }
+          $roots = bcu find-roots --json | ConvertFrom-Json
+          if (-not $roots.ok) { throw "bcu find-roots failed" }
+          bcu stop
+
+      - name: Build current Windows helper without replacing prebuilt
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP "windows-bridge.exe"
+          npm run build:windows -- --output $output
+          $diagnostics = '{"protocolVersion":4,"id":"ci","cmd":"diagnostics","args":{}}' | & $output | ConvertFrom-Json
+          if (-not $diagnostics.ok) { throw "Source-built helper diagnostics failed" }
+
+      - name: Verify committed helper was not replaced
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash prebuilt/windows/windows-bridge.exe -Algorithm SHA256).Hash
+          if ($hash -ne $env:PACKAGED_WINDOWS_HELPER_HASH) { throw "Committed prebuilt changed during CI" }

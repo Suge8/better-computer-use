@@ -4,13 +4,22 @@ import { access, mkdir } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { setupHelperScriptPath } from "../../package-root.ts";
+import { waitForPathReady } from "../../readiness.ts";
 import { toBoolean, toFiniteNumber, toOptionalString } from "../coerce.ts";
 import type { PlatformDiagnostics } from "../types.ts";
 
 const COMMAND_TIMEOUT_MS = 15_000;
-const HELPER_PROTOCOL_VERSION = 6;
+export const HELPER_PROTOCOL_VERSION = 6;
 const HELPER_SETUP_TIMEOUT_MS = 60_000;
+
+interface PendingResponse {
+	resolve(value: unknown): void;
+	reject(error: Error): void;
+	timer: NodeJS.Timeout;
+	signal?: AbortSignal;
+	onAbort?: () => void;
+}
 
 export const HELPER_BUNDLE_ID = "com.sugeh.bcu";
 export const HELPER_APP_PATH = "/Applications/bcu.app";
@@ -18,9 +27,6 @@ export const HELPER_APP_EXECUTABLE_PATH = path.join(HELPER_APP_PATH, "Contents",
 const DEFAULT_HELPER_SOCKET_PATH = path.join(os.homedir(), "Library", "Caches", "bcu", "bridge.sock");
 export const HELPER_SOCKET_PATH = process.env.BCU_SOCKET_PATH ?? DEFAULT_HELPER_SOCKET_PATH;
 const usingExternalHelperSocket = HELPER_SOCKET_PATH !== DEFAULT_HELPER_SOCKET_PATH;
-
-const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const SETUP_HELPER_SCRIPT = path.join(PACKAGE_ROOT, "scripts", "setup-helper.mjs");
 
 export class HelperTransportError extends Error {
 	constructor(message: string) {
@@ -41,18 +47,6 @@ export class HelperCommandError extends Error {
 
 function throwIfAborted(signal?: AbortSignal): void {
 	if (signal?.aborted) throw new Error("Operation aborted.");
-}
-
-async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-	throwIfAborted(signal);
-	await new Promise<void>((resolve, reject) => {
-		const timer = setTimeout(resolve, ms);
-		const onAbort = () => {
-			clearTimeout(timer);
-			reject(new Error("Operation aborted."));
-		};
-		signal?.addEventListener("abort", onAbort, { once: true });
-	}).finally(() => signal?.throwIfAborted?.());
 }
 
 async function isExecutable(filePath: string): Promise<boolean> {
@@ -131,9 +125,27 @@ export class MacosHelperClient {
 	private daemonAvailable = false;
 	private requestSequence = 0;
 	private diagnosticsCache?: PlatformDiagnostics;
+	private socket?: net.Socket;
+	private openingSocket?: net.Socket;
+	private connecting?: Promise<net.Socket>;
+	private buffer = "";
+	private readonly pending = new Map<string, PendingResponse>();
+	private readonly disconnectWaiters = new Set<() => void>();
 
 	get diagnostics(): PlatformDiagnostics | undefined {
 		return this.diagnosticsCache;
+	}
+
+	dispose(): void {
+		this.daemonAvailable = false;
+		this.openingSocket?.destroy();
+		this.openingSocket = undefined;
+		const socket = this.socket;
+		this.socket = undefined;
+		socket?.destroy();
+		this.buffer = "";
+		this.rejectPending(new HelperTransportError("bcu helper connection closed."));
+		this.notifyDisconnected();
 	}
 
 	async ensureInstalled(signal?: AbortSignal): Promise<void> {
@@ -147,7 +159,7 @@ export class MacosHelperClient {
 		}
 
 		// setup-helper syncs the installed helper version/signature once per session.
-		await runProcess(process.execPath, [SETUP_HELPER_SCRIPT, "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, {
+		await runProcess(process.execPath, [setupHelperScriptPath(), "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, {
 			...process.env,
 			ELECTRON_RUN_AS_NODE: "1",
 		});
@@ -164,53 +176,161 @@ export class MacosHelperClient {
 		await runProcess("open", ["-n", "-g", "-b", HELPER_BUNDLE_ID, "--args", "serve", "--socket", HELPER_SOCKET_PATH], COMMAND_TIMEOUT_MS, signal);
 	}
 
+	private async connection(signal?: AbortSignal): Promise<net.Socket> {
+		throwIfAborted(signal);
+		if (this.socket && !this.socket.destroyed) return this.socket;
+		if (!this.connecting) {
+			const socket = net.createConnection(HELPER_SOCKET_PATH);
+			this.openingSocket = socket;
+			socket.setEncoding("utf8");
+			const connecting = new Promise<net.Socket>((resolve, reject) => {
+				let connected = false;
+				socket.once("connect", () => {
+					connected = true;
+					this.openingSocket = undefined;
+					this.socket = socket;
+					this.buffer = "";
+					resolve(socket);
+				});
+				socket.on("data", (chunk: string) => this.onData(chunk));
+				socket.on("error", (error) => {
+					const transportError = new HelperTransportError(error.message);
+					if (!connected) reject(transportError);
+					this.disconnect(socket, transportError);
+				});
+				socket.on("close", () => {
+					const error = new HelperTransportError("bcu helper connection closed.");
+					if (!connected) reject(error);
+					this.disconnect(socket, error);
+				});
+			});
+			const trackedConnection = connecting.finally(() => {
+				if (this.connecting === trackedConnection) this.connecting = undefined;
+				if (this.openingSocket === socket) this.openingSocket = undefined;
+			});
+			this.connecting = trackedConnection;
+		}
+		const connecting = this.connecting;
+		if (!signal) return await connecting;
+		return await new Promise<net.Socket>((resolve, reject) => {
+			const onAbort = () => { cleanup(); reject(new Error("Operation aborted.")); };
+			const cleanup = () => signal.removeEventListener("abort", onAbort);
+			signal.addEventListener("abort", onAbort, { once: true });
+			connecting.then(
+				(socket) => { cleanup(); resolve(socket); },
+				(error) => { cleanup(); reject(error); },
+			);
+		});
+	}
+
+	private onData(chunk: string): void {
+		this.buffer += chunk;
+		for (;;) {
+			const newline = this.buffer.indexOf("\n");
+			if (newline < 0) return;
+			const line = this.buffer.slice(0, newline).trim();
+			this.buffer = this.buffer.slice(newline + 1);
+			if (!line) continue;
+			let parsed: any;
+			try { parsed = JSON.parse(line); } catch { continue; }
+			const pending = this.takePending(parsed?.id);
+			if (!pending) continue;
+			if (parsed.ok === true) pending.resolve(parsed.result);
+			else pending.reject(new HelperCommandError(parsed?.error?.message ?? "Daemon command failed.", parsed?.error?.code));
+		}
+	}
+
+	private takePending(id: unknown): PendingResponse | undefined {
+		if (typeof id !== "string") return undefined;
+		const pending = this.pending.get(id);
+		if (!pending) return undefined;
+		this.pending.delete(id);
+		clearTimeout(pending.timer);
+		if (pending.signal && pending.onAbort) pending.signal.removeEventListener("abort", pending.onAbort);
+		return pending;
+	}
+
+	private disconnect(socket: net.Socket, error: HelperTransportError): void {
+		if (this.socket !== socket) return;
+		this.socket = undefined;
+		socket.destroy();
+		this.daemonAvailable = false;
+		this.buffer = "";
+		this.rejectPending(error);
+		this.notifyDisconnected();
+	}
+
+	private notifyDisconnected(): void {
+		for (const resolve of this.disconnectWaiters) resolve();
+		this.disconnectWaiters.clear();
+	}
+
+	private waitForDisconnect(signal?: AbortSignal): Promise<void> {
+		if (!this.socket) return Promise.resolve();
+		return new Promise((resolve, reject) => {
+			const cleanup = () => {
+				clearTimeout(timeout);
+				this.disconnectWaiters.delete(onDisconnect);
+				signal?.removeEventListener("abort", onAbort);
+			};
+			const onDisconnect = () => { cleanup(); resolve(); };
+			const onAbort = () => { cleanup(); reject(new Error("Operation aborted.")); };
+			const timeout = setTimeout(() => {
+				cleanup();
+				reject(new HelperTransportError("Timed out waiting for the old bcu helper to exit."));
+			}, 3_000);
+			this.disconnectWaiters.add(onDisconnect);
+			signal?.addEventListener("abort", onAbort, { once: true });
+		});
+	}
+
+	private rejectPending(error: Error): void {
+		for (const id of [...this.pending.keys()]) this.takePending(id)?.reject(error);
+	}
+
 	async daemonCommand<T>(cmd: string, args: Record<string, unknown>, timeoutMs: number, signal?: AbortSignal): Promise<T> {
+		const socket = await this.connection(signal);
+		throwIfAborted(signal);
 		return await new Promise<T>((resolve, reject) => {
 			const id = `req_${++this.requestSequence}`;
-			const socket = net.createConnection(HELPER_SOCKET_PATH);
-			let buffer = "";
-			const timer = setTimeout(() => { socket.destroy(); reject(new HelperTransportError(`Daemon command '${cmd}' timed out after ${timeoutMs}ms.`)); }, timeoutMs);
-			const cleanup = () => { clearTimeout(timer); signal?.removeEventListener("abort", onAbort); };
-			const onAbort = () => { socket.destroy(); cleanup(); reject(new Error("Operation aborted.")); };
+			const timer = setTimeout(() => {
+				const pending = this.takePending(id);
+				pending?.reject(new HelperTransportError(`Daemon command '${cmd}' timed out after ${timeoutMs}ms.`));
+			}, timeoutMs);
+			const onAbort = () => this.takePending(id)?.reject(new Error("Operation aborted."));
+			this.pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer, signal, onAbort });
 			signal?.addEventListener("abort", onAbort, { once: true });
-			socket.setEncoding("utf8");
-			socket.on("connect", () => socket.write(`${JSON.stringify({ id, cmd, ...args })}\n`));
-			socket.on("data", (chunk) => {
-				buffer += chunk;
-				const newline = buffer.indexOf("\n");
-				if (newline < 0) return;
-				cleanup();
-				socket.end();
-				try {
-					const parsed = JSON.parse(buffer.slice(0, newline));
-					if (parsed.ok === true) resolve(parsed.result as T);
-					else reject(new HelperCommandError(parsed?.error?.message ?? `Daemon command '${cmd}' failed.`, parsed?.error?.code));
-				} catch (error) {
-					reject(error);
-				}
+			socket.write(`${JSON.stringify({ id, cmd, ...args })}\n`, (error) => {
+				if (error) this.takePending(id)?.reject(new HelperTransportError(error.message));
 			});
-			socket.on("error", (error) => { cleanup(); reject(new HelperTransportError(error.message)); });
 		});
 	}
 
 	async ensureDaemon(signal?: AbortSignal): Promise<boolean> {
 		if (this.daemonAvailable) return true;
 		try {
-			await this.daemonCommand("diagnostics", {}, 1_000, signal);
-			this.daemonAvailable = true;
+			await waitForPathReady(
+				HELPER_SOCKET_PATH,
+				() => this.launchDaemon(signal),
+				async () => {
+					try {
+						await this.daemonCommand("diagnostics", {}, 1_000, signal);
+						this.daemonAvailable = true;
+						return true;
+					} catch (error) {
+						throwIfAborted(signal);
+						if (!(error instanceof HelperTransportError)) throw error;
+						return false;
+					}
+				},
+				{ timeoutMs: COMMAND_TIMEOUT_MS, description: "the bcu helper socket", signal },
+			);
 			return true;
-		} catch {}
-		await this.launchDaemon(signal).catch(() => undefined);
-		for (let index = 0; index < 30; index += 1) {
-			try {
-				await this.daemonCommand("diagnostics", {}, 1_000, signal);
-				this.daemonAvailable = true;
-				return true;
-			} catch {
-				await sleep(100, signal);
-			}
+		} catch (error) {
+			throwIfAborted(signal);
+			if (!(error instanceof HelperTransportError) && !String((error as Error)?.message).startsWith("Timed out waiting")) throw error;
+			return false;
 		}
-		return false;
 	}
 
 	async command<T>(cmd: string, args: Record<string, unknown> = {}, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
@@ -221,15 +341,15 @@ export class MacosHelperClient {
 		try {
 			return await this.daemonCommand<T>(cmd, args, timeoutMs, options?.signal);
 		} catch (error) {
-			this.daemonAvailable = false;
+			if (error instanceof HelperTransportError) this.daemonAvailable = false;
 			throw error instanceof Error ? error : new Error(String(error));
 		}
 	}
 
 	async restart(signal?: AbortSignal): Promise<void> {
+		const disconnected = this.waitForDisconnect(signal);
 		await this.command("shutdown", {}, { signal, timeoutMs: 2_000 }).catch(() => undefined);
-		this.daemonAvailable = false;
-		await sleep(400, signal);
+		await disconnected;
 		if (!(await this.ensureDaemon(signal))) {
 			throw new Error(`bcu helper did not come back after restart. Helper app: ${HELPER_APP_PATH}`);
 		}
@@ -260,7 +380,7 @@ export class MacosHelperClient {
 		let diagnostics = await this.diagnosticsCommand(signal);
 		if (diagnostics.protocolVersion === HELPER_PROTOCOL_VERSION) return diagnostics;
 
-		// The helper daemon outlives Pi, so restarting/reloading Pi alone does not
+		// The helper daemon outlives a bcu process, so restarting the CLI alone does not
 		// replace a daemon that is still serving the previous installed binary.
 		// Stop it through the backwards-compatible command channel and relaunch
 		// the app that ensureInstalled() has just synced to /Applications.

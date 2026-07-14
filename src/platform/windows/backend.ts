@@ -87,11 +87,11 @@ function helperAction(request: PlatformActRequest): Record<string, unknown> {
 	return { ...request, target: request.target.focus, params: { ...request.params, preserveFocus: true } };
 }
 
-async function ensureReady(_ctx: unknown, state: PlatformReadyState, signal?: AbortSignal): Promise<PlatformReadyState> {
+async function ensureReady(state: PlatformReadyState, signal?: AbortSignal): Promise<PlatformReadyState> {
 	await windowsHelper.ensureInstalled(signal);
 	const diagnostics = await windowsHelper.command<any>("diagnostics", {}, { signal, timeoutMs: 5_000 });
 	if (diagnostics?.protocolVersion !== WINDOWS_HELPER_PROTOCOL_VERSION) {
-		throw new Error(`Windows helper protocol mismatch: expected ${WINDOWS_HELPER_PROTOCOL_VERSION}, got ${diagnostics?.protocolVersion ?? "unknown"}. Restart Pi to use the installed helper.`);
+		throw new Error(`Windows helper protocol mismatch: expected ${WINDOWS_HELPER_PROTOCOL_VERSION}, got ${diagnostics?.protocolVersion ?? "unknown"}. Restart bcu to use the installed helper.`);
 	}
 	assertPlatformArchitecture("Windows", diagnostics);
 	return { ...state, lastPermissionCheckAt: Date.now(), helperDiagnostics: diagnostics };

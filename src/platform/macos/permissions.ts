@@ -1,4 +1,3 @@
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { ensurePermissions, type PermissionKind, type PermissionStatus } from "../../permissions.ts";
 import { toBoolean, toFiniteNumber, toOptionalString } from "../coerce.ts";
 import type { PlatformReadyState } from "../types.ts";
@@ -14,10 +13,7 @@ const SIGNING_MIGRATION_WARNING =
 	"bcu.app was re-signed. Re-enable both toggles for the newly signed helper. " +
 	"If a toggle is already on, switch it off and on again.";
 
-const macosPermissionKinds = [
-	{ kind: "accessibility" as const, openOption: "Open Accessibility Settings (missing)" },
-	{ kind: "screenRecording" as const, openOption: "Open Screen Recording Settings (missing)" },
-];
+const macosPermissionKinds: PermissionKind[] = ["accessibility", "screenRecording"];
 
 function permissionStatusSummary(status: PermissionStatus): string {
 	const lines = [
@@ -33,25 +29,18 @@ function permissionStatusSummary(status: PermissionStatus): string {
 	return lines.join("; ");
 }
 
-function permissionPrompt(status: PermissionStatus, helperPath: string, hint?: string): string {
+function permissionMissingMessage(status: PermissionStatus, hint?: string): string {
 	return [
-		"bcu needs macOS permissions for its helper app.",
+		"bcu is missing required macOS permissions.",
 		permissionStatusSummary(status),
-		"",
-		`Helper: bcu.app (${helperPath})`,
+		GRANT_INSTRUCTIONS,
+		`Helper: bcu.app (${HELPER_APP_PATH})`,
 		hint,
-		"",
-		`Important: ${SIGNING_MIGRATION_WARNING}`,
-		"",
-		"bcu.app is already listed in the pane(s) — enable its toggle, then choose Recheck.",
+		SIGNING_MIGRATION_WARNING,
 	].filter(Boolean).join("\n");
 }
 
-function missingPermissionMessage(kinds: PermissionKind[]): string {
-	return `Still missing after restart: ${kinds.join(" and ")}. ${SIGNING_MIGRATION_WARNING} Then choose Recheck again.`;
-}
-
-async function checkPermissions(signal?: AbortSignal): Promise<PermissionStatus> {
+export async function checkMacosPermissions(signal?: AbortSignal): Promise<PermissionStatus> {
 	const result = await macosHelper.command<any>("checkPermissions", {}, { signal });
 	const rawSource = result?.source;
 	return {
@@ -79,15 +68,7 @@ async function checkPermissions(signal?: AbortSignal): Promise<PermissionStatus>
 	};
 }
 
-async function registerPermissions(signal?: AbortSignal): Promise<void> {
-	// Raises the Accessibility prompt and performs a real ScreenCaptureKit
-	// capture attempt so bcu.app is pre-listed in both Settings
-	// panes; the user only flips toggles, no "+" path picking.
-	await macosHelper.command("registerPermissions", {}, { signal, timeoutMs: 15_000 });
-}
-
 export async function ensureMacosReady(
-	ctx: ExtensionContext,
 	state: PlatformReadyState,
 	signal?: AbortSignal,
 ): Promise<PlatformReadyState> {
@@ -108,39 +89,10 @@ export async function ensureMacosReady(
 		return { ...state, helperDiagnostics };
 	}
 
-	let permissionStatus = await checkPermissions(signal);
-	let lastPermissionCheckAt = now;
-
-	if (!permissionStatus.accessibility || !permissionStatus.screenRecording) {
-		// Attribution "caller" means the helper is not running as the
-		// canonical installed app — grants would attach to the wrong identity.
-		const attributionHint = permissionStatus.source?.attribution === "caller"
-			? `Warning: the helper is not running as the installed bcu.app (executable: ${permissionStatus.source?.executablePath ?? "unknown"}). Grants made now would attach to the launching app instead. Restart Pi so the canonical helper is used.`
-			: undefined;
-		permissionStatus = await ensurePermissions(
-			ctx,
-			{
-				kinds: macosPermissionKinds,
-				copy: {
-					nonInteractiveError: (helperPath) => `bcu setup requires an interactive session. Start pi in interactive mode. ${GRANT_INSTRUCTIONS}\nHelper path: ${helperPath}`,
-					prompt: permissionPrompt,
-					incompleteError: (helperPath) => `bcu setup is incomplete. ${GRANT_INSTRUCTIONS} Helper path: ${helperPath}`,
-					readyMessage: "bcu is ready.",
-					stillMissing: missingPermissionMessage,
-				},
-				checkPermissions: (permissionSignal) => checkPermissions(permissionSignal ?? signal),
-				registerPermissions: (permissionSignal) => registerPermissions(permissionSignal ?? signal),
-				openPermissionPane: async (kind, permissionSignal) => {
-					await macosHelper.command("openPermissionPane", { kind }, { signal: permissionSignal ?? signal });
-				},
-				restartHelper: (permissionSignal) => macosHelper.restart(permissionSignal ?? signal),
-				permissionHint: attributionHint,
-			},
-			HELPER_APP_PATH,
-			signal,
-		);
-		lastPermissionCheckAt = Date.now();
-	}
-
-	return { permissionStatus, lastPermissionCheckAt, helperDiagnostics };
+	const permissionStatus = await checkMacosPermissions(signal);
+	const attributionHint = permissionStatus.source?.attribution === "caller"
+		? `Warning: the helper is not running as the installed bcu.app (executable: ${permissionStatus.source?.executablePath ?? "unknown"}). Grants made now would attach to the launching app instead. Restart bcu so the canonical helper is used.`
+		: undefined;
+	ensurePermissions(permissionStatus, macosPermissionKinds, permissionMissingMessage(permissionStatus, attributionHint));
+	return { permissionStatus, lastPermissionCheckAt: now, helperDiagnostics };
 }

@@ -2,7 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { spawn, execFile as execFileCallback } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, watch } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
 import { constants as fsConstants } from "node:fs";
@@ -223,32 +223,101 @@ async function findLocalSigningIdentity() {
 	return parseCodeSigningIdentities(output)[0];
 }
 
-function delay(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const localLockTails = new Map();
 
-export async function withDirectoryLock(lockPath, callback, { waitMs = 15_000, staleMs = 300_000, retryMs = 50 } = {}) {
-	const deadline = Date.now() + waitMs;
-	while (true) {
-		try {
-			await fs.mkdir(lockPath);
-			break;
-		} catch (error) {
-			if (error?.code !== "EEXIST") throw error;
-			const stat = await fs.stat(lockPath).catch(() => undefined);
-			if (stat && Date.now() - stat.mtimeMs > staleMs) {
-				await fs.rm(lockPath, { force: true, recursive: true }).catch(() => undefined);
-				continue;
-			}
-			if (Date.now() >= deadline) throw new Error(`Timed out waiting for local signing identity lock at ${lockPath}.`);
-			await delay(retryMs);
-		}
-	}
+async function withLocalLockQueue(lockPath, callback) {
+	const previous = localLockTails.get(lockPath) ?? Promise.resolve();
+	let release;
+	const turn = new Promise((resolve) => { release = resolve; });
+	const tail = previous.then(() => turn);
+	localLockTails.set(lockPath, tail);
+	await previous;
 	try {
 		return await callback();
 	} finally {
-		await fs.rm(lockPath, { force: true, recursive: true }).catch(() => undefined);
+		release();
+		if (localLockTails.get(lockPath) === tail) localLockTails.delete(lockPath);
 	}
+}
+
+async function tryDirectoryLock(lockPath, staleMs) {
+	try {
+		await fs.mkdir(lockPath);
+		return true;
+	} catch (error) {
+		if (error?.code !== "EEXIST") throw error;
+	}
+	const stat = await fs.stat(lockPath).catch(() => undefined);
+	if (!stat || Date.now() - stat.mtimeMs <= staleMs) return false;
+	await fs.rm(lockPath, { force: true, recursive: true }).catch(() => undefined);
+	try {
+		await fs.mkdir(lockPath);
+		return true;
+	} catch (error) {
+		if (error?.code === "EEXIST") return false;
+		throw error;
+	}
+}
+
+async function acquireDirectoryLock(lockPath, { waitMs, staleMs }) {
+	await fs.mkdir(path.dirname(lockPath), { recursive: true });
+	if (await tryDirectoryLock(lockPath, staleMs)) return;
+	const directory = path.dirname(lockPath);
+	const filename = path.basename(lockPath);
+	const watcher = watch(directory);
+	await new Promise((resolve, reject) => {
+		let acquiring = false;
+		let eventQueued = false;
+		let settled = false;
+		const finish = (error) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timeout);
+			watcher.close();
+			if (error) reject(error);
+			else resolve();
+		};
+		const acquire = async () => {
+			if (settled) return;
+			if (acquiring) {
+				eventQueued = true;
+				return;
+			}
+			acquiring = true;
+			try {
+				do {
+					eventQueued = false;
+					if (await tryDirectoryLock(lockPath, staleMs)) {
+						finish();
+						return;
+					}
+				} while (eventQueued && !settled);
+			} catch (error) {
+				finish(error);
+			} finally {
+				acquiring = false;
+			}
+		};
+		const timeout = setTimeout(() => finish(new Error(`Timed out waiting for local signing identity lock at ${lockPath}.`)), waitMs);
+		watcher.on("change", (_event, changed) => {
+			if (changed !== null && String(changed) !== filename) return;
+			eventQueued = true;
+			void acquire();
+		});
+		watcher.on("error", finish);
+		void acquire();
+	});
+}
+
+export async function withDirectoryLock(lockPath, callback, { waitMs = 15_000, staleMs = 300_000 } = {}) {
+	return await withLocalLockQueue(lockPath, async () => {
+		await acquireDirectoryLock(lockPath, { waitMs, staleMs });
+		try {
+			return await callback();
+		} finally {
+			await fs.rm(lockPath, { force: true, recursive: true }).catch(() => undefined);
+		}
+	});
 }
 
 export async function ensureIdentityOnce(findIdentity, createIdentity, withLock) {

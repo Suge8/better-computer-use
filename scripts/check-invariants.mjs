@@ -3,14 +3,19 @@ import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import typescript from "typescript";
 import { noteAfterAct, noteFromLook } from "../src/note.ts";
 import { countOutlineNodes, foldToBudget, graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
 
-const root = path.resolve(new URL("..", import.meta.url).pathname);
+const root = fileURLToPath(new URL("..", import.meta.url));
 const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
 const ts = fs.readFileSync(path.join(root, "src/bridge.ts"), "utf8");
 const noteTs = fs.readFileSync(path.join(root, "src/note.ts"), "utf8");
 const configTs = fs.readFileSync(path.join(root, "src/config.ts"), "utf8");
+const contractTs = fs.readFileSync(path.join(root, "src/contract.ts"), "utf8");
+const cliTs = fs.readFileSync(path.join(root, "src/cli.ts"), "utf8");
+const brokerTs = fs.readFileSync(path.join(root, "src/broker.ts"), "utf8");
 const setupHelper = fs.readFileSync(path.join(root, "scripts/setup-helper.mjs"), "utf8");
 const srcFiles = fs.readdirSync(path.join(root, "src"), { recursive: true })
 	.filter((file) => typeof file === "string" && file.endsWith(".ts"))
@@ -116,7 +121,7 @@ check("INV-6 static note is derived and disposable", () => {
 		assert(/^note|^render/.test(match[1]), `src/note.ts exports non-note/render function ${match[1]}`);
 	}
 	assert(!/export\s+(let|const|var)\s+/.test(noteTs), "src/note.ts exports mutable or module state");
-	const allowed = new Set(["captureCurrentTarget", "runActionTool", "reconstructStateFromBranch", "shutdownComputerUseSession"]);
+	const allowed = new Set(["captureCurrentTarget", "runActionTool", "shutdownComputerUseSession"]);
 	for (const match of ts.matchAll(/runtimeState\.currentNote\s*=/g)) {
 		const fn = enclosingFunctionName(ts, match.index ?? 0);
 		assert(allowed.has(fn), `runtimeState.currentNote assigned in ${fn}`);
@@ -131,13 +136,16 @@ check("INV-7 static no label-confirm press regex", () => {
 });
 
 check("INV-8 tsc no unused locals", () => {
-	execFileSync("npx", ["tsc", "--noEmit"], { cwd: root, stdio: "pipe" });
+	execFileSync(process.execPath, [path.join(root, "node_modules", "typescript", "bin", "tsc"), "--noEmit"], { cwd: root, stdio: "pipe" });
 });
 
 check("INV-9 immutable state ownership", () => {
 	const state = fs.readFileSync(path.join(root, "src/state.ts"), "utf8");
+	const runtime = fs.readFileSync(path.join(root, "src/runtime.ts"), "utf8");
 	assert(!/runtimeState\.current(Target|Capture|Look|Outline|Note|ImageMode|StateTarget)/.test(ts), "global current UI state remains in bridge");
 	assert(state.includes("class SavedStates") && state.includes("new StateStore<UiObservation>"), "unified bounded observation store is missing");
+	for (const gate of ["maxEntries", "maxBytes", "maxRecordBytes", "ttlMs"]) assert(runtime.includes(gate), `state store lacks ${gate} gate`);
+	assert(!/image: state\.currentLook\.image \? \{ \.\.\.state\.currentLook\.image \}/.test(state), "saved state retains screenshot bytes");
 });
 
 check("INV-10 resource-keyed scheduling", () => {
@@ -145,13 +153,44 @@ check("INV-10 resource-keyed scheduling", () => {
 	assert(!ts.includes("withRuntimeLock"), "global runtime lock remains");
 });
 
-check("INV-11 unified agent contract", () => {
-	const extension = fs.readFileSync(path.join(root, "extensions/computer-use.ts"), "utf8");
-	const tools = [...extension.matchAll(/\bname:\s*"([^"]+)"/g)].map((match) => match[1]);
-	const expected = ["find_roots", "observe_ui", "search_ui", "expand_ui", "inspect_ui", "act_ui", "read_text", "wait_for", "launch_browser", "navigate_browser", "evaluate_browser"];
-	assert(JSON.stringify(tools) === JSON.stringify(expected), `unexpected public tool surface: ${tools.join(", ")}`);
-	assert(!extension.includes('executionMode: "sequential"'), "computer-use tools remain globally sequential");
-	assert(extension.includes("Required state id owning every @e ref"), "state-scoped ref contract is missing");
+check("INV-11 unified CLI contract and bridge ownership", () => {
+	const commands = [...cliTs.matchAll(/^\s*"([^"]+)": executor\("[^"]+"\),$/gm)].map((match) => match[1]);
+	const expected = ["find-roots", "observe-ui", "search-ui", "expand-ui", "inspect-ui", "act-ui", "read-text", "wait-for", "launch-browser", "navigate-browser", "evaluate-browser"];
+	assert(JSON.stringify(commands) === JSON.stringify(expected), `unexpected public CLI tool surface: ${commands.join(", ")}`);
+	for (const command of expected) assert(contractTs.includes(`"${command}"`), `CLI parameter contract lacks ${command}`);
+	assert(cliTs.includes("satisfies { [Name in CliCommandName]: CliCommandExecutor<Name> }"), "CLI command table is not type-checked against the contract");
+	const sourceFiles = [
+		...srcFiles.map(([file, text]) => [`src/${file}`, text]),
+		...fs.readdirSync(path.join(root, "scripts"), { recursive: true })
+			.filter((file) => typeof file === "string" && file.endsWith(".mjs"))
+			.map((file) => [`scripts/${file}`, fs.readFileSync(path.join(root, "scripts", file), "utf8")]),
+	];
+	const bridgeImports = [];
+	for (const [file, text] of sourceFiles) {
+		const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.Latest, false, file.endsWith(".ts") ? typescript.ScriptKind.TS : typescript.ScriptKind.JS);
+		const visit = (node) => {
+			let specifier;
+			if ((typescript.isImportDeclaration(node) || typescript.isExportDeclaration(node)) && node.moduleSpecifier && typescript.isStringLiteral(node.moduleSpecifier)) {
+				specifier = node.moduleSpecifier.text;
+			} else if (typescript.isCallExpression(node) && node.arguments.length === 1 && typescript.isStringLiteral(node.arguments[0])) {
+				const dynamicImport = node.expression.kind === typescript.SyntaxKind.ImportKeyword;
+				const requireCall = typescript.isIdentifier(node.expression) && node.expression.text === "require";
+				if (dynamicImport || requireCall) specifier = node.arguments[0].text;
+			}
+			if (specifier?.endsWith("bridge.ts")) bridgeImports.push(file);
+			typescript.forEachChild(node, visit);
+		};
+		visit(source);
+	}
+	const allowedBridgeImports = ["scripts/check-session-lifecycle.mjs", "src/broker.ts"];
+	assert(JSON.stringify(bridgeImports.sort()) === JSON.stringify(allowedBridgeImports), `unexpected bridge runtime owners: ${bridgeImports.join(", ")}`);
+	const cubench = fs.readFileSync(path.join(root, "scripts/pi-cubench-agent.mjs"), "utf8");
+	const cubenchCommands = [...cubench.matchAll(/tool\("([^"]+)"/g)].map((match) => match[1]).sort();
+	assert(JSON.stringify(cubenchCommands) === JSON.stringify(["act-ui", "find-roots", "observe-ui", "search-ui"]), `unexpected Cubench broker commands: ${cubenchCommands.join(", ")}`);
+	for (const command of cubenchCommands) assert(brokerTs.includes(`case "${command}"`), `broker does not dispatch Cubench command ${command}`);
+	assert(cubench.includes('from "../src/client.ts"'), "Cubench agent does not use the broker client");
+	assert(cliTs.includes('await import("./broker.ts")'), "broker is not lazily loaded behind __serve");
+	assert(!fs.existsSync(path.join(root, "extensions")), "Pi extension surface still exists");
 });
 
 check("INV-12 parallel native transports", () => {
@@ -172,10 +211,9 @@ check("INV-14 native batches settle once", () => {
 });
 
 check("INV-15 semantic action postconditions", () => {
-	const extension = fs.readFileSync(path.join(root, "extensions/computer-use.ts"), "utf8");
 	const actions = fs.readFileSync(path.join(root, "src/actions.ts"), "utf8");
 	const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
-	assert(extension.includes("expect: Type.Optional") && extension.includes("timeoutMs"), "act_ui does not expose a semantic postcondition");
+	assert(contractTs.includes("expect?: {") && contractTs.includes("timeoutMs?: number"), "act_ui does not expose a semantic postcondition");
 	assert(ts.includes('code: "postcondition_failed"') && ts.includes('status: "verified" | "preexisting" | "failed"'), "postcondition failure is not represented honestly");
 	assert(ts.includes("outcomeAfterCheck") && actions.includes('check === "verified"') && actions.includes('return "worked"'), "newly verified expectations do not determine the request outcome");
 	assert(swift.includes("waitForRootChange") && swift.includes("state.change.broadcast()"), "macOS waits are not change-notification assisted");
@@ -197,37 +235,100 @@ check("INV-17 macOS agent cursor stays native, configurable, and headless-safe",
 	assert(!swift.includes("completed.wait()") && !swift.includes("agentCursorLock"), "agent cursor can delay action delivery");
 });
 
+check("INV-19 all timed waits are classified", () => {
+	const helper = fs.readFileSync(path.join(root, "src/platform/macos/helper.ts"), "utf8");
+	const smoke = fs.readFileSync(path.join(root, "scripts/check-e2e-smoke.mjs"), "utf8");
+	const timedFiles = [
+		...srcFiles.map(([file, text]) => [`src/${file}`, text]),
+		...fs.readdirSync(path.join(root, "scripts"), { recursive: true })
+			.filter((file) => typeof file === "string" && file.endsWith(".mjs"))
+			.map((file) => [`scripts/${file}`, fs.readFileSync(path.join(root, "scripts", file), "utf8")]),
+	];
+	const rules = [
+		["src/broker.ts", /idleTimer =/, "broker idle TTL"],
+		["src/cdp.ts", /Timed out connecting to CDP target/, "connection timeout"],
+		["src/cdp.ts", /NAVIGATE_LOAD_TIMEOUT_MS/, "navigation event timeout"],
+		["src/cdp.ts", /CDP command.*timed out/, "command timeout"],
+		["src/bridge.ts", /cleanup\(\);\s*resolve\(\)/, "abortable timer primitive"],
+		["src/bridge.ts", /^await sleep\(200/, "explicit browser wait_for"],
+		["src/bridge.ts", /^} while \(Date\.now/, "explicit browser wait_for deadline"],
+		["src/bridge.ts", /^await sleep\(prepared\.params\.ms/, "explicit desktop wait action"],
+		["src/bridge.ts", /^await sleep\(settleMsForExecution/, "action settle"],
+		["src/bridge.ts", /^await sleep\(Math\.max/, "explicit browser wait action"],
+		["src/bridge.ts", /^if \(!satisfied\) await sleep\(100/, "semantic browser postcondition"],
+		["src/bridge.ts", /^} while \(!satisfied/, "semantic browser postcondition deadline"],
+		["src/bridge.ts", /^await sleep\(ACTION_SETTLE_MS/, "navigation settle"],
+		["src/readiness.ts", /options\.description/, "readiness failure timeout", 2],
+		["src/platform/macos/helper.ts", /Command timed out after/, "helper process timeout"],
+		["src/platform/macos/helper.ts", /old bcu helper to exit/, "helper exit timeout"],
+		["src/platform/macos/helper.ts", /Daemon command.*timed out/, "helper command timeout"],
+		["src/platform/windows/helper.ts", /Command timed out after/, "Windows process timeout"],
+		["src/platform/windows/helper.ts", /Helper command.*timed out/, "Windows command timeout"],
+		["scripts/setup-helper.mjs", /local signing identity lock/, "signing lock timeout"],
+		["scripts/check-e2e-smoke.mjs", /Timed out waiting for/, "live-test failure timeout"],
+		["scripts/check-broker-lifecycle.mjs", /Timed out waiting for/, "broker-test failure timeout"],
+		["scripts/check-session-lifecycle.mjs", /CDP socket remained open/, "session-test failure timeout"],
+		["scripts/check-windows-build-scripts.mjs", /Timed out after/, "build-test failure timeout"],
+		["scripts/check-invariants.mjs", /timeout calling/, "live invariant call timeout", 2],
+		["scripts/check-runtime-concurrency.mjs", /^const sleep =/, "scheduler test work"],
+		["scripts/check-runtime-concurrency.mjs", /^await sleep\(25\)/, "scheduler test work"],
+		["scripts/bench.mjs", /Timed out calling/, "benchmark call timeout"],
+		["scripts/bench.mjs", /cold helper start/, "benchmark failure timeout"],
+	].map(([file, pattern, category, expected = 1]) => ({ file, pattern, category, expected, count: 0 }));
+	const sitePattern = /\bset(?:Timeout|Interval)\s*\(|await\s+(?:sleep|delay)\s*\(|while\s*\(\s*true\s*\)|Date\.now\(\)\s*</;
+	const unclassified = [];
+	for (const [file, text] of timedFiles) {
+		const lines = text.split("\n");
+		for (let index = 0; index < lines.length; index += 1) {
+			if (!sitePattern.test(lines[index])) continue;
+			const context = `${lines[index].trim()}\n${lines.slice(Math.max(0, index - 4), index + 5).join("\n")}`;
+			const rule = rules.find((candidate) => candidate.file === file && candidate.pattern.test(context));
+			if (!rule) unclassified.push(`${file}:${index + 1}: ${lines[index].trim()}`);
+			else rule.count += 1;
+		}
+	}
+	assert(unclassified.length === 0, `unclassified timed waits:\n${unclassified.join("\n")}`);
+	for (const rule of rules) assert(rule.count === rule.expected, `${rule.file} ${rule.category} expected ${rule.expected}, found ${rule.count}`);
+	assert(helper.includes("waitForPathReady"), "macOS helper does not wait on socket filesystem events");
+	assert(ts.includes("waitForCdpReady"), "managed browser does not wait on the CDP stderr event");
+	assert(setupHelper.includes("watch(directory)") && !setupHelper.includes("retryMs"), "signing lock is not event-driven");
+	assert(smoke.includes("AXObserverAddNotification") && smoke.includes("NSWorkspace.shared.open") && smoke.includes("makeProcessSource"), "live smoke does not use launch, process, and AX events");
+});
+
 check("INV-18 consolidated actions and diff-first resulting views", () => {
 	const actions = fs.readFileSync(path.join(root, "src/actions.ts"), "utf8");
 	const view = fs.readFileSync(path.join(root, "src/view.ts"), "utf8");
 	const macBackend = fs.readFileSync(path.join(root, "src/platform/macos/backend.ts"), "utf8");
-	const extension = fs.readFileSync(path.join(root, "extensions/computer-use.ts"), "utf8");
 	assert(actions.includes("prepareAction") && actions.includes("canRetryInForeground"), "action preparation and safe recovery are not consolidated");
 	assert(!fs.existsSync(path.join(root, "src/interaction.ts")), "superseded interaction policy module still exists");
-	assert(!ts.includes("responseMode") && !extension.includes("responseMode"), "alternate confirmation-only action path still exists");
+	assert(!ts.includes("responseMode") && !contractTs.includes("responseMode"), "alternate confirmation-only action path still exists");
 	assert(ts.includes("currentFocus") && ts.includes('escalationReason = "side_effect_free_didnt"'), "runner does not preserve action focus or recover checked keyboard failures");
 	assert(view.includes("stabilizeRefs") && view.includes("changesBetween"), "resulting-state ref stabilization or change rendering is missing");
 	assert(ts.includes('view: "full" | "diff"') && ts.includes("Changes ("), "agent result does not expose changes-first resulting views");
-	assert(extension.includes("const uiAction = Type.Union") && extension.includes("omit ref from typeText"), "agent action schema is not discriminated or focus-aware");
+	assert(contractTs.includes('action: "press" | "click"') && actions.includes("usesCurrentFocus"), "action contract is not explicit or focus-aware");
 	assert(!ts.includes("preserveFocus") && macBackend.includes("preserveFocus") && swift.includes("!preserveFocus"), "native focus continuity leaks through the coordinator or is not enforced by the backend");
 });
 
-check("INV-8 swift typecheck", () => {
-	const triple = process.arch === "x64" ? "x86_64-apple-macosx14.0" : "arm64-apple-macosx14.0";
-	execFileSync("xcrun", [
-		"swiftc", "-target", triple, "-parse-as-library",
-		"-module-cache-path", path.join(os.tmpdir(), `bcu-swift-typecheck-${process.arch}`),
-		"-framework", "ApplicationServices",
-		"-framework", "AppKit",
-		"-framework", "ScreenCaptureKit",
-		"-framework", "Foundation",
-		"-framework", "SwiftUI",
-		"-typecheck",
-		"native/macos/agent_cursor.swift",
-		"native/macos/agent_cursor_motion.swift",
-		"native/macos/bridge.swift",
-	], { cwd: root, stdio: "pipe" });
-});
+if (process.platform === "darwin") {
+	check("INV-8 swift typecheck", () => {
+		const triple = process.arch === "x64" ? "x86_64-apple-macosx14.0" : "arm64-apple-macosx14.0";
+		execFileSync("xcrun", [
+			"swiftc", "-target", triple, "-parse-as-library",
+			"-module-cache-path", path.join(os.tmpdir(), `bcu-swift-typecheck-${process.arch}`),
+			"-framework", "ApplicationServices",
+			"-framework", "AppKit",
+			"-framework", "ScreenCaptureKit",
+			"-framework", "Foundation",
+			"-framework", "SwiftUI",
+			"-typecheck",
+			"native/macos/agent_cursor.swift",
+			"native/macos/agent_cursor_motion.swift",
+			"native/macos/bridge.swift",
+		], { cwd: root, stdio: "pipe" });
+	});
+} else {
+	console.log("SKIP INV-8 swift typecheck (macOS only)");
+}
 
 function call(socketPath, payload, timeoutMs = 10000) {
 	return new Promise((resolve, reject) => {
