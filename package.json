@@ -1,26 +1,26 @@
 {
-	"name": "@injaneity/pi-computer-use",
-	"version": "0.4.3",
-	"description": "Pi extension that lets AI agents observe and control macOS and Windows apps.",
+	"name": "better-computer-use",
+	"version": "0.1.0",
+	"description": "CLI that lets AI agents observe and control macOS and Windows apps.",
 	"type": "module",
 	"keywords": [
-		"pi-package",
-		"pi-extension",
-		"pi",
 		"computer-use",
+		"cli",
+		"agent-skills",
 		"macos",
+		"windows",
 		"desktop-automation",
 		"accessibility"
 	],
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/injaneity/pi-computer-use.git"
+		"url": "git+https://github.com/sugeh/better-computer-use.git"
 	},
 	"bugs": {
-		"url": "https://github.com/injaneity/pi-computer-use/issues"
+		"url": "https://github.com/sugeh/better-computer-use/issues"
 	},
-	"homepage": "https://github.com/injaneity/pi-computer-use#readme",
+	"homepage": "https://github.com/sugeh/better-computer-use#readme",
 	"engines": {
 		"node": ">=20.6.0"
 	},

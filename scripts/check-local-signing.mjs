@@ -9,9 +9,9 @@ import { ensureIdentityOnce, parseCodeSigningIdentities, withDirectoryLock } fro
 const sample = `
 Policy: Code Signing
   Matching identities
-  1) AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA "pi-computer-use Local Signing (com.injaneity.pi-computer-use)" (CSSMERR_TP_NOT_TRUSTED)
-  2) BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB "pi-computer-use Local Signing" (CSSMERR_TP_NOT_TRUSTED)
-  3) CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC "pi-computer-use Local Signing (com.injaneity.pi-computer-use)" (CSSMERR_TP_NOT_TRUSTED)
+  1) AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA "bcu Local Signing (com.sugeh.bcu)" (CSSMERR_TP_NOT_TRUSTED)
+  2) BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB "bcu Local Signing" (CSSMERR_TP_NOT_TRUSTED)
+  3) CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC "bcu Local Signing (com.sugeh.bcu)" (CSSMERR_TP_NOT_TRUSTED)
      3 identities found
 `;
 
@@ -23,7 +23,7 @@ assert.deepEqual(parseCodeSigningIdentities(sample), [
 const setupCopy = await fs.readFile(new URL("./setup-helper.mjs", import.meta.url), "utf8");
 assert.doesNotMatch(setupCopy, /tccutil[\s\S]{0,80}reset|resetTcc/i);
 
-const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-computer-use-signing-test-"));
+const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-signing-test-"));
 const lockPath = path.join(tempDir, "identity.lock");
 let identity;
 let createCount = 0;

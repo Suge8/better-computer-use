@@ -184,7 +184,7 @@ const evaluateBrowserTool = defineTool({
 function formatConfigStatus(): string {
 	const loaded = getLoadedComputerUseConfig();
 	return [
-		"pi-computer-use configuration",
+		"bcu configuration",
 		`browser_use: ${loaded.config.browser_use ? "enabled" : "disabled"}`,
 		`headless: ${loaded.config.headless ? "enabled" : "disabled"}`,
 		`cursor_overlay: ${loaded.config.cursor_overlay ? "enabled" : "disabled"}`,
@@ -199,7 +199,7 @@ export default function computerUseExtension(pi: ExtensionAPI): void {
 	for (const tool of [findTool, observeTool, searchUiTool, expandUiTool, inspectUiTool, actTool, readTextTool, waitForTool, launchBrowserTool, navigateBrowserTool, evaluateBrowserTool]) pi.registerTool(tool);
 
 	pi.registerCommand("computer-use", {
-		description: "Show pi-computer-use configuration",
+		description: "Show bcu configuration",
 		handler: async (_args, ctx) => {
 			loadComputerUseConfig(ctx.cwd);
 			ctx.ui.notify(formatConfigStatus(), "info");

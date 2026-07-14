@@ -23,10 +23,10 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const TEST_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "pi-computer-use-script-test-"));
-const TEST_HELPER_APP = path.join(TEST_ROOT, "pi-computer-use.app");
+const TEST_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "bcu-script-test-"));
+const TEST_HELPER_APP = path.join(TEST_ROOT, "bcu.app");
 const TEST_WINDOWS_HELPER = path.join(TEST_ROOT, "windows-bridge.exe");
-const LIVE_HELPER = "/Applications/pi-computer-use.app/Contents/MacOS/bridge";
+const LIVE_HELPER = "/Applications/bcu.app/Contents/MacOS/bridge";
 
 function fileFingerprint(filePath) {
   if (!fs.existsSync(filePath)) return "missing";
@@ -47,12 +47,12 @@ const HOMEDIR = os.homedir();
 
 // From scripts/setup-helper.mjs:
 const WINDOWS_HELPER_DEST = path.join(
-  HOMEDIR, ".pi", "agent", "helpers", "pi-computer-use", "windows-bridge.exe",
+  HOMEDIR, ".bcu", "helpers", "windows-bridge.exe",
 );
 
 // Expected by src/platform/windows/helper.ts → WINDOWS_HELPER_PATH:
 const WINDOWS_HELPER_STABLE_PATH = path.join(
-  HOMEDIR, ".pi", "agent", "helpers", "pi-computer-use", "windows-bridge.exe",
+  HOMEDIR, ".bcu", "helpers", "windows-bridge.exe",
 );
 
 // windowsBinaryPath() candidates (function present in both scripts):
@@ -98,11 +98,11 @@ function runScript(relPath, args, timeoutMs = 120_000) {
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
-        PI_COMPUTER_USE_HELPER_APP_PATH: TEST_HELPER_APP,
-        PI_COMPUTER_USE_WINDOWS_HELPER_PATH: TEST_WINDOWS_HELPER,
+        BCU_HELPER_APP_PATH: TEST_HELPER_APP,
+        BCU_WINDOWS_HELPER_PATH: TEST_WINDOWS_HELPER,
         // These smoke tests validate routing and isolated install paths, not
         // Keychain integration. Signing can open SecurityAgent on headless macOS.
-        PI_COMPUTER_USE_NO_SIGN: "1",
+        BCU_NO_SIGN: "1",
       },
     });
     let stdout = "";

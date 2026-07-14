@@ -1,4 +1,4 @@
-//! Protocol types for the pi-computer-use Windows helper.
+//! Protocol types for the bcu Windows helper.
 //!
 //! This crate provides the JSON-lines protocol types used to communicate
 //! between the TypeScript host and the Rust helper binary.

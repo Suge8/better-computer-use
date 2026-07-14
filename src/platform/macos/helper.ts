@@ -12,11 +12,11 @@ const COMMAND_TIMEOUT_MS = 15_000;
 const HELPER_PROTOCOL_VERSION = 6;
 const HELPER_SETUP_TIMEOUT_MS = 60_000;
 
-export const HELPER_BUNDLE_ID = "com.injaneity.pi-computer-use";
-export const HELPER_APP_PATH = "/Applications/pi-computer-use.app";
+export const HELPER_BUNDLE_ID = "com.sugeh.bcu";
+export const HELPER_APP_PATH = "/Applications/bcu.app";
 export const HELPER_APP_EXECUTABLE_PATH = path.join(HELPER_APP_PATH, "Contents", "MacOS", "bridge");
-const DEFAULT_HELPER_SOCKET_PATH = path.join(os.homedir(), "Library", "Caches", "pi-computer-use", "bridge.sock");
-export const HELPER_SOCKET_PATH = process.env.PI_CU_SOCKET_PATH ?? DEFAULT_HELPER_SOCKET_PATH;
+const DEFAULT_HELPER_SOCKET_PATH = path.join(os.homedir(), "Library", "Caches", "bcu", "bridge.sock");
+export const HELPER_SOCKET_PATH = process.env.BCU_SOCKET_PATH ?? DEFAULT_HELPER_SOCKET_PATH;
 const usingExternalHelperSocket = HELPER_SOCKET_PATH !== DEFAULT_HELPER_SOCKET_PATH;
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -154,7 +154,7 @@ export class MacosHelperClient {
 		this.helperInstallChecked = true;
 
 		if (!(await isExecutable(HELPER_APP_EXECUTABLE_PATH))) {
-			throw new Error(`Failed to install pi-computer-use helper app at ${HELPER_APP_PATH}.`);
+			throw new Error(`Failed to install bcu helper app at ${HELPER_APP_PATH}.`);
 		}
 	}
 
@@ -216,7 +216,7 @@ export class MacosHelperClient {
 	async command<T>(cmd: string, args: Record<string, unknown> = {}, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
 		const timeoutMs = options?.timeoutMs ?? COMMAND_TIMEOUT_MS;
 		if (!(await this.ensureDaemon(options?.signal))) {
-			throw new HelperTransportError(`pi-computer-use helper app daemon is unavailable at ${HELPER_APP_PATH}.`);
+			throw new HelperTransportError(`bcu helper app daemon is unavailable at ${HELPER_APP_PATH}.`);
 		}
 		try {
 			return await this.daemonCommand<T>(cmd, args, timeoutMs, options?.signal);
@@ -231,7 +231,7 @@ export class MacosHelperClient {
 		this.daemonAvailable = false;
 		await sleep(400, signal);
 		if (!(await this.ensureDaemon(signal))) {
-			throw new Error(`pi-computer-use helper did not come back after restart. Helper app: ${HELPER_APP_PATH}`);
+			throw new Error(`bcu helper did not come back after restart. Helper app: ${HELPER_APP_PATH}`);
 		}
 	}
 
@@ -268,7 +268,7 @@ export class MacosHelperClient {
 		diagnostics = await this.diagnosticsCommand(signal);
 		if (diagnostics.protocolVersion !== HELPER_PROTOCOL_VERSION) {
 			this.daemonAvailable = false;
-			throw new Error(`pi-computer-use helper protocol mismatch after relaunch: expected ${HELPER_PROTOCOL_VERSION}, got ${diagnostics.protocolVersion}. Reinstall or rebuild the helper app at ${HELPER_APP_PATH}.`);
+			throw new Error(`bcu helper protocol mismatch after relaunch: expected ${HELPER_PROTOCOL_VERSION}, got ${diagnostics.protocolVersion}. Reinstall or rebuild the helper app at ${HELPER_APP_PATH}.`);
 		}
 		return diagnostics;
 	}

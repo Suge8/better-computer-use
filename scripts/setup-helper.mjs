@@ -13,24 +13,24 @@ import { fileURLToPath } from "node:url";
 
 const execFile = promisify(execFileCallback);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const defaultHelperAppPath = "/Applications/pi-computer-use.app";
-const helperAppPath = process.env.PI_COMPUTER_USE_HELPER_APP_PATH || defaultHelperAppPath;
+const defaultHelperAppPath = "/Applications/bcu.app";
+const helperAppPath = process.env.BCU_HELPER_APP_PATH || defaultHelperAppPath;
 const helperAppExecutablePath = path.join(helperAppPath, "Contents", "MacOS", "bridge");
 const helperSourceHashPath = path.join(helperAppPath, "Contents", "Resources", "source.sha256");
-const helperBundleId = "com.injaneity.pi-computer-use";
+const helperBundleId = "com.sugeh.bcu";
 const windowsCrateDir = path.join(rootDir, "native", "windows", "bridge-rs");
-const windowsHelperDestPath = process.env.PI_COMPUTER_USE_WINDOWS_HELPER_PATH || path.join(os.homedir(), ".pi", "agent", "helpers", "pi-computer-use", "windows-bridge.exe");
+const windowsHelperDestPath = process.env.BCU_WINDOWS_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "windows-bridge.exe");
 const helperSourcePaths = ["agent_cursor.swift", "agent_cursor_motion.swift", "bridge.swift"]
 	.map((file) => path.join(rootDir, "native", "macos", file));
 const packageJsonPath = path.join(rootDir, "package.json");
-const releaseRepo = "injaneity/pi-computer-use";
-const localCodeSignCommonName = "pi-computer-use Local Signing (com.injaneity.pi-computer-use)";
-const localSigningLockPath = path.join(os.tmpdir(), `pi-computer-use-local-signing-${typeof process.getuid === "function" ? process.getuid() : "user"}.lock`);
+const releaseRepo = "sugeh/better-computer-use";
+const localCodeSignCommonName = "bcu Local Signing (com.sugeh.bcu)";
+const localSigningLockPath = path.join(os.tmpdir(), `bcu-local-signing-${typeof process.getuid === "function" ? process.getuid() : "user"}.lock`);
 
 const args = new Set(process.argv.slice(2));
 const isPostinstall = args.has("--postinstall");
-const allowBuildFallback = args.has("--allow-build") || args.has("--runtime") || process.env.PI_COMPUTER_USE_ALLOW_BUILD === "1";
-const allowAdhocUpdate = args.has("--allow-adhoc-update") || process.env.PI_COMPUTER_USE_ALLOW_ADHOC_UPDATE === "1";
+const allowBuildFallback = args.has("--allow-build") || args.has("--runtime") || process.env.BCU_ALLOW_BUILD === "1";
+const allowAdhocUpdate = args.has("--allow-adhoc-update") || process.env.BCU_ALLOW_ADHOC_UPDATE === "1";
 
 function getArg(name) {
 	const index = process.argv.indexOf(name);
@@ -43,7 +43,7 @@ const archTriples = {
 };
 const deploymentTarget = "14.0";
 const frameworks = ["ApplicationServices", "AppKit", "ScreenCaptureKit", "Foundation", "SwiftUI"];
-const defaultCodeSignIdentifier = "com.injaneity.pi-computer-use";
+const defaultCodeSignIdentifier = "com.sugeh.bcu";
 
 function normalizeArch(arch) {
 	if (arch === "arm64" || arch === "x64") return arch;
@@ -55,10 +55,10 @@ function prebuiltPathForArch(arch) {
 }
 
 function prebuiltAppPathForArch(arch) {
-	return path.join(rootDir, "prebuilt", "macos", arch, "pi-computer-use.app");
+	return path.join(rootDir, "prebuilt", "macos", arch, "bcu.app");
 }
 
-const releaseAssetName = "pi-computer-use.app.zip";
+const releaseAssetName = "bcu.app.zip";
 
 async function packageVersion() {
 	const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8"));
@@ -127,7 +127,7 @@ async function run(command, commandArgs) {
 }
 
 function moduleCachePath(arch) {
-	return path.join(os.tmpdir(), `pi-computer-use-swift-module-cache-${arch}`);
+	return path.join(os.tmpdir(), `bcu-swift-module-cache-${arch}`);
 }
 
 async function commandOutput(command, commandArgs) {
@@ -167,13 +167,13 @@ async function verifySha256(filePath, expected) {
 }
 
 async function findExtractedHelperApp(extractDir) {
-	const direct = path.join(extractDir, "pi-computer-use.app");
+	const direct = path.join(extractDir, "bcu.app");
 	if (await exists(direct)) return direct;
 	const entries = await fs.readdir(extractDir, { withFileTypes: true });
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
 		const entryPath = path.join(extractDir, entry.name);
-		if (entry.name === "pi-computer-use.app") return entryPath;
+		if (entry.name === "bcu.app") return entryPath;
 		const nested = await findExtractedHelperApp(entryPath);
 		if (nested) return nested;
 	}
@@ -184,7 +184,7 @@ async function downloadReleaseHelperApp() {
 	const version = await packageVersion();
 	const tag = `v${version}`;
 	const checksums = await releaseChecksums(tag).catch(() => new Map());
-	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-computer-use-release-helper-"));
+	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-release-helper-"));
 	try {
 		const zipPath = path.join(tempDir, releaseAssetName);
 		await downloadFile(githubReleaseUrl(tag, releaseAssetName), zipPath);
@@ -194,7 +194,7 @@ async function downloadReleaseHelperApp() {
 		await fs.mkdir(extractDir, { recursive: true });
 		await run("/usr/bin/ditto", ["-x", "-k", zipPath, extractDir]);
 		const appPath = await findExtractedHelperApp(extractDir);
-		if (!appPath) throw new Error(`missing pi-computer-use.app in ${releaseAssetName}`);
+		if (!appPath) throw new Error(`missing bcu.app in ${releaseAssetName}`);
 		return { appPath, tempDir, assetName: releaseAssetName, tag };
 	} catch (error) {
 		await fs.rm(tempDir, { force: true, recursive: true }).catch(() => {});
@@ -280,8 +280,8 @@ async function ensureLocalSigningIdentity() {
 async function createLocalSigningIdentity() {
 	const keychain = await loginKeychainPath();
 	if (!keychain) return undefined;
-	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-computer-use-signing-"));
-	const password = `pi-computer-use-local-${process.pid}-${Date.now()}`;
+	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-signing-"));
+	const password = `bcu-local-${process.pid}-${Date.now()}`;
 	try {
 		const configPath = path.join(tempDir, "req.cnf");
 		await fs.writeFile(configPath, [
@@ -310,7 +310,7 @@ async function createLocalSigningIdentity() {
 		if (!identity) throw new Error("Imported local signing certificate is not a valid code-signing identity.");
 		return identity;
 	} catch (error) {
-		console.warn(`[pi-computer-use] could not create a valid local signing identity: ${error instanceof Error ? error.message : String(error)}`);
+		console.warn(`[bcu] could not create a valid local signing identity: ${error instanceof Error ? error.message : String(error)}`);
 		return undefined;
 	} finally {
 		await fs.rm(tempDir, { force: true, recursive: true }).catch(() => {});
@@ -318,12 +318,12 @@ async function createLocalSigningIdentity() {
 }
 
 async function resolveCodeSignIdentity() {
-	if (process.env.PI_COMPUTER_USE_CODESIGN_IDENTITY) return process.env.PI_COMPUTER_USE_CODESIGN_IDENTITY;
+	if (process.env.BCU_CODESIGN_IDENTITY) return process.env.BCU_CODESIGN_IDENTITY;
 	return (await findDeveloperIdIdentity()) ?? (await ensureLocalSigningIdentity()) ?? "-";
 }
 
 async function signHelper(outputPath, identifier = defaultCodeSignIdentifier) {
-	if (process.env.PI_COMPUTER_USE_NO_SIGN === "1") {
+	if (process.env.BCU_NO_SIGN === "1") {
 		return "unsigned";
 	}
 
@@ -331,9 +331,9 @@ async function signHelper(outputPath, identifier = defaultCodeSignIdentifier) {
 	const commandArgs = ["--force", "--deep", "-i", identifier, "--timestamp=none", "--sign", identity, outputPath];
 	await run("codesign", commandArgs);
 	if (identity === "-") {
-		console.warn("[pi-computer-use] warning: signed helper ad-hoc; macOS may require permission review after native helper changes. Release installs should use a Developer ID-signed helper app.");
+		console.warn("[bcu] warning: signed helper ad-hoc; macOS may require permission review after native helper changes. Release installs should use a Developer ID-signed helper app.");
 	} else if (identity === await findLocalSigningIdentity()) {
-		console.log(`[pi-computer-use] signed ${outputPath} with local identity '${localCodeSignCommonName}'. macOS may still require permission review after local rebuilds.`);
+		console.log(`[bcu] signed ${outputPath} with local identity '${localCodeSignCommonName}'. macOS may still require permission review after local rebuilds.`);
 	}
 	return identity;
 }
@@ -386,8 +386,8 @@ async function installHelperApp(sourcePath) {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>${helperBundleId}</string>
-<key>CFBundleName</key><string>pi-computer-use</string>
-<key>CFBundleDisplayName</key><string>pi-computer-use</string>
+<key>CFBundleName</key><string>bcu</string>
+<key>CFBundleDisplayName</key><string>bcu</string>
 <key>CFBundleExecutable</key><string>bridge</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>${version}</string>
@@ -404,7 +404,7 @@ async function installHelperApp(sourcePath) {
 		// If a real signing identity is available, upgrade older ad-hoc installs
 		// in place so local builds have a consistent identity. macOS may still
 		// require permission review after native code changes.
-		const signingIdentity = process.env.PI_COMPUTER_USE_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
+		const signingIdentity = process.env.BCU_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
 		if (signingIdentity !== "-" && await helperHasAdhocSignature()) {
 			await signHelper(helperAppPath, helperBundleId);
 			await registerHelperApp();
@@ -414,9 +414,9 @@ async function installHelperApp(sourcePath) {
 		return false;
 	}
 
-	const signingIdentity = process.env.PI_COMPUTER_USE_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
+	const signingIdentity = process.env.BCU_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
 	if (signingIdentity === "-" && existingSourceHash !== undefined && !allowAdhocUpdate) {
-		throw new Error("Refusing to replace an installed helper with an ad-hoc signed rebuild because macOS may reset Accessibility/Screen Recording grants. Use a pre-signed helper app, install a Developer ID identity, or set PI_COMPUTER_USE_ALLOW_ADHOC_UPDATE=1 for local development.");
+		throw new Error("Refusing to replace an installed helper with an ad-hoc signed rebuild because macOS may reset Accessibility/Screen Recording grants. Use a pre-signed helper app, install a Developer ID identity, or set BCU_ALLOW_ADHOC_UPDATE=1 for local development.");
 	}
 
 	await fs.mkdir(path.dirname(helperAppExecutablePath), { recursive: true });
@@ -465,26 +465,26 @@ async function setupWindowsHelper() {
 	if (await exists(prebuiltPath)) {
 		const { changed } = await copyIfChanged(prebuiltPath, windowsHelperDestPath);
 		console.log(changed
-			? `[pi-computer-use] installed Windows helper from prebuilt to ${windowsHelperDestPath}`
-			: `[pi-computer-use] Windows helper already up to date at ${windowsHelperDestPath}`);
+			? `[bcu] installed Windows helper from prebuilt to ${windowsHelperDestPath}`
+			: `[bcu] Windows helper already up to date at ${windowsHelperDestPath}`);
 		return;
 	}
 
 	if (allowBuildFallback) {
-		console.log("[pi-computer-use] Windows prebuilt helper missing; attempting source build with cargo...");
+		console.log("[bcu] Windows prebuilt helper missing; attempting source build with cargo...");
 		await run("cargo", ["build", "--release", "--manifest-path", path.join(windowsCrateDir, "Cargo.toml")]);
 		const { exePath, binPath } = windowsBinaryPath();
 		const cargoOutput = (await exists(exePath)) ? exePath : (await exists(binPath)) ? binPath : exePath;
 		const { changed } = await copyIfChanged(cargoOutput, windowsHelperDestPath);
 		console.log(changed
-			? `[pi-computer-use] built and installed Windows helper at ${windowsHelperDestPath}`
-			: `[pi-computer-use] Windows helper already up to date at ${windowsHelperDestPath}`);
+			? `[bcu] built and installed Windows helper at ${windowsHelperDestPath}`
+			: `[bcu] Windows helper already up to date at ${windowsHelperDestPath}`);
 		return;
 	}
 
 	throw new Error(
 		`No Windows prebuilt helper found at ${prebuiltPath}. ` +
-			"Run 'node scripts/build-native.mjs --platform windows' to build, or set PI_COMPUTER_USE_ALLOW_BUILD=1 to build at install time.",
+			"Run 'node scripts/build-native.mjs --platform windows' to build, or set BCU_ALLOW_BUILD=1 to build at install time.",
 	);
 }
 
@@ -497,10 +497,10 @@ async function setup() {
 
 	if (process.platform !== "darwin") {
 		if (isPostinstall) {
-			console.warn("[pi-computer-use] skipping helper setup: platform is not macOS.");
+			console.warn("[bcu] skipping helper setup: platform is not macOS.");
 			return;
 		}
-		throw new Error("pi-computer-use helper is only supported on macOS. Use --platform windows on Windows.");
+		throw new Error("bcu helper is only supported on macOS. Use --platform windows on Windows.");
 	}
 
 	const arch = normalizeArch(process.arch);
@@ -519,8 +519,8 @@ async function setup() {
 		const installed = await installPrebuiltHelperApp(prebuiltAppPath);
 		console.log(
 			installed
-				? `[pi-computer-use] installed pre-signed helper app (${arch}) at ${helperAppPath}`
-				: `[pi-computer-use] pre-signed helper app (${arch}) already current at ${helperAppPath}`,
+				? `[bcu] installed pre-signed helper app (${arch}) at ${helperAppPath}`
+				: `[bcu] pre-signed helper app (${arch}) already current at ${helperAppPath}`,
 		);
 		return;
 	}
@@ -529,8 +529,8 @@ async function setup() {
 		const installed = await installHelperApp(prebuiltPath);
 		console.log(
 			installed
-				? `[pi-computer-use] installed helper app (${arch}) at ${helperAppPath}`
-				: `[pi-computer-use] helper app (${arch}) already current at ${helperAppPath}`,
+				? `[bcu] installed helper app (${arch}) at ${helperAppPath}`
+				: `[bcu] helper app (${arch}) already current at ${helperAppPath}`,
 		);
 		return;
 	}
@@ -541,27 +541,27 @@ async function setup() {
 			const installed = await installPrebuiltHelperApp(releaseHelper.appPath);
 			console.log(
 				installed
-					? `[pi-computer-use] installed signed helper app from GitHub Release ${releaseHelper.tag} (${releaseHelper.assetName}) at ${helperAppPath}`
-					: `[pi-computer-use] signed helper app from GitHub Release ${releaseHelper.tag} (${releaseHelper.assetName}) already current at ${helperAppPath}`,
+					? `[bcu] installed signed helper app from GitHub Release ${releaseHelper.tag} (${releaseHelper.assetName}) at ${helperAppPath}`
+					: `[bcu] signed helper app from GitHub Release ${releaseHelper.tag} (${releaseHelper.assetName}) already current at ${helperAppPath}`,
 			);
 		} finally {
 			await fs.rm(releaseHelper.tempDir, { force: true, recursive: true }).catch(() => {});
 		}
 		return;
 	} catch (error) {
-		console.warn(`[pi-computer-use] signed helper release download unavailable: ${error instanceof Error ? error.message : String(error)}`);
+		console.warn(`[bcu] signed helper release download unavailable: ${error instanceof Error ? error.message : String(error)}`);
 	}
 
 	if (allowBuildFallback) {
-		const tempPath = path.join(os.tmpdir(), `pi-computer-use-bridge-${process.pid}-${Date.now()}`);
+		const tempPath = path.join(os.tmpdir(), `bcu-bridge-${process.pid}-${Date.now()}`);
 		try {
-			console.log("[pi-computer-use] prebuilt helper missing; attempting source build with xcrun swiftc...");
+			console.log("[bcu] prebuilt helper missing; attempting source build with xcrun swiftc...");
 			await buildHelper(arch, tempPath);
 			const installed = await installHelperApp(tempPath);
 			console.log(
 				installed
-					? `[pi-computer-use] built helper app at ${helperAppPath}`
-					: `[pi-computer-use] built helper app; installed app already current at ${helperAppPath}`,
+					? `[bcu] built helper app at ${helperAppPath}`
+					: `[bcu] built helper app; installed app already current at ${helperAppPath}`,
 			);
 		} finally {
 			await fs.rm(tempPath, { force: true }).catch(() => {});
@@ -577,7 +577,7 @@ async function setup() {
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) setup().catch((error) => {
 	if (isPostinstall) {
-		console.warn(`[pi-computer-use] postinstall helper setup skipped: ${error instanceof Error ? error.message : String(error)}`);
+		console.warn(`[bcu] postinstall helper setup skipped: ${error instanceof Error ? error.message : String(error)}`);
 		process.exit(0);
 	}
 

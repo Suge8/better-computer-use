@@ -321,7 +321,7 @@ final class InputSuppressionGuard {
 			self.lock.unlock()
 			CFRunLoopRun()
 		}
-		thread.name = "pi-computer-use-input-suppression"
+		thread.name = "bcu-input-suppression"
 		lock.lock()
 		tapThread = thread
 		lock.unlock()
@@ -417,7 +417,7 @@ final class Bridge {
 
 	private func defaultSocketPath() -> String {
 		let home = FileManager.default.homeDirectoryForCurrentUser.path
-		return "\(home)/Library/Caches/pi-computer-use/bridge.sock"
+		return "\(home)/Library/Caches/bcu/bridge.sock"
 	}
 
 	private func runServer(socketPath: String) {
@@ -784,7 +784,7 @@ final class Bridge {
 			source["parentBundleId"] = parentBundleId
 		}
 		let attribution: String
-		if executable.contains("/pi-computer-use.app/Contents/MacOS/"), parentPid == 1 {
+		if executable.contains("/bcu.app/Contents/MacOS/"), parentPid == 1 {
 			// Non-spoofable signals only: installed-bundle executable path +
 			// launchd parent (`open` handed us to LaunchServices). A dev
 			// binary or a directly-spawned copy fails closed to "caller".

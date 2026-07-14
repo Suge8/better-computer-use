@@ -16,11 +16,11 @@
 # Then, for the Release workflow:
 #   base64 -i <dir>/id.p12 | pbcopy      -> secret APPLICATION_CERT_BASE64
 #   secret CERT_PASSWORD  = the password you enter below
-#   secret SIGN_IDENTITY  = "pi-computer-use Self Signed"
+#   secret SIGN_IDENTITY  = "bcu Self Signed"
 set -euo pipefail
 
 OUT_DIR="${1:-./signing}"
-CN="pi-computer-use Self Signed"
+CN="bcu Self Signed"
 mkdir -p "$OUT_DIR"
 cd "$OUT_DIR"
 
@@ -33,7 +33,7 @@ distinguished_name = dn
 x509_extensions = v3
 prompt = no
 [dn]
-CN = pi-computer-use Self Signed
+CN = bcu Self Signed
 [v3]
 keyUsage = critical, digitalSignature
 extendedKeyUsage = critical, codeSigning

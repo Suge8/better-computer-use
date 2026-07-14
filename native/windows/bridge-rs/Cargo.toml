@@ -2,7 +2,7 @@
 name = "windows-bridge"
 version = "0.1.0"
 edition = "2021"
-description = "Protocol skeleton for the pi-computer-use Windows helper"
+description = "Protocol skeleton for the bcu Windows helper"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -88,7 +88,7 @@ try {
 		server.listen(0, "127.0.0.1", resolve);
 	});
 	port = server.address().port;
-	process.env.PI_COMPUTER_USE_CDP_PORT = String(port);
+	process.env.BCU_CDP_PORT = String(port);
 
 	const tab = await cdpTabForWindow("Test Tab");
 	assert(tab?.isOpen, "test CDP tab did not connect");
@@ -106,10 +106,10 @@ try {
 
 	const response = await fetch(`http://127.0.0.1:${port}/json/list`);
 	assert.equal(response.status, 200, "session shutdown stopped the external browser endpoint");
-	assert.equal(process.env.PI_COMPUTER_USE_CDP_PORT, String(port), "session shutdown changed the external CDP configuration");
+	assert.equal(process.env.BCU_CDP_PORT, String(port), "session shutdown changed the external CDP configuration");
 	console.log("PASS session shutdown closes CDP while leaving an external browser running");
 } finally {
-	delete process.env.PI_COMPUTER_USE_CDP_PORT;
+	delete process.env.BCU_CDP_PORT;
 	for (const socket of sockets) socket.destroy();
 	await new Promise((resolve) => server.close(resolve));
 }

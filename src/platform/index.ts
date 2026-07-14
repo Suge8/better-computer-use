@@ -31,7 +31,7 @@ class UnsupportedPlatformBackend implements ComputerUsePlatformBackend {
 	}
 
 	private unsupported(): never {
-		throw new Error(`pi-computer-use does not support platform '${this.platform}' yet.`);
+		throw new Error(`bcu does not support platform '${this.platform}' yet.`);
 	}
 
 	async ensureReady(): Promise<never> { this.unsupported(); }

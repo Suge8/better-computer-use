@@ -1,6 +1,6 @@
 // Minimal Chrome DevTools Protocol client.
 //
-// Opt-in: set PI_COMPUTER_USE_CDP_PORT to the --remote-debugging-port of a
+// Opt-in: set BCU_CDP_PORT to the --remote-debugging-port of a
 // running Chromium-family browser. When active, navigate_browser uses
 // Page.navigate (event-driven, no AppleScript) and recent console messages
 // and uncaught exceptions are attached to tool results. Everything else
@@ -293,7 +293,7 @@ export function disconnectCdp(): void {
 }
 
 function cdpEnabled(): boolean {
-	const rawPort = process.env.PI_COMPUTER_USE_CDP_PORT ?? "";
+	const rawPort = process.env.BCU_CDP_PORT ?? "";
 	if (!/^\d+$/.test(rawPort)) return false;
 	const port = Number(rawPort);
 	return Number.isInteger(port) && port > 0 && port <= 65535 && typeof WebSocket !== "undefined";
@@ -449,7 +449,7 @@ async function cdpPageForContext(contextId: string): Promise<CdpPageTarget | und
 
 async function cdpPages(): Promise<CdpPageTarget[]> {
 	if (!cdpEnabled()) return [];
-	const port = process.env.PI_COMPUTER_USE_CDP_PORT;
+	const port = process.env.BCU_CDP_PORT;
 	const response = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(2_000) });
 	const targets = (await response.json()) as CdpPageTarget[];
 	return targets.filter((target) =>

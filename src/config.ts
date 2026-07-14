@@ -65,9 +65,9 @@ function readConfigFile(filePath: string): ComputerUseConfigSource {
 
 function readEnv(): Partial<ComputerUseConfig> {
 	const out: Partial<ComputerUseConfig> = {};
-	const browserUse = parseBoolean(process.env.PI_COMPUTER_USE_BROWSER_USE);
-	const headless = parseBoolean(process.env.PI_COMPUTER_USE_HEADLESS);
-	const cursorOverlay = parseBoolean(process.env.PI_COMPUTER_USE_CURSOR_OVERLAY);
+	const browserUse = parseBoolean(process.env.BCU_BROWSER_USE);
+	const headless = parseBoolean(process.env.BCU_HEADLESS);
+	const cursorOverlay = parseBoolean(process.env.BCU_CURSOR_OVERLAY);
 	if (browserUse !== undefined) out.browser_use = browserUse;
 	if (headless !== undefined) out.headless = headless;
 	if (cursorOverlay !== undefined) out.cursor_overlay = cursorOverlay;
@@ -76,7 +76,7 @@ function readEnv(): Partial<ComputerUseConfig> {
 
 export function loadComputerUseConfig(cwd: string): LoadedComputerUseConfig {
 	const sources = [
-		readConfigFile(path.join(getAgentDir(), "extensions", "pi-computer-use.json")),
+		readConfigFile(path.join(getAgentDir(), "extensions", "bcu.json")),
 		readConfigFile(path.join(cwd, ".pi", "computer-use.json")),
 	];
 	const env = readEnv();

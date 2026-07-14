@@ -6,12 +6,12 @@ import { HELPER_APP_PATH, macosHelper } from "./helper.ts";
 import { assertPlatformArchitecture } from "../architecture.ts";
 
 const GRANT_INSTRUCTIONS =
-	"Grant Accessibility and Screen Recording to pi-computer-use.app in System Settings → Privacy & Security. " +
+	"Grant Accessibility and Screen Recording to bcu.app in System Settings → Privacy & Security. " +
 	"Screen Recording lets the agent see the window; Accessibility lets it interact with the window.";
 
 const SIGNING_MIGRATION_WARNING =
 	"If these permissions were enabled before this install/update, macOS invalidated the old grants because " +
-	"pi-computer-use.app was re-signed. Re-enable both toggles for the newly signed helper. " +
+	"bcu.app was re-signed. Re-enable both toggles for the newly signed helper. " +
 	"If a toggle is already on, switch it off and on again.";
 
 const macosPermissionKinds = [
@@ -35,15 +35,15 @@ function permissionStatusSummary(status: PermissionStatus): string {
 
 function permissionPrompt(status: PermissionStatus, helperPath: string, hint?: string): string {
 	return [
-		"pi-computer-use needs macOS permissions for its helper app.",
+		"bcu needs macOS permissions for its helper app.",
 		permissionStatusSummary(status),
 		"",
-		`Helper: pi-computer-use.app (${helperPath})`,
+		`Helper: bcu.app (${helperPath})`,
 		hint,
 		"",
 		`Important: ${SIGNING_MIGRATION_WARNING}`,
 		"",
-		"pi-computer-use.app is already listed in the pane(s) — enable its toggle, then choose Recheck.",
+		"bcu.app is already listed in the pane(s) — enable its toggle, then choose Recheck.",
 	].filter(Boolean).join("\n");
 }
 
@@ -81,7 +81,7 @@ async function checkPermissions(signal?: AbortSignal): Promise<PermissionStatus>
 
 async function registerPermissions(signal?: AbortSignal): Promise<void> {
 	// Raises the Accessibility prompt and performs a real ScreenCaptureKit
-	// capture attempt so pi-computer-use.app is pre-listed in both Settings
+	// capture attempt so bcu.app is pre-listed in both Settings
 	// panes; the user only flips toggles, no "+" path picking.
 	await macosHelper.command("registerPermissions", {}, { signal, timeoutMs: 15_000 });
 }
@@ -93,7 +93,7 @@ export async function ensureMacosReady(
 ): Promise<PlatformReadyState> {
 	await macosHelper.ensureInstalled(signal);
 	if (!(await macosHelper.ensureDaemon(signal))) {
-		throw new Error(`pi-computer-use helper app daemon did not start. Helper app: ${HELPER_APP_PATH}`);
+		throw new Error(`bcu helper app daemon did not start. Helper app: ${HELPER_APP_PATH}`);
 	}
 	const helperDiagnostics = await macosHelper.ensureProtocol(signal);
 	assertPlatformArchitecture("macOS", helperDiagnostics);
@@ -115,17 +115,17 @@ export async function ensureMacosReady(
 		// Attribution "caller" means the helper is not running as the
 		// canonical installed app — grants would attach to the wrong identity.
 		const attributionHint = permissionStatus.source?.attribution === "caller"
-			? `Warning: the helper is not running as the installed pi-computer-use.app (executable: ${permissionStatus.source?.executablePath ?? "unknown"}). Grants made now would attach to the launching app instead. Restart Pi so the canonical helper is used.`
+			? `Warning: the helper is not running as the installed bcu.app (executable: ${permissionStatus.source?.executablePath ?? "unknown"}). Grants made now would attach to the launching app instead. Restart Pi so the canonical helper is used.`
 			: undefined;
 		permissionStatus = await ensurePermissions(
 			ctx,
 			{
 				kinds: macosPermissionKinds,
 				copy: {
-					nonInteractiveError: (helperPath) => `pi-computer-use setup requires an interactive session. Start pi in interactive mode. ${GRANT_INSTRUCTIONS}\nHelper path: ${helperPath}`,
+					nonInteractiveError: (helperPath) => `bcu setup requires an interactive session. Start pi in interactive mode. ${GRANT_INSTRUCTIONS}\nHelper path: ${helperPath}`,
 					prompt: permissionPrompt,
-					incompleteError: (helperPath) => `pi-computer-use setup is incomplete. ${GRANT_INSTRUCTIONS} Helper path: ${helperPath}`,
-					readyMessage: "pi-computer-use is ready.",
+					incompleteError: (helperPath) => `bcu setup is incomplete. ${GRANT_INSTRUCTIONS} Helper path: ${helperPath}`,
+					readyMessage: "bcu is ready.",
 					stillMissing: missingPermissionMessage,
 				},
 				checkPermissions: (permissionSignal) => checkPermissions(permissionSignal ?? signal),

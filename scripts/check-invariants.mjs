@@ -182,14 +182,14 @@ check("INV-15 semantic action postconditions", () => {
 });
 
 check("INV-16 clean headless contract and non-destructive helper install", () => {
-	assert(!/stealth_mode|stealthMode|PI_COMPUTER_USE_STEALTH|PI_COMPUTER_USE_STRICT_AX/.test(configTs), "obsolete stealth configuration aliases remain");
+	assert(!/stealth_mode|stealthMode|BCU_STEALTH|BCU_STRICT_AX/.test(configTs), "obsolete stealth configuration aliases remain");
 	assert(!/tccutil[\s\S]{0,80}reset|resetTcc/i.test(setupHelper), "helper installation can reset macOS privacy grants");
-	assert(setupHelper.includes("pi-computer-use Local Signing (com.injaneity.pi-computer-use)"), "stable bundle-specific local signing identity is missing");
-	assert(setupHelper.includes("PI_COMPUTER_USE_HELPER_APP_PATH"), "helper installer lacks an isolated test destination");
+	assert(setupHelper.includes("bcu Local Signing (com.sugeh.bcu)"), "stable bundle-specific local signing identity is missing");
+	assert(setupHelper.includes("BCU_HELPER_APP_PATH"), "helper installer lacks an isolated test destination");
 });
 
 check("INV-17 macOS agent cursor stays native, configurable, and headless-safe", () => {
-	assert(configTs.includes("cursor_overlay: boolean") && configTs.includes("PI_COMPUTER_USE_CURSOR_OVERLAY"), "agent cursor config is incomplete");
+	assert(configTs.includes("cursor_overlay: boolean") && configTs.includes("BCU_CURSOR_OVERLAY"), "agent cursor config is incomplete");
 	assert(swift.includes('policy != "ax_only"'), "strict-headless actions can display the agent cursor");
 	assert(swift.includes('request["cursorOverlay"] as? Bool ?? true'), "native helper ignores the cursor overlay flag");
 	assert(swift.includes("app.processIdentifier != getpid()"), "helper overlay can leak into root discovery");
@@ -216,7 +216,7 @@ check("INV-8 swift typecheck", () => {
 	const triple = process.arch === "x64" ? "x86_64-apple-macosx14.0" : "arm64-apple-macosx14.0";
 	execFileSync("xcrun", [
 		"swiftc", "-target", triple, "-parse-as-library",
-		"-module-cache-path", path.join(os.tmpdir(), `pi-computer-use-swift-typecheck-${process.arch}`),
+		"-module-cache-path", path.join(os.tmpdir(), `bcu-swift-typecheck-${process.arch}`),
 		"-framework", "ApplicationServices",
 		"-framework", "AppKit",
 		"-framework", "ScreenCaptureKit",
@@ -302,15 +302,15 @@ async function pidForWindow(socketPath, windowId) {
 }
 
 async function liveChecks() {
-	if (process.env.PI_CU_LIVE !== "1") {
-		console.log("SKIP LIVE invariants (set PI_CU_LIVE=1)");
+	if (process.env.BCU_LIVE !== "1") {
+		console.log("SKIP LIVE invariants (set BCU_LIVE=1)");
 		return;
 	}
 	try {
-		const socketPath = process.env.PI_CU_SOCKET_PATH ?? path.join(os.homedir(), "Library/Caches/pi-computer-use/bridge.sock");
+		const socketPath = process.env.BCU_SOCKET_PATH ?? path.join(os.homedir(), "Library/Caches/bcu/bridge.sock");
 		const diagnostics = await call(socketPath, { id: "inv-diagnostics", cmd: "diagnostics" });
 		check("LIVE diagnostics current protocol", () => assert(diagnostics.protocolVersion === 6, `protocolVersion=${diagnostics.protocolVersion}`));
-		const explicitWindowId = process.env.PI_CU_LIVE_WINDOW_ID ? Number(process.env.PI_CU_LIVE_WINDOW_ID) : undefined;
+		const explicitWindowId = process.env.BCU_LIVE_WINDOW_ID ? Number(process.env.BCU_LIVE_WINDOW_ID) : undefined;
 		let windows = [];
 		try {
 			const frontmost = await call(socketPath, { id: "inv-frontmost", cmd: "getFrontmost" });
@@ -323,13 +323,13 @@ async function liveChecks() {
 			});
 		} catch (error) {
 			if (!explicitWindowId) throw error;
-			console.log(`SKIP LIVE listRoots pairing (${error.message}; explicit PI_CU_LIVE_WINDOW_ID=${explicitWindowId})`);
+			console.log(`SKIP LIVE listRoots pairing (${error.message}; explicit BCU_LIVE_WINDOW_ID=${explicitWindowId})`);
 		}
 		let target = explicitWindowId && Number.isFinite(explicitWindowId)
-			? { windowId: Math.trunc(explicitWindowId), title: "PI_CU_LIVE_WINDOW_ID", appName: "explicit target" }
+			? { windowId: Math.trunc(explicitWindowId), title: "BCU_LIVE_WINDOW_ID", appName: "explicit target" }
 			: Array.isArray(windows) ? windows.find((window) => Number.isFinite(window?.windowId)) : undefined;
 		if (explicitWindowId && !Number.isFinite(explicitWindowId)) {
-			throw new Error(`PI_CU_LIVE_WINDOW_ID must be numeric, got ${process.env.PI_CU_LIVE_WINDOW_ID}`);
+			throw new Error(`BCU_LIVE_WINDOW_ID must be numeric, got ${process.env.BCU_LIVE_WINDOW_ID}`);
 		}
 		if (!target) {
 			console.log("SKIP LIVE look (no capturable frontmost window; Accessibility may be missing)");

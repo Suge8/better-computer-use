@@ -321,9 +321,9 @@ export async function shutdownComputerUseSession(): Promise<void> {
 		managedBrowser.kill("SIGTERM");
 		managedBrowser.unref();
 	}
-	if (runtimeState.managedBrowserCdpPort && process.env.PI_COMPUTER_USE_CDP_PORT === runtimeState.managedBrowserCdpPort) {
-		if (runtimeState.previousCdpPort === undefined) delete process.env.PI_COMPUTER_USE_CDP_PORT;
-		else process.env.PI_COMPUTER_USE_CDP_PORT = runtimeState.previousCdpPort;
+	if (runtimeState.managedBrowserCdpPort && process.env.BCU_CDP_PORT === runtimeState.managedBrowserCdpPort) {
+		if (runtimeState.previousCdpPort === undefined) delete process.env.BCU_CDP_PORT;
+		else process.env.BCU_CDP_PORT = runtimeState.previousCdpPort;
 	}
 	runtimeState.managedBrowserCdpPort = undefined;
 	runtimeState.previousCdpPort = undefined;
@@ -350,7 +350,7 @@ function currentRuntimeMode(): ExecutionVariant {
 
 function currentDeliveryPolicy(): DeliveryPolicy {
 	if (isHeadlessMode()) return "background";
-	const value = (process.env.PI_COMPUTER_USE_DELIVERY_POLICY ?? process.env.PI_COMPUTER_USE_EVENT_DELIVERY ?? "default").toLowerCase();
+	const value = (process.env.BCU_DELIVERY_POLICY ?? process.env.BCU_EVENT_DELIVERY ?? "default").toLowerCase();
 	return value === "background" || value === "pid" ? "background" : value === "foreground" || value === "hid" ? "foreground" : value === "ax_only" || value === "ax-only" ? "ax_only" : "default";
 }
 
@@ -644,7 +644,7 @@ async function focusControlledWindow(target: ResolvedTarget, signal?: AbortSigna
 function assertBrowserUseAllowed(target: { appName: string; bundleId?: string }): void {
 	if (!isBrowserUseEnabled() && currentPlatformBackend.isBrowserApp(target.appName, target.bundleId)) {
 		throw new Error(
-			`Browser use is disabled by pi-computer-use config, so '${target.appName}' cannot be controlled. Enable browser_use in ~/.pi/agent/extensions/pi-computer-use.json or .pi/computer-use.json to allow browser windows.`,
+			`Browser use is disabled by bcu config, so '${target.appName}' cannot be controlled. Enable browser_use in ~/.pi/agent/extensions/bcu.json or .pi/computer-use.json to allow browser windows.`,
 		);
 	}
 }
@@ -1526,7 +1526,7 @@ async function performListWindows(params: FindParams, signal?: AbortSignal): Pro
 	const lines = windows.map(formatWindowLine);
 	const text = lines.length
 		? `Found ${lines.length} root${lines.length === 1 ? "" : "s"}${query.query ? ` for ${JSON.stringify(query.query)}` : ""}. Use @r refs with observe({ root: "@rN" }).\n${lines.join("\n")}`
-		: `No roots are currently visible to pi-computer-use.`;
+		: `No roots are currently visible to bcu.`;
 	return { content: [{ type: "text", text }], details };
 }
 
@@ -2099,7 +2099,7 @@ async function waitForCdpPort(port: number, signal?: AbortSignal): Promise<void>
 }
 
 // Side effects: starts a Pi-managed browser process, replaces any previous managed browser,
-// and sets PI_COMPUTER_USE_CDP_PORT for subsequent CDP context discovery.
+// and sets BCU_CDP_PORT for subsequent CDP context discovery.
 async function performLaunchBrowser(params: LaunchBrowserParams, signal?: AbortSignal): Promise<AgentToolResult<LaunchBrowserDetails>> {
 	const browser = params.browser === "chrome" ? "chrome" : "helium";
 	const executable = managedBrowserExecutable(browser);
@@ -2119,21 +2119,21 @@ async function performLaunchBrowser(params: LaunchBrowserParams, signal?: AbortS
 		url,
 	];
 	if (runtimeState.previousCdpPort === undefined && runtimeState.managedBrowserCdpPort === undefined) {
-		runtimeState.previousCdpPort = process.env.PI_COMPUTER_USE_CDP_PORT;
+		runtimeState.previousCdpPort = process.env.BCU_CDP_PORT;
 	}
 	const managedBrowser = spawn(executable, args, { stdio: "ignore", detached: false });
 	managedBrowser.unref();
 	runtimeState.managedBrowser = managedBrowser;
 	runtimeState.managedBrowserCdpPort = String(port);
-	process.env.PI_COMPUTER_USE_CDP_PORT = String(port);
+	process.env.BCU_CDP_PORT = String(port);
 	try {
 		await waitForCdpPort(port, signal);
 	} catch (error) {
 		if (runtimeState.managedBrowser === managedBrowser) {
 			runtimeState.managedBrowser = undefined;
 			managedBrowser.kill("SIGTERM");
-			if (runtimeState.previousCdpPort === undefined) delete process.env.PI_COMPUTER_USE_CDP_PORT;
-			else process.env.PI_COMPUTER_USE_CDP_PORT = runtimeState.previousCdpPort;
+			if (runtimeState.previousCdpPort === undefined) delete process.env.BCU_CDP_PORT;
+			else process.env.BCU_CDP_PORT = runtimeState.previousCdpPort;
 			runtimeState.managedBrowserCdpPort = undefined;
 			runtimeState.previousCdpPort = undefined;
 		}
