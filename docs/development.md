@@ -35,6 +35,8 @@ scripts/pi-cubench-agent.mjs     Cubench gateway adapter using the core library
 
 The public command surface lives in `src/cli.ts`, with shared parameter and result types in `src/contract.ts`. Keep it small. Internal complexity belongs in `src/bridge.ts`, `src/outline.ts`, `src/note.ts`, and the native helper.
 
+`skills/better-computer-use/` is the Skill source. This machine installs it as a real directory at `~/.agents/skills/operations/better-computer-use/`; recursive Agent Skill discovery does not traverse a directory symlink. Sync the three files after changing the source, then run `~/.agents/scripts/check-skills-project.sh`. The installed copy is a deployment artifact, not a second source tree.
+
 Broker IPC uses a Unix domain socket under `~/Library/Caches/bcu` on macOS and a per-user `\\.\pipe\bcu-broker-*` named pipe on Windows. macOS protects startup and shutdown socket replacement with an `O_EXLOCK` kernel lock; Windows pipe ownership and lifetime are kernel-managed.
 
 ## Checks

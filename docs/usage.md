@@ -5,10 +5,10 @@
 ## 基本流程
 
 ```text
-find-roots → observe-ui → search-ui / expand-ui / inspect-ui → act-ui
+observe-ui → search-ui / expand-ui / inspect-ui → act-ui
 ```
 
-1. `find-roots` 返回 `@r` 根节点。
+1. 已知唯一应用或窗口时直接 `observe-ui --app`；目标不确定、有多个窗口或需要临时根时先用 `find-roots` 获取 `@r`。
 2. `observe-ui` 返回不可变的 `stateId` 和 `@e` 元素 ref。
 3. 查询命令读取该状态，不重新截图。
 4. `act-ui` 使用同一 `stateId`，并返回后继状态。
@@ -43,7 +43,7 @@ screenshot: /Users/me/Library/Caches/bcu/shots/35d7….jpg (1200x800)
 }
 ```
 
-截图字节不会进入文本或 JSON 输出。macOS 截图目录权限为 `0700`，文件权限为 `0600`。
+桌面观察和动作的 JSON 只保留后续调用需要的状态、目标、变化和执行证据；完整 outline 缓存在 Broker 中，不在 `details` 重复返回。可见 outline 位于 `result.text`，未展开内容用 `search-ui`、`expand-ui` 或 `inspect-ui` 查询。截图字节不会进入文本或 JSON 输出。macOS 截图目录权限为 `0700`，文件权限为 `0600`。
 
 失败时进程返回非零退出码，stdout 为空，即使使用 `--json` 也不会输出假成功对象。stderr 固定为两行：
 

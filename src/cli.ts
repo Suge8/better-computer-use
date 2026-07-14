@@ -329,9 +329,19 @@ function writeResult(result: unknown, json: boolean, text?: string): void {
 	if (text) process.stdout.write(`${text.trimEnd()}\n`);
 }
 
+const CACHED_DESKTOP_DETAIL_KEYS = new Set(["config", "helper", "lookId", "note", "outline", "renderedOutline"]);
+
+function publicToolResult(result: ToolResult): ToolResult {
+	if (!result.details || typeof result.details !== "object" || Array.isArray(result.details) || !("capture" in result.details)) return result;
+	const details = Object.fromEntries(
+		Object.entries(result.details).filter(([key]) => !CACHED_DESKTOP_DETAIL_KEYS.has(key)),
+	);
+	return { ...result, details };
+}
+
 function writeToolResult(result: ToolResult, json: boolean): void {
 	const screenshot = result.screenshot ? `screenshot: ${result.screenshot.path} (${result.screenshot.width}x${result.screenshot.height})` : "";
-	writeResult(result, json, [result.text, screenshot].filter(Boolean).join("\n"));
+	writeResult(json ? publicToolResult(result) : result, json, [result.text, screenshot].filter(Boolean).join("\n"));
 }
 
 async function runTool<Name extends CliCommandName>(name: Name, params: CliCommandParams[Name], json: boolean): Promise<void> {

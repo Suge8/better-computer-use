@@ -138,6 +138,24 @@ function fakeBroker() {
 					socket.write(`${JSON.stringify({ id: request.id, ok: true, result: { brokerVersion: 1, helperProtocolVersion: null, pid: process.pid } })}\n`);
 					continue;
 				}
+				if (request.cmd === "observe-ui" && request.args.app === "__bcu_compact_output__") {
+					const result = {
+						text: "Outline (1 node, stateId state-1):\n@e1 AXWindow",
+						details: {
+							tool: "observe_ui",
+							capture: { stateId: "state-1" },
+							execution: { strategy: "look" },
+							outline: { lookId: 1, root: { ref: "@e1", role: "AXWindow", children: [] } },
+							renderedOutline: "@e1 AXWindow",
+							lookId: 1,
+							note: { windowRef: "@r1" },
+							config: { headless: false },
+							helper: { protocolVersion: 6 },
+						},
+					};
+					socket.write(`${JSON.stringify({ id: request.id, ok: true, result })}\n`);
+					continue;
+				}
 				const errors = {
 					"act-ui": { code: "stale_state", message: `State '${request.args.stateId}' is unavailable or was evicted.` },
 					"observe-ui": { code: "app_not_found", message: `App '${request.args.app}' is not running.` },
@@ -170,6 +188,15 @@ try {
 	for (const command of publicCommands) {
 		assert(help.stdout.includes(command), `bcu --help omitted ${command}`);
 	}
+
+	const compactOutput = await run(["observe-ui", "--app", "__bcu_compact_output__", "--json"]);
+	assert.equal(compactOutput.code, 0, "compact JSON output failed");
+	const compactDetails = JSON.parse(compactOutput.stdout).result.details;
+	assert.deepEqual(compactDetails, {
+		tool: "observe_ui",
+		capture: { stateId: "state-1" },
+		execution: { strategy: "look" },
+	}, "public CLI leaked cached or diagnostic internals");
 
 	assertFailure(await run(["expand-ui", "--state", "state-1"]), "invalid_arguments");
 	assertFailure(await run(["act-ui", "--state", "state-1", "-"], { input: "not-json\n" }), "invalid_arguments");

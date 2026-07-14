@@ -42,17 +42,13 @@ Windows 不需要这套 TCC 授权流程。包内已包含 Windows helper，运�
 
 ## 快速开始
 
-查找 TextEdit 窗口：
+已知目标应用且窗口唯一时直接观察：
 
 ```bash
-bcu find-roots --app TextEdit
+bcu observe-ui --app TextEdit --mode semantic --image never
 ```
 
-观察返回的根节点，例如 `@r1`：
-
-```bash
-bcu observe-ui --root @r1
-```
+目标不确定或有多个窗口时，先运行 `bcu find-roots --app TextEdit`，再用返回的 `@r` 执行 `observe-ui --root @r1`。
 
 命令会返回 `stateId` 和界面 outline。后续查询与操作必须使用该状态中的 `stateId` 和 `@e` ref：
 
