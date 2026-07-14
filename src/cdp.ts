@@ -72,11 +72,15 @@ export class CdpTab {
 	private consoleBuffer: CdpConsoleEntry[] = [];
 	private loadFired: (() => void) | undefined;
 
-	private constructor(
-		private readonly ws: WebSocket,
-		readonly targetId: string,
-		public title: string,
-	) {}
+	private readonly ws: WebSocket;
+	readonly targetId: string;
+	title: string;
+
+	private constructor(ws: WebSocket, targetId: string, title: string) {
+		this.ws = ws;
+		this.targetId = targetId;
+		this.title = title;
+	}
 
 	static async connect(wsUrl: string, targetId: string, title: string): Promise<CdpTab> {
 		const ws = new WebSocket(wsUrl);
