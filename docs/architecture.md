@@ -1,154 +1,159 @@
-# Architecture
+# 架构
 
-`pi-computer-use` exposes one state-scoped interface for desktop and browser UI:
-
-```text
-find roots → observe one root → search/expand/inspect its state → act from that state
-```
-
-The agent still sees a multi-root forest. `find_roots` returns stable root refs (`@rN`) for desktop windows, transient surfaces, and CDP pages. Observing one root produces an immutable element tree whose refs (`@eN`) belong only to that returned `stateId`. Progressive disclosure is unchanged: the first outline is folded, while `search_ui`, `expand_ui`, and `inspect_ui` query the full stored tree.
-
-## Runtime model
-
-Every live request follows one path:
+`bcu` 由薄 CLI、用户级 Broker 和平台 native helper 组成。
 
 ```text
-load saved state → prepare actions → run → observe → save → show changes
+任意有 shell 的 agent
+        │
+        ▼
+   bcu CLI（无状态）
+        │ UDS / Named Pipe
+        ▼
+   用户级 Broker
+   ├─ StateStore
+   ├─ ResourceScheduler
+   ├─ screenshot artifacts
+   └─ CDP connections
+        │
+        ├─ macOS: /Applications/bcu.app
+        └─ Windows: windows-bridge.exe
 ```
 
-The implementation keeps that ownership explicit:
+## 职责边界
 
-| Module | Owns |
-|---|---|
-| `state.ts` | Saved UI states, request-local state, restoration, and serialization |
-| `actions.ts` | Validation, normalization, target resolution, dependent focus, and safe retry eligibility |
-| `bridge.ts` | Tool coordination and resource scheduling |
-| `view.ts` | Stable public refs and full-versus-changes rendering |
-| `outline.ts` | Parsing and querying complete UI trees |
-| `platform/*` | OS observation, input mechanics, and native protocol translation |
+### CLI
 
-```mermaid
-flowchart TB
-    A["Agent tool calls<br/>Pi may issue them concurrently"] --> C["State-scoped contract<br/>root @r / stateId / element @e"]
-    C --> Q{"Cached or live?"}
-    Q -->|"cached search / expand / inspect"| S["Bounded immutable state store"]
-    Q -->|"observe / act / live read"| R["Resource scheduler"]
-    R --> D1["desktop-pid:123 lane"]
-    R --> D2["desktop-pid:456 lane"]
-    R --> B1["cdp:page-A lane"]
-    D1 --> P["Platform-neutral backend"]
-    D2 --> P
-    B1 --> Cdp["Target-keyed CDP connections"]
-    P --> M["macOS AX/capture helper"]
-    P --> W["Windows UIA/input helper"]
-    M --> O["OS UI resources"]
-    W --> O
-    Cdp --> O
-```
+CLI 只负责：
 
-There is no session-wide current UI. Every call hydrates request-local state from `stateId`; unrelated calls cannot overwrite one another. Stored observations are immutable and bounded, so old refs either resolve to their exact observation or fail clearly after eviction.
+- 解析参数和 stdin；
+- 连接或按需启动 Broker；
+- 渲染文本或 JSON；
+- 把稳定错误码和恢复动作写入 stderr。
 
-The scheduler serializes live operations only when they address the same physical resource. Different desktop processes and different CDP targets can run concurrently. Cached outline queries bypass it entirely. Every resource has a monotonically increasing epoch. A mutating call must present the epoch captured by its state; if another write won the race, the stale call is rejected before dispatch.
+CLI 不保存 UI 状态，不直接连接 native helper，也不管理 CDP。
 
-Desktop scheduling is conservatively keyed by process rather than window because accessibility focus, menus, and physical input can cross window boundaries inside an app. CDP scheduling is keyed by page target. Global physical input remains mutex-protected in the native helper; semantic AX/UIA work can overlap where the platform permits it.
+### Broker
 
-## Observation and progressive disclosure
+Broker 是运行时单一事实源，拥有：
 
-`observe_ui` asks the selected backend for one look. A desktop look combines root identity, accessibility structure, optional image evidence, OCR boxes when required, and capture metadata. A browser look converts the CDP accessibility tree into the same serialized outline shape.
+- 不可变 observation；
+- 每个资源的 epoch；
+- 同资源串行调度；
+- native helper 长连接；
+- CDP 页面与受管浏览器；
+- 截图文件生命周期；
+- helper 诊断和权限 setup。
 
-The bridge stores the complete observation and returns a folded rendering. The state owns its refs:
+macOS 使用 Unix domain socket，目录权限为 `0700`，socket 权限为 `0600`。Windows 使用当前用户命名管道。Broker 按需启动，空闲 10 分钟后退出。
+
+### Native helper
+
+helper 负责平台事实和输入投递：
+
+- macOS Accessibility、ScreenCaptureKit、Vision；
+- Windows UIA、窗口捕获和输入；
+- element grounding、遮挡检查、动作验证；
+- 全局物理键鼠互斥。
+
+macOS helper 必须保留 `.app` 身份。TCC 授权绑定 bundle id 和代码签名身份，AppKit 也需要自己的主运行循环。把这部分合并进 Node 进程会让授权归因到启动终端。
+
+## 启动与退出
+
+普通命令执行 connect-or-start：
+
+1. 连接现有 IPC；
+2. 失败后获取用户级启动锁；
+3. 锁内再次检查；
+4. 唯一胜者启动 `bcu __serve`；
+5. Broker 监听成功后通过私有 ready fd 发事件；
+6. CLI 发出请求。
+
+启动路径不使用 sleep 或重试轮询。`status` 只连接现有 Broker，`stop` 只停止现有 Broker。
+
+Broker 退出时关闭状态、调度器、CDP 和 Windows helper。macOS helper 继续由系统管理，以保留稳定的 TCC 身份和下次调用的低延迟。
+
+## 状态模型
+
+标准数据流是：
 
 ```text
-@r3 browser page
-  state A (epoch 4)
-    @e1 document
-    @e7 button
-
-@r8 desktop window
-  state B (epoch 2)
-    @e1 application
-    @e12 text field
+find-roots → observe-ui → cached query → act-ui → successor state
 ```
 
-`search_ui` and ordinary inspection are pure cached queries. A live escalation such as OCR or a refreshed truncated region is epoch-checked and resource-scheduled. It cannot silently graft data across a concurrent mutation.
+`find-roots` 返回 `@r`。`observe-ui` 生成不可变 `stateId` 和属于该状态的 `@e`。每个请求从 `stateId` hydrate 一份 request-local operation state，不存在跨请求共享的“当前窗口”。
 
-## Acting and batching
+StateStore 有四道容量边界：
 
-`act_ui` runs one dependent action list:
+- 最大记录数；
+- 最大总字节数；
+- 单条最大字节数；
+- TTL。
 
-```ts
-act_ui({
-  stateId,
-  actions: [
-    { action: "setText", ref: "@e12", text: "hello" },
-    { action: "press", ref: "@e18" },
-  ],
-})
+写入时清理过期和超容量记录。单条状态超过上限时显式返回 `state_too_large`，不会截断后假装成功。
+
+保存桌面状态时只保留图片的宽、高和 MIME 元数据。JPEG/PNG 字节写入截图文件，不进入 StateStore。
+
+## 截图 artifact
+
+helper v1 仍通过 native 协议返回 base64。Broker 在响应 CLI 前完成以下步骤：
+
+1. 解码图片；
+2. 写入 `shots/<stateId>.jpg`；
+3. 设置目录 `0700`、文件 `0600`；
+4. 删除结果中的 base64；
+5. 返回路径、MIME 和尺寸。
+
+清理在新截图写入时执行，不创建后台清理 timer。同一 artifact 目录的写入与清理由 Broker 内 Promise 队列串行化，避免并发 agent 在枚举、stat、删除之间互相破坏；不同目录仍可并行。只有性能数据证明 native 直写文件有显著收益时，才需要改 helper 协议。
+
+## 并发与 stale state
+
+ResourceScheduler 按物理资源维护单调递增 epoch：
+
+- 桌面资源按进程 PID 分 lane；
+- CDP 资源按页面 target 分 lane；
+- 缓存查询不进入调度器；
+- 不同 lane 可并行；
+- 同一 lane 的实时工作顺序执行。
+
+mutation 必须携带 observation 对应的 epoch。两个调用从同一状态并发写入时，第一个调用先递增 epoch；第二个调用在投递前收到 `stale_state`。不确定是否已经执行的物理动作不会自动重放。
+
+全局物理键鼠仍由 native helper 串行保护，因为一个桌面会话只有一个指针和键盘焦点。不同应用的无障碍语义操作可以并行。
+
+## Observation
+
+桌面 observation 包含：
+
+- 根节点身份和窗口几何；
+- Accessibility/UIA outline；
+- 可选图片和 OCR；
+- helper timings；
+- 完整序列化 outline。
+
+首次结果返回折叠后的完整视图。`search-ui`、`expand-ui`、`inspect-ui` 查询完整缓存。截断节点需要扩展时，Broker 在相同 epoch 上做 scoped look，不能把并发 mutation 后的数据 graft 到旧状态。
+
+`observe-ui` 默认 `fused`。`semantic` 默认不取图、不做 OCR。`act-ui` 的后继观察默认 `semantic + no-image`，显式 `--image always` 才生成截图。
+
+## Action transaction
+
+`act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
+
+helper 返回 `worked`、`didnt` 或 `unknown`，并附投递与验证证据。只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败统一变成 `action_failed`，stdout 为空，调用方必须重新观察。可信的小变更返回 successor diff；根替换、身份置信度不足或变更过大时返回完整折叠视图。
+
+`headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
+
+## Browser
+
+CDP 页面与桌面窗口共用 `@r`、`stateId`、`@e` 和 epoch。Broker 保存 target id，CLI 不暴露第二套 context 标识。
+
+受管浏览器、CDP 连接和 console 缓冲都由 Broker 持有。Broker 退出时只关闭自己启动的浏览器，不关闭外部浏览器。桌面与浏览器的等待超时、动作失败使用同一公开错误语义。
+
+## 错误契约
+
+Broker 把 native、bridge 和 IPC 错误归一到 [`src/errors.ts`](../src/errors.ts) 的稳定代码。CLI 失败时 stdout 为空，stderr 输出：
+
+```text
+error <code>: <message>
+recovery: <next action>
 ```
 
-Transactions may include a semantic postcondition:
-
-```ts
-act_ui({
-  stateId,
-  actions: [{ action: "press", ref: "@e9" }],
-  expect: { text: "Saved", timeoutMs: 3000 }
-})
-```
-
-With a postcondition, the backend waits for the requested text or role to
-appear (or disappear with `gone: true`) before reporting success. It records
-whether the condition was newly verified, already present before delivery, or
-failed. A failed postcondition changes the execution outcome to `didnt`; event
-delivery alone is never treated as semantic success.
-
-One action is represented by an array of length one. A multi-action transaction is appropriate only when no intermediate observation is needed. The runtime validates one base state, acquires one resource lane, and sends the steps as one native helper transaction. The helper captures one pre-transaction root baseline, executes and verifies steps in order, and stops on the first failed or invalidated step. Partial results include `stoppedAt`, so callers know the exact checked boundary and must re-observe before continuing. The helper performs one final root-delta settle and the bridge produces one final observation. There is no alternate sequential protocol. This is not a mechanism for parallel actions within one UI resource.
-
-The bridge resolves model intent; the backend/helper owns grounding, preflight, delivery, and evidence. Accessibility capabilities choose an initial strategy but are not treated as proof that the intended result occurred. Editable-region clicks establish foreground focus for following unscoped keyboard steps in the same transaction. Raw coordinates are tied to the image-bearing state that produced them. Web-backed editable controls use atomic keyboard events and web-backed buttons use pointer events so application state receives normal input events rather than only a changed AX value. A helper result reports `worked`, `didnt`, or `unknown`, including evidence and shallow root changes where available.
-
-With `headless: true`, the background boundary is strict: Pi must never activate or raise an application, change the user's focused window, move the global cursor, post raw input, or display the agent cursor. With `headless: false` (the default), credible semantic activation may begin in the background, editable clicks preserve the focus they establish for following unscoped keyboard input, and keyboard input with a checked `didnt` result may retry in the foreground because the first attempt proved side-effect-free. Focus-preserving native keyboard requests must not raise or re-focus the window between semantic activation and HID delivery; canvas editors such as PowerPoint otherwise collapse an inner text editor back to placeholder selection. Ambiguous pointer outcomes are never replayed. With `cursor_overlay: true`, macOS pointer actions enqueue a click-through agent cursor animation to the native grounded point without delaying delivery.
-
-The agent-facing `act_ui.headless` flag determines whether foreground execution is prohibited. Fallback-capable multi-action calls execute one checked action at a time, retain click-established focus, and stop on a checked `didnt`; strict-headless calls retain native transactional batching.
-
-## Successor diffs
-
-Complete observations remain immutable and bounded internally. The initial observation renders a folded full view. After a mutation, `view.ts` stabilizes public refs using confident native identities, saves the complete resulting state, and compares it with the base state. Small trustworthy results render `added`, `updated`, and `removed` nodes plus the next `stateId`. Root appearance, closure, and focus changes remain part of the run result.
-
-Diff rendering falls back to a full folded view when the root identity changes, too few successor nodes can be matched confidently, or the change budget would make a patch less useful than the full view. Cached queries always operate on the complete stored state, never on a partially applied model-side tree.
-
-## Browser support
-
-Browser pages are roots, not a second agent-facing context hierarchy. `launch_browser` returns browser-page `@r` refs; `observe_ui` returns their normal outline and `stateId`. `read_text`, `wait_for`, `act_ui`, `navigate_browser`, and `evaluate_browser` derive the CDP target from that state. Internal CDP target identifiers never need to be copied between public tools.
-
-## Native transports
-
-The macOS socket server and Windows line protocol accept multiple in-flight requests and correlate responses by request id. macOS protects shared AX ref/look stores and the root-event sequence; Windows uses a fixed worker pool and initializes UIA per worker thread. Both platforms keep eight immutable native look records and serialize global physical input. Target focus, bounded occlusion preflight, and HID delivery share that same critical section; another worker cannot change the foreground between validation and delivery. UIA-only Windows batches do not acquire the global physical-input lock, while any batch that may fall back to pointer or keyboard delivery holds it for the complete transaction.
-
-Windows UIA extraction is bounded. When the native limit omits descendants, the nearest retained ancestors are marked `truncated`; `expand_ui` performs a scoped look and the helper carries forward the untouched refs into the new immutable look record. Windows root deltas combine an event journal with authoritative before/after snapshots. `SetWinEventHook` accelerates settling and retains short-lived root transitions, while snapshots remain the source of truth for persistent state.
-
-## Preventing platform drift
-
-Platform parity is defined by invariants, not matching source structure. Every helper reports an `architectureVersion` and the invariant set it implements. Startup fails closed if either helper omits a required invariant. The TypeScript backend interface and conformance check additionally require both platforms to expose the same observation, text ownership, batching, and lifecycle operations.
-
-Changes to a native backend should therefore include three layers of evidence:
-
-1. shared contract tests for request and response semantics;
-2. target-native compilation and deterministic native unit tests;
-3. the same black-box Cubench properties on an interactive host for that platform.
-
-OS-specific mechanisms can differ—AX, ScreenCaptureKit, and the AppKit agent-cursor overlay on macOS; UIA and Windows capture/input APIs on Windows—but state ownership, bounds, progressive disclosure, transaction boundaries, and honest outcomes may not. The overlay lives inside the existing helper because native action grounding owns the final screen point; keeping it there avoids a second coordinate transform or public cursor tool surface. The helper's socket server runs off the main thread while AppKit owns the main run loop, and the helper excludes its click-through overlay from root discovery. Cursor animation is observational: newer actions may supersede an in-flight path, but rendering never blocks action delivery or verification.
-
-## Design constraints
-
-- Preserve the multi-root forest and progressive disclosure.
-- Make state ownership explicit; never depend on a mutable session-wide current UI.
-- Reject stale writes before dispatch using resource epochs.
-- Serialize by physical resource, not by tool name or whole session.
-- Prefer platform semantics as the cheapest credible attempt, then trust verified outcomes over advertised capabilities.
-- Preserve focus established by one transaction step for dependent keyboard steps.
-- Store full immutable states and render the smallest trustworthy resulting view.
-- Keep observation compact and expand locally.
-- Let the backend/helper own action grounding and verification.
-- Keep platform mechanisms behind the platform-neutral seam.
-- Treat batching as one-resource transaction amortization, not a separate execution architecture.
-- Fail closed when an action outcome is uncertain; a later call must observe again.
+真实失败不会降级为成功。调用方根据错误码决定重新观察、重新授权、修复 helper 或停止任务。

@@ -1,87 +1,98 @@
-# pi-computer-use
+# Better Computer Use
 
-<p align="center">
-  <img src="./assets/logo/logo3.png" width="50%" alt="pi-computer-use">
-</p>
+`bcu` 是面向 AI agent 的桌面操控 CLI。只要 agent 能运行 shell，就能用它观察和操作 macOS、Windows 应用，无需注入一组常驻工具 Schema。
 
-`pi-computer-use` lets AI agents use desktop apps on macOS and Windows.
+`bcu` 可以查找窗口、读取界面结构、搜索控件、点击、输入、滚动、等待界面变化，也能通过 CDP 操作浏览器页面。状态、并发调度和截图文件由同一个用户级 Broker 管理。
 
-The macOS helper requires macOS 14 or newer.
+## 适用场景
 
-An agent can look at an app window, understand the buttons and text inside it, and perform actions like clicking, typing, scrolling, and waiting for something to change. This is useful when the agent needs to work with a normal desktop app instead of an API, a terminal command, or a file.
+当目标应用没有可靠的 API、命令行或 MCP 接口时使用 `bcu`。如果已有直接接口，优先使用直接接口。
 
-New to computer use? Start with: [Wait, what exactly is Computer Use?](https://zanechee.dev/what-exactly-is-computer-use/)
+支持环境：
 
-## What this package does
+- macOS 14 或更高版本
+- Windows 交互式桌面会话
+- Node.js 20.6 或更高版本
 
-This is a Pi extension. After installation, Pi agents get tools for:
+## 安装
 
-- finding open apps and windows
-- observing what is visible in a window
-- searching the visible interface for text, buttons, and controls
-- inspecting parts of the interface in more detail
-- clicking, typing, scrolling, and pressing UI controls
-- waiting for UI changes
-
-In short: it gives an agent a controlled way to operate desktop software.
-
-## What this package is not
-
-`pi-computer-use` is not a replacement for app APIs or MCP servers. If an app has a reliable direct integration, use that first.
-
-Computer use is most helpful when the only available interface is the app on screen.
-
-## Install
+当前仓库尚未发布 npm 包。克隆后执行：
 
 ```bash
-pi install git:github.com/injaneity/pi-computer-use@v0.4.3
+npm install
+npm run build
+npm link
+which bcu
 ```
 
-Start Pi and complete the platform setup flow.
+`which bcu` 应指向 npm link 创建的全局命令。
 
-On macOS, grant permissions to:
+macOS 首次使用前运行：
 
-```text
-/Applications/pi-computer-use.app
+```bash
+bcu setup
 ```
 
-Required macOS permissions:
+按提示在“系统设置 → 隐私与安全性”中为 `/Applications/bcu.app` 打开：
 
-- Accessibility
-- Screen Recording, shown as Screen and System Audio Recording on newer macOS versions
+- 辅助功能
+- 屏幕录制（新版 macOS 显示为“屏幕与系统音频录制”）
 
-The macOS setup flow registers the helper first, so it should already appear in both Settings panes. Enable the toggles and choose Recheck.
+Windows 不需要这套 TCC 授权流程。包内已包含 Windows helper，运行时不需要 Rust 或 Cargo。
 
-On Windows, use an interactive desktop session. Windows support uses the platform accessibility APIs and does not use the macOS helper app or TCC permission flow.
+## 快速开始
 
-Use `/computer-use` inside Pi to show the active configuration and where it came from.
+查找 TextEdit 窗口：
 
-## Main tools
+```bash
+bcu find-roots --app TextEdit
+```
 
-- `find_roots`
-- `observe_ui`
-- `search_ui`
-- `expand_ui`
-- `inspect_ui`
-- `act_ui`
-- `read_text`
-- `wait_for`
+观察返回的根节点，例如 `@r1`：
 
-See [docs/usage.md](./docs/usage.md) for the full tool reference.
+```bash
+bcu observe-ui --root @r1
+```
 
-## Documentation
+命令会返回 `stateId` 和界面 outline。后续查询与操作必须使用该状态中的 `stateId` 和 `@e` ref：
 
-- [Usage](./docs/usage.md)
-- [Architecture](./docs/architecture.md)
-- [Configuration](./docs/configuration.md)
-- [Development](./docs/development.md)
-- [Troubleshooting](./docs/troubleshooting.md)
-- [Contributing](./CONTRIBUTING.md)
+```bash
+bcu search-ui --state <stateId> --text Save
 
-## Development status
+echo '[{"action":"press","ref":"@e12"}]' |
+  bcu act-ui --state <stateId> --expect-text Saved --timeout 3000 -
+```
 
-The architecture is centered on immutable, state-scoped observations. Desktop surfaces and CDP pages form one multi-root forest; progressive outline queries remain cached, while live work is ordered per physical resource so independent roots can run in parallel. `act_ui` accepts one or more intent steps, preserves focus across dependent input, verifies delivery, recovers safely, stores one complete successor state, and returns a compact diff when identity confidence allows. Older direct tools such as `screenshot`, `click`, `set_text`, and `computer_actions` are no longer part of the public extension surface.
+`act-ui` 返回的新 `stateId` 是下一次操作的输入。状态过期时重新执行 `observe-ui`。
+
+需要截图时显式请求：
+
+```bash
+bcu observe-ui --app TextEdit --image always
+```
+
+截图写入 `~/Library/Caches/bcu/shots/`，stdout 只返回文件路径和尺寸，不输出 base64。
+
+## 诊断与服务状态
+
+```bash
+bcu status        # 只检查，不启动 Broker
+bcu doctor        # 启动并检查 Broker、helper、权限和配置
+bcu stop          # 停止 Broker；macOS helper 保留授权身份并继续按系统管理
+```
+
+普通命令会自动连接或按需启动 Broker。agent 不需要先调用 `status`。
+
+## 文档
+
+- [CLI 使用手册](./docs/usage.md)
+- [配置](./docs/configuration.md)
+- [故障排查](./docs/troubleshooting.md)
+- [架构](./docs/architecture.md)
+- [开发](./docs/development.md)
 
 ## License
 
 MIT
+
+最后核对：2026-07-14

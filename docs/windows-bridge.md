@@ -46,10 +46,10 @@ Request envelope:
 Response envelope:
 
 ```json
-{ "protocolVersion": 3, "id": "req_1", "ok": true, "result": { } }
+{ "protocolVersion": 4, "id": "req_1", "ok": true, "result": { } }
 ```
 
-Diagnostics (`cmd: "diagnostics"`) returns the protocol version and helper process metadata. The TypeScript backend rejects a mismatched version with a “Restart Pi …” error.
+Diagnostics (`cmd: "diagnostics"`) returns the protocol version and helper process metadata. The TypeScript backend rejects a mismatched version and asks the caller to restart `bcu`.
 
 ## Remote acceptance notes
 
@@ -61,5 +61,5 @@ Diagnostics (`cmd: "diagnostics"`) returns the protocol version and helper proce
 ## Local constraints
 
 - Local child process only; no service, socket, or network listener.
-- Helper path: `%USERPROFILE%\.pi\agent\helpers\pi-computer-use\windows-bridge.exe`.
+- Helper path: `%USERPROFILE%\.bcu\helpers\windows-bridge.exe`.
 - UIAccess/elevated-window limitations are reported as errors; there is no interactive permission grant loop.
