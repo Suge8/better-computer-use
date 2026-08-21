@@ -16,6 +16,9 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const helperAppPath = resolveMacosHelperAppPath();
 const helperAppExecutablePath = path.join(helperAppPath, "Contents", "MacOS", "bridge");
 const helperSourceHashPath = path.join(helperAppPath, "Contents", "Resources", "source.sha256");
+// Signing rewrites the Mach-O, so the installed binary never hashes to the source
+// hash; a second manifest records the final post-sign bytes for tamper detection.
+const helperInstalledHashPath = path.join(helperAppPath, "Contents", "Resources", "installed.sha256");
 const helperBundleId = "com.sugeh.bcu";
 const windowsCrateDir = path.join(rootDir, "native", "windows", "bridge-rs");
 const windowsHelperDestPath = process.env.BCU_WINDOWS_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "windows-bridge.exe");
@@ -476,18 +479,21 @@ async function installHelperApp(sourcePath) {
 
 	const sourceExecutable = await fs.readFile(sourcePath);
 	const sourceHash = createHash("sha256").update(sourceExecutable).digest("hex");
-	const existingSourceHash = await fs.readFile(helperSourceHashPath, "utf8").catch(() => undefined);
+	const existingSourceHash = (await fs.readFile(helperSourceHashPath, "utf8").catch(() => undefined))?.trim();
+	const existingInstalledHash = (await fs.readFile(helperInstalledHashPath, "utf8").catch(() => undefined))?.trim();
 	const existingInfoPlist = await fs.readFile(infoPlistPath, "utf8").catch(() => undefined);
-	// Hash the installed executable itself so a replaced or corrupted binary is repaired
-	// even when the recorded source hash still matches.
 	const installedHash = await hashFile(helperAppExecutablePath).catch(() => undefined);
-	if (installedHash === sourceHash && existingInfoPlist === infoPlist) {
+	// Current means: same source generation AND the installed bytes are untampered.
+	const sourceCurrent = existingSourceHash === sourceHash && existingInfoPlist === infoPlist;
+	const installedIntact = installedHash !== undefined && installedHash === existingInstalledHash;
+	if (sourceCurrent && installedIntact) {
 		// If a real signing identity is available, upgrade older ad-hoc installs
 		// in place so local builds have a consistent identity. macOS may still
 		// require permission review after native code changes.
 		const signingIdentity = process.env.BCU_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
 		if (signingIdentity !== "-" && await helperHasAdhocSignature()) {
 			await signHelper(helperAppPath, helperBundleId);
+			await fs.writeFile(helperInstalledHashPath, `${await hashFile(helperAppExecutablePath)}\n`);
 			await registerHelperApp();
 			return true;
 		}
@@ -497,9 +503,8 @@ async function installHelperApp(sourcePath) {
 
 	const signingIdentity = process.env.BCU_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
 	// Only an intact older install is protected from ad-hoc replacement; a tampered
-	// binary (hash mismatch with its own record) must always be repairable.
-	const installedHelperIsIntact = installedHash !== undefined && existingSourceHash?.trim() === installedHash;
-	if (signingIdentity === "-" && installedHelperIsIntact && !allowAdhocUpdate) {
+	// binary must always be repairable.
+	if (signingIdentity === "-" && installedIntact && !allowAdhocUpdate) {
 		throw new Error("Refusing to replace an installed helper with an ad-hoc signed rebuild because macOS may reset Accessibility/Screen Recording grants. Use a pre-signed helper app, install a Developer ID identity, or set BCU_ALLOW_ADHOC_UPDATE=1 for local development.");
 	}
 
@@ -510,6 +515,7 @@ async function installHelperApp(sourcePath) {
 	await fs.writeFile(infoPlistPath, infoPlist);
 	await fs.writeFile(helperSourceHashPath, `${sourceHash}\n`);
 	await signHelper(helperAppPath, helperBundleId);
+	await fs.writeFile(helperInstalledHashPath, `${await hashFile(helperAppExecutablePath)}\n`);
 	await registerHelperApp();
 	return true;
 }
