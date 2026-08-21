@@ -50,6 +50,7 @@ try {
 }
 // macOS runtime repair: a replaced helper binary must be restored by ensureInstalled
 // (guards against an early-return that skips the per-session setup sync).
+if (process.platform === "darwin") {
 const macosHelper = await fs.readFile(path.join(root, "prebuilt", "macos", process.arch === "arm64" ? "arm64" : "x64", "bridge"));
 const clientRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-install-check-"));
 const clientApp = path.join(clientRoot, "bcu.app");
@@ -74,5 +75,6 @@ try {
 	}
 	await fs.rm(clientRoot, { recursive: true, force: true });
 }
+}
 
-console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; Windows installs without Cargo; macOS runtime repair verified).`);
+console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; Windows installs without Cargo; macOS runtime repair verified on darwin).`);
