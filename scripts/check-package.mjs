@@ -48,4 +48,31 @@ try {
 } finally {
 	await fs.rm(temporaryRoot, { recursive: true, force: true });
 }
-console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; Windows installs without Cargo).`);
+// macOS runtime repair: a replaced helper binary must be restored by ensureInstalled
+// (guards against an early-return that skips the per-session setup sync).
+const macosHelper = await fs.readFile(path.join(root, "prebuilt", "macos", process.arch === "arm64" ? "arm64" : "x64", "bridge"));
+const clientRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-install-check-"));
+const clientApp = path.join(clientRoot, "bcu.app");
+const clientExecutable = path.join(clientApp, "Contents", "MacOS", "bridge");
+const previousEnvironment = { BCU_HELPER_APP_PATH: process.env.BCU_HELPER_APP_PATH, BCU_NO_SIGN: process.env.BCU_NO_SIGN };
+try {
+	process.env.BCU_HELPER_APP_PATH = clientApp;
+	process.env.BCU_NO_SIGN = "1";
+	await execFile(process.execPath, [path.join(root, "scripts", "setup-helper.mjs"), "--runtime"], { cwd: root, env: process.env });
+	await fs.copyFile("/bin/echo", clientExecutable);
+	const { MacosHelperClient } = await import("../src/platform/macos/helper.ts");
+	const repairClient = new MacosHelperClient();
+	try {
+		await repairClient.ensureInstalled();
+		assert.equal((await fs.readFile(clientExecutable)).equals(macosHelper), true, "runtime check did not repair a replaced helper binary");
+	} finally {
+		repairClient.dispose();
+	}
+} finally {
+	for (const [key, value] of Object.entries(previousEnvironment)) {
+		if (value === undefined) delete process.env[key]; else process.env[key] = value;
+	}
+	await fs.rm(clientRoot, { recursive: true, force: true });
+}
+
+console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; Windows installs without Cargo; macOS runtime repair verified).`);

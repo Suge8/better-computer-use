@@ -74,10 +74,10 @@ export async function runProcess(
 	timeoutMs: number,
 	signal?: AbortSignal,
 	env?: NodeJS.ProcessEnv,
-): Promise<void> {
+): Promise<{ stdout: string; stderr: string }> {
 	throwIfAborted(signal);
 
-	await new Promise<void>((resolve, reject) => {
+	return await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
 		const child = spawn(command, args, {
 			stdio: ["ignore", "pipe", "pipe"],
 			env,
@@ -119,7 +119,7 @@ export async function runProcess(
 		child.on("close", (code) => {
 			cleanup();
 			if (code === 0) {
-				resolve();
+				resolve({ stdout, stderr });
 				return;
 			}
 			const output = [stderr.trim(), stdout.trim()].filter(Boolean).join("\n");
@@ -131,6 +131,7 @@ export async function runProcess(
 }
 
 export class MacosHelperClient {
+	private helperInstallChecked = false;
 	private daemonAvailable = false;
 	private requestSequence = 0;
 	private diagnosticsCache?: PlatformDiagnostics;
@@ -158,24 +159,19 @@ export class MacosHelperClient {
 	}
 
 	async ensureInstalled(signal?: AbortSignal): Promise<void> {
-		if (usingExternalHelperSocket) return;
-		// Installation is a deployment/repair operation, not part of every new
-		// agent process's hot path. Protocol compatibility is checked against the
-		// live daemon immediately afterwards.
-		if (await isExecutable(HELPER_APP_EXECUTABLE_PATH)) {
-			return;
-		}
-
-		// setup-helper syncs the installed helper version/signature once per session.
-		await runProcess(process.execPath, [setupHelperScriptPath(), "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, {
+		if (usingExternalHelperSocket || this.helperInstallChecked) return;
+		// Runtime setup repairs missing or replaced binaries once per session while
+		// preserving an intact older ad-hoc helper for the protocol check to arbitrate.
+		const setupOutput = await runProcess(process.execPath, [setupHelperScriptPath(), "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, {
 			...process.env,
 			ELECTRON_RUN_AS_NODE: "1",
 			BUN_BE_BUN: "1",
 		});
-
+		if (setupOutput.stderr) process.stderr.write(setupOutput.stderr);
 		if (!(await isExecutable(HELPER_APP_EXECUTABLE_PATH))) {
 			throw new Error(`Failed to install bcu helper app at ${HELPER_APP_PATH}.`);
 		}
+		this.helperInstallChecked = true;
 	}
 
 	async launchDaemon(signal?: AbortSignal): Promise<void> {

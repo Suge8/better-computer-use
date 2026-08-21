@@ -478,7 +478,10 @@ async function installHelperApp(sourcePath) {
 	const sourceHash = createHash("sha256").update(sourceExecutable).digest("hex");
 	const existingSourceHash = await fs.readFile(helperSourceHashPath, "utf8").catch(() => undefined);
 	const existingInfoPlist = await fs.readFile(infoPlistPath, "utf8").catch(() => undefined);
-	if (existingSourceHash?.trim() === sourceHash && existingInfoPlist === infoPlist) {
+	// Hash the installed executable itself so a replaced or corrupted binary is repaired
+	// even when the recorded source hash still matches.
+	const installedHash = await hashFile(helperAppExecutablePath).catch(() => undefined);
+	if (installedHash === sourceHash && existingInfoPlist === infoPlist) {
 		// If a real signing identity is available, upgrade older ad-hoc installs
 		// in place so local builds have a consistent identity. macOS may still
 		// require permission review after native code changes.
@@ -493,7 +496,10 @@ async function installHelperApp(sourcePath) {
 	}
 
 	const signingIdentity = process.env.BCU_NO_SIGN === "1" ? "-" : await resolveCodeSignIdentity();
-	if (signingIdentity === "-" && existingSourceHash !== undefined && !allowAdhocUpdate) {
+	// Only an intact older install is protected from ad-hoc replacement; a tampered
+	// binary (hash mismatch with its own record) must always be repairable.
+	const installedHelperIsIntact = installedHash !== undefined && existingSourceHash?.trim() === installedHash;
+	if (signingIdentity === "-" && installedHelperIsIntact && !allowAdhocUpdate) {
 		throw new Error("Refusing to replace an installed helper with an ad-hoc signed rebuild because macOS may reset Accessibility/Screen Recording grants. Use a pre-signed helper app, install a Developer ID identity, or set BCU_ALLOW_ADHOC_UPDATE=1 for local development.");
 	}
 
