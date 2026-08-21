@@ -7,9 +7,11 @@ import { fileURLToPath } from "node:url";
 import typescript from "typescript";
 import { noteAfterAct, noteFromLook } from "../src/note.ts";
 import { countOutlineNodes, foldToBudget, graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
+import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
+const agentCursorSwift = fs.readFileSync(path.join(root, "native/macos/agent_cursor.swift"), "utf8");
 const ts = fs.readFileSync(path.join(root, "src/bridge.ts"), "utf8");
 const noteTs = fs.readFileSync(path.join(root, "src/note.ts"), "utf8");
 const configTs = fs.readFileSync(path.join(root, "src/config.ts"), "utf8");
@@ -17,6 +19,7 @@ const contractTs = fs.readFileSync(path.join(root, "src/contract.ts"), "utf8");
 const cliTs = fs.readFileSync(path.join(root, "src/cli.ts"), "utf8");
 const brokerTs = fs.readFileSync(path.join(root, "src/broker.ts"), "utf8");
 const setupHelper = fs.readFileSync(path.join(root, "scripts/setup-helper.mjs"), "utf8");
+const macosHelperPath = fs.readFileSync(path.join(root, "src/platform/macos/helper-path.mjs"), "utf8");
 const srcFiles = fs.readdirSync(path.join(root, "src"), { recursive: true })
 	.filter((file) => typeof file === "string" && file.endsWith(".ts"))
 	.map((file) => [file, fs.readFileSync(path.join(root, "src", file), "utf8")]);
@@ -110,6 +113,32 @@ check("INV-5 listRoots seam stays platform-neutral", () => {
 	assert(!srcFiles.some(([, text]) => /interface PlatformRoot[\s\S]*\bsheetCount:/.test(text)), "PlatformRoot must not require sheetCount");
 });
 
+check("explicit root is not replaced by a modal window behind it", () => {
+	const root = (overrides) => ({
+		windowId: 1,
+		windowRef: "w1",
+		title: "Input",
+		zOrder: 5,
+		isModal: false,
+		isFocused: false,
+		isMain: true,
+		isMinimized: false,
+		isOnscreen: true,
+		...overrides,
+	});
+	const current = root({});
+	const behindModal = root({ windowId: 2, windowRef: "w2", title: "Main", zOrder: 20, isModal: true });
+	const foregroundModal = root({ windowId: 3, windowRef: "w3", title: "Prompt", zOrder: 2, isModal: true });
+	assert(!shouldPreferForegroundModalWindow(current, behindModal), "modal root behind the explicit target was promoted");
+	assert(shouldPreferForegroundModalWindow(current, foregroundModal), "foreground modal root was not promoted");
+});
+
+check("macOS ScreenCaptureKit config sizes window screenshots", () => {
+	const captureFunction = swift.slice(swift.indexOf("private func captureWindow"), swift.indexOf("private func jpegData"));
+	assert(/config\.width\s*=/.test(captureFunction), "captureWindow does not set SCStreamConfiguration.width");
+	assert(/config\.height\s*=/.test(captureFunction), "captureWindow does not set SCStreamConfiguration.height");
+});
+
 function enclosingFunctionName(text, index) {
 	const prefix = text.slice(0, index);
 	const matches = [...prefix.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)];
@@ -182,7 +211,7 @@ check("INV-11 unified CLI contract and bridge ownership", () => {
 		};
 		visit(source);
 	}
-	const allowedBridgeImports = ["scripts/check-session-lifecycle.mjs", "src/broker.ts"];
+	const allowedBridgeImports = ["scripts/check-linux-live.mjs", "scripts/check-session-lifecycle.mjs", "src/broker.ts"];
 	assert(JSON.stringify(bridgeImports.sort()) === JSON.stringify(allowedBridgeImports), `unexpected bridge runtime owners: ${bridgeImports.join(", ")}`);
 	const cubench = fs.readFileSync(path.join(root, "scripts/pi-cubench-agent.mjs"), "utf8");
 	const cubenchCommands = [...cubench.matchAll(/tool\("([^"]+)"/g)].map((match) => match[1]).sort();
@@ -223,16 +252,19 @@ check("INV-16 clean headless contract and non-destructive helper install", () =>
 	assert(!/stealth_mode|stealthMode|BCU_STEALTH|BCU_STRICT_AX/.test(configTs), "obsolete stealth configuration aliases remain");
 	assert(!/tccutil[\s\S]{0,80}reset|resetTcc/i.test(setupHelper), "helper installation can reset macOS privacy grants");
 	assert(setupHelper.includes("bcu Local Signing (com.sugeh.bcu)"), "stable bundle-specific local signing identity is missing");
-	assert(setupHelper.includes("BCU_HELPER_APP_PATH"), "helper installer lacks an isolated test destination");
+	assert(macosHelperPath.includes("BCU_HELPER_APP_PATH"), "helper installer lacks an isolated test destination");
+	assert(setupHelper.includes("resolveMacosHelperAppPath"), "helper installer bypasses shared macOS path resolution");
 });
 
-check("INV-17 macOS agent cursor stays native, configurable, and headless-safe", () => {
+check("INV-17 macOS agent cursor stays native, configurable, and background-only", () => {
 	assert(configTs.includes("cursor_overlay: boolean") && configTs.includes("BCU_CURSOR_OVERLAY"), "agent cursor config is incomplete");
+	assert(swift.includes('delivery == "pid"'), "physical cursor delivery can display the agent cursor");
 	assert(swift.includes('policy != "ax_only"'), "strict-headless actions can display the agent cursor");
 	assert(swift.includes('request["cursorOverlay"] as? Bool ?? true'), "native helper ignores the cursor overlay flag");
 	assert(swift.includes("app.processIdentifier != getpid()"), "helper overlay can leak into root discovery");
 	assert(swift.includes("AgentCursor.shared.animate(to:"), "native grounded actions do not drive the agent cursor");
 	assert(!swift.includes("completed.wait()") && !swift.includes("agentCursorLock"), "agent cursor can delay action delivery");
+	assert(agentCursorSwift.includes("paused: !renderer.isAnimating"), "agent cursor timeline continues rendering while idle");
 });
 
 check("INV-19 all timed waits are classified", () => {
@@ -264,6 +296,11 @@ check("INV-19 all timed waits are classified", () => {
 		["src/platform/macos/helper.ts", /Daemon command.*timed out/, "helper command timeout"],
 		["src/platform/windows/helper.ts", /Command timed out after/, "Windows process timeout"],
 		["src/platform/windows/helper.ts", /Helper command.*timed out/, "Windows command timeout"],
+		["src/platform/linux/helper.ts", /Command timed out after/, "Linux process timeout"],
+		["src/platform/linux/helper.ts", /Helper command.*timed out/, "Linux command timeout"],
+		["scripts/check-invariants.mjs", /recentCompletedRequestIds\?\.includes/, "abandoned-request completion poll", 2],
+		["scripts/check-linux-live.mjs", /await delay\(|setTimeout\(resolve, ms\)|while \(Date\.now/, "Linux live-test settle", 5],
+		["scripts/check-platform-linux.mjs", /fs\.chmodSync/, "Linux install-race fixture"],
 		["scripts/setup-helper.mjs", /local signing identity lock/, "signing lock timeout"],
 		["scripts/check-e2e-smoke.mjs", /Timed out waiting for/, "live-test failure timeout"],
 		["scripts/check-broker-lifecycle.mjs", /Timed out waiting for/, "broker-test failure timeout"],
@@ -330,6 +367,50 @@ if (process.platform === "darwin") {
 	console.log("SKIP INV-8 swift typecheck (macOS only)");
 }
 
+check("INV-19 macOS root identity resolution", () => {
+	assert(swift.includes("let requestedRoot = windowRef.flatMap { refStore.window(for: $0) }"), "look does not resolve native root refs from the window store");
+	assert(swift.includes("else if let requestedRoot, let owner = pidForElement(requestedRoot)"), "look cannot recover the owner pid from a stored native root");
+	assert(!swift.includes("CGWindowListCopyWindowInfo([.optionIncludingWindow]"), "window lookup uses optionIncludingWindow without an above/below selector");
+	assert(swift.includes("CGWindowListCreateDescriptionFromArray(requestedIds)"), "window lookup does not use the targeted window-description API");
+	assert(swift.includes("CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID)"), "window lookup does not fall back to all onscreen and offscreen windows");
+	assert(swift.includes("($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value == windowId"), "window lookup does not verify the returned stable ID");
+});
+
+check("INV-20 bounded broad root discovery", () => {
+	assert(swift.includes("private func broadRootCandidateApps"), "macOS helper lacks a broad root-candidate preflight");
+	assert(swift.includes("private func cgBroadRootOwners"), "macOS helper lacks a dedicated broad-owner preflight");
+	assert(swift.includes("layer == 0 || layer == popupLevel"), "broad root discovery is not bounded by layer-0 and popup-menu owners");
+	assert(swift.includes("bounds.width >= 100") && swift.includes("bounds.height >= 80"), "listApps no longer retains its established owner threshold");
+	assert(!swift.includes("for owner in cgWindowOwners() + cgPopupMenuOwners()"), "listApps includes unrelated popup-owner expansion");
+	assert(swift.includes("if let pid {\n\t\t\tapps = [[\"pid\": Int(pid)]]"), "explicit-pid root discovery no longer stays immediate");
+	assert(swift.includes("popupCandidates.isEmpty ? [] : openMenuElements"), "root discovery traverses menus when no popup exists");
+	assert(!swift.includes("let menuPairings = windowPairings(windows: menuElements, candidates: popupCandidates)"), "root discovery includes unrelated menu-pairing changes");
+	assert(swift.includes("signal(SIGPIPE, SIG_IGN)"), "helper daemon does not ignore process-wide SIGPIPE");
+	assert(swift.includes("SO_NOSIGPIPE"), "helper sockets can terminate the daemon on a late response");
+	assert(swift.includes("Darwin.send(responseSocket"), "helper socket responses do not use failure-tolerant writes");
+	assert(swift.includes("recentCompletedRequestIds"), "helper diagnostics cannot establish abandoned-request completion");
+});
+
+check("INV-17 macOS agent cursor lifecycle", () => {
+	const triple = process.arch === "x64" ? "x86_64-apple-macosx14.0" : "arm64-apple-macosx14.0";
+	const binary = path.join(os.tmpdir(), `bcu-cursor-tests-${process.pid}`);
+	try {
+		execFileSync("xcrun", [
+			"swiftc", "-target", triple, "-parse-as-library",
+			"-module-cache-path", path.join(os.tmpdir(), `bcu-cursor-test-cache-${process.arch}`),
+			"-framework", "AppKit",
+			"-framework", "SwiftUI",
+			"native/macos/agent_cursor.swift",
+			"native/macos/agent_cursor_motion.swift",
+			"native/macos/agent_cursor_tests.swift",
+			"-o", binary,
+		], { cwd: root, stdio: "pipe" });
+		execFileSync(binary, [], { cwd: root, stdio: "pipe" });
+	} finally {
+		fs.rmSync(binary, { force: true });
+	}
+});
+
 function call(socketPath, payload, timeoutMs = 10000) {
 	return new Promise((resolve, reject) => {
 		const socket = net.createConnection(socketPath);
@@ -355,6 +436,29 @@ function call(socketPath, payload, timeoutMs = 10000) {
 			reject(error);
 		});
 	});
+}
+
+function abandon(socketPath, payload) {
+	return new Promise((resolve, reject) => {
+		const socket = net.createConnection(socketPath);
+		socket.on("connect", () => {
+			socket.write(`${JSON.stringify(payload)}\n`, () => {
+				socket.destroy();
+				resolve();
+			});
+		});
+		socket.on("error", reject);
+	});
+}
+
+async function waitForCompletedRequest(socketPath, requestId, timeoutMs = 10000) {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		const diagnostics = await call(socketPath, { id: `inv-completion-${Date.now()}`, cmd: "diagnostics" });
+		if (diagnostics.recentCompletedRequestIds?.includes(requestId)) return diagnostics;
+		await new Promise((resolve) => setTimeout(resolve, 100));
+	}
+	throw new Error(`request ${requestId} did not complete within ${timeoutMs}ms`);
 }
 
 function callEnvelope(socketPath, payload, timeoutMs = 10000) {
@@ -411,6 +515,21 @@ async function liveChecks() {
 		const socketPath = process.env.BCU_SOCKET_PATH ?? path.join(os.homedir(), "Library/Caches/bcu/bridge.sock");
 		const diagnostics = await call(socketPath, { id: "inv-diagnostics", cmd: "diagnostics" });
 		check("LIVE diagnostics current protocol", () => assert(diagnostics.protocolVersion === 6, `protocolVersion=${diagnostics.protocolVersion}`));
+		const broadDiscoveryStarted = Date.now();
+		const broadRoots = await call(socketPath, { id: "inv-broad-roots", cmd: "listRoots" }, 10000);
+		const broadDiscoveryMs = Date.now() - broadDiscoveryStarted;
+		const diagnosticsAfterBroadDiscovery = await call(socketPath, { id: "inv-diagnostics-after-broad-roots", cmd: "diagnostics" });
+		check("LIVE broad root discovery is bounded and keeps helper alive", () => {
+			assert(Array.isArray(broadRoots?.roots), "broad listRoots did not return roots");
+			assert(broadDiscoveryMs < 10000, `broad listRoots took ${broadDiscoveryMs}ms`);
+			assert(diagnosticsAfterBroadDiscovery.protocolVersion === 6, "helper did not survive broad listRoots");
+		});
+		const abandonedRequestId = `inv-abandoned-roots-${process.pid}-${Date.now()}`;
+		await abandon(socketPath, { id: abandonedRequestId, cmd: "listRoots" });
+		const diagnosticsAfterAbandon = await waitForCompletedRequest(socketPath, abandonedRequestId);
+		check("LIVE abandoned root discovery keeps helper alive", () => {
+			assert(diagnosticsAfterAbandon.protocolVersion === 6, "helper died after writing to an abandoned root-discovery socket");
+		});
 		const explicitWindowId = process.env.BCU_LIVE_WINDOW_ID ? Number(process.env.BCU_LIVE_WINDOW_ID) : undefined;
 		let windows = [];
 		try {

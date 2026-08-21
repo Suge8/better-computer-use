@@ -10,7 +10,7 @@ const HELPER_SETUP_TIMEOUT_MS = 60_000;
 const COMMAND_TIMEOUT_MS = 15_000;
 
 export const WINDOWS_HELPER_PROTOCOL_VERSION = 4;
-export const WINDOWS_HELPER_PATH = path.join(os.homedir(), ".bcu", "helpers", "windows-bridge.exe");
+export const WINDOWS_HELPER_PATH = process.env.BCU_WINDOWS_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "windows-bridge.exe");
 
 interface Pending<T> {
 	resolve(value: T): void;
@@ -71,7 +71,8 @@ export class WindowsHelperClient {
 
 	async ensureInstalled(signal?: AbortSignal): Promise<void> {
 		if ((await isExecutable(WINDOWS_HELPER_PATH)) && this.installChecked) return;
-		await runProcess(process.execPath, [setupHelperScriptPath(), "--platform", "windows", "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, { ...process.env, ELECTRON_RUN_AS_NODE: "1" });
+		// Re-enter Electron and Bun standalone hosts as their JavaScript runtimes.
+		await runProcess(process.execPath, [setupHelperScriptPath(), "--platform", "windows", "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, { ...process.env, ELECTRON_RUN_AS_NODE: "1", BUN_BE_BUN: "1" });
 		this.installChecked = true;
 		if (!(await isExecutable(WINDOWS_HELPER_PATH))) throw new Error(`Failed to install Windows helper at ${WINDOWS_HELPER_PATH}.`);
 	}

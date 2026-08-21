@@ -143,7 +143,6 @@ export interface PlatformObserveRequest {
 	includeImage?: boolean;
 }
 
-type PlatformActAction = "press" | "click" | "setText" | "typeText" | "keypress" | "scroll" | "drag" | "moveMouse";
 export type PlatformActTarget = { ref: string } | { x: number; y: number } | { focus: PlatformPoint };
 type PlatformDeliveryPolicy = "ax_only" | "background" | "default" | "foreground";
 type PlatformMouseButton = "left" | "right" | "middle";
@@ -184,9 +183,12 @@ export interface PlatformReadTextResponse {
 }
 
 export interface PlatformWaitForRequest extends PlatformTarget {
+	lookId?: string;
 	text?: string;
 	role?: string;
 	value?: string;
+	scopeRef?: string;
+	scopeExact?: boolean;
 	gone: boolean;
 	timeoutMs: number;
 }

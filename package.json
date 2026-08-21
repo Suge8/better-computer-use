@@ -1,7 +1,7 @@
 {
 	"name": "better-computer-use",
 	"version": "0.1.0",
-	"description": "CLI that lets AI agents observe and control macOS and Windows apps.",
+	"description": "CLI that lets AI agents observe and control macOS, Windows, and Linux apps.",
 	"type": "module",
 	"keywords": [
 		"computer-use",
@@ -10,7 +10,8 @@
 		"macos",
 		"windows",
 		"desktop-automation",
-		"accessibility"
+		"accessibility",
+		"linux"
 	],
 	"license": "MIT",
 	"repository": {
@@ -38,7 +39,10 @@
 		"prebuilt/windows",
 		"assets/reference/img.jpg",
 		"README.md",
-		"LICENSE"
+		"LICENSE",
+		"native/linux/bridge-rs",
+		"prebuilt/linux",
+		"docs"
 	],
 	"bin": {
 		"bcu": "dist/bcu.mjs"
@@ -63,13 +67,18 @@
 		"test:platform": "node scripts/check-platform-windows.mjs",
 		"test:windows-scripts": "node scripts/check-windows-build-scripts.mjs",
 		"test:signing": "node scripts/check-local-signing.mjs",
+		"test:macos-path": "node scripts/check-macos-helper-path.mjs",
 		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-browser-errors.mjs",
-		"test": "npm run typecheck && npm run test:schema && npm run test:bundle && npm run test:artifacts && npm run test:cli-errors && npm run test:package && npm run test:lifecycle && npm run test:runtime && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:cubench-adapter && npm run test:platform && npm run test:invariants && npm run test:signing",
+		"test": "npm run typecheck && npm run test:schema && npm run test:bundle && npm run test:artifacts && npm run test:cli-errors && npm run test:package && npm run test:lifecycle && npm run test:runtime && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:cubench-adapter && npm run test:platform && npm run test:invariants && npm run test:signing && npm run test:macos-path",
 		"build:native": "node scripts/build-native.mjs",
-		"build:windows": "node scripts/build-native.mjs --platform windows"
+		"build:windows": "node scripts/build-native.mjs --platform windows",
+		"build:linux": "node scripts/build-native.mjs --platform linux",
+		"test:linux": "node scripts/check-platform-linux.mjs",
+		"test:linux-scripts": "node scripts/check-linux-build-scripts.mjs",
+		"test:linux-live": "BCU_LIVE=1 node scripts/check-linux-live.mjs"
 	},
 	"devDependencies": {
-		"@types/node": "^25.6.0",
+		"@types/node": "^26.1.1",
 		"esbuild": "^0.28.1",
 		"typescript": "^6.0.3"
 	}

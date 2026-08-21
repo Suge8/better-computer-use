@@ -2,24 +2,25 @@
 
 import { createHash } from "node:crypto";
 import { spawn, execFile as execFileCallback } from "node:child_process";
-import { createWriteStream, watch } from "node:fs";
+import { constants as fsConstants, createWriteStream, realpathSync, watch } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
-import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveMacosHelperAppPath } from "../src/platform/macos/helper-path.mjs";
 
 const execFile = promisify(execFileCallback);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const defaultHelperAppPath = "/Applications/bcu.app";
-const helperAppPath = process.env.BCU_HELPER_APP_PATH || defaultHelperAppPath;
+const helperAppPath = resolveMacosHelperAppPath();
 const helperAppExecutablePath = path.join(helperAppPath, "Contents", "MacOS", "bridge");
 const helperSourceHashPath = path.join(helperAppPath, "Contents", "Resources", "source.sha256");
 const helperBundleId = "com.sugeh.bcu";
 const windowsCrateDir = path.join(rootDir, "native", "windows", "bridge-rs");
 const windowsHelperDestPath = process.env.BCU_WINDOWS_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "windows-bridge.exe");
+const linuxCrateDir = path.join(rootDir, "native", "linux", "bridge-rs");
+const linuxHelperDestPath = process.env.BCU_LINUX_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "linux-bridge");
 const helperSourcePaths = ["agent_cursor.swift", "agent_cursor_motion.swift", "bridge.swift"]
 	.map((file) => path.join(rootDir, "native", "macos", file));
 const packageJsonPath = path.join(rootDir, "package.json");
@@ -30,6 +31,7 @@ const localSigningLockPath = path.join(os.tmpdir(), `bcu-local-signing-${typeof 
 const args = new Set(process.argv.slice(2));
 const isPostinstall = args.has("--postinstall");
 const allowBuildFallback = args.has("--allow-build") || args.has("--runtime") || process.env.BCU_ALLOW_BUILD === "1";
+const allowLinuxBuildFallback = args.has("--allow-build") || process.env.BCU_ALLOW_BUILD === "1";
 const allowAdhocUpdate = args.has("--allow-adhoc-update") || process.env.BCU_ALLOW_ADHOC_UPDATE === "1";
 
 function getArg(name) {
@@ -135,8 +137,10 @@ async function commandOutput(command, commandArgs) {
 	return stdout;
 }
 
+const DOWNLOAD_TIMEOUT_MS = 120_000;
+
 async function downloadFile(url, outputPath) {
-	const response = await fetch(url);
+	const response = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
 	if (!response.ok) {
 		throw new Error(`HTTP ${response.status} ${response.statusText}`);
 	}
@@ -147,7 +151,7 @@ async function downloadFile(url, outputPath) {
 }
 
 async function releaseChecksums(tag) {
-	const response = await fetch(githubReleaseUrl(tag, "SHA256SUMS"));
+	const response = await fetch(githubReleaseUrl(tag, "SHA256SUMS"), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
 	if (!response.ok) return new Map();
 	const text = await response.text();
 	const checksums = new Map();
@@ -416,14 +420,19 @@ async function helperHasAdhocSignature() {
 }
 
 async function registerHelperApp() {
-	if (helperAppPath !== defaultHelperAppPath) return;
 	const lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
 	if (!(await exists(lsregister))) return;
 	await run(lsregister, ["-f", helperAppPath]).catch(() => {});
 }
 
+async function ensureHelperParentDirectory() {
+	const parentPath = path.dirname(helperAppPath);
+	await fs.mkdir(parentPath, { recursive: true });
+	await fs.access(parentPath, fsConstants.W_OK);
+}
+
 async function installPrebuiltHelperApp(sourceAppPath) {
-	await fs.access(path.dirname(helperAppPath), fsConstants.W_OK);
+	await ensureHelperParentDirectory();
 	const sourceExecutablePath = path.join(sourceAppPath, "Contents", "MacOS", "bridge");
 	const sourceInfoPath = path.join(sourceAppPath, "Contents", "Info.plist");
 	const existingExecutable = await fs.readFile(helperAppExecutablePath).catch(() => undefined);
@@ -448,7 +457,7 @@ async function installPrebuiltHelperApp(sourceAppPath) {
 }
 
 async function installHelperApp(sourcePath) {
-	await fs.access(path.dirname(helperAppPath), fsConstants.W_OK);
+	await ensureHelperParentDirectory();
 	const version = await packageVersion();
 	const infoPlistPath = path.join(helperAppPath, "Contents", "Info.plist");
 	const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
@@ -557,10 +566,34 @@ async function setupWindowsHelper() {
 	);
 }
 
+async function setupLinuxHelper() {
+	const arch = normalizeArch(process.arch);
+	const prebuiltPath = path.join(rootDir, "prebuilt", "linux", arch, "linux-bridge");
+	if (await exists(prebuiltPath)) {
+		const { changed } = await copyIfChanged(prebuiltPath, linuxHelperDestPath);
+		console.log(changed ? `[bcu] installed Linux helper (${arch}) from prebuilt to ${linuxHelperDestPath}` : `[bcu] Linux helper already up to date at ${linuxHelperDestPath}`);
+		return;
+	}
+	if (allowLinuxBuildFallback) {
+		if (process.platform !== "linux") throw new Error("The Linux helper source fallback must be built on Linux.");
+		console.log("[bcu] Linux prebuilt helper missing; attempting source build with cargo...");
+		await run("cargo", ["build", "--release", "--manifest-path", path.join(linuxCrateDir, "Cargo.toml")]);
+		const cargoOutput = path.join(linuxCrateDir, "target", "release", "linux-bridge");
+		const { changed } = await copyIfChanged(cargoOutput, linuxHelperDestPath);
+		console.log(changed ? `[bcu] built and installed Linux helper at ${linuxHelperDestPath}` : `[bcu] Linux helper already up to date at ${linuxHelperDestPath}`);
+		return;
+	}
+	throw new Error(`No Linux prebuilt helper found for ${arch} at ${prebuiltPath}. Run node scripts/build-native.mjs --platform linux to build, or set BCU_ALLOW_BUILD=1 to build at install time.`);
+}
+
 async function setup() {
 	const explicitPlatform = getArg("--platform");
 	if (explicitPlatform === "windows" || (!explicitPlatform && process.platform === "win32")) {
 		await setupWindowsHelper();
+		return;
+	}
+	if (explicitPlatform === "linux" || (!explicitPlatform && process.platform === "linux")) {
+		await setupLinuxHelper();
 		return;
 	}
 
@@ -569,7 +602,7 @@ async function setup() {
 			console.warn("[bcu] skipping helper setup: platform is not macOS.");
 			return;
 		}
-		throw new Error("bcu helper is only supported on macOS. Use --platform windows on Windows.");
+		throw new Error("bcu helper is supported on macOS, Windows, and Linux. Use the matching --platform option.");
 	}
 
 	const arch = normalizeArch(process.arch);
@@ -643,7 +676,15 @@ async function setup() {
 	);
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// realpath both sides so symlinked entrypoints match; eval/import hosts have no real argv[1] path.
+const isMain = (() => {
+	if (!process.argv[1]) return false;
+	try {
+		return realpathSync(path.resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url));
+	} catch {
+		return false;
+	}
+})();
 if (isMain) setup().catch((error) => {
 	if (isPostinstall) {
 		console.warn(`[bcu] postinstall helper setup skipped: ${error instanceof Error ? error.message : String(error)}`);

@@ -4,6 +4,9 @@ node_modules/
 dist/
 index-*.js
 main.js
+*.tsbuildinfo
+docs/.next/
+docs/.source/
 
 # Local benchmark output
 benchmarks/results/*.local.*

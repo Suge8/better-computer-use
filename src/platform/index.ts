@@ -3,6 +3,7 @@ import { isBrowserApp, isChromeFamilyApp, openBrowserLocationWithAppleScript } f
 import { macosHelper } from "./macos/helper.ts";
 import { ensureMacosReady } from "./macos/permissions.ts";
 import type { ComputerUsePlatformBackend, PlatformName } from "./types.ts";
+import { linuxBackend } from "./linux/backend.ts";
 import { windowsBackend } from "./windows/backend.ts";
 
 const macosPlatformBackend: ComputerUsePlatformBackend = {
@@ -53,6 +54,7 @@ class UnsupportedPlatformBackend implements ComputerUsePlatformBackend {
 export function platformBackendForRuntime(platform: NodeJS.Platform = process.platform): ComputerUsePlatformBackend {
 	if (platform === "darwin") return macosPlatformBackend;
 	if (platform === "win32") return windowsBackend;
+	if (platform === "linux") return linuxBackend;
 	return new UnsupportedPlatformBackend(platform);
 }
 
