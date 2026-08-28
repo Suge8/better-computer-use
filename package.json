@@ -78,7 +78,7 @@
 		"test:linux-live": "BCU_LIVE=1 node scripts/check-linux-live.mjs"
 	},
 	"devDependencies": {
-		"@types/node": "^26.1.1",
+		"@types/node": "^26.3.0",
 		"esbuild": "^0.28.1",
 		"typescript": "^6.0.3"
 	}
