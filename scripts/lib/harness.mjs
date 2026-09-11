@@ -187,25 +187,39 @@ export async function monitorProcess(pid) {
 	return { child, exited };
 }
 
-export async function waitForAxWindow(pid, processExited) {
+/**
+ * TextEdit reopens documents from earlier sessions, so waiting for any window would race
+ * the document the caller asked for. `titlePrefix` names that document.
+ */
+export async function waitForAxWindow(pid, processExited, titlePrefix = "") {
 	await runSwiftReadyProbe([
 		"import ApplicationServices",
 		"import Foundation",
 		"import Darwin",
 		"let pid = pid_t(CommandLine.arguments[1])!",
+		"let titlePrefix = CommandLine.arguments[2]",
 		"let app = AXUIElementCreateApplication(pid)",
 		"func ready() { print(\"ready\"); fflush(stdout); exit(0) }",
-		"let callback: AXObserverCallback = { _, _, _, _ in ready() }",
+		"func titles() -> [String] {",
+		"  var value: CFTypeRef?",
+		"  guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success, let windows = value as? [AXUIElement] else { return [] }",
+		"  return windows.map { window in",
+		"    var title: CFTypeRef?",
+		"    AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &title)",
+		"    return (title as? String) ?? \"\"",
+		"  }",
+		"}",
+		"func readyIfPresent() { if titles().contains(where: { $0.hasPrefix(titlePrefix) }) { ready() } }",
+		"let callback: AXObserverCallback = { _, _, _, _ in readyIfPresent() }",
 		"var observer: AXObserver?",
 		"guard AXObserverCreate(pid, callback, &observer) == .success, let observer else { exit(3) }",
 		"let added = AXObserverAddNotification(observer, app, \"AXWindowCreated\" as CFString, nil)",
 		"guard added == .success || added == .notificationAlreadyRegistered else { exit(4) }",
 		"CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)",
-		"var value: CFTypeRef?",
-		"if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success, let windows = value as? [AXUIElement], !windows.isEmpty { ready() }",
-		"DispatchQueue.global().asyncAfter(deadline: .now() + 10) { exit(2) }",
+		"readyIfPresent()",
+		"DispatchQueue.global().asyncAfter(deadline: .now() + 10) { fputs(\"no window titled \\(titlePrefix); have \\(titles())\\n\", stderr); exit(1) }",
 		"CFRunLoopRun()",
-	], [pid], "the TextEdit Accessibility window event", { abortedBy: processExited });
+	], [pid, titlePrefix], "the TextEdit Accessibility window event", { abortedBy: processExited });
 }
 
 export async function stopTextEdit(pid, monitor) {

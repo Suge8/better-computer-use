@@ -14,10 +14,11 @@ if (process.env.BCU_LIVE !== "1") {
 }
 if (process.platform !== "darwin") throw new Error("The transient root test requires macOS.");
 
-/** Apple, application, File — pressing by index keeps the probe independent of the system language. */
+/** Apple, application, File — pressing by index keeps probes independent of the system language. */
 const FILE_MENU_BAR_INDEX = 2;
 const fixtureDirectory = await makeTemporaryRoot("transient-roots");
 const fixturePath = path.join(fixtureDirectory, `bcu-transient-${randomUUID()}.txt`);
+const fixtureTitle = path.basename(fixturePath, ".txt");
 let createdPid;
 let processMonitor;
 
@@ -29,6 +30,7 @@ const AX_PRELUDE = [
 	"let pid = pid_t(CommandLine.arguments[1])!",
 	"let app = AXUIElementCreateApplication(pid)",
 	"func ready() { print(\"ready\"); fflush(stdout); exit(0) }",
+	"func fail(_ reason: String) -> Never { fputs(reason + \"\\n\", stderr); exit(1) }",
 	"func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {",
 	"  var value: CFTypeRef?",
 	"  return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil",
@@ -37,13 +39,26 @@ const AX_PRELUDE = [
 	"func windows() -> [AXUIElement] { attribute(app, kAXWindowsAttribute as String) as? [AXUIElement] ?? [] }",
 	"var observer: AXObserver?",
 	"let callback: AXObserverCallback = { _, _, _, _ in ready() }",
-	"guard AXObserverCreate(pid, callback, &observer) == .success, let observer else { exit(3) }",
+	"guard AXObserverCreate(pid, callback, &observer) == .success, let observer else { fail(\"could not observe the app\") }",
 	"func observe(_ notification: String) {",
 	"  let added = AXObserverAddNotification(observer, app, notification as CFString, nil)",
-	"  guard added == .success || added == .notificationAlreadyRegistered else { exit(4) }",
+	"  guard added == .success || added == .notificationAlreadyRegistered else { fail(\"could not subscribe to \" + notification) }",
 	"}",
 	"CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)",
-	"DispatchQueue.global().asyncAfter(deadline: .now() + 12) { exit(2) }",
+	"DispatchQueue.global().asyncAfter(deadline: .now() + 12) { fail(\"timed out; frontmost is \\(NSWorkspace.shared.frontmostApplication?.localizedName ?? \"none\"), windows=\\(windows().count)\") }",
+	`let FILE_MENU = ${FILE_MENU_BAR_INDEX}`,
+];
+
+/** A menu item only takes effect in the app that owns the menu bar, so probes activate first. */
+const ACTIVATE_THEN = (action) => [
+	"guard let running = NSRunningApplication(processIdentifier: pid) else { fail(\"the app is gone\") }",
+	`if running.isActive { ${action}() } else {`,
+	"  NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in",
+	"    let activated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication",
+	`    if activated?.processIdentifier == pid { ${action}() }`,
+	"  }",
+	"  running.activate()",
+	"}",
 ];
 
 /** Activates the app, presses a menu bar item and resolves on AXMenuOpened. */
@@ -52,37 +67,75 @@ async function openMenuBarMenu(pid, index, processExited) {
 		...AX_PRELUDE,
 		"observe(kAXMenuOpenedNotification as String)",
 		"func pressMenuBarItem() {",
-		"  guard let bar = attribute(app, kAXMenuBarAttribute as String) else { exit(5) }",
+		"  guard let bar = attribute(app, kAXMenuBarAttribute as String) else { fail(\"the app exposes no menu bar\") }",
 		"  let items = children(bar as! AXUIElement)",
-		`  guard items.count > ${index} else { exit(6) }`,
-		`  guard AXUIElementPerformAction(items[${index}], kAXPressAction as CFString) == .success else { exit(7) }`,
+		`  guard items.count > ${index} else { fail("the menu bar has only \\(items.count) items") }`,
+		`  guard AXUIElementPerformAction(items[${index}], kAXPressAction as CFString) == .success else { fail("pressing the menu bar item failed") }`,
 		"}",
-		"guard let running = NSRunningApplication(processIdentifier: pid) else { exit(8) }",
-		"if running.isActive { pressMenuBarItem() } else {",
-		"  NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in",
-		"    let activated = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication",
-		"    if activated?.processIdentifier == pid { pressMenuBarItem() }",
-		"  }",
-		"  running.activate()",
-		"}",
+		...ACTIVATE_THEN("pressMenuBarItem"),
 		"RunLoop.main.run()",
 	], [pid], "the TextEdit File menu to open", { abortedBy: processExited });
 }
 
-async function waitForWindowCount(pid, count, processExited) {
+/**
+ * TextEdit replaces an unmodified document window rather than adding one, so the new
+ * document is recognised by title, not by a growing window count.
+ */
+async function waitForUntitledWindow(pid, fixtureTitle, processExited) {
 	await runSwiftReadyProbe([
 		...AX_PRELUDE,
+		"func titles() -> [String] { windows().map { (attribute($0, kAXTitleAttribute as String) as? String) ?? \"\" } }",
+		`func readyIfPresent() { if titles().contains(where: { !$0.hasPrefix(${JSON.stringify(fixtureTitle)}) && !$0.isEmpty }) { ready() } }`,
 		"observe(\"AXWindowCreated\")",
-		`if windows().count >= ${count} { ready() }`,
+		"observe(\"AXFocusedWindowChanged\")",
+		"readyIfPresent()",
 		"RunLoop.main.run()",
-	], [pid], `TextEdit to expose ${count} Accessibility windows`, { abortedBy: processExited });
+	], [pid], "TextEdit to open a new document", { abortedBy: processExited });
 }
 
-async function waitForSheet(pid, processExited) {
+/**
+ * Saving a document that was never saved is what makes TextEdit raise its save sheet.
+ * The menu item is found by keyboard shortcut, the one label-free identity a menu item has,
+ * so the fixture does not depend on the system language.
+ */
+async function raiseSaveSheet(pid, processExited) {
 	await runSwiftReadyProbe([
 		...AX_PRELUDE,
-		"observe(\"AXSheetCreated\")",
-		"if windows().contains(where: { !(attribute($0, kAXSheetsAttribute as String) as? [AXUIElement] ?? []).isEmpty }) { ready() }",
+		"func menuItem(_ barIndex: Int, _ character: String, _ modifiers: Int) -> AXUIElement? {",
+		"  guard let bar = attribute(app, kAXMenuBarAttribute as String) else { return nil }",
+		"  let items = children(bar as! AXUIElement)",
+		"  guard items.count > barIndex, let menu = children(items[barIndex]).first else { return nil }",
+		"  return children(menu).first {",
+		"    (attribute($0, \"AXMenuItemCmdChar\") as? String) == character",
+		"      && (attribute($0, \"AXMenuItemCmdModifiers\") as? NSNumber)?.intValue == modifiers",
+		"  }",
+		"}",
+		"func press(_ barIndex: Int, _ character: String, _ modifiers: Int, _ label: String) {",
+		"  guard let entry = menuItem(barIndex, character, modifiers) else { fail(\"no \\(label) menu item\") }",
+		"  guard AXUIElementPerformAction(entry, kAXPressAction as CFString) == .success else { fail(\"pressing \\(label) failed\") }",
+		"}",
+		"func hasSheet() -> Bool { windows().contains { !(attribute($0, \"AXSheets\") as? [AXUIElement] ?? []).isEmpty } }",
+		"var saving = false",
+		// The menu item only takes effect while its menu is open, so Save is pressed from
+		// the AXMenuOpened callback rather than straight after opening the menu.
+		"let progress: AXObserverCallback = { _, _, notification, _ in",
+		"  if (notification as String) == \"AXSheetCreated\" || hasSheet() { ready() }",
+		"  if (notification as String) == \"AXMenuOpened\" && !saving { saving = true; press(FILE_MENU, \"S\", 0, \"Save\") }",
+		"}",
+		"var sequencer: AXObserver?",
+		"guard AXObserverCreate(pid, progress, &sequencer) == .success, let sequencer else { fail(\"could not sequence the fixture\") }",
+		"for notification in [\"AXMenuOpened\", \"AXSheetCreated\"] {",
+		"  let added = AXObserverAddNotification(sequencer, app, notification as CFString, nil)",
+		"  guard added == .success || added == .notificationAlreadyRegistered else { fail(\"could not subscribe to \" + notification) }",
+		"}",
+		"CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(sequencer), .commonModes)",
+		"func openFileMenu() {",
+		"  guard let bar = attribute(app, kAXMenuBarAttribute as String) else { fail(\"the app exposes no menu bar\") }",
+		"  let barItems = children(bar as! AXUIElement)",
+		"  guard barItems.count > FILE_MENU else { fail(\"the menu bar has only \\(barItems.count) items\") }",
+		"  guard AXUIElementPerformAction(barItems[FILE_MENU], kAXPressAction as CFString) == .success else { fail(\"opening the File menu failed\") }",
+		"}",
+		...ACTIVATE_THEN("openFileMenu"),
 		"RunLoop.main.run()",
 	], [pid], "the TextEdit save sheet", { abortedBy: processExited });
 }
@@ -90,6 +143,19 @@ async function waitForSheet(pid, processExited) {
 async function rootsOfKind(pid, kind) {
 	const found = await brokerRequest("find-roots", { pid, kind });
 	return found.roots.filter((candidate) => candidate.pid === pid && candidate.kind === kind);
+}
+
+/** Leaves no unsaved document behind, which macOS would otherwise restore into later runs. */
+async function dismissSheets(pid) {
+	await runSwiftReadyProbe([
+		...AX_PRELUDE,
+		"for window in windows() {",
+		"  for sheet in (attribute(window, \"AXSheets\") as? [AXUIElement] ?? []) {",
+		"    _ = AXUIElementPerformAction(sheet, kAXCancelAction as CFString)",
+		"  }",
+		"}",
+		"ready()",
+	], [pid], "the TextEdit sheets to be dismissed");
 }
 
 /** The projection hides raw action names, so the helper's own output is the subject here. */
@@ -107,7 +173,7 @@ try {
 	await fs.writeFile(fixturePath, "bcu transient root fixture\n");
 	createdPid = await launchTextEdit(fixturePath);
 	processMonitor = await monitorProcess(createdPid);
-	await waitForAxWindow(createdPid, processMonitor.exited);
+	await waitForAxWindow(createdPid, processMonitor.exited, fixtureTitle);
 
 	// A menu root: no stable window id, reachable only through the helper root reference.
 	await openMenuBarMenu(createdPid, FILE_MENU_BAR_INDEX, processMonitor.exited);
@@ -127,23 +193,13 @@ try {
 		actions: [{ action: "press", ref: newDocumentItem.ref }],
 	});
 	assert.equal(pressed.outcome, "worked", `pressing menu item '${newDocumentItem.name}' did not work`);
-	await waitForWindowCount(createdPid, 2, processMonitor.exited);
+	await waitForUntitledWindow(createdPid, fixtureTitle, processMonitor.exited);
+	const windowRefs = new Set((await rootsOfKind(createdPid, "window")).map((root) => root.ref));
 
-	// A sheet root: TextEdit only raises the save sheet for a dirty untitled document.
-	const untitled = (await rootsOfKind(createdPid, "window")).find((candidate) => candidate.title !== path.basename(fixturePath));
-	assert(untitled, "pressing the first File menu item did not produce a second TextEdit window");
-	const untitledObserved = await brokerRequest("observe-ui", { root: untitled.ref, mode: "semantic" });
-	const editor = untitledObserved.nodes.find((node) => node.caps.includes("setText"));
-	assert(editor, "the new TextEdit window did not expose an editable element");
-	const typed = await brokerRequest("act-ui", {
-		stateId: untitledObserved.stateId,
-		actions: [{ action: "setText", ref: editor.ref, text: `bcu sheet fixture ${randomUUID()}` }],
-	});
-	await brokerRequest("act-ui", {
-		stateId: typed.stateId,
-		actions: [{ action: "keypress", keys: ["cmd+w"] }],
-	});
-	await waitForSheet(createdPid, processMonitor.exited);
+	// A sheet root. Raising it is fixture work, not the subject: input delivery already has
+	// its own gate, so the sheet is raised through Accessibility. Duplicating the fixture
+	// yields an unsaved document, and closing that is what makes TextEdit ask to save.
+	await raiseSaveSheet(createdPid, processMonitor.exited);
 
 	const sheets = await rootsOfKind(createdPid, "sheet");
 	assert.equal(sheets.length, 1, `expected exactly one TextEdit save sheet root, got ${sheets.length}`);
@@ -152,9 +208,13 @@ try {
 	const sheetButtons = sheetObserved.nodes.filter((node) => node.role === "button" && node.caps.includes("press"));
 	assert(sheetButtons.length >= 2, `expected the save sheet to expose its buttons, got ${sheetButtons.length}`);
 	await assertReadableActions(sheetObserved.stateId, sheetButtons.slice(0, 3).map((node) => node.ref));
+	assert(!windowRefs.has(sheets[0].ref), "the sheet root is not distinguished from the window behind it");
 
 	console.log(`PASS menu root observe → press '${newDocumentItem.name}' → sheet root observe in isolated pid ${createdPid}`);
 } finally {
-	if (createdPid) await stopTextEdit(createdPid, processMonitor);
+	if (createdPid) {
+		await dismissSheets(createdPid).catch(() => undefined);
+		await stopTextEdit(createdPid, processMonitor);
+	}
 	await fs.rm(fixtureDirectory, { recursive: true, force: true });
 }

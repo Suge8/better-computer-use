@@ -2297,6 +2297,15 @@ final class Bridge {
 		performed["deltaSource"] = source
 		output["performed"] = performed
 		if !delta.isEmpty { output["rootDelta"] = delta }
+		// Some actions leave no trace on the element they target: pressing a menu item
+		// closes the menu. A root that appeared, closed or took focus inside the action's
+		// window is then the only evidence the action landed.
+		if !delta.isEmpty, (output["outcome"] as? String) == "unknown" {
+			output["outcome"] = "worked"
+			var evidence = output["evidence"] as? [String: Any] ?? [:]
+			evidence["rootChanged"] = true
+			output["evidence"] = evidence
+		}
 		return output
 	}
 
