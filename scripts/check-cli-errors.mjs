@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { validateActions } from "../src/actions.ts";
-import { ERROR_CODE_ALIASES, normalizeCliError, toolResultFailure } from "../src/errors.ts";
+import { ERROR_CODE_ALIASES, ERROR_DEFINITIONS, normalizeCliError } from "../src/errors.ts";
 import { npmInvocation } from "./npm-invocation.mjs";
 
 const execFile = promisify(execFileCallback);
@@ -29,15 +29,18 @@ function sourceErrorCodes() {
 	return new Set([...swift.matchAll(/code:\s*"([a-z0-9_]+)"/g)].map((match) => match[1]));
 }
 
-function checkKnownErrorsAndFailures() {
+function checkErrorCodes() {
 	for (const code of sourceErrorCodes()) {
 		assert(code in ERROR_CODE_ALIASES, `native error '${code}' has no explicit public mapping`);
-		const normalized = normalizeCliError(coded(code));
-		assert.equal(normalized.code, ERROR_CODE_ALIASES[code], `native error '${code}' used message inference`);
+		assert.equal(normalizeCliError(coded(code)).code, ERROR_CODE_ALIASES[code], `native error '${code}' is not mapped at its source`);
 	}
-	assert.equal(toolResultFailure({ text: "timed out", details: { tool: "wait_for", found: false } })?.code, "action_timeout");
-	assert.equal(toolResultFailure({ text: "failed", details: { tool: "act_ui", execution: { outcome: "didnt" } } })?.code, "action_failed");
-	assert.equal(toolResultFailure({ text: "uncertain", details: { tool: "act_ui", execution: { outcome: "unknown" } } })?.code, "action_failed");
+	// No code means nobody classified the failure: that is a bug, not a user-recoverable state.
+	for (const message of ["window is gone", "timed out", "permission missing", "app is not running"]) {
+		assert.equal(normalizeCliError(new Error(message)).code, "internal_error", `message '${message}' was classified without an explicit code`);
+	}
+	assert(!readFileSync(path.join(root, "src", "errors.ts"), "utf8").includes("inferCode"), "message-based error inference is back in src/errors.ts");
+	const exitCodes = Object.values(ERROR_DEFINITIONS).map((definition) => definition.exitCode).sort((left, right) => left - right);
+	assert.deepEqual(exitCodes, Array.from({ length: exitCodes.length }, (_, index) => index + 1), `exit codes are not contiguous: ${exitCodes.join(",")}`);
 }
 
 function checkActionValidation() {
@@ -151,24 +154,6 @@ function fakeBroker() {
 					socket.write(`${JSON.stringify({ id: request.id, ok: true, result: { brokerVersion: 1, helperProtocolVersion: null, pid: process.pid } })}\n`);
 					continue;
 				}
-				if (request.cmd === "observe-ui" && request.args.app === "__bcu_compact_output__") {
-					const result = {
-						text: "Outline (1 node, stateId state-1):\n@e1 AXWindow",
-						details: {
-							tool: "observe_ui",
-							capture: { stateId: "state-1" },
-							execution: { strategy: "look" },
-							outline: { lookId: 1, root: { ref: "@e1", role: "AXWindow", children: [] } },
-							renderedOutline: "@e1 AXWindow",
-							lookId: 1,
-							note: { windowRef: "@r1" },
-							config: { headless: false },
-							helper: { protocolVersion: 6 },
-						},
-					};
-					socket.write(`${JSON.stringify({ id: request.id, ok: true, result })}\n`);
-					continue;
-				}
 				const errors = {
 					"act-ui": { code: "stale_state", message: `State '${request.args.stateId}' is unavailable or was evicted.` },
 					"observe-ui": { code: "app_not_found", message: `App '${request.args.app}' is not running.` },
@@ -182,7 +167,7 @@ function fakeBroker() {
 	return server;
 }
 
-checkKnownErrorsAndFailures();
+checkErrorCodes();
 checkActionValidation();
 
 const server = fakeBroker();
@@ -202,17 +187,13 @@ try {
 		assert(help.stdout.includes(command), `bcu --help omitted ${command}`);
 	}
 	assert(!/browser/i.test(help.stdout), "bcu --help still advertises browser commands");
-	assertFailure(await run(["browser", "launch"]), "invalid_arguments");
+	for (const command of publicCommands) {
+		const commandHelp = await run([command, "--help"]);
+		assert.equal(commandHelp.code, 0, `bcu ${command} --help failed`);
+		assert(commandHelp.stdout.startsWith(`bcu ${command}`), `bcu ${command} --help does not describe ${command}`);
+		assert(commandHelp.stdout.includes("--json"), `bcu ${command} --help omits --json`);
+	}
 	assertFailure(await run(["read-text", "--state", "state-1"]), "invalid_arguments");
-
-	const compactOutput = await run(["observe-ui", "--app", "__bcu_compact_output__", "--json"]);
-	assert.equal(compactOutput.code, 0, "compact JSON output failed");
-	const compactDetails = JSON.parse(compactOutput.stdout).result.details;
-	assert.deepEqual(compactDetails, {
-		tool: "observe_ui",
-		capture: { stateId: "state-1" },
-		execution: { strategy: "look" },
-	}, "public CLI leaked cached or diagnostic internals");
 
 	assertFailure(await run(["expand-ui", "--state", "state-1"]), "invalid_arguments");
 	assertFailure(await run(["act-ui", "--state", "state-1", "-"], { input: "not-json\n" }), "invalid_arguments");
@@ -226,7 +207,7 @@ try {
 		env: { BCU_BROKER_ENTRY_PATH: path.join(temporaryRoot, "missing-broker.mjs") },
 	}), "broker_unavailable");
 	assertFailure(await runOnPlatform("linux", ["find-roots"]), "unsupported_platform");
-	console.log(`CLI error checks passed (9 CLI scenarios, ${sourceErrorCodes().size} native codes, result failures, action validation).`);
+	console.log(`CLI error checks passed (${publicCommands.length} help screens, ${sourceErrorCodes().size} native codes, explicit-code normalization, action validation).`);
 } finally {
 	if (server.listening) await new Promise((resolve) => server.close(resolve));
 	await fs.rm(temporaryRoot, { recursive: true, force: true });

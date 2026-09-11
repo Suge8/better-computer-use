@@ -1,25 +1,25 @@
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction, validateActions, type ActionState, type PreparedAction } from "./actions.ts";
 import { getComputerUseConfig, isHeadlessMode } from "./config.ts";
-import type { ActParams, ToolResult, UiAction } from "./contract.ts";
+import type { ActParams, ActResult, UiAction, Verification } from "./contract.ts";
 import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { ActOutcome, ActRequest, DeliveryPolicy, HelperActResult, NativeInputDelivery } from "./macos/protocol.ts";
-import { noteAfterAct } from "./note.ts";
 import { nodeByRef, searchOutline, type LookResponse } from "./outline.ts";
+import { project } from "./projection.ts";
 import {
-	buildToolResult,
 	captureCurrentTarget,
 	ensurePointIsInLookImage,
 	executionTrace,
-	modelRefForRootDelta,
+	imageInfo,
 	normalizeImageMode,
 	normalizeWaitTimeoutMs,
-	noteWindowForTarget,
 	outlineNodeByRef,
 	outlineNodeCenter,
+	scopeWireRef,
+	successorView,
 	AUTO_IMAGE_MAX_DIMENSION,
 	EXPLICIT_IMAGE_MAX_DIMENSION,
-	type ComputerUseDetails,
+	UNFOLDED,
 	type ExecutionTrace,
 } from "./observe.ts";
 import { ensureTargetWindowId, nativeWindowRequest, resolveCurrentTarget, type ResolvedTarget } from "./roots.ts";
@@ -53,14 +53,11 @@ function settleMsForExecution(execution: ExecutionTrace): number {
 }
 
 function executionTraceFromAct(result: HelperActResult, policy = currentDeliveryPolicy()): ExecutionTrace {
-	const rootDelta = result.rootDelta?.map((delta) => ({ ...delta, ref: modelRefForRootDelta(delta) }));
 	return executionTrace("act", result.performed?.delivery === "ax" ? "stealth" : "default", {
 		outcome: result.outcome,
 		performed: result.performed,
-		evidence: result.evidence,
 		error: result.error,
 		stoppedAt: result.stoppedAt,
-		rootDelta,
 		delivery: result.performed?.delivery,
 		deliveryPolicy: policy,
 	});
@@ -84,7 +81,7 @@ function helperActRequest(target: ResolvedTarget, action: NativePreparedAction, 
 
 function checkedActResult(candidate: HelperActResult): HelperActResult {
 	if (!candidate || !["worked", "didnt", "unknown"].includes(candidate.outcome)) {
-		throw new Error("Helper act returned an invalid result without an outcome.");
+		throw new BcuError("internal_error", "Helper act returned a result without an outcome.");
 	}
 	return candidate;
 }
@@ -103,9 +100,7 @@ async function helperAct(
 	const timeoutMs = actTimeoutMs(action);
 	if ((action.usesCurrentFocus || action.needsForeground) && !headless) {
 		const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
-		const trace = executionTraceFromAct(foreground, "foreground");
-		trace.backgroundFirst = false;
-		return trace;
+		return executionTraceFromAct(foreground, "foreground");
 	}
 	try {
 		const initialPolicy = headless ? "ax_only" : "background";
@@ -113,24 +108,18 @@ async function helperAct(
 		if (canRetryInForeground(action, result.outcome, headless)) {
 			const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 			const trace = executionTraceFromAct(foreground, "foreground");
-			trace.backgroundFirst = true;
 			trace.escalatedToForeground = true;
 			trace.escalationReason = "side_effect_free_didnt";
-			trace.backgroundAttempt = { outcome: "didnt", reason: "Background input produced no observable value change; a foreground retry was safe." };
 			return trace;
 		}
-		const trace = executionTraceFromAct(result, "background");
-		trace.backgroundFirst = true;
-		return trace;
+		return executionTraceFromAct(result, "background");
 	} catch (error) {
 		const code = (error as Error & { code?: string })?.code;
 		if (code !== "foreground_required" || headless) throw error;
 		const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 		const trace = executionTraceFromAct(foreground, "foreground");
-		trace.backgroundFirst = true;
 		trace.escalatedToForeground = true;
 		trace.escalationReason = code;
-		trace.backgroundAttempt = { outcome: "foreground_required", reason: error instanceof Error ? error.message : String(error) };
 		return trace;
 	}
 }
@@ -153,11 +142,9 @@ function aggregateExecutions(steps: ExecutionTrace[]): ExecutionTrace {
 		outcome,
 		steps,
 		actionCount: steps.length,
-		rootDelta: steps.flatMap((step) => step.rootDelta ?? []),
-		backgroundFirst: true,
+		delivery: steps.at(-1)?.delivery,
 		escalatedToForeground: Boolean(fallback),
 		escalationReason: fallback?.escalationReason,
-		backgroundAttempt: fallback?.backgroundAttempt,
 	});
 }
 
@@ -185,10 +172,8 @@ async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget
 		const result = await macosBackend.actBatch(requests, { signal, timeoutMs: Math.max(COMMAND_TIMEOUT_MS, textLength * TEXT_DELIVERY_MS_PER_CHAR + 6_000) });
 		if (!result.steps || result.steps.length === 0) throw new Error("Native action transaction returned no checked steps.");
 		const execution = aggregateExecutions(result.steps.map((step) => executionTraceFromAct(step, "ax_only")));
-		const batchTrace = executionTraceFromAct(result, "ax_only");
 		execution.outcome = result.outcome;
 		execution.performed = result.performed;
-		execution.rootDelta = batchTrace.rootDelta;
 		execution.stoppedAt = result.stoppedAt;
 		return execution;
 	}
@@ -202,76 +187,96 @@ async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget
 	return aggregateExecutions(steps);
 }
 
-/** Runs the requested postcondition and folds its result into the execution trace. */
-async function verifyExpectation(params: ActParams, target: ResolvedTarget, look: LookResponse, execution: ExecutionTrace, signal?: AbortSignal): Promise<void> {
-	const expectedText = trimOrUndefined(params.expect?.text);
-	const expectedRole = trimOrUndefined(params.expect?.role);
-	const expectedValue = trimOrUndefined(params.expect?.value);
-	if (!expectedText && !expectedRole && !expectedValue) throw new BcuError("invalid_arguments", "act-ui expect requires text, role, or value.");
-	const timeoutMs = normalizeWaitTimeoutMs(params.expect!.timeoutMs);
-	const beforePresent = searchOutline(look.parsedOutline!, expectedText, expectedRole, undefined, 50)
-		.some((match) => !expectedValue || normalizeText(match.node.value) === normalizeText(expectedValue));
-	const desiredWasPreexisting = beforePresent !== (params.expect!.gone === true);
+/** Runs the requested postcondition; a failed check fails the whole transaction. */
+async function verifyExpectation(params: ActParams, target: ResolvedTarget, look: LookResponse, scopeRef: string | undefined, execution: ExecutionTrace, signal?: AbortSignal): Promise<Verification> {
+	const expect = params.expect!;
+	const expectedText = trimOrUndefined(expect.text);
+	const expectedRole = trimOrUndefined(expect.role);
+	const expectedValue = trimOrUndefined(expect.value);
+	if (!expectedText && !expectedRole && !expectedValue) throw new BcuError("invalid_arguments", "act-ui expectations require --expect-text, --expect-role, or --expect-value.");
+	const timeoutMs = normalizeWaitTimeoutMs(expect.timeoutMs);
+	const scope = trimOrUndefined(expect.scope);
+	const searchRoot = scope ? outlineNodeByRef(scope) : look.parsedOutline!.root;
+	const beforePresent = searchOutline({ ...look.parsedOutline!, nodes: descendants(searchRoot) }, expectedText, expectedRole)
+		.matches.some((match) => !expectedValue || normalizeText(match.value) === normalizeText(expectedValue));
+	const gone = expect.gone === true;
 	const verification = await macosBackend.waitFor({
 		...nativeWindowRequest(target),
 		text: expectedText,
 		role: expectedRole,
 		value: expectedValue,
-		gone: params.expect!.gone === true,
+		scopeRef,
+		gone,
 		timeoutMs,
 	}, { signal, timeoutMs: timeoutMs + 2_000 });
-	execution.verification = {
-		status: verification.found ? (desiredWasPreexisting ? "preexisting" : "verified") : "failed",
+	if (!verification.found) {
+		execution.outcome = outcomeAfterCheck(execution.outcome ?? "unknown", "failed");
+		throw new BcuError("action_failed", `The action was delivered but its postcondition was not satisfied within ${timeoutMs}ms${scope ? ` inside ${scope}` : ""}. Observe the root again before retrying.`);
+	}
+	execution.outcome = outcomeAfterCheck(execution.outcome ?? "unknown", "verified");
+	execution.verified = true;
+	return {
+		status: "verified",
 		text: expectedText,
 		role: expectedRole,
 		value: expectedValue,
-		gone: params.expect!.gone === true || undefined,
+		scope,
+		gone: gone || undefined,
 		timeoutMs,
+		preexisting: beforePresent !== gone || undefined,
 	};
-	execution.outcome = outcomeAfterCheck(execution.outcome ?? "unknown", execution.verification.status);
-	if (!verification.found) {
-		execution.error = {
-			code: "postcondition_failed",
-			message: `The action was delivered but its postcondition was not satisfied within ${timeoutMs}ms.`,
-		};
-	}
 }
 
-async function performAct(params: ActParams, signal?: AbortSignal): Promise<ToolResult<ComputerUseDetails>> {
+function descendants(node: ReturnType<typeof outlineNodeByRef>): ReturnType<typeof outlineNodeByRef>[] {
+	return [node, ...node.children.flatMap(descendants)];
+}
+
+function actionFailure(execution: ExecutionTrace): BcuError {
+	const message = execution.error?.message
+		?? (execution.outcome === "unknown"
+			? "The action outcome is unknown; bcu will not report it as success."
+			: "The action did not produce the requested result.");
+	return new BcuError("action_failed", message);
+}
+
+async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActResult> {
 	const actions = Array.isArray(params.actions) ? params.actions : [];
 	validateActions(actions);
 	const state = operationState();
-	state.currentImageMode = normalizeImageMode(params.image ?? "never");
+	const imageMode = normalizeImageMode(params.image ?? "never");
 	validateStateId(params.stateId);
 	const look = currentLookOrThrow();
-	const baseView = { stateId: state.currentCapture!.stateId, outline: state.currentOutline! };
+	const baseStateId = state.currentCapture!.stateId;
+	const baseNodes = project(state.currentOutline!, UNFOLDED).nodes;
+	// Scope refs belong to the base state, so resolve them before the UI moves.
+	const scopeRef = scopeWireRef(params.expect?.scope);
 	const target = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
-	const noteBefore = state.currentNote;
 	return await withWindowWriteLock(target, async () => {
 		const headless = params.headless ?? getComputerUseConfig().headless;
 		const execution = await dispatchUiTransaction(actions, target, look, headless, signal);
 		const executedActions = actions.slice(0, execution.actionCount ?? actions.length);
-		if (params.expect) await verifyExpectation(params, target, look, execution, signal);
-		else await sleep(settleMsForExecution(execution), signal);
+		const verification = params.expect
+			? await verifyExpectation(params, target, look, scopeRef, execution, signal)
+			: { status: "none" as const };
+		if (!params.expect) await sleep(settleMsForExecution(execution), signal);
 		const capture = await captureCurrentTarget(
 			signal,
 			"never",
-			state.currentImageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION,
+			imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION,
 			target,
-			state.currentImageMode !== "never",
+			imageMode === "always",
 		);
 		execution.outcome = outcomeAfterObservedValues(execution.outcome ?? "unknown", executedActions, (ref) => nodeByRef(capture.outline, ref)?.value);
-		for (const action of executedActions) {
-			state.currentNote = noteAfterAct(state.currentNote ?? noteBefore, action.ref, capture.outline, { window: noteWindowForTarget(capture.target, capture.look), rootDelta: execution.rootDelta });
-		}
-		return buildToolResult(
-			"act_ui",
-			`Executed ${executedActions.length} checked UI action${executedActions.length === 1 ? "" : "s"} in ${target.appName} — ${target.windowTitle}. Returned state ${capture.capture.stateId}.`,
-			capture,
-			execution,
-			state.currentImageMode,
-			baseView,
-		);
+		if (execution.outcome !== "worked") throw actionFailure(execution);
+		return {
+			stateId: capture.capture.stateId,
+			baseStateId,
+			outcome: "worked",
+			verification,
+			delivery: execution.performed?.delivery ?? execution.delivery ?? "ax",
+			...successorView(baseNodes, capture.outline),
+			image: await imageInfo(capture, imageMode),
+		};
 	});
 }
 

@@ -1,5 +1,3 @@
-import type { ToolResult } from "./contract.ts";
-
 export const ERROR_DEFINITIONS = {
 	invalid_arguments: { exitCode: 2, recovery: "Run 'bcu --help' and correct the command arguments." },
 	stale_state: { exitCode: 3, recovery: "Run observe-ui again and retry with the new stateId and refs." },
@@ -11,8 +9,8 @@ export const ERROR_DEFINITIONS = {
 	action_failed: { exitCode: 9, recovery: "Observe the current UI before deciding whether the action is safe to retry." },
 	broker_unavailable: { exitCode: 10, recovery: "Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry." },
 	helper_unavailable: { exitCode: 11, recovery: "Run 'bcu doctor', repair the helper it reports, then retry." },
-	unsupported_platform: { exitCode: 13, recovery: "Run bcu in an interactive macOS desktop session." },
-	state_too_large: { exitCode: 14, recovery: "Observe a smaller root or narrow the UI before retrying." },
+	unsupported_platform: { exitCode: 12, recovery: "Run bcu in an interactive macOS desktop session." },
+	state_too_large: { exitCode: 13, recovery: "Observe a smaller root or narrow the UI before retrying." },
 	internal_error: { exitCode: 1, recovery: "Run 'bcu doctor' and retry. If it repeats, report the full error." },
 } as const;
 
@@ -88,45 +86,11 @@ function explicitCode(error: Error): ErrorCode | undefined {
 		: undefined;
 }
 
-function inferCode(message: string): ErrorCode {
-	if (/\bstate\b.*(?:stale|unavailable|evicted)|stale state/i.test(message)) return "stale_state";
-	if (/permission|Accessibility|Screen Recording/i.test(message) && /missing|required|grant/i.test(message)) return "permission_missing";
-	if (/\bapp\b.*(?:not running|not found)|executable was not found/i.test(message)) return "app_not_found";
-	if (/window|root/i.test(message) && /stale|not found|no longer|unavailable|closed/i.test(message)) return "window_stale";
-	if (/outline ref|element ref|@e\w*/i.test(message) && /stale|not available|not found|requires/i.test(message)) return "element_not_found";
-	if (/timed out|timeout/i.test(message)) return "action_timeout";
-	if (/helper|bridge/i.test(message) && /unavailable|did not start|connection closed|protocol mismatch|failed to install/i.test(message)) return "helper_unavailable";
-	if (/broker|ECONNREFUSED|ENOENT/i.test(message) && /unavailable|exited|closed|connect|protocol|module/i.test(message)) return "broker_unavailable";
-	if (/does not support platform|unsupported platform/i.test(message)) return "unsupported_platform";
-	return "internal_error";
-}
-
+/** Every failure path names its own code; an error that reaches here without one is a bug. */
 export function normalizeCliError(error: unknown): BcuError {
 	if (error instanceof BcuError) return error;
 	const normalized = error instanceof Error ? error : new Error(String(error));
-	return new BcuError(explicitCode(normalized) ?? inferCode(normalized.message), normalized.message);
-}
-
-function record(value: unknown): Record<string, unknown> | undefined {
-	return typeof value === "object" && value !== null ? value as Record<string, unknown> : undefined;
-}
-
-export function toolResultFailure(result: Pick<ToolResult, "text" | "details">): BcuError | undefined {
-	const details = record(result.details);
-	if (!details) return undefined;
-	if (details.tool === "wait_for" && details.found !== true) {
-		return new BcuError("action_timeout", result.text.split("\n", 1)[0] || "wait-for timed out before the condition was satisfied.");
-	}
-	const execution = record(details.execution);
-	const outcome = execution?.outcome;
-	const executionError = record(execution?.error);
-	if (outcome !== "didnt" && outcome !== "unknown" && !executionError) return undefined;
-	const message = typeof executionError?.message === "string"
-		? executionError.message
-		: outcome === "unknown"
-			? "The action outcome is unknown; bcu will not report it as success."
-			: "The action did not produce the requested result.";
-	return new BcuError("action_failed", message);
+	return new BcuError(explicitCode(normalized) ?? "internal_error", normalized.message);
 }
 
 export function formatCliError(error: BcuError): string {

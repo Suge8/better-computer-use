@@ -1,4 +1,5 @@
-import type { FindParams, RootSelector, ToolResult } from "./contract.ts";
+import type { FindParams, FindRootsResult, RootInfo, RootSelector } from "./contract.ts";
+import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { FramePoints, FrontmostResult, HelperApp, HelperRoot, HelperTarget } from "./macos/protocol.ts";
 import { rootRefRecord, storeRootRef } from "./root-refs.ts";
@@ -38,12 +39,6 @@ interface RootDetail {
 	pairing?: { confidence: "exact" | "high" | "low"; score: number };
 	zOrder: number;
 	score: number;
-}
-
-interface FindRootsDetails {
-	tool: "find_roots";
-	query: FindParams;
-	windows: RootDetail[];
 }
 
 /** Score gap that makes one candidate an unambiguous winner. */
@@ -106,21 +101,28 @@ function rootPairing(root: Pick<HelperRoot, "metadata">): { confidence: "exact" 
 	return { confidence: pairing.confidence, score: typeof pairing.score === "number" && Number.isFinite(pairing.score) ? pairing.score : Number.NEGATIVE_INFINITY };
 }
 
-function formatRootLine(window: RootDetail): string {
-	const flags = [
-		window.isFocused ? "focused" : undefined,
-		window.isMain ? "main" : undefined,
-		window.isModal ? "modal" : undefined,
-		window.sheetCount ? `sheets=${window.sheetCount}` : undefined,
-		window.isOnscreen ? "onscreen" : undefined,
-		window.isMinimized ? "minimized" : undefined,
-	]
-		.filter(Boolean)
-		.join(", ");
-	const frame = `${Math.round(window.framePoints.x)},${Math.round(window.framePoints.y)} ${Math.round(window.framePoints.w)}x${Math.round(window.framePoints.h)}`;
-	const id = window.windowId ? `windowId ${window.windowId}` : window.nativeWindowRef ? `nativeRootRef ${window.nativeWindowRef}` : "unstable root id";
-	const pairing = window.pairing ? `, pairing ${window.pairing.confidence}/${Math.round(window.pairing.score)}` : "";
-	return `- ${window.windowRef} ${window.kind} ${window.app} pid ${window.pid} — ${window.windowTitle || "(untitled)"} (z ${window.zOrder}, ${id}, frame ${frame}${pairing}${flags ? `, ${flags}` : ""})`;
+function rootInfo(window: RootDetail): RootInfo {
+	return {
+		ref: window.windowRef,
+		app: window.app,
+		bundleId: window.bundleId,
+		pid: window.pid,
+		title: window.windowTitle,
+		windowId: window.windowId,
+		kind: window.kind as RootInfo["kind"],
+		frame: {
+			x: Math.round(window.framePoints.x),
+			y: Math.round(window.framePoints.y),
+			w: Math.round(window.framePoints.w),
+			h: Math.round(window.framePoints.h),
+		},
+		focused: window.isFocused,
+		main: window.isMain,
+		onscreen: window.isOnscreen,
+		minimized: window.isMinimized,
+		modal: window.isModal,
+		pairing: window.pairing?.confidence,
+	};
 }
 
 function storeRootRefForAppWindow(app: HelperApp, window: HelperRoot) {
@@ -183,8 +185,16 @@ export function setCurrentTarget(target: ResolvedTarget): void {
 	};
 }
 
+/** The app is alive but shows nothing bcu can drive; that is a window problem, not a bug. */
+function noControllableRoot(appName: string): BcuError {
+	return new BcuError(
+		"window_stale",
+		`App '${appName}' is running but has no controllable window. Open a window in it, or run find-roots and observe another root.`,
+	);
+}
+
 function choosePreferredWindow(windows: HelperRoot[], appName: string): HelperRoot {
-	if (!windows.length) throw new Error(`No controllable root was found in app '${appName}'.`);
+	if (!windows.length) throw noControllableRoot(appName);
 	return [...windows].sort((a, b) => scoreWindow(b) - scoreWindow(a))[0];
 }
 
@@ -223,12 +233,12 @@ function chooseAppByQuery(apps: HelperApp[], appQuery: string): HelperApp {
 	const partialMatches = apps.filter((app) => appMatchesName(app, appQuery));
 	if (partialMatches.length === 0) {
 		const running = apps.slice(0, 12).map((app) => app.appName).join(", ");
-		throw new Error(`App '${appQuery}' is not running. Running apps: ${running || "none"}.`);
+		throw new BcuError("app_not_found", `App '${appQuery}' is not running. Running apps: ${running || "none"}.`);
 	}
 	if (partialMatches.length === 1) return partialMatches[0];
 
 	const candidates = partialMatches.map((app) => app.appName).join(", ");
-	throw new Error(`App name '${appQuery}' is ambiguous (${candidates}). Use a more specific app name.`);
+	throw new BcuError("invalid_arguments", `App name '${appQuery}' is ambiguous (${candidates}). Use a more specific app name.`);
 }
 
 function chooseWindowByTitle(windows: HelperRoot[], windowTitle: string, appName: string): HelperRoot {
@@ -238,14 +248,16 @@ function chooseWindowByTitle(windows: HelperRoot[], windowTitle: string, appName
 	if (exactMatches.length > 1) {
 		const clearWinner = chooseRankedWindowOrUndefined(exactMatches);
 		if (clearWinner) return clearWinner;
-		throw new Error(
+		throw new BcuError(
+			"invalid_arguments",
 			`Window title '${windowTitle}' is ambiguous in app '${appName}'. Candidates: ${summarizeWindowCandidates(exactMatches)}.`,
 		);
 	}
 
 	const partialMatches = windows.filter((window) => normalizeText(window.title).includes(query));
 	if (partialMatches.length === 0) {
-		throw new Error(
+		throw new BcuError(
+			"window_stale",
 			`Window '${windowTitle}' was not found in app '${appName}'. Available windows: ${summarizeWindowCandidates(windows)}.`,
 		);
 	}
@@ -253,7 +265,8 @@ function chooseWindowByTitle(windows: HelperRoot[], windowTitle: string, appName
 	const clearWinner = chooseRankedWindowOrUndefined(partialMatches);
 	if (clearWinner) return clearWinner;
 
-	throw new Error(
+	throw new BcuError(
+		"invalid_arguments",
 		`Window title '${windowTitle}' is ambiguous in app '${appName}'. Candidates: ${summarizeWindowCandidates(partialMatches)}.`,
 	);
 }
@@ -266,7 +279,7 @@ export function normalizeWindowSelector(selector: RootSelector | undefined): str
 
 export async function resolveTargetByWindowSelector(selector: RootSelector, signal?: AbortSignal): Promise<ResolvedTarget> {
 	const normalized = normalizeWindowSelector(selector);
-	if (!normalized) throw new Error("root target must be a non-empty @r ref or numeric windowId.");
+	if (!normalized) throw new BcuError("invalid_arguments", "--root requires a non-empty @r ref or numeric windowId.");
 
 	const current = operationState().currentTarget;
 	if (current?.windowRef === normalized) return await resolveCurrentTarget(signal);
@@ -279,7 +292,7 @@ export async function resolveTargetByWindowSelector(selector: RootSelector, sign
 			(fromRef.windowId ? windows.find((window) => window.windowId === fromRef.windowId) : undefined) ??
 			(fromRef.nativeWindowRef ? windows.find((window) => window.windowRef === fromRef.nativeWindowRef) : undefined) ??
 			windows.find((window) => normalizeText(window.title || "(untitled)") === normalizeText(fromRef.windowTitle));
-		if (!match) throw new Error(`Root ref '${normalized}' is stale. Call find-roots again and choose a current window.`);
+		if (!match) throw new BcuError("window_stale", `Root ref '${normalized}' is stale. Run find-roots again and choose a current root.`);
 		const resolved = toResolvedTarget(app, match);
 		setCurrentTarget(resolved);
 		return resolved;
@@ -295,11 +308,11 @@ export async function resolveTargetByWindowSelector(selector: RootSelector, sign
 				return resolved;
 			}
 		}
-		throw new Error(`Window id '${numericWindowId}' was not found. Call find-roots again and choose a current window.`);
+		throw new BcuError("window_stale", `Window id '${numericWindowId}' was not found. Run find-roots again and choose a current root.`);
 	}
 
 	if (normalized.startsWith("@r")) {
-		throw new Error(`Root ref '${normalized}' is not available in this session. Call find-roots first.`);
+		throw new BcuError("window_stale", `Root ref '${normalized}' is not available in this session. Run find-roots first.`);
 	}
 
 	const candidates = await collectWindowDetails(await listApps(signal), signal);
@@ -307,7 +320,7 @@ export async function resolveTargetByWindowSelector(selector: RootSelector, sign
 	const exact = candidates.filter((candidate) => normalizeText(candidate.app) === query || normalizeText(candidate.windowTitle) === query);
 	const fuzzy = exact.length > 0 ? exact : candidates.filter((candidate) => `${normalizeText(candidate.app)} ${normalizeText(candidate.windowTitle)}`.includes(query));
 	const match = fuzzy.sort((a, b) => Number(b.isFocused) - Number(a.isFocused) || a.zOrder - b.zOrder)[0];
-	if (!match) throw new Error(`Root query '${normalized}' did not match any current root. Call find-roots to inspect roots.`);
+	if (!match) throw new BcuError("window_stale", `Root query '${normalized}' did not match any current root. Run find-roots to list roots.`);
 	const app: HelperApp = { appName: match.app, bundleId: match.bundleId, pid: match.pid };
 	const roots = await listWindows(match.pid, signal);
 	const helperRoot = roots.find((root) => root.rootRef === match.nativeWindowRef || root.windowRef === match.nativeWindowRef || root.windowId === match.windowId) ?? roots[0];
@@ -319,7 +332,7 @@ export async function resolveTargetByWindowSelector(selector: RootSelector, sign
 export async function resolveCurrentTarget(signal?: AbortSignal): Promise<ResolvedTarget> {
 	const current = currentTargetOrThrow();
 	const windows = await listWindows(current.pid, signal);
-	if (!windows.length) throw new Error(CURRENT_TARGET_GONE_ERROR);
+	if (!windows.length) throw noControllableRoot(current.appName);
 
 	const hadStableWindowId = current.windowId > 0;
 	const titleQuery = normalizeText(current.windowTitle);
@@ -332,7 +345,8 @@ export async function resolveCurrentTarget(signal?: AbortSignal): Promise<Resolv
 		} else if (exactTitleMatches.length > 1) {
 			match = chooseRankedWindowOrUndefined(exactTitleMatches);
 			if (!match) {
-				throw new Error(
+				throw new BcuError(
+					"window_stale",
 					`${CURRENT_TARGET_GONE_ERROR} Multiple windows now match '${current.windowTitle}': ${summarizeWindowCandidates(exactTitleMatches)}.`,
 				);
 			}
@@ -340,7 +354,7 @@ export async function resolveCurrentTarget(signal?: AbortSignal): Promise<Resolv
 	}
 
 	if (!match && !hadStableWindowId) match = chooseRankedWindowOrUndefined(windows);
-	if (!match) throw new Error(CURRENT_TARGET_GONE_ERROR);
+	if (!match) throw new BcuError("window_stale", CURRENT_TARGET_GONE_ERROR);
 
 	const modal = windows
 		.filter((window) => shouldPreferForegroundModalWindow(match!, window))
@@ -362,7 +376,7 @@ async function resolveFrontmostTarget(signal?: AbortSignal): Promise<ResolvedTar
 	};
 
 	const windows = await listWindows(frontmost.pid, signal);
-	if (!windows.length) throw new Error("No frontmost controllable root was found. Open an app window and call observe-ui again.");
+	if (!windows.length) throw noControllableRoot(app.appName);
 
 	let selected = windows.find((window) => window.windowId !== undefined && window.windowId === frontmost.windowId);
 	if (!selected && frontmost.windowTitle) {
@@ -419,14 +433,14 @@ async function resolveTargetByTitleAcrossApps(query: string, signal?: AbortSigna
 	}
 
 	const matches = exactMatches.length > 0 ? exactMatches : partialMatches;
-	if (matches.length === 0) throw new Error(`Window '${query}' was not found in any running app.`);
+	if (matches.length === 0) throw new BcuError("window_stale", `Window '${query}' was not found in any running app.`);
 	const ranked = [...matches].sort((a, b) => scoreWindow(b.window) - scoreWindow(a.window));
 	if (ranked.length > 1 && scoreWindow(ranked[0].window) < scoreWindow(ranked[1].window) + DECISIVE_SCORE_GAP) {
 		const options = ranked
 			.slice(0, 6)
 			.map((match) => `${match.app.appName} — ${summarizeWindowCandidate(match.window)}`)
 			.join(", ");
-		throw new Error(`Window title '${query}' is ambiguous (${options}). Specify app as well.`);
+		throw new BcuError("invalid_arguments", `Window title '${query}' is ambiguous (${options}). Specify --app as well.`);
 	}
 
 	const resolved = toResolvedTarget(ranked[0].app, ranked[0].window);
@@ -446,7 +460,7 @@ export async function resolveTargetForObserve(selection: TargetSelection, signal
 	if (appQuery) {
 		const app = chooseAppByQuery(await listApps(signal), appQuery);
 		const windows = await listWindows(app.pid, signal);
-		if (!windows.length) throw new Error(`No controllable root was found in app '${app.appName}'.`);
+		if (!windows.length) throw noControllableRoot(app.appName);
 		const window = windowTitleQuery
 			? chooseWindowByTitle(windows, windowTitleQuery, app.appName)
 			: choosePreferredWindow(windows, app.appName);
@@ -461,7 +475,7 @@ export async function resolveTargetForObserve(selection: TargetSelection, signal
 export async function ensureTargetWindowId(target: ResolvedTarget, signal?: AbortSignal): Promise<ResolvedTarget> {
 	if (target.windowId > 0 || target.nativeWindowRef) return target;
 	const refreshed = await resolveCurrentTarget(signal);
-	if (refreshed.windowId <= 0 && !refreshed.nativeWindowRef) throw new Error(CURRENT_TARGET_GONE_ERROR);
+	if (refreshed.windowId <= 0 && !refreshed.nativeWindowRef) throw new BcuError("window_stale", CURRENT_TARGET_GONE_ERROR);
 	return refreshed;
 }
 
@@ -512,7 +526,7 @@ async function collectBroadWindowDetails(signal?: AbortSignal): Promise<RootDeta
 		.map((root) => rootDetail({ appName: root.appName ?? "Unknown App", bundleId: root.bundleId, pid: root.pid! }, root)));
 }
 
-async function performFindRoots(params: FindParams, signal?: AbortSignal): Promise<ToolResult<FindRootsDetails>> {
+async function performFindRoots(params: FindParams, signal?: AbortSignal): Promise<FindRootsResult> {
 	const rawParams = params ?? {};
 	const query: FindParams = {
 		query: trimOrUndefined(rawParams.query),
@@ -533,11 +547,7 @@ async function performFindRoots(params: FindParams, signal?: AbortSignal): Promi
 		: [];
 	const windows = (exact.length > 0 ? exact : fuzzy.length > 0 ? fuzzy : forest)
 		.sort((a, b) => Number(b.isFocused) - Number(a.isFocused) || a.zOrder - b.zOrder || a.app.localeCompare(b.app));
-	const lines = windows.map(formatRootLine);
-	const text = lines.length
-		? `Found ${lines.length} root${lines.length === 1 ? "" : "s"}${query.query ? ` for ${JSON.stringify(query.query)}` : ""}. Use @r refs with observe-ui.\n${lines.join("\n")}`
-		: `No roots are currently visible to bcu.`;
-	return { text, details: { tool: "find_roots", query, windows } };
+	return { roots: windows.map(rootInfo) };
 }
 
 export const executeFind = makeToolExecutor(performFindRoots);

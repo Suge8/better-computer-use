@@ -48,6 +48,8 @@ export interface ProjectOptions {
 	maxDepth?: number;
 	maxNodes?: number;
 	unfold?: string[];
+	/** Projects this subtree instead of the whole root. */
+	from?: OutlineNode;
 }
 
 export interface ObservationView {
@@ -115,6 +117,8 @@ const STRUCTURAL_ROLES = new Set([
 	"matte",
 ]);
 
+/** Roles that speak through the content they wrap; a window or a list never does. */
+const ABSORBING_ROLES = new Set([...STRUCTURAL_ROLES, "row", "listitem", "tab", "link", "menuitem", "button", "checkbox", "radio"]);
 const TEXT_ROLES = new Set(["textfield", "textarea", "combobox", "searchfield"]);
 const TOGGLE_ROLES = new Set(["checkbox", "radio", "switch", "disclosuretriangle", "togglebutton"]);
 
@@ -217,8 +221,8 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 		children,
 		source: node,
 	};
-	if (!name) {
-		// An unnamed container speaks through the text it wraps, and through the one
+	if (!name && ABSORBING_ROLES.has(role)) {
+		// An unnamed wrapper speaks through the text it wraps, and through the one
 		// structural child that carries the real capability.
 		const absorbed = children.filter(isTextLeaf);
 		if (absorbed.length > 0) {
@@ -233,8 +237,8 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 			if (STRUCTURAL_ROLES.has(only.role)) tree = { ...tree, name: only.name, value: tree.value ?? only.value, caps, children: only.children };
 			else if (STRUCTURAL_ROLES.has(tree.role)) tree = { ...only, caps };
 		}
-		if (!tree.name) tree = { ...tree, name: identifierName(node) };
 	}
+	if (!tree.name) tree = { ...tree, name: identifierName(node) };
 	return [tree];
 }
 
@@ -273,7 +277,7 @@ function defaultUnfolded(outline: Outline, requested: string[]): Set<string> {
 	return refs;
 }
 
-function foldAtDepth(trees: ProjectedTree[], outline: Outline, maxDepth: number, maxNodes: number, unfolded: Set<string>): Projection {
+function foldAtDepth(trees: ProjectedTree[], total: number, maxDepth: number, maxNodes: number, unfolded: Set<string>): Projection {
 	const nodes: ProjectedNode[] = [];
 	let truncated = false;
 	const emit = (tree: ProjectedTree, depth: number, parent?: string) => {
@@ -288,20 +292,26 @@ function foldAtDepth(trees: ProjectedTree[], outline: Outline, maxDepth: number,
 		for (const child of tree.children) emit(child, depth + 1, tree.ref);
 	};
 	for (const tree of trees) emit(tree, 0);
-	return { nodes, shown: nodes.length, total: outline.nodes.length, truncated };
+	return { nodes, shown: nodes.length, total, truncated };
+}
+
+function subtreeSize(node: OutlineNode): number {
+	return 1 + node.children.reduce((total, child) => total + subtreeSize(child), 0);
 }
 
 export function project(outline: Outline, options: ProjectOptions = {}): Projection {
-	const trees = buildTrees(outline.root);
+	const start = options.from ?? outline.root;
+	const trees = buildTrees(start);
+	const total = start === outline.root ? outline.nodes.length : subtreeSize(start);
 	const maxNodes = options.maxNodes ?? MAX_NODES;
 	const unfolded = defaultUnfolded(outline, options.unfold ?? []);
-	if (options.maxDepth !== undefined) return foldAtDepth(trees, outline, options.maxDepth, maxNodes, unfolded);
+	if (options.maxDepth !== undefined) return foldAtDepth(trees, total, options.maxDepth, maxNodes, unfolded);
 
 	// Show as much structure as a bounded first view can carry: the focused region is
 	// always open, and everything else opens one level at a time while the view fits.
-	let best = foldAtDepth(trees, outline, 1, maxNodes, unfolded);
+	let best = foldAtDepth(trees, total, 1, maxNodes, unfolded);
 	for (let depth = 2; depth <= MAX_AUTO_DEPTH; depth += 1) {
-		const candidate = foldAtDepth(trees, outline, depth, maxNodes, unfolded);
+		const candidate = foldAtDepth(trees, total, depth, maxNodes, unfolded);
 		if (candidate.shown === best.shown) break;
 		if (Buffer.byteLength(renderNodes(candidate.nodes)) > VIEW_BYTE_BUDGET) break;
 		best = candidate;
@@ -309,16 +319,6 @@ export function project(outline: Outline, options: ProjectOptions = {}): Project
 	return best;
 }
 
-/** Projects one node on its own, for search matches and diffs. */
-export function projectNode(node: OutlineNode): ProjectedNode {
-	const [tree] = buildTrees(node);
-	if (!tree) {
-		const role = roleWord(node);
-		return { ref: node.ref, depth: 0, role, name: nameOf(node), caps: capabilitiesOf(node, role), state: stateOf(node) };
-	}
-	const { children: _children, source: _source, ...fields } = tree;
-	return { ...fields, depth: 0, parent: node.parent?.ref };
-}
 
 function stateWords(state: ProjectedState | undefined): string {
 	if (!state) return "";
@@ -341,11 +341,16 @@ function hiddenSummary(hidden: ProjectedNode["hidden"]): string {
 	return ` ▸ ${hidden.count} hidden: ${roles}`;
 }
 
-export function renderNode(node: ProjectedNode): string {
+/** One node without its indent or ref, for diff lines. */
+export function renderNodeBody(node: ProjectedNode): string {
 	const name = node.name ? ` ${JSON.stringify(node.name)}` : "";
 	const value = node.value === undefined ? "" : ` =${JSON.stringify(node.value)}`;
 	const caps = node.caps.length ? ` {${node.caps.join(",")}}` : "";
-	return `${"  ".repeat(node.depth)}${node.ref} ${node.role}${name}${value}${caps}${stateWords(node.state)}${hiddenSummary(node.hidden)}`;
+	return `${node.role}${name}${value}${caps}${stateWords(node.state)}${hiddenSummary(node.hidden)}`;
+}
+
+export function renderNode(node: ProjectedNode): string {
+	return `${"  ".repeat(node.depth)}${node.ref} ${renderNodeBody(node)}`;
 }
 
 export function renderNodes(nodes: ProjectedNode[]): string {

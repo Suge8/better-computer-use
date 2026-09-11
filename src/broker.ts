@@ -1,7 +1,6 @@
 import { chmodSync, closeSync, constants as fsConstants, mkdirSync, openSync, unlinkSync, writeSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { materializeScreenshot } from "./artifacts.ts";
 import { executeAct } from "./act.ts";
 import { executeExpandUi, executeInspectUi, executeObserve, executeReadText, executeSearchUi, executeWaitFor } from "./observe.ts";
 import { executeFind } from "./roots.ts";
@@ -14,11 +13,10 @@ import type {
 	ObserveParams,
 	ReadTextParams,
 	SearchUiParams,
-	ToolResult,
 	WaitForParams,
 } from "./contract.ts";
 import { loadComputerUseConfig } from "./config.ts";
-import { normalizeCliError, toolResultFailure } from "./errors.ts";
+import { normalizeCliError } from "./errors.ts";
 import {
 	BROKER_PROTOCOL_VERSION,
 	BROKER_SOCKET_PATH,
@@ -32,7 +30,6 @@ import {
 import { HELPER_APP_PATH, HELPER_PROTOCOL_VERSION, macosHelper } from "./macos/helper.ts";
 import { checkMacosPermissions } from "./macos/permissions.ts";
 import { ensurePermissions } from "./permissions.ts";
-import { StaleResourceStateError } from "./runtime.ts";
 
 const DEFAULT_IDLE_MS = 10 * 60 * 1_000;
 
@@ -103,35 +100,26 @@ async function setup(phase: unknown): Promise<unknown> {
 	return { ready: true, permissions };
 }
 
-async function withArtifact(result: ToolResult): Promise<ToolResult> {
-	const failure = toolResultFailure(result);
-	if (failure) throw failure;
-	return await materializeScreenshot(result);
-}
-
 async function dispatchCommand(request: BrokerRequest): Promise<unknown> {
 	switch (request.cmd) {
 		case "ping": return { pid: process.pid };
 		case "diagnostics": return await helperDiagnostics();
 		case "doctor": return await doctor();
 		case "setup": return await setup(request.args.phase);
-		case "find-roots": return await withArtifact(await executeFind(request.args as FindParams));
-		case "observe-ui": return await withArtifact(await executeObserve(request.args as ObserveParams));
-		case "search-ui": return await withArtifact(await executeSearchUi(request.args as SearchUiParams));
-		case "expand-ui": return await withArtifact(await executeExpandUi(request.args as unknown as ExpandUiParams));
-		case "inspect-ui": return await withArtifact(await executeInspectUi(request.args as unknown as InspectUiParams));
-		case "act-ui": return await withArtifact(await executeAct(request.args as unknown as ActParams));
-		case "read-text": return await withArtifact(await executeReadText(request.args as unknown as ReadTextParams));
-		case "wait-for": return await withArtifact(await executeWaitFor(request.args as unknown as WaitForParams));
+		case "find-roots": return await executeFind(request.args as FindParams);
+		case "observe-ui": return await executeObserve(request.args as ObserveParams);
+		case "search-ui": return await executeSearchUi(request.args as SearchUiParams);
+		case "expand-ui": return await executeExpandUi(request.args as unknown as ExpandUiParams);
+		case "inspect-ui": return await executeInspectUi(request.args as unknown as InspectUiParams);
+		case "act-ui": return await executeAct(request.args as unknown as ActParams);
+		case "read-text": return await executeReadText(request.args as unknown as ReadTextParams);
+		case "wait-for": return await executeWaitFor(request.args as unknown as WaitForParams);
 		default: throw Object.assign(new Error(`Unknown broker command '${request.cmd}'.`), { code: "unknown_command" });
 	}
 }
 
 function brokerError(error: unknown): BrokerError {
-	const normalized = error instanceof StaleResourceStateError
-		? Object.assign(error, { code: "stale_state" })
-		: error;
-	const cliError = normalizeCliError(normalized);
+	const cliError = normalizeCliError(error);
 	return { message: cliError.message, code: cliError.code };
 }
 

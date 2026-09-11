@@ -1,20 +1,23 @@
 import { randomUUID } from "node:crypto";
-import { getComputerUseConfig, isHeadlessMode, type ComputerUseConfig } from "./config.ts";
-import type { ExpandUiParams, ImageMode, InspectUiParams, ObserveParams, ReadTextParams, SearchUiParams, ToolResult, WaitForParams } from "./contract.ts";
+import { saveScreenshot } from "./artifacts.ts";
+import { isHeadlessMode } from "./config.ts";
+import type { Change, ExpandResult, ExpandUiParams, ImageInfo, ImageMode, InspectResult, InspectUiParams, ObserveParams, ObserveResult, ReadTextParams, ReadTextResult, RootSummary, SearchMatch, SearchResult, SearchUiParams, WaitForParams, WaitForResult } from "./contract.ts";
+import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
-import { toFiniteNumber, type ActOutcome, type FramePoints, type HelperActPerformed, type HelperActResult, type HelperDiagnostics, type NativeInputDelivery } from "./macos/protocol.ts";
-import { noteFromLook, noteRegionKeyForRef, renderNote, type WindowNote } from "./note.ts";
-import { foldToBudget, graftScopedOutline, nodeByRef, outlineNodeLabel, outlineNodePath, searchOutline, serializeOutline, serializeOutlineNode, type LookResponse, type Outline, type OutlineChange, type OutlineNode, type OutlineSearchMatch, type SerializedOutline, type SerializedOutlineNode } from "./outline.ts";
-import { rootRefForDelta } from "./root-refs.ts";
+import { toFiniteNumber, type ActOutcome, type HelperActPerformed, type HelperActResult, type NativeInputDelivery } from "./macos/protocol.ts";
+import { graftScopedOutline, nodeByRef, searchOutline, serializeOutlineNode, type LookResponse, type Outline, type OutlineNode } from "./outline.ts";
+import { project, type ProjectedNode } from "./projection.ts";
 import { ensureTargetWindowId, nativeWindowRequest, matchesTargetSelection, normalizeWindowSelector, resolveCurrentTarget, resolveTargetByWindowSelector, resolveTargetForObserve, sameRootIdentity, setCurrentTarget, type ResolvedTarget } from "./roots.ts";
-import { COMMAND_TIMEOUT_MS, currentOutlineOrThrow, currentResourceOrThrow, desktopResourceKey, helperDiagnostics, makeToolExecutor, operationState, persistOperation, resourceScheduler, validateStateId } from "./session.ts";
-import type { CurrentCapture, CurrentTarget } from "./state.ts";
-import { normalizeText, trimOrUndefined } from "./text.ts";
-import { changesBetween, renderChanges, stabilizeRefs } from "./view.ts";
+import { COMMAND_TIMEOUT_MS, currentOutlineOrThrow, currentResourceOrThrow, desktopResourceKey, makeToolExecutor, operationState, persistOperation, resourceScheduler, validateStateId } from "./session.ts";
+import type { CurrentCapture } from "./state.ts";
+import { trimOrUndefined } from "./text.ts";
+import { changesBetween, stabilizeRefs } from "./view.ts";
 
 const LOOK_TIMEOUT_MS = 33_000;
 export const AUTO_IMAGE_MAX_DIMENSION = 900;
 export const EXPLICIT_IMAGE_MAX_DIMENSION = 1_600;
+/** Diffs compare complete projections; only the rendered view is folded. */
+export const UNFOLDED = { maxDepth: Number.MAX_SAFE_INTEGER, maxNodes: Number.MAX_SAFE_INTEGER };
 
 type ExecutionVariant = "stealth" | "default";
 type ActionDelivery = "ax" | NativeInputDelivery;
@@ -22,111 +25,19 @@ type DeliveryPolicy = "ax_only" | "background" | "default" | "foreground";
 
 export interface ExecutionTrace {
 	strategy: "look" | "act" | "wait";
-	runtimeMode?: ExecutionVariant;
 	variant?: ExecutionVariant;
-	stealthCompatible?: boolean;
 	delivery?: ActionDelivery;
 	deliveryPolicy?: DeliveryPolicy;
 	outcome?: ActOutcome;
 	performed?: HelperActPerformed;
-	evidence?: Record<string, unknown>;
 	error?: HelperActResult["error"];
-	rootDelta?: HelperActResult["rootDelta"];
 	steps?: ExecutionTrace[];
 	actionCount?: number;
 	stoppedAt?: number;
-	backgroundFirst?: boolean;
 	escalatedToForeground?: boolean;
 	escalationReason?: string;
-	backgroundAttempt?: { outcome: "foreground_required" | "didnt"; reason: string };
-	verification?: {
-		status: "verified" | "preexisting" | "failed";
-		text?: string;
-		role?: string;
-		value?: string;
-		gone?: boolean;
-		timeoutMs: number;
-	};
-}
-
-interface ActivationFlags {
-	activated: boolean;
-	unminimized: boolean;
-	raised: boolean;
-}
-
-export interface ComputerUseDetails {
-	tool: string;
-	target: {
-		app: string;
-		bundleId?: string;
-		pid: number;
-		windowTitle: string;
-		windowId: number;
-		windowRef?: string;
-		nativeWindowRef?: string;
-	};
-	capture: {
-		stateId: string;
-		width: number;
-		height: number;
-		scaleFactor: number;
-		timestamp: number;
-		coordinateSpace: "window-relative-screenshot-pixels";
-	};
-	lookId?: string;
-	view: "full" | "diff";
-	baseStateId?: string;
-	changes?: OutlineChange[];
-	viewReason?: "root_replaced" | "change_budget_exceeded" | "identity_confidence_low";
-	renderedOutline?: string;
-	outline?: SerializedOutline;
-	note?: WindowNote;
-	activation: ActivationFlags;
-	execution: ExecutionTrace;
-	config?: ComputerUseConfig;
-	helper?: HelperDiagnostics;
-	status?: "ok";
-	imageReason?: "fallback_recovery" | "sparse_ax_targets" | "unlabeled_ax_targets";
-}
-
-interface ReadTextDetails {
-	tool: "read_text";
-	ref: string;
-	offset: number;
-	limit: number;
-	totalChars: number;
-	hasMore: boolean;
-	text: string;
-}
-
-interface WaitForDetails {
-	tool: "wait_for";
-	stateId: string;
-	baseStateId?: string;
-	view: "full" | "diff";
-	changes?: OutlineChange[];
-	found: boolean;
-	gone?: boolean;
-	timedOut?: boolean;
-	target?: Omit<OutlineSearchMatch, "node"> & { node?: SerializedOutlineNode };
-	nodeCount?: number;
-	text?: string;
-	role?: string;
-	outline: SerializedOutline;
-	renderedOutline: string;
-}
-
-interface OutlineToolDetails {
-	tool: "search_ui" | "expand_ui" | "inspect_ui";
-	stateId?: string;
-	lookId?: string;
-	outline?: SerializedOutline;
-	renderedOutline?: string;
-	matches?: Array<Omit<OutlineSearchMatch, "node"> & { node?: SerializedOutlineNode }>;
-	target?: SerializedOutlineNode;
-	raw?: unknown;
-	note?: WindowNote;
+	verified?: boolean;
+	preexisting?: boolean;
 }
 
 export interface CaptureResult {
@@ -134,43 +45,18 @@ export interface CaptureResult {
 	capture: CurrentCapture;
 	look: LookResponse;
 	outline: Outline;
-	activation: ActivationFlags;
 }
 
 export function executionTrace(
 	strategy: ExecutionTrace["strategy"],
 	variant: ExecutionVariant,
-	metadata: Omit<ExecutionTrace, "strategy" | "runtimeMode" | "variant" | "stealthCompatible"> = {},
+	metadata: Omit<ExecutionTrace, "strategy" | "variant"> = {},
 ): ExecutionTrace {
-	return {
-		strategy,
-		runtimeMode: isHeadlessMode() ? "stealth" : "default",
-		variant,
-		stealthCompatible: variant === "stealth",
-		...metadata,
-	};
-}
-
-export function rootDeltaLines(execution: ExecutionTrace): string[] {
-	return (execution.rootDelta ?? []).map((delta) => {
-		const quotedTitle = delta.title ? ` ${JSON.stringify(delta.title)}` : "";
-		const ref = delta.ref ? ` (${delta.ref.startsWith("@") ? delta.ref : `@${delta.ref}`})` : "";
-		const sheetCount = typeof delta.metadata?.sheetCount === "number" && Number.isFinite(delta.metadata.sheetCount) ? Math.max(0, Math.trunc(delta.metadata.sheetCount)) : undefined;
-		const flags = [delta.isModal ? "modal" : undefined, sheetCount ? `sheets=${sheetCount}` : undefined].filter(Boolean).join(", ");
-		const suffix = `${quotedTitle}${flags ? ` (${flags})` : ""}${ref}`;
-		if (delta.change === "appeared") return `New root: ${delta.kind}${suffix}`;
-		if (delta.change === "closed") return `Root closed: ${delta.kind}${suffix}`;
-		return `Root focused: ${delta.kind}${suffix}`;
-	});
-}
-
-export function modelRefForRootDelta(delta: NonNullable<HelperActResult["rootDelta"]>[number]): string | undefined {
-	const current = operationState().currentTarget;
-	return rootRefForDelta(delta, current ? { pid: current.pid, appName: current.appName, bundleId: current.bundleId } : undefined);
+	return { strategy, variant: isHeadlessMode() ? "stealth" : variant, ...metadata };
 }
 
 export function normalizeImageMode(value: unknown): ImageMode {
-	return value === "always" || value === "never" ? value : "auto";
+	return value === "always" ? "always" : "never";
 }
 
 export function normalizeWaitTimeoutMs(value: unknown): number {
@@ -178,79 +64,61 @@ export function normalizeWaitTimeoutMs(value: unknown): number {
 }
 
 export function outlineNodeByRef(ref: string): OutlineNode {
-	const state = operationState();
-	const outline = state.currentOutline;
+	const outline = operationState().currentOutline;
 	const node = outline ? nodeByRef(outline, ref) : undefined;
-	if (!node) {
-		const windowHint = state.currentTarget?.windowRef ? ` --root ${state.currentTarget.windowRef}` : "";
-		throw new Error(`Outline ref '${ref}' is stale or not available for the latest state. Call observe-ui${windowHint} again and choose a current @e ref.`);
-	}
+	if (!node) throw new BcuError("element_not_found", `Ref '${ref}' does not belong to the current state. Observe the root again and use a ref from the new state.`);
 	return node;
 }
 
 export function wireRefForNode(node: OutlineNode): string {
 	if (node.pictureOnly || !node.wireRef) {
-		throw new Error(`Outline ref '${node.ref}' is pictureOnly and has no semantic element. It can be clicked by coordinates, but semantic-only actions are not available.`);
+		throw new BcuError("element_not_found", `Ref '${node.ref}' has no accessibility element; it can only be clicked by coordinates.`);
 	}
 	return node.wireRef;
 }
 
 export function outlineNodeCenter(node: OutlineNode): { x: number; y: number } {
-	if (!node.rect) {
-		throw new Error(`Outline ref '${node.ref}' has no full-look coordinates after scoped expansion. Re-observe for coordinates.`);
-	}
+	if (!node.rect) throw new BcuError("element_not_found", `Ref '${node.ref}' has no coordinates in the current state. Observe the root again.`);
 	return { x: node.rect.x + node.rect.w / 2, y: node.rect.y + node.rect.h / 2 };
 }
 
 export function ensurePointIsInLookImage(x: number, y: number, look: LookResponse, errorPrefix = "Coordinates"): void {
 	if (!look.image) {
-		throw new Error(`${errorPrefix} require an image-bearing root. This look is outline-only; use an @e ref with a semantic action or observe an image-bearing root.`);
+		throw new BcuError("invalid_arguments", `${errorPrefix} require an image-bearing state. Observe with --image always, or act on a ref.`);
 	}
-	if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error(`${errorPrefix} must be finite numbers.`);
+	if (!Number.isFinite(x) || !Number.isFinite(y)) throw new BcuError("invalid_arguments", `${errorPrefix} must be finite numbers.`);
 	if (x < 0 || y < 0 || x >= look.image.width || y >= look.image.height) {
-		throw new Error(`${errorPrefix} (${Math.round(x)},${Math.round(y)}) are outside the latest look image bounds (${look.image.width}x${look.image.height}). Call observe-ui again and retry.`);
+		throw new BcuError("invalid_arguments", `${errorPrefix} (${Math.round(x)},${Math.round(y)}) are outside the image bounds (${look.image.width}x${look.image.height}).`);
 	}
 }
 
-function formatOutlineNodeLabel(node: OutlineNode): string {
-	const label = outlineNodeLabel(node) || "(unlabeled)";
-	const identifier = node.identifier ? ` id=${JSON.stringify(node.identifier)}` : "";
-	const capabilities = [
-		node.canSetValue ? "setValue" : undefined,
-		node.canPress ? "press" : undefined,
-		node.canFocus ? "focus" : undefined,
-		node.canScroll ? "scroll" : undefined,
-		node.canIncrement || node.canDecrement ? "adjust" : undefined,
-		node.pictureOnly ? "pictureOnly" : undefined,
-	].filter((item): item is string => Boolean(item));
-	return `${node.ref} ${node.role}${node.subrole ? `/${node.subrole}` : ""}${identifier} ${JSON.stringify(label)}${capabilities.length ? ` [${capabilities.join(",")}]` : ""}`;
+/** Resolves an @e ref to the helper element ref a scoped condition needs. */
+export function scopeWireRef(scope: string | undefined): string | undefined {
+	const ref = trimOrUndefined(scope);
+	return ref ? wireRefForNode(outlineNodeByRef(ref)) : undefined;
 }
 
-function imageFallbackReason(
-	result: CaptureResult,
-	imageMode: ImageMode,
-): { reason: NonNullable<ComputerUseDetails["imageReason"]>; message: string } | undefined {
-	if (imageMode === "never") return undefined;
-	if (imageMode === "always") return { reason: "fallback_recovery", message: "An image was requested explicitly for visual verification." };
-	const outline = result.outline;
-	const labeled = outline.nodes.filter((node) => outlineNodeLabel(node)).length;
-	if (outline.nodes.length < 3) {
-		return { reason: "sparse_ax_targets", message: "Only a few outline nodes were found, so the look image is attached for context." };
-	}
-	if (labeled * 3 < outline.nodes.length) {
-		return { reason: "unlabeled_ax_targets", message: "Most outline nodes are unlabeled, so the look image is attached for context." };
-	}
-	return undefined;
-}
-
-function captureForLook(look: LookResponse): CurrentCapture {
+export function rootSummary(result: CaptureResult): RootSummary {
 	return {
-		stateId: randomUUID(),
-		width: look.image?.width ?? 0,
-		height: look.image?.height ?? 0,
-		scaleFactor: look.window.scaleFactor,
-		timestamp: Date.now(),
+		ref: result.target.windowRef,
+		app: result.target.appName,
+		pid: result.target.pid,
+		title: result.target.windowTitle,
+		windowId: result.target.windowId > 0 ? result.target.windowId : undefined,
+		frame: result.look.window.framePoints,
+		scale: result.look.window.scaleFactor,
 	};
+}
+
+export async function imageInfo(result: CaptureResult, mode: ImageMode): Promise<ImageInfo | undefined> {
+	const image = result.look.image;
+	if (mode !== "always" || !image?.jpegBase64) return undefined;
+	return await saveScreenshot(result.capture.stateId, {
+		data: image.jpegBase64,
+		mimeType: image.mimeType ?? "image/jpeg",
+		width: image.width,
+		height: image.height,
+	});
 }
 
 async function performLook(
@@ -259,7 +127,7 @@ async function performLook(
 	signal?: AbortSignal,
 ): Promise<LookResponse> {
 	if ((!Number.isFinite(target.windowId) || target.windowId <= 0) && !target.nativeWindowRef) {
-		throw new Error(`bcu requires a stable root id to observe '${target.windowTitle}'. Call find-roots and select a root with a stable id.`);
+		throw new BcuError("window_stale", `Root '${target.windowTitle}' has no stable id. Run find-roots and select a current root.`);
 	}
 	return await macosBackend.observe({
 		windowId: target.windowId,
@@ -271,24 +139,13 @@ async function performLook(
 	}, { signal, timeoutMs: LOOK_TIMEOUT_MS });
 }
 
-export function noteWindowForTarget(target: ResolvedTarget | CurrentTarget, look?: LookResponse) {
-	const pairing = look?.window.metadata?.pairing;
-	const record = pairing && typeof pairing === "object" ? pairing as { confidence?: "exact" | "high" | "low"; score?: number } : undefined;
-	return {
-		windowRef: target.windowRef,
-		title: target.windowTitle,
-		pairing: record?.confidence,
-		pairingScore: record?.score,
-	};
-}
-
-/** Side effects: adopts the fresh look as the operation's current target, capture, look, outline and note. */
+/** Side effects: adopts the fresh look as the operation's current target, capture, look and outline. */
 export async function captureCurrentTarget(
 	signal?: AbortSignal,
-	readText: "auto" | "always" | "never" = "auto",
+	readText: "auto" | "always" | "never" = "never",
 	maxDimension = AUTO_IMAGE_MAX_DIMENSION,
 	targetOverride?: ResolvedTarget,
-	includeImage = true,
+	includeImage = false,
 ): Promise<CaptureResult> {
 	const state = operationState();
 	const baseOutline = state.currentOutline;
@@ -299,94 +156,36 @@ export async function captureCurrentTarget(
 	const outline = stabilizeRefs(baseTarget && sameRootIdentity(baseTarget, target) ? baseOutline : undefined, look.parsedOutline!);
 	look.parsedOutline = outline;
 	look.outline = outline.root;
-	const capture = captureForLook(look);
+	const capture: CurrentCapture = { stateId: randomUUID(), timestamp: Date.now() };
 
 	setCurrentTarget(target);
 	state.currentCapture = capture;
 	state.currentStateTarget = { pid: target.pid, windowId: target.windowId, windowRef: target.windowRef };
 	state.currentLook = look;
 	state.currentOutline = outline;
-	state.currentNote = noteFromLook(state.currentNote, outline, noteWindowForTarget(target, look));
 	state.resourceKey = desktopResourceKey(target);
 	state.epoch ??= resourceScheduler.epoch(state.resourceKey);
 
-	return { target, capture, look, outline, activation: { activated: false, unminimized: false, raised: false } };
+	return { target, capture, look, outline };
 }
 
-export function buildToolResult(
-	tool: string,
-	summary: string,
-	result: CaptureResult,
-	execution: ExecutionTrace,
-	imageMode: ImageMode = operationState().currentImageMode ?? "auto",
-	base?: { stateId: string; outline: Outline },
-): ToolResult<ComputerUseDetails> {
-	const state = operationState();
-	const fallbackReason = imageFallbackReason(result, imageMode);
-	const transition = base ? changesBetween(base.outline, result.outline) : undefined;
-	const useDiff = Boolean(transition && !transition.useFullView);
-	const folded = foldToBudget(result.outline);
-	const renderedNote = renderNote(state.currentNote);
-
-	const details: ComputerUseDetails = {
-		tool,
-		target: {
-			app: result.target.appName,
-			bundleId: result.target.bundleId,
-			pid: result.target.pid,
-			windowTitle: result.target.windowTitle,
-			windowId: result.target.windowId,
-			windowRef: result.target.windowRef ?? state.currentTarget?.windowRef,
-			nativeWindowRef: result.target.nativeWindowRef ?? state.currentTarget?.nativeWindowRef,
-		},
-		capture: {
-			stateId: result.capture.stateId,
-			width: result.capture.width,
-			height: result.capture.height,
-			scaleFactor: result.capture.scaleFactor,
-			timestamp: result.capture.timestamp,
-			coordinateSpace: "window-relative-screenshot-pixels",
-		},
-		lookId: result.look.lookId,
-		view: useDiff ? "diff" : "full",
-		baseStateId: transition ? base?.stateId : undefined,
-		changes: useDiff ? transition?.changes : undefined,
-		viewReason: transition?.useFullView ? transition.reason : undefined,
-		renderedOutline: folded.text,
-		outline: serializeOutline(result.outline),
-		note: state.currentNote,
-		activation: result.activation,
-		execution,
-		status: "ok",
-		config: getComputerUseConfig(),
-		helper: helperDiagnostics(),
-		imageReason: fallbackReason?.reason,
+export function observeResult(result: CaptureResult, image?: ImageInfo): ObserveResult {
+	const projection = project(result.outline);
+	return {
+		stateId: result.capture.stateId,
+		root: rootSummary(result),
+		nodes: projection.nodes,
+		shown: projection.shown,
+		total: projection.total,
+		image,
 	};
-
-	const noteText = renderedNote ? `\n\n${renderedNote}` : "";
-	// The model must echo capture.stateId into follow-up tools. Exposing only the
-	// helper-internal lookId here makes a plausible but invalid stateId easy to use.
-	const renderedChanges = useDiff ? renderChanges(transition!.changes) : "";
-	const outlineText = useDiff
-		? `\n\nChanges (${transition!.changedNodeCount}, ${base!.stateId} → ${result.capture.stateId}):\n${renderedChanges || "(no element changes)"}\nUse stateId ${result.capture.stateId} for subsequent actions and queries.`
-		: `\n\nOutline (${folded.nodeCount} nodes, stateId ${result.capture.stateId}${transition?.reason ? `, full view: ${transition.reason}` : ""}${folded.truncated ? ", folded output truncated" : ""}):\n${folded.text}`;
-	const fallbackText = fallbackReason ? `\n\n${fallbackReason.message}` : "";
-	const deltaText = rootDeltaLines(execution).join("\n");
-	const text = `${summary}${deltaText ? `\n${deltaText}` : ""}${noteText}${outlineText}${fallbackText}`;
-	const image = fallbackReason && result.look.image?.jpegBase64
-		? { data: result.look.image.jpegBase64, mimeType: result.look.image.mimeType ?? "image/jpeg" as const }
-		: undefined;
-	return { text, details, image };
 }
 
 /** Side effects: captures/updates current target, capture state, look, and parsed outline. */
-async function performObserve(params: ObserveParams, signal?: AbortSignal): Promise<ToolResult<ComputerUseDetails>> {
-	const state = operationState();
-	const mode = params.mode ?? "fused";
-	const image = params.image ?? (mode === "semantic" ? "never" : mode === "visual" ? "always" : "auto");
-	const readText = params.readText ?? (mode === "semantic" ? "never" : mode === "visual" ? "always" : "auto");
-	const imageMode = normalizeImageMode(image);
-	state.currentImageMode = imageMode;
+async function performObserve(params: ObserveParams, signal?: AbortSignal): Promise<ObserveResult> {
+	const mode = params.mode ?? "semantic";
+	const imageMode = normalizeImageMode(params.image ?? (mode === "fused" ? "always" : "never"));
+	const readText = params.readText ?? (mode === "fused" ? "auto" : "never");
 	const selection = {
 		app: trimOrUndefined(params.app),
 		windowTitle: trimOrUndefined(params.windowTitle),
@@ -397,40 +196,53 @@ async function performObserve(params: ObserveParams, signal?: AbortSignal): Prom
 		: await resolveTargetForObserve(selection, signal);
 	const resourceKey = desktopResourceKey(requestedTarget);
 	const scheduled = await resourceScheduler.read(resourceKey, async (epoch) => {
+		const state = operationState();
 		state.resourceKey = resourceKey;
 		state.epoch = epoch;
-		return await captureCurrentTarget(signal, readText, imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION, requestedTarget, imageMode !== "never");
+		return await captureCurrentTarget(signal, readText, imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION, requestedTarget, imageMode === "always");
 	});
 	const captureResult = scheduled.value;
 	// Model @r refs are re-minted on re-resolution, so ref string equality
 	// alone false-positives as drift for the same root; compare stable
 	// identity against the resolved request too.
 	if (!matchesTargetSelection(captureResult.target, selection) && !sameRootIdentity(captureResult.target, requestedTarget)) {
-		throw new Error(
-			`Observation target drifted from the requested selection. Requested ${requestedTarget.appName} — ${requestedTarget.windowTitle}, captured ${captureResult.target.appName} — ${captureResult.target.windowTitle}. Call observe-ui again or specify a more exact window title.`,
+		throw new BcuError(
+			"window_stale",
+			`Observation drifted from the requested root: asked for ${requestedTarget.appName} — ${requestedTarget.windowTitle}, captured ${captureResult.target.appName} — ${captureResult.target.windowTitle}. Retry with an exact --root.`,
 		);
 	}
-	const summary = `Observed ${mode} ${captureResult.target.windowRef ? `${captureResult.target.windowRef} ` : ""}${captureResult.target.appName} — ${captureResult.target.windowTitle}. Returned the latest outline state.`;
-	return buildToolResult("observe_ui", summary, captureResult, executionTrace("look", "stealth"), imageMode);
+	return observeResult(captureResult, await imageInfo(captureResult, imageMode));
 }
 
-function matchIsNonActionableStatic(match: OutlineSearchMatch): boolean {
-	const node = match.node;
-	return !node.canPress && !node.canFocus && !node.canSetValue && node.actions.length === 0 && !node.pictureOnly;
+/** Maps outline hits onto the nodes the agent actually sees, with their projected ancestry. */
+function projectedMatches(outline: Outline, hits: OutlineNode[]): SearchMatch[] {
+	const projected = new Map(project(outline, UNFOLDED).nodes.map((node) => [node.ref, node]));
+	const matches: SearchMatch[] = [];
+	const seen = new Set<string>();
+	for (const hit of hits) {
+		let current: OutlineNode | undefined = hit;
+		while (current && !projected.has(current.ref)) current = current.parent;
+		const node = current ? projected.get(current.ref)! : undefined;
+		if (!node || seen.has(node.ref)) continue;
+		seen.add(node.ref);
+		const path: string[] = [];
+		for (let parent = node.parent; parent; parent = projected.get(parent)?.parent) path.unshift(parent);
+		matches.push({ ...node, depth: 0, path });
+	}
+	return matches;
 }
 
 /** Pure cached-outline query, except for a one-time OCR escalation when the cache has no usable match. */
-async function performSearchUi(params: SearchUiParams, signal?: AbortSignal): Promise<ToolResult<OutlineToolDetails>> {
+async function performSearchUi(params: SearchUiParams, signal?: AbortSignal): Promise<SearchResult> {
 	const state = operationState();
 	let outline = currentOutlineOrThrow(params.stateId);
 	const text = trimOrUndefined(params.text);
 	const role = trimOrUndefined(params.role);
 	const action = trimOrUndefined(params.action);
 	const limit = Math.max(1, Math.min(50, Math.trunc(toFiniteNumber(params.limit, 12))));
-	let matches = searchOutline(outline, text, role, action, limit);
-	let escalatedOCR = false;
+	let found = searchOutline(outline, text, role, action);
 	const look = state.currentLook;
-	const shouldEscalate = matches.length === 0 || matches.every(matchIsNonActionableStatic);
+	const shouldEscalate = found.matches.every((match) => !match.canPress && !match.canFocus && !match.canSetValue && match.actions.length === 0 && !match.pictureOnly);
 	if (shouldEscalate && look && look.readText?.requested !== "never" && !look.readText?.executed && state.lastSearchOcrEscalatedLookId !== look.lookId) {
 		state.lastSearchOcrEscalatedLookId = look.lookId;
 		const currentTarget = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
@@ -439,33 +251,25 @@ async function performSearchUi(params: SearchUiParams, signal?: AbortSignal): Pr
 		// payload: OCR-only matches are clicked by coordinate, and coordinate
 		// acts require the current look to be image-bearing.
 		const resource = currentResourceOrThrow();
-		const captureResult = (await resourceScheduler.readAt(resource.resourceKey, resource.epoch, async () => await captureCurrentTarget(signal, "always", AUTO_IMAGE_MAX_DIMENSION, currentTarget))).value;
+		const captureResult = (await resourceScheduler.readAt(resource.resourceKey, resource.epoch, async () => await captureCurrentTarget(signal, "always", AUTO_IMAGE_MAX_DIMENSION, currentTarget, true))).value;
 		outline = captureResult.outline;
-		matches = searchOutline(outline, text, role, action, limit);
-		escalatedOCR = true;
+		found = searchOutline(outline, text, role, action);
 	}
-	const detailMatches = matches.map((match) => ({ ...match, node: serializeOutlineNode(match.node) }));
-	const details: OutlineToolDetails = { tool: "search_ui", stateId: state.currentCapture?.stateId, lookId: outline.lookId, outline: serializeOutline(outline), matches: detailMatches, note: state.currentNote };
-	const lines = matches.map((match) => `${match.ref} ${match.role || "Unknown"} ${JSON.stringify(match.label || "(unlabeled)")}\n  path: ${match.path}`);
-	const noteHeader = renderNote(state.currentNote);
-	const noteText = noteHeader ? `${noteHeader}\n\n` : "";
-	const escalationText = escalatedOCR ? " OCR text was escalated for this search after the cached outline had no matches." : "";
-	return { text: `${noteText}Found ${matches.length} outline match${matches.length === 1 ? "" : "es"}.${escalationText}\n${lines.join("\n")}`, details };
+	const matches = projectedMatches(outline, found.matches);
+	return { stateId: state.currentCapture!.stateId, matches: matches.slice(0, limit), total: matches.length };
 }
 
-/** Reads the cached outline; truncated or changed refs trigger a scoped look. */
-async function performExpandUi(params: ExpandUiParams, signal?: AbortSignal): Promise<ToolResult<OutlineToolDetails>> {
+/** Reads the cached outline; truncated refs trigger a scoped look. */
+async function performExpandUi(params: ExpandUiParams, signal?: AbortSignal): Promise<ExpandResult> {
 	const state = operationState();
 	const outline = currentOutlineOrThrow(params.stateId);
 	const ref = trimOrUndefined(params.ref);
-	if (!ref) throw new Error("expand-ui --ref is required.");
-	const initialTarget = nodeByRef(outline, ref);
-	if (!initialTarget) throw new Error(`Outline ref '${ref}' is not available in the current outline.`);
-	let target: OutlineNode = initialTarget;
+	if (!ref) throw new BcuError("invalid_arguments", "expand-ui requires --ref.");
+	const initial = nodeByRef(outline, ref);
+	if (!initial) throw new BcuError("element_not_found", `Ref '${ref}' is not in the current state.`);
+	let target: OutlineNode = initial;
 	const depth = Math.max(1, Math.min(8, Math.trunc(toFiniteNumber(params.depth, 3))));
-	const regionKey = noteRegionKeyForRef(outline, ref);
-	const regionChanged = Boolean(regionKey && state.currentNote?.regions.some((region) => region.key === regionKey && region.status === "changed"));
-	if (target.truncated || regionChanged) {
+	if (target.truncated) {
 		const currentTarget = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
 		const targetWireRef = wireRefForNode(target);
 		const resource = currentResourceOrThrow();
@@ -482,48 +286,24 @@ async function performExpandUi(params: ExpandUiParams, signal?: AbortSignal): Pr
 		state.currentLook = { ...scoped, image: state.currentLook?.image, outline: outline.root, parsedOutline: outline };
 		persistOperation(state);
 	}
-	const folded = foldToBudget(outline, { maxDepth: depth, maxNodes: 150 }, [target.ref]);
-	const details: OutlineToolDetails = { tool: "expand_ui", stateId: state.currentCapture?.stateId, lookId: outline.lookId, outline: serializeOutline(outline), target: serializeOutlineNode(target), renderedOutline: folded.text, note: state.currentNote };
-	return { text: `${formatOutlineNodeLabel(target)}\npath: ${outlineNodePath(target)}\n\n${folded.text}`, details };
+	const projection = project(outline, { maxDepth: depth, from: target });
+	return { stateId: state.currentCapture!.stateId, ref: target.ref, nodes: projection.nodes };
 }
 
-/** Pure cached-outline inspection. */
-async function performInspectUi(params: InspectUiParams): Promise<ToolResult<OutlineToolDetails>> {
-	const state = operationState();
+/** Pure cached-outline inspection: every raw field the projection hides. */
+async function performInspectUi(params: InspectUiParams): Promise<InspectResult> {
 	const outline = currentOutlineOrThrow(params.stateId);
 	const ref = trimOrUndefined(params.ref);
-	if (!ref) throw new Error("inspect-ui --ref is required.");
+	if (!ref) throw new BcuError("invalid_arguments", "inspect-ui requires --ref.");
 	const target = nodeByRef(outline, ref);
-	if (!target) throw new Error(`Outline ref '${ref}' is not available in the current outline.`);
-	const details: OutlineToolDetails = { tool: "inspect_ui", stateId: state.currentCapture?.stateId, lookId: outline.lookId, outline: serializeOutline(outline), target: serializeOutlineNode(target), raw: params.includeRaw ? serializeOutlineNode(target) : undefined, note: state.currentNote };
-	const fields = [
-		formatOutlineNodeLabel(target),
-		`path: ${outlineNodePath(target)}`,
-		`rect: ${JSON.stringify(target.rect)}`,
-		`actions: ${target.actions.join(",") || "none"}`,
-		`capabilities: ${[
-			target.canPress ? "press" : undefined,
-			target.canFocus ? "focus" : undefined,
-			target.canSetValue ? "setValue" : undefined,
-			target.canScroll ? "scroll" : undefined,
-			target.canIncrement ? "increment" : undefined,
-			target.canDecrement ? "decrement" : undefined,
-			target.isTextInput ? "textInput" : undefined,
-		].filter(Boolean).join(",") || "none"}`,
-		`annotations: ${[
-			target.offscreen ? "offscreen" : undefined,
-			target.pictureOnly ? "pictureOnly" : undefined,
-			target.truncated ? "truncated" : undefined,
-			target.scrollExtent ? `scrollable ${target.scrollExtent.seen}/${target.scrollExtent.total}` : undefined,
-		].filter(Boolean).join(",") || "none"}`,
-	];
-	return { text: fields.join("\n"), details };
+	if (!target) throw new BcuError("element_not_found", `Ref '${ref}' is not in the current state.`);
+	return { stateId: operationState().currentCapture!.stateId, node: { ...serializeOutlineNode(target), children: [] } };
 }
 
-async function performReadText(params: ReadTextParams, signal?: AbortSignal): Promise<ToolResult<ReadTextDetails>> {
+async function performReadText(params: ReadTextParams, signal?: AbortSignal): Promise<ReadTextResult> {
 	validateStateId(params.stateId);
 	const ref = trimOrUndefined(params.ref);
-	if (!ref) throw new Error("read-text requires --ref. Call observe-ui or inspect-ui and use a text-bearing outline ref.");
+	if (!ref) throw new BcuError("invalid_arguments", "read-text requires --ref.");
 	const node = outlineNodeByRef(ref);
 	const state = operationState();
 	const resource = currentResourceOrThrow();
@@ -533,58 +313,57 @@ async function performReadText(params: ReadTextParams, signal?: AbortSignal): Pr
 		offset: Math.max(0, Math.trunc(toFiniteNumber(params.offset, 0))),
 		limit: Math.max(1, Math.min(100_000, Math.trunc(toFiniteNumber(params.limit, 4_000)))),
 	}, { signal, timeoutMs: COMMAND_TIMEOUT_MS }))).value;
-	const details: ReadTextDetails = {
-		tool: "read_text",
+	return {
+		stateId: state.currentCapture!.stateId,
 		ref,
 		offset: raw.offset,
 		limit: raw.limit,
-		totalChars: raw.totalChars,
-		hasMore: raw.hasMore,
+		total: raw.totalChars,
 		text: raw.text,
 	};
-	return { text: raw.text || "(empty text slice)", details };
 }
 
-async function performWaitFor(params: WaitForParams, signal?: AbortSignal): Promise<ToolResult<WaitForDetails>> {
+/** Successor view of a state transition: a diff when identity holds, the full view otherwise. */
+export function successorView(base: ProjectedNode[], next: Outline): { changes?: Change[]; nodes?: ProjectedNode[]; shown?: number; total?: number } {
+	const transition = changesBetween(base, project(next, UNFOLDED).nodes);
+	if (!transition.useFullView) return { changes: transition.changes };
+	const folded = project(next);
+	return { nodes: folded.nodes, shown: folded.shown, total: folded.total };
+}
+
+async function performWaitFor(params: WaitForParams, signal?: AbortSignal): Promise<WaitForResult> {
 	const text = trimOrUndefined(params.text);
 	const role = trimOrUndefined(params.role);
 	const timeoutMs = normalizeWaitTimeoutMs(params.timeoutMs);
-	if (!text && !role) throw new Error("wait-for requires text or role.");
+	if (!text && !role) throw new BcuError("invalid_arguments", "wait-for requires --text or --role.");
 
 	const state = operationState();
-	const baseView = { stateId: validateStateId(params.stateId).stateId, outline: state.currentOutline! };
+	validateStateId(params.stateId);
+	const baseNodes = project(state.currentOutline!, UNFOLDED).nodes;
+	const scopeRef = scopeWireRef(params.scope);
 	const target = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
 	const raw = await macosBackend.waitFor({
 		...nativeWindowRequest(target),
 		text,
 		role,
+		scopeRef,
 		gone: params.gone === true,
 		timeoutMs,
 	}, { signal, timeoutMs: timeoutMs + 2_000 });
+	if (!raw.found) {
+		throw new BcuError(
+			"action_timeout",
+			`The condition ${params.gone === true ? "still held" : "did not appear"} within ${timeoutMs}ms${params.scope ? ` inside ${params.scope}` : ""}.`,
+		);
+	}
 	const resource = currentResourceOrThrow();
-	const refreshed = (await resourceScheduler.readAt(resource.resourceKey, resource.epoch, async () => await captureCurrentTarget(signal, "auto"))).value;
-	const transition = changesBetween(baseView.outline, refreshed.outline);
-	const useDiff = !transition.useFullView;
-	const foundTarget = searchOutline(refreshed.outline, text, role, undefined, 1)[0];
-	const details: WaitForDetails = {
-		tool: "wait_for",
+	const refreshed = (await resourceScheduler.readAt(resource.resourceKey, resource.epoch, async () => await captureCurrentTarget(signal))).value;
+	return {
 		stateId: refreshed.capture.stateId,
-		baseStateId: baseView.stateId,
-		view: useDiff ? "diff" : "full",
-		changes: useDiff ? transition.changes : undefined,
-		found: raw.found,
+		found: true,
 		gone: raw.gone || undefined,
-		timedOut: raw.timedOut || undefined,
-		target: foundTarget ? { ...foundTarget, node: serializeOutlineNode(foundTarget.node) } : undefined,
-		nodeCount: Number.isFinite(raw.nodeCount) ? Number(raw.nodeCount) : refreshed.outline.nodes.length,
-		text,
-		role,
-		outline: serializeOutline(refreshed.outline),
-		renderedOutline: foldToBudget(refreshed.outline).text,
+		...successorView(baseNodes, refreshed.outline),
 	};
-	const message = details.found ? (details.gone ? "Condition disappeared." : "Condition appeared.") : `Timed out after ${timeoutMs}ms waiting for condition.`;
-	const viewText = useDiff ? `${renderChanges(transition.changes) || "(no element changes)"}\nUse stateId ${refreshed.capture.stateId} for subsequent actions and queries.` : details.renderedOutline;
-	return { text: `${message}\n${viewText}`, details };
 }
 
 export const executeObserve = makeToolExecutor(performObserve);

@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { ImageMode } from "./contract.ts";
-import type { WindowNote } from "./note.ts";
+import { BcuError } from "./errors.ts";
 import { restoreOutline, serializeOutline, type LookResponse, type Outline, type SerializedOutline } from "./outline.ts";
 import { StateStore, type StoredState } from "./runtime.ts";
 
@@ -22,9 +21,6 @@ export interface CurrentTarget {
 
 export interface CurrentCapture {
 	stateId: string;
-	width: number;
-	height: number;
-	scaleFactor: number;
 	timestamp: number;
 }
 
@@ -32,10 +28,8 @@ export interface OperationState {
 	currentTarget?: CurrentTarget;
 	currentCapture?: CurrentCapture;
 	currentStateTarget?: StateTargetSnapshot;
-	currentImageMode?: ImageMode;
 	currentLook?: LookResponse;
 	currentOutline?: Outline;
-	currentNote?: WindowNote;
 	resourceKey?: string;
 	epoch?: number;
 	lastSearchOcrEscalatedLookId?: string;
@@ -46,8 +40,6 @@ export interface UiObservation {
 	capture: CurrentCapture;
 	look: Omit<LookResponse, "parsedOutline" | "outline">;
 	outline: SerializedOutline;
-	note?: WindowNote;
-	imageMode?: ImageMode;
 }
 
 export class SavedStates {
@@ -56,7 +48,7 @@ export class SavedStates {
 
 	current(): OperationState {
 		const state = this.operations.getStore();
-		if (!state) throw new Error("Computer-use operation state is unavailable.");
+		if (!state) throw new BcuError("internal_error", "Operation state is unavailable outside a tool execution.");
 		return state;
 	}
 
@@ -79,10 +71,8 @@ export class SavedStates {
 			currentTarget: { ...record.value.target },
 			currentCapture: { ...record.value.capture },
 			currentStateTarget: { pid: record.value.target.pid, windowId: record.value.target.windowId, windowRef: record.value.target.windowRef },
-			currentImageMode: record.value.imageMode,
 			currentLook: { ...record.value.look, outline: outline.root, parsedOutline: outline },
 			currentOutline: outline,
-			currentNote: record.value.note ? structuredClone(record.value.note) : undefined,
 			resourceKey: record.resourceKey,
 			epoch: record.epoch,
 		};
@@ -110,8 +100,6 @@ export class SavedStates {
 					readText: state.currentLook.readText ? { ...state.currentLook.readText } : undefined,
 				},
 				outline: serializeOutline(state.currentOutline),
-				note: state.currentNote ? structuredClone(state.currentNote) : undefined,
-				imageMode: state.currentImageMode,
 			},
 		});
 	}

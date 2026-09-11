@@ -82,39 +82,6 @@ export interface LookResponse {
 	parsedOutline?: Outline;
 }
 
-export interface OutlineSearchMatch {
-	ref: string;
-	role: string;
-	label: string;
-	actions: string[];
-	path: string;
-	matchReason?: "exact" | "prefix" | "substring" | "fuzzy" | "filter";
-	score?: number;
-	node: OutlineNode;
-}
-
-
-export interface FoldResult {
-	text: string;
-	renderedRefs: string[];
-	nodeCount: number;
-	fullUnfoldLineCount: number;
-	truncated: boolean;
-}
-
-export type OutlineChange =
-	| { type: "added"; ref: string; parent?: string; node: SerializedOutlineNode }
-	| { type: "updated"; ref: string; path: string[]; fields: Partial<Omit<SerializedOutlineNode, "children">> }
-	| { type: "removed"; ref: string; parent?: string };
-
-export interface OutlineDiff {
-	changes: OutlineChange[];
-	changedNodeCount: number;
-	fullNodeCount: number;
-	useFullView: boolean;
-	reason?: "root_replaced" | "change_budget_exceeded" | "identity_confidence_low";
-}
-
 export type SerializedOutlineNode = Omit<OutlineNode, "parent" | "children"> & { children: SerializedOutlineNode[] };
 
 export interface SerializedOutline {
@@ -122,7 +89,6 @@ export interface SerializedOutline {
 	root: SerializedOutlineNode;
 }
 
-const DEFAULT_BUDGET = { maxDepth: 2, maxNodes: 150 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
@@ -267,141 +233,17 @@ export function nodeByRef(outline: Outline, ref: string): OutlineNode | undefine
 	return outline.nodes.find((node) => node.ref === ref || node.wireRef === ref);
 }
 
-export function outlineNodeLabel(node: OutlineNode): string {
-	return node.title || node.description || node.value || node.identifier || node.text.map((item) => item.string).join(" ").trim();
-}
 
-function displayName(node: OutlineNode): string {
-	const label = outlineNodeLabel(node);
-	return `${node.role || "AXUnknown"}${node.subrole ? `/${node.subrole}` : ""}${label ? ` ${JSON.stringify(label)}` : ""}`;
-}
 
-export function outlineNodePath(node: OutlineNode): string {
-	const parts: string[] = [];
-	let current: OutlineNode | undefined = node;
-	while (current) {
-		parts.unshift(displayName(current));
-		current = current.parent;
-	}
-	return parts.join(" ▸ ");
-}
 
-function countDescendants(node: OutlineNode): { total: number; roles: Map<string, number>; pictureOnly: number } {
-	const roles = new Map<string, number>();
-	let total = 0;
-	let pictureOnly = 0;
-	const visit = (current: OutlineNode) => {
-		for (const child of current.children) {
-			total += 1;
-			if (child.pictureOnly) pictureOnly += 1;
-			const role = child.pictureOnly ? "picture-only" : roleName(child.role);
-			roles.set(role, (roles.get(role) ?? 0) + 1);
-			visit(child);
-		}
-	};
-	visit(node);
-	return { total, roles, pictureOnly };
-}
 
-function roleName(role: string): string {
-	const stripped = role.replace(/^AX/, "").toLowerCase();
-	return stripped || "nodes";
-}
 
-function plural(count: number, singular: string): string {
-	if (singular === "picture-only") return "picture-only";
-	return `${singular}${count === 1 ? "" : "s"}`;
-}
 
-function foldedSummary(node: OutlineNode): string {
-	const counts = countDescendants(node);
-	const roleCounts = [...counts.roles.entries()]
-		.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-		.slice(0, 4)
-		.map(([role, count]) => `${count} ${plural(count, role)}`);
-	const countText = `${counts.total}: ${roleCounts.join(", ") || "0 children"}`;
-	const scroll = node.scrollExtent ? ` [scrollable ${node.scrollExtent.seen}/${node.scrollExtent.total}]` : "";
-	return ` ▸ (${countText})${scroll}`;
-}
 
-function annotationText(node: OutlineNode): string {
-	const annotations = [
-		node.offscreen ? "offscreen" : undefined,
-		node.pictureOnly ? "pictureOnly" : undefined,
-		node.truncated ? "truncated" : undefined,
-		node.scrollExtent ? `scrollable ${node.scrollExtent.seen}/${node.scrollExtent.total}` : undefined,
-	].filter((item): item is string => Boolean(item));
-	return annotations.length ? ` [${annotations.join(", ")}]` : "";
-}
 
-function lineForNode(node: OutlineNode, depth: number, folded: boolean): string {
-	const actions = node.actions.length ? ` {${node.actions.join(",")}}` : "";
-	return `${"  ".repeat(depth)}${node.ref} ${displayName(node)}${actions}${annotationText(node)}${folded ? foldedSummary(node) : ""}`;
-}
 
-function pathRefs(node: OutlineNode): string[] {
-	const refs: string[] = [];
-	let current: OutlineNode | undefined = node;
-	while (current) {
-		refs.unshift(current.ref);
-		current = current.parent;
-	}
-	return refs;
-}
 
-function defaultUnfoldRefs(outline: Outline): Set<string> {
-	const refs = new Set<string>([outline.root.ref]);
-	for (const node of outline.nodes) {
-		if (node.truncated || node.parent?.role === "AXSheet" || node.role === "AXSheet" || node.role === "AXDialog") {
-			for (const ref of pathRefs(node)) refs.add(ref);
-		}
-		if (node.focused) {
-			for (const ref of pathRefs(node)) refs.add(ref);
-			for (const child of node.children) refs.add(child.ref);
-		}
-	}
-	return refs;
-}
 
-export function foldToBudget(outline: Outline, budget: Partial<typeof DEFAULT_BUDGET> = {}, unfoldPaths: string[] = []): FoldResult {
-	const maxDepth = Math.max(0, Math.trunc(budget.maxDepth ?? DEFAULT_BUDGET.maxDepth));
-	const maxNodes = Math.max(1, Math.trunc(budget.maxNodes ?? DEFAULT_BUDGET.maxNodes));
-	const unfolded = defaultUnfoldRefs(outline);
-	for (const ref of unfoldPaths) {
-		const node = nodeByRef(outline, ref);
-		if (!node) continue;
-		for (const pathRef of pathRefs(node)) unfolded.add(pathRef);
-		for (const child of node.children) unfolded.add(child.ref);
-	}
-
-	const lines: string[] = [];
-	const renderedRefs: string[] = [];
-	let truncated = false;
-	const render = (node: OutlineNode, depth: number) => {
-		if (lines.length >= maxNodes) {
-			truncated = true;
-			return;
-		}
-		const shouldUnfold = depth < maxDepth || unfolded.has(node.ref);
-		const folded = node.children.length > 0 && !shouldUnfold;
-		lines.push(lineForNode(node, depth, folded));
-		renderedRefs.push(node.ref);
-		if (folded) return;
-		for (const child of node.children) render(child, depth + 1);
-	};
-	render(outline.root, 0);
-	if (truncated) {
-		const remaining = Math.max(0, outline.nodes.length - renderedRefs.length);
-		lines.push(`… render budget reached: ${remaining} more nodes not shown; use search_ui or expand_ui(@eN)`);
-	}
-	return {
-		text: lines.join("\n"),
-		renderedRefs,
-		nodeCount: outline.nodes.length,
-		fullUnfoldLineCount: outline.nodes.length,
-		truncated,
-	};
-}
 
 function actionMatches(node: OutlineNode, action: string): boolean {
 	const query = action.toLowerCase();
@@ -418,62 +260,27 @@ function normalizedSearchRole(value: string): string {
 	return value.trim().toLowerCase().replace(/^ax/, "").replace(/[ _-]+/g, "");
 }
 
-function damerauLevenshtein(a: string, b: string): number {
-	const rows = a.length + 1;
-	const cols = b.length + 1;
-	const matrix = Array.from({ length: rows }, (_, i) => Array.from({ length: cols }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
-	for (let i = 1; i < rows; i += 1) {
-		for (let j = 1; j < cols; j += 1) {
-			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-			matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
-			if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) matrix[i][j] = Math.min(matrix[i][j], matrix[i - 2][j - 2] + 1);
-		}
-	}
-	return matrix[a.length][b.length];
-}
 
-export function rankedTextMatch(values: string[], text: string): { reason: "exact" | "prefix" | "substring" | "fuzzy"; score: number } | undefined {
-	const query = text.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 256);
-	if (!query) return undefined;
-	const candidates = values.map((value) => value.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 512)).filter(Boolean);
-	if (candidates.some((value) => value === query)) return { reason: "exact", score: 1 };
-	if (candidates.some((value) => value.startsWith(query) || value.split(/\W+/).some((token) => token.startsWith(query)))) return { reason: "prefix", score: 0.95 };
-	if (candidates.some((value) => value.includes(query))) return { reason: "substring", score: 0.9 };
-	let score = 0;
-	for (const value of candidates) {
-		for (const candidate of [value, ...value.split(/\W+/)]) {
-			if (!candidate || candidate.length > 256) continue;
-			score = Math.max(score, 1 - damerauLevenshtein(query, candidate) / Math.max(query.length, candidate.length));
-		}
-	}
-	return score >= 0.72 ? { reason: "fuzzy", score } : undefined;
-}
 
-export function searchOutline(outline: Outline, text?: string, role?: string, action?: string, limit = 50): OutlineSearchMatch[] {
+/** Matches anywhere in the cached outline; role accepts short words as well as AX names. */
+export function searchOutline(outline: Outline, text?: string, role?: string, action?: string): { matches: OutlineNode[]; total: number } {
 	const query = text?.trim().toLowerCase();
-	const roleQuery = role?.trim();
+	const roleQuery = role ? normalizedSearchRole(role) : undefined;
 	const actionQuery = action?.trim();
-	const matches: OutlineSearchMatch[] = [];
+	const matches: OutlineNode[] = [];
 	for (const node of outline.nodes) {
-		const label = outlineNodeLabel(node);
 		// outlineNodeLabel short-circuits (title || description || value), so
 		// list the fields individually too or a titled node's value/description
 		// can never match.
-		const haystack = [label, node.role, node.subrole, node.identifier, node.title, node.description, node.value, ...node.text.map((item) => item.string)].join(" ").toLowerCase();
+		const haystack = [node.role, node.subrole, node.identifier, node.title, node.description, node.value, ...node.text.map((item) => item.string)].join(" ").toLowerCase();
 		if (query && !haystack.includes(query)) continue;
-		if (roleQuery && node.role !== roleQuery) continue;
+		if (roleQuery && normalizedSearchRole(node.role) !== roleQuery && normalizedSearchRole(node.subrole) !== roleQuery) continue;
 		if (actionQuery && !actionMatches(node, actionQuery)) continue;
-		matches.push({ ref: node.ref, role: node.role, label, actions: node.actions, path: outlineNodePath(node), node });
-		if (matches.length >= limit) break;
+		matches.push(node);
 	}
-	return matches;
+	return { matches, total: matches.length };
 }
 
-export function countOutlineNodes(root: OutlineNode): number {
-	let count = 1;
-	for (const child of root.children) count += countOutlineNodes(child);
-	return count;
-}
 
 export function serializeOutline(outline: Outline): SerializedOutline {
 	return { lookId: outline.lookId, root: serializeOutlineNode(outline.root) };
