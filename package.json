@@ -27,7 +27,7 @@
 		"dist",
 		"src",
 		"scripts/setup-helper.mjs",
-		"native/macos/bridge.swift",
+		"scripts/lib/helper-target.mjs",
 		"prebuilt/macos",
 		"assets/reference/img.jpg",
 		"README.md",

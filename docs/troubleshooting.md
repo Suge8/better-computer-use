@@ -23,7 +23,7 @@ bcu setup
 ## 从源码修复 helper
 
 ```bash
-node scripts/setup-helper.mjs --runtime     # 重新安装缺失或被替换的 helper
-npm run build:native && node scripts/setup-helper.mjs --force   # 本地改过 Swift 后
+node scripts/setup-helper.mjs                # 重新安装缺失或被替换的 helper
+npm run build:native && node scripts/setup-helper.mjs   # 本地改过 Swift 后
 codesign --verify --strict /Applications/bcu.app
 ```

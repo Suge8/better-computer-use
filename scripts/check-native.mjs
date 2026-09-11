@@ -6,6 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { HELPER_FRAMEWORKS, helperTargetTriple } from "./lib/helper-target.mjs";
 
 if (process.platform !== "darwin") {
 	console.log("SKIP native checks (macOS only)");
@@ -13,16 +14,12 @@ if (process.platform !== "darwin") {
 }
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const triple = process.arch === "x64" ? "x86_64-apple-macosx14.0" : "arm64-apple-macosx14.0";
+const triple = helperTargetTriple(process.arch);
 
 execFileSync("xcrun", [
 	"swiftc", "-target", triple, "-parse-as-library",
 	"-module-cache-path", path.join(os.tmpdir(), `bcu-swift-typecheck-${process.arch}`),
-	"-framework", "ApplicationServices",
-	"-framework", "AppKit",
-	"-framework", "ScreenCaptureKit",
-	"-framework", "Foundation",
-	"-framework", "SwiftUI",
+	...HELPER_FRAMEWORKS.flatMap((framework) => ["-framework", framework]),
 	"-typecheck",
 	"native/macos/agent_cursor.swift",
 	"native/macos/agent_cursor_motion.swift",

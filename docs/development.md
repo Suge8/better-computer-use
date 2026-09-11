@@ -23,12 +23,14 @@ change — in the second case update the gate in the same commit.
 `/Applications/bcu.app` targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:
 
 ```bash
-npm run build:native && node scripts/setup-helper.mjs --force
+npm run build:native && node scripts/setup-helper.mjs
 ```
 
-`setup-helper.mjs` signs the helper with a locally generated certificate whose identity is
+`build:native` compiles `prebuilt/macos/<arch>/bridge`; `setup-helper.mjs` installs that
+binary as the helper app and signs it with a locally generated certificate whose identity is
 stable across rebuilds on this machine, because macOS keys the Accessibility and Screen
-Recording grants to the code-signing identity. Bump `HELPER_PROTOCOL_VERSION` when a
+Recording grants to the code-signing identity. Compile target, frameworks and bundle id come
+from `scripts/lib/helper-target.mjs`. Bump `HELPER_PROTOCOL_VERSION` when a
 helper request or response changes shape; the Broker refuses a mismatched helper instead
 of degrading.
 

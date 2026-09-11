@@ -5,20 +5,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { HELPER_BUNDLE_ID, HELPER_FRAMEWORKS, HELPER_SOURCE_FILES, helperTargetTriple } from "./lib/helper-target.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const macosSourcePaths = [
-	"agent_cursor.swift",
-	"agent_cursor_motion.swift",
-	"bridge.swift",
-].map((file) => path.join(rootDir, "native", "macos", file));
-const archTriples = {
-	arm64: "arm64-apple-macosx",
-	x64: "x86_64-apple-macosx",
-};
-const deploymentTarget = "14.0";
-const frameworks = ["ApplicationServices", "AppKit", "ScreenCaptureKit", "Foundation", "SwiftUI"];
-const defaultCodeSignIdentifier = "com.sugeh.bcu";
+const macosSourcePaths = HELPER_SOURCE_FILES.map((file) => path.join(rootDir, "native", "macos", file));
 
 async function exists(filePath) {
 	try {
@@ -73,12 +63,12 @@ function swiftArgsForArch(arch, outputPath) {
 	const args = [
 		"swiftc",
 		"-target",
-		`${archTriples[arch]}${deploymentTarget}`,
+		helperTargetTriple(arch),
 		"-module-cache-path",
 		moduleCachePath(arch),
 		"-O",
 	];
-	for (const framework of frameworks) args.push("-framework", framework);
+	for (const framework of HELPER_FRAMEWORKS) args.push("-framework", framework);
 	args.push(...macosSourcePaths, "-o", outputPath);
 	return args;
 }
@@ -89,7 +79,7 @@ async function signBinary(outputPath) {
 	}
 
 	const identity = getArg("--sign-identity") ?? process.env.BCU_CODESIGN_IDENTITY ?? "-";
-	const identifier = getArg("--sign-identifier") ?? process.env.BCU_CODESIGN_IDENTIFIER ?? defaultCodeSignIdentifier;
+	const identifier = getArg("--sign-identifier") ?? process.env.BCU_CODESIGN_IDENTIFIER ?? HELPER_BUNDLE_ID;
 	const args = ["--force", "-i", identifier];
 	if (hasArg("--hardened-runtime")) {
 		args.push("--options", "runtime");

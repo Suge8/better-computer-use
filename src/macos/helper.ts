@@ -160,9 +160,8 @@ export class MacosHelperClient {
 
 	async ensureInstalled(signal?: AbortSignal): Promise<void> {
 		if (usingExternalHelperSocket || this.helperInstallChecked) return;
-		// Runtime setup repairs missing or replaced binaries once per session while
-		// preserving an intact older ad-hoc helper for the protocol check to arbitrate.
-		const setupOutput = await runProcess(process.execPath, [setupHelperScriptPath(), "--runtime"], HELPER_SETUP_TIMEOUT_MS, signal, {
+		// Repairs a missing or replaced helper binary once per session.
+		const setupOutput = await runProcess(process.execPath, [setupHelperScriptPath()], HELPER_SETUP_TIMEOUT_MS, signal, {
 			...process.env,
 			ELECTRON_RUN_AS_NODE: "1",
 			BUN_BE_BUN: "1",

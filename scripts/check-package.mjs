@@ -29,8 +29,8 @@ for (const required of [
 	"dist/bcu.mjs",
 	"prebuilt/macos/arm64/bridge",
 	"prebuilt/macos/x64/bridge",
-	"native/macos/bridge.swift",
 	"scripts/setup-helper.mjs",
+	"scripts/lib/helper-target.mjs",
 ]) {
 	assert(files.has(required), `npm tarball is missing ${required}`);
 }
@@ -50,7 +50,7 @@ const previousEnvironment = { BCU_HELPER_APP_PATH: process.env.BCU_HELPER_APP_PA
 try {
 	process.env.BCU_HELPER_APP_PATH = clientApp;
 	process.env.BCU_NO_SIGN = "1";
-	await execFile(process.execPath, [path.join(root, "scripts", "setup-helper.mjs"), "--runtime"], { cwd: root, env: process.env });
+	await execFile(process.execPath, [path.join(root, "scripts", "setup-helper.mjs")], { cwd: root, env: process.env });
 	await fs.copyFile("/bin/echo", clientExecutable);
 	const { MacosHelperClient } = await import("../src/macos/helper.ts");
 	const repairClient = new MacosHelperClient();
