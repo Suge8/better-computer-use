@@ -558,7 +558,10 @@ async function performFindRoots(params: FindParams, signal?: AbortSignal): Promi
 	const discovered = broad
 		? await collectBroadWindowDetails(signal)
 		: await collectWindowDetails((await listApps(signal)).filter((app) => appMatchesWindowQuery(app, query)), signal);
-	const forest = discovered.filter((root) => !query.kind || root.kind === query.kind);
+	// A menu bar only answers in the frontmost app, so an undirected listing would fill up
+	// with roots the agent cannot press. It appears when an app or the kind names it.
+	const wantsMenuBars = !broad || query.kind === "menubar";
+	const forest = discovered.filter((root) => (wantsMenuBars || root.kind !== "menubar") && (!query.kind || root.kind === query.kind));
 	const normalizedQuery = normalizeText(query.query ?? "");
 	const exact = normalizedQuery ? forest.filter((root) => normalizeText(root.app) === normalizedQuery || normalizeText(root.windowTitle) === normalizedQuery) : [];
 	const fuzzy = normalizedQuery && exact.length === 0

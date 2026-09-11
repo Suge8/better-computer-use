@@ -297,6 +297,13 @@ try {
 	const menuBars = json(await runCli(["find-roots", "--app", "Fixture", "--kind", "menubar", "--json"], { env }), "find-roots --kind menubar");
 	assert.equal(menuBars.roots.length, 1, `find-roots did not expose the app's menu bar as a root: ${JSON.stringify(menuBars.roots)}`);
 	assert.equal(menuBars.roots[0].windowId, undefined, "a menu bar root claimed a window id it does not have");
+	// A menu bar only answers in the frontmost app, so it is offered when it is asked for.
+	const byKind = json(await runCli(["find-roots", "--kind", "menubar", "--json"], { env }), "find-roots --kind menubar without an app");
+	assert.equal(byKind.roots.length, 1, `--kind menubar alone did not list the menu bar: ${JSON.stringify(byKind.roots)}`);
+	for (const [label, args] of [["undirected", ["find-roots", "--json"]], ["by app", ["find-roots", "--app", "Fixture", "--kind", "window", "--json"]]]) {
+		const listed = json(await runCli(args, { env }), `find-roots ${label}`);
+		assert(listed.roots.every((root) => root.kind !== "menubar"), `${label} find-roots listed menu bars nobody asked for: ${JSON.stringify(listed.roots)}`);
+	}
 
 	const noWindow = await runCli(["observe-ui", "--app", "Empty", "--json"], { env });
 	assert.equal(noWindow.code, 6, `running app without windows exited ${noWindow.code}: ${noWindow.stderr}`);

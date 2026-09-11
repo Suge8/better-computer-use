@@ -186,13 +186,13 @@ function imageLine(image?: { path: string; width: number; height: number }): str
 
 const COMMANDS: { [Name in CliCommandName]: CommandSpec<Name> } = {
 	"find-roots": {
-		summary: "List controllable roots: windows, menu bars, sheets, dialogs and open menus.",
+		summary: "List controllable roots: windows, sheets, dialogs and open menus.",
 		options: {
 			"--query": { key: "query", kind: "string", doc: "match app name or window title" },
 			"--app": { key: "app", kind: "string", doc: "restrict to one app name or bundle id" },
 			"--bundle-id": { key: "bundleId", kind: "string", doc: "restrict to one exact bundle id" },
 			"--pid": { key: "pid", kind: "number", doc: "restrict to one process id" },
-			"--kind": { key: "kind", kind: "string", values: ["window", "menubar", "menu", "sheet", "popover", "dialog"], doc: "restrict to one root kind" },
+			"--kind": { key: "kind", kind: "string", values: ["window", "menubar", "menu", "sheet", "popover", "dialog"], doc: "restrict to one root kind; menubar roots are listed only when this or an app names them" },
 		},
 		parse: (parsed) => {
 			noPositionals(parsed);
