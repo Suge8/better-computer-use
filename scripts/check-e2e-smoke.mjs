@@ -4,10 +4,9 @@ import { execFile as execFileCallback, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
+import { brokerRequest, buildBundle, killProcess, makeTemporaryRoot, runCli, sourceAgentRequest, withTimeout } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP TextEdit smoke (set BCU_LIVE=1)");
@@ -16,10 +15,8 @@ if (process.env.BCU_LIVE !== "1") {
 if (process.platform !== "darwin") throw new Error("The TextEdit smoke test requires macOS.");
 
 const execFile = promisify(execFileCallback);
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const bundle = path.join(root, "dist", "bcu.mjs");
 const textEditApp = "/System/Applications/TextEdit.app";
-const fixtureDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-e2e-smoke-"));
+const fixtureDirectory = await makeTemporaryRoot("e2e-smoke");
 const fixtureName = `bcu-smoke-${randomUUID()}.txt`;
 const fixturePath = path.join(fixtureDirectory, fixtureName);
 const initialText = "bcu smoke fixture\n";
@@ -31,41 +28,8 @@ function flatten(node) {
 	return [node, ...(node.children ?? []).flatMap(flatten)];
 }
 
-function withTimeout(promise, description, timeoutMs) {
-	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(() => reject(new Error(`Timed out waiting for ${description}.`)), timeoutMs);
-		promise.then(
-			(value) => { clearTimeout(timeout); resolve(value); },
-			(error) => { clearTimeout(timeout); reject(error); },
-		);
-	});
-}
-
-async function brokerCall(command, args) {
-	const { stdout } = await execFile(process.execPath, [bundle, "__request", command, JSON.stringify(args)], {
-		cwd: root,
-		maxBuffer: 32 * 1024 * 1024,
-	});
-	return JSON.parse(stdout);
-}
-
-function cliCall(args, input) {
-	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, [bundle, ...args], { cwd: root, stdio: ["pipe", "pipe", "pipe"] });
-		let stdout = "";
-		let stderr = "";
-		child.stdout.setEncoding("utf8");
-		child.stderr.setEncoding("utf8");
-		child.stdout.on("data", (chunk) => { stdout += chunk; });
-		child.stderr.on("data", (chunk) => { stderr += chunk; });
-		child.on("error", reject);
-		child.on("close", (code) => resolve({ code, stdout, stderr }));
-		child.stdin.end(input);
-	});
-}
-
 async function expectCliFailure(stateId, action) {
-	const result = await cliCall(["act-ui", "--state", stateId, "-", "--json"], `${JSON.stringify([action])}\n`);
+	const result = await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([action])}\n` });
 	assert.equal(result.code, 2, `${action.action} invalid payload exited ${result.code}`);
 	assert.equal(result.stdout, "", `${action.action} invalid payload wrote stdout`);
 	assert.match(result.stderr, /^error invalid_arguments: .+/m);
@@ -74,7 +38,7 @@ async function expectCliFailure(stateId, action) {
 
 async function expectBrokerFailure(command, args, code) {
 	try {
-		await brokerCall(command, args);
+		await brokerRequest(command, args);
 		assert.fail(`${command} unexpectedly succeeded`);
 	} catch (error) {
 		assert.notEqual(error.code, 0, `${command} exited zero`);
@@ -82,16 +46,6 @@ async function expectBrokerFailure(command, args, code) {
 		assert.match(error.stderr, new RegExp(`^error ${code}: .+`, "m"));
 		assert.match(error.stderr, /^recovery: .+/m);
 	}
-}
-
-async function sourceAgentCall(command, args) {
-	const clientUrl = pathToFileURL(path.join(root, "src", "client.ts")).href;
-	const source = `import { requestBroker } from ${JSON.stringify(clientUrl)}; console.log(JSON.stringify(await requestBroker(process.argv[1], JSON.parse(process.argv[2]))))`;
-	const { stdout } = await execFile(process.execPath, ["--input-type=module", "-e", source, command, JSON.stringify(args)], {
-		cwd: root,
-		maxBuffer: 32 * 1024 * 1024,
-	});
-	return JSON.parse(stdout);
 }
 
 async function launchTextEdit(documentPath) {
@@ -194,43 +148,32 @@ async function waitForAxWindow(pid, processExited) {
 	}
 }
 
-function signalProcess(pid, signal) {
-	try {
-		process.kill(pid, signal);
-		return true;
-	} catch (error) {
-		if (error?.code === "ESRCH") return false;
-		throw error;
-	}
-}
-
 async function stopTextEdit(pid, monitor) {
-	if (!signalProcess(pid, 0)) return;
+	if (!killProcess(pid, 0)) return;
 	monitor ??= await monitorProcess(pid);
-	if (!signalProcess(pid, "SIGTERM")) return;
+	if (!killProcess(pid, "SIGTERM")) return;
 	try {
 		await withTimeout(monitor.exited, "the smoke-test TextEdit process to exit", 3_000);
 	} catch (error) {
 		if (!error.message.startsWith("Timed out waiting for")) throw error;
-		if (signalProcess(pid, "SIGKILL")) await withTimeout(monitor.exited, "the smoke-test TextEdit process to stop", 3_000);
+		if (killProcess(pid, "SIGKILL")) await withTimeout(monitor.exited, "the smoke-test TextEdit process to stop", 3_000);
 	} finally {
 		if (monitor.child.exitCode === null && !monitor.child.killed) monitor.child.kill("SIGTERM");
 	}
 }
 
 try {
-	await execFile("npm", ["run", "build", "--silent"], { cwd: root });
+	await buildBundle();
 	await fs.writeFile(fixturePath, initialText);
 	createdPid = await launchTextEdit(fixturePath);
 	processMonitor = await monitorProcess(createdPid);
 	await waitForAxWindow(createdPid, processMonitor.exited);
 
-	const found = await brokerCall("find-roots", { pid: createdPid, kind: "window" });
+	const found = await brokerRequest("find-roots", { pid: createdPid, kind: "window" });
 	const window = found.details.windows.find((candidate) => candidate.pid === createdPid);
 	assert(window, `TextEdit pid ${createdPid} did not expose a root after AXWindowCreated`);
-	const observed = await brokerCall("observe-ui", { root: window.windowRef, mode: "semantic", image: "never" });
-	assert("capture" in observed.details, "TextEdit observation did not return a desktop state");
-	const editor = flatten(observed.details.outline.root).find((node) => node.canSetValue && node.wireRef && !node.pictureOnly);
+	const observed = await brokerRequest("observe-ui", { root: window.windowRef, mode: "semantic", image: "never" });
+		const editor = flatten(observed.details.outline.root).find((node) => node.canSetValue && node.wireRef && !node.pictureOnly);
 	assert(editor, "TextEdit observation did not expose an editable semantic node");
 	for (const invalidAction of [
 		{ action: "click", ref: 123 },
@@ -239,10 +182,10 @@ try {
 		{ action: "scroll", ref: editor.ref, scrollY: "abc" },
 		{ action: "wait", ms: "soon" },
 	]) await expectCliFailure(observed.details.capture.stateId, invalidAction);
-	const searched = await sourceAgentCall("search-ui", { stateId: observed.details.capture.stateId, role: "AXTextArea", limit: 50 });
+	const searched = await sourceAgentRequest("search-ui", { stateId: observed.details.capture.stateId, role: "AXTextArea", limit: 50 });
 	assert.equal(searched.details?.stateId, observed.details.capture.stateId, "source agent search-ui did not hydrate the shared stateId");
 	assert(searched.details?.matches?.length > 0, "source agent search-ui did not return the observed text area");
-	const waited = await brokerCall("wait-for", { stateId: observed.details.capture.stateId, role: "AXTextArea", timeoutMs: 1_000 });
+	const waited = await brokerRequest("wait-for", { stateId: observed.details.capture.stateId, role: "AXTextArea", timeoutMs: 1_000 });
 	assert.equal(waited.details?.found, true, "wait-for did not find the existing text area");
 	assert.doesNotThrow(() => JSON.stringify(waited), "wait-for returned a circular target node");
 	await expectBrokerFailure("wait-for", {
@@ -257,15 +200,14 @@ try {
 		image: "never",
 	};
 	const concurrent = await Promise.allSettled([
-		brokerCall("act-ui", action),
-		brokerCall("act-ui", action),
+		brokerRequest("act-ui", action),
+		brokerRequest("act-ui", action),
 	]);
 	const worked = concurrent.filter((result) => result.status === "fulfilled");
 	const stale = concurrent.filter((result) => result.status === "rejected" && result.reason?.stderr?.includes("stale_state:"));
 	assert.equal(worked.length, 1, `expected one successful concurrent action, got ${worked.length}`);
 	assert.equal(stale.length, 1, `expected one stale_state rejection, got ${stale.length}`);
 	const acted = worked[0].value;
-	assert("capture" in acted.details, "TextEdit action did not return a desktop state");
 	assert.equal(acted.details.execution.outcome, "worked", "TextEdit setText was not verified as worked");
 	assert.equal(acted.details.execution.verification?.status, "verified", "TextEdit expect did not observe a new value");
 	assert(flatten(acted.details.outline.root).some((node) => node.value === expectedText), "resulting TextEdit outline does not contain the written value");
