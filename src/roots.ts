@@ -193,9 +193,11 @@ function noControllableRoot(appName: string): BcuError {
 	);
 }
 
+/** The Finder desktop is a root an agent can observe on request, never one bcu picks for it. */
 function choosePreferredWindow(windows: HelperRoot[], appName: string): HelperRoot {
-	if (!windows.length) throw noControllableRoot(appName);
-	return [...windows].sort((a, b) => scoreWindow(b) - scoreWindow(a))[0];
+	const selectable = windows.filter((window) => window.subrole !== "AXDesktop");
+	if (!selectable.length) throw noControllableRoot(appName);
+	return [...selectable].sort((a, b) => scoreWindow(b) - scoreWindow(a))[0];
 }
 
 function summarizeWindowCandidate(window: HelperRoot): string {

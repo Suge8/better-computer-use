@@ -13,6 +13,7 @@ import { HELPER_ARCHITECTURE_VERSION, REQUIRED_HELPER_INVARIANTS } from "../src/
 
 const APP = { pid: 4242, appName: "Fixture", bundleId: "com.example.fixture", isFrontmost: true };
 const EMPTY_APP = { pid: 4343, appName: "Empty", bundleId: "com.example.empty", isFrontmost: false };
+const DESKTOP_APP = { pid: 4444, appName: "Desktop", bundleId: "com.example.desktop", isFrontmost: false };
 const WINDOW_ID = 9001;
 const fixture = JSON.parse(await fs.readFile(new URL("./fixtures/textedit-outline.json", import.meta.url), "utf8"));
 
@@ -43,9 +44,27 @@ function helperResult(request) {
 			screenRecordingPreflight: true,
 			source: { attribution: "helper-app", pid: process.pid },
 		};
-		case "listApps": return { apps: [APP, EMPTY_APP] };
+		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP] };
 		case "listRoots": return {
-			roots: request.pid === EMPTY_APP.pid ? [] : [{
+			roots: request.pid === EMPTY_APP.pid ? [] : request.pid === DESKTOP_APP.pid ? [{
+				kind: "window",
+				windowRef: "desktop",
+				rootRef: "desktop",
+				pid: DESKTOP_APP.pid,
+				appName: DESKTOP_APP.appName,
+				title: "",
+				role: "AXScrollArea",
+				subrole: "AXDesktop",
+				framePoints: { x: 0, y: 0, w: 2560, h: 1440 },
+				scaleFactor: 2,
+				zOrder: 99,
+				isMinimized: false,
+				isOnscreen: true,
+				isMain: false,
+				isFocused: false,
+				isModal: false,
+				metadata: { pairing: { confidence: "low", score: -60 } },
+			}] : [{
 				kind: "window",
 				windowRef: "w1",
 				rootRef: "w1",
@@ -162,6 +181,8 @@ try {
 	assert(Array.isArray(searched.matches[0].path), "search-ui match has no ancestry path");
 
 	const editorRef = searched.matches[0].ref;
+	const byCapability = json(await runCli(["search-ui", "--state", stateId, "--action", "setText", "--json"], { env }), "search-ui --action");
+	assert(byCapability.matches.some((match) => match.ref === editorRef), "search-ui --action setText did not find the editable element");
 	const expanded = json(await runCli(["expand-ui", "--state", stateId, "--ref", "@e3", "--json"], { env }), "expand-ui");
 	assert.deepEqual(Object.keys(expanded).sort(), ["nodes", "ref", "stateId"], "expand-ui result shape drifted");
 	assert(expanded.nodes.length > 1, "expand-ui returned no subtree");
@@ -194,6 +215,10 @@ try {
 	const noWindow = await runCli(["observe-ui", "--app", "Empty", "--json"], { env });
 	assert.equal(noWindow.code, 6, `running app without windows exited ${noWindow.code}: ${noWindow.stderr}`);
 	assert.match(noWindow.stderr, /^error window_stale: App 'Empty' is running but has no controllable window/m, `window_stale message drifted: ${noWindow.stderr}`);
+
+	const desktopOnly = await runCli(["observe-ui", "--app", "Desktop", "--json"], { env });
+	assert.equal(desktopOnly.code, 6, `app with only a desktop root exited ${desktopOnly.code}: ${desktopOnly.stderr}`);
+	assert.match(desktopOnly.stderr, /^error window_stale: /m, "a desktop-only app is not reported as window_stale");
 
 	const fused = json(await runCli(["observe-ui", "--app", "Fixture", "--mode", "fused", "--json"], { env }), "observe-ui --mode fused");
 	assert.equal(fused.image.mime, "image/jpeg", "fused observation returned no image reference");
