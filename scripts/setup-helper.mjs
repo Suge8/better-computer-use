@@ -13,6 +13,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveMacosHelperAppPath } from "../src/macos/helper-path.mjs";
+import { macosHelper } from "../src/macos/helper.ts";
 import { HELPER_BUNDLE_ID, MACOS_DEPLOYMENT_TARGET } from "./lib/helper-target.mjs";
 
 const execFile = promisify(execFileCallback);
@@ -340,6 +341,27 @@ async function installHelperApp(sourcePath) {
 	return true;
 }
 
+/**
+ * A running helper daemon keeps serving the binary it started with, and the protocol
+ * version alone cannot tell it apart from a fresh one. Installing new bytes therefore
+ * retires the daemon that is already running; it is left running so the grant-bearing
+ * bundle stays warm for the next command.
+ */
+async function restartRunningHelper() {
+	// A direct socket command, so a helper that is not running is not started just to stop it.
+	const running = await macosHelper.daemonCommand("diagnostics", {}, 2_000).then(() => true, () => false);
+	if (!running) {
+		macosHelper.dispose();
+		return false;
+	}
+	try {
+		await macosHelper.restart();
+		return true;
+	} finally {
+		macosHelper.dispose();
+	}
+}
+
 async function setup() {
 	if (process.platform !== "darwin") throw new Error(`The bcu helper only supports macOS; this host is ${process.platform}.`);
 
@@ -350,9 +372,10 @@ async function setup() {
 	}
 
 	const installed = await installHelperApp(prebuiltPath);
+	const restarted = installed && await restartRunningHelper();
 	console.log(
 		installed
-			? `[bcu] installed helper app (${arch}) at ${helperAppPath}`
+			? `[bcu] installed helper app (${arch}) at ${helperAppPath}${restarted ? " and restarted the running helper" : ""}`
 			: `[bcu] helper app (${arch}) already current at ${helperAppPath}`,
 	);
 }
