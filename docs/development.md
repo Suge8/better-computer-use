@@ -11,14 +11,14 @@ src/contract.ts                  Command, parameter, and result contract
 src/session.ts                   Operation state, scheduling, saved states, tool executor
 src/roots.ts                     Root discovery, target selection, find-roots
 src/root-refs.ts                 Stable @r identity across a session
-src/observe.ts                   Look capture, result rendering, cached queries
+src/observe.ts                   Look capture, result assembly, cached queries
+src/projection.ts                The one agent-facing view: projected nodes and text rendering
 src/act.ts                       Checked action transactions and postconditions
 src/actions.ts                   Action validation, preparation, outcome reconciliation
 src/runtime.ts                   Immutable state store and resource scheduler
 src/state.ts                     Saved UI state ownership and hydration
-src/outline.ts                   Outline parsing, folding, search, and ref mapping
+src/outline.ts                   Outline parsing, search, grafting, and ref mapping
 src/view.ts                      Stable refs and resulting-state change views
-src/note.ts                      Disposable running-note generation
 src/readiness.ts                 Filesystem event-driven readiness waits
 src/artifacts.ts                 Screenshot files, permissions, and capacity
 src/macos/helper.ts              Persistent helper transport and install/repair
@@ -73,7 +73,7 @@ npm run build:native
 
 The runtime is state-scoped and outline-first:
 
-- `observe-ui` returns a folded UI outline and running note.
+- `observe-ui` returns a folded projection of the outline.
 - `search-ui`, `expand-ui`, and `inspect-ui` provide progressive disclosure.
 - `act-ui` is the only public action entrypoint.
 - UI observations are immutable records; request-local hydration replaces global current state.
@@ -81,7 +81,7 @@ The runtime is state-scoped and outline-first:
 - Cached queries bypass scheduling; live work is ordered per physical resource.
 - The helper owns grounding, preflight, execution, and verification.
 - Removed direct operations such as `screenshot`, `click`, `set_text`, and `computer_actions` must not reappear as public CLI commands.
-- bcu is macOS-only and has no browser or CDP code path. Page-level automation belongs to `flow-browser-use`.
+- bcu is macOS-only and has no browser or CDP code path. Page-level automation belongs to `better-browser-use`.
 
 Run invariants after architecture changes:
 

@@ -4,7 +4,7 @@
 
 `bcu` 可以查找窗口、读取界面结构、搜索控件、点击、输入、滚动、等待界面变化。状态、并发调度和截图文件由同一个用户级 Broker 管理。
 
-网页自动化不属于 `bcu`，由 `flow-browser-use` 负责；浏览器窗口对 `bcu` 只是普通的无障碍窗口。
+网页自动化不属于 `bcu`，由 `better-browser-use` 负责；浏览器窗口对 `bcu` 只是普通的无障碍窗口。
 
 ## 适用场景
 
@@ -44,12 +44,12 @@ bcu setup
 已知目标应用且窗口唯一时直接观察：
 
 ```bash
-bcu observe-ui --app TextEdit --mode semantic --image never
+bcu observe-ui --app TextEdit
 ```
 
 目标不确定或有多个窗口时，先运行 `bcu find-roots --app TextEdit`，再用返回的 `@r` 执行 `observe-ui --root @r1`。
 
-命令会返回 `stateId` 和界面 outline。后续查询与操作必须使用该状态中的 `stateId` 和 `@e` ref：
+命令会返回 `stateId` 和投影后的界面元素列表：每行是一个 `@e` ref、一个短角色词、名称、值和可用能力。后续查询与操作必须使用该状态中的 `stateId` 和 `@e` ref：
 
 ```bash
 bcu search-ui --state <stateId> --text Save
@@ -58,12 +58,14 @@ echo '[{"action":"press","ref":"@e12"}]' |
   bcu act-ui --state <stateId> --expect-text Saved --timeout 3000 -
 ```
 
-`act-ui` 返回的新 `stateId` 是下一次操作的输入。状态过期时重新执行 `observe-ui`。
+`act-ui` 返回的新 `stateId` 是下一次操作的输入，并只列出相对上一状态的变化。状态过期时重新执行 `observe-ui`。
 
-需要截图时显式请求：
+每条命令的完整参数用 `bcu <命令> --help` 查看，`--json` 返回同一份结果的结构化形式。
+
+默认不取图。需要截图时显式请求：
 
 ```bash
-bcu observe-ui --app TextEdit --image always
+bcu observe-ui --app TextEdit --image always   # 或 --mode fused，同时做 OCR
 ```
 
 截图写入 `~/Library/Caches/bcu/shots/`，stdout 只返回文件路径和尺寸，不输出 base64。
@@ -80,7 +82,7 @@ bcu stop          # 停止 Broker；macOS helper 保留授权身份并继续按�
 
 ## 文档
 
-- [CLI 使用手册](./docs/usage.md)
+- 命令参考：`bcu --help` 与 `bcu <命令> --help`
 - [配置](./docs/configuration.md)
 - [故障排查](./docs/troubleshooting.md)
 - [架构](./docs/architecture.md)

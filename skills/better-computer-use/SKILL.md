@@ -21,14 +21,14 @@ observe-ui → search-ui / expand-ui / inspect-ui → act-ui
 ```
 
 ```bash
-bcu observe-ui --app TextEdit --mode semantic --image never --json
-bcu search-ui --state STATE_ID --role AXTextArea --json
+bcu observe-ui --app TextEdit --json
+bcu search-ui --state STATE_ID --role textarea --json
 printf '%s\n' '[{"action":"setText","ref":"@e3","text":"hello"}]' |
   bcu act-ui --state STATE_ID --expect-value hello --timeout 3000 --json -
 ```
 
 1. 已知唯一应用或窗口时直接 `observe-ui --app`；目标不确定、有多个窗口或需要临时根时，先用 `find-roots` 找 `@r`，不要猜 PID。
-2. `observe-ui` 返回不可变 `stateId` 和 `@e` ref。普通读取优先 `semantic + image never`；需要视觉证据才取图。
+2. `observe-ui` 返回不可变 `stateId` 和 `@e` ref，默认不取图；需要视觉证据时用 `--mode fused` 或 `--image always`。
 3. outline 折叠或目标不明显时，先 `search-ui`，再按需 `expand-ui` 或 `inspect-ui`。不要为了找控件反复截图。
 4. 用同一 `stateId` 的 ref 执行 `act-ui`。优先 `setText`、`press` 等语义动作；坐标只作为最后手段，且只能来自该状态的最新观察。
 5. 动作返回后继状态。下一步使用返回的新 `stateId` 和新 ref；不要复用旧 ref。
@@ -37,9 +37,9 @@ printf '%s\n' '[{"action":"setText","ref":"@e3","text":"hello"}]' |
 
 - `@e` ref 只属于生成它的 `stateId`。收到 `stale_state`、窗口变化、导航或焦点切换后重新观察。
 - 只有后一步不依赖中间 UI 时，才把动作放进同一 JSON 数组。
-- 能写完成条件时，在 `act-ui` 同次调用中使用 `--expect-text`、`--expect-role` 或 `--expect-value`。等待已有状态变化用 `wait-for`。
+- 能写完成条件时，在 `act-ui` 同次调用中使用 `--expect-text`、`--expect-role` 或 `--expect-value`，必要时加 `--scope @eN` 把条件限定在一个子树。等待已有状态变化用 `wait-for`。
 - 禁止用 shell 循环、`sleep` 或重复 observe 等待 UI；`wait-for` 和 `--expect-* --timeout` 自带等待与超时。
-- `outcome=worked` 且 `verification.status=verified` 才能把带后置条件的写操作报告为成功。`didnt`、`unknown` 或非零退出码都要按错误恢复。
+- 退出码 0 才算成功：动作没生效、结果不确定或后置条件没满足都会变成非零退出码和 `action_failed`。
 - 坐标动作前检查最新状态或截图；状态变化后重新取坐标。
 - 默认使用 `--json` 读取结构化结果。不要把 stderr 的失败包装成成功。
 
@@ -48,9 +48,9 @@ printf '%s\n' '[{"action":"setText","ref":"@e3","text":"hello"}]' |
 ```bash
 bcu read-text --state STATE_ID --ref @e3 --offset 0 --limit 4000 --json
 bcu wait-for --state STATE_ID --text Saved --timeout 3000 --json
-bcu observe-ui --app Finder --mode fused --image always --json
+bcu observe-ui --app Finder --mode fused --json
 ```
 
 浏览器窗口就是普通窗口，可以照常 observe/search/act。页面级自动化（导航、DOM、console）用 `better-browser-use`。
 
-完整命令参数见 [references/commands.md](references/commands.md)，错误恢复见 [references/errors.md](references/errors.md)。
+完整命令参数见 `bcu <命令> --help`，错误恢复见 [references/errors.md](references/errors.md)。
