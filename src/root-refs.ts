@@ -1,4 +1,4 @@
-import type { FramePoints, RootDelta } from "./macos/protocol.ts";
+import type { FramePoints } from "./macos/protocol.ts";
 import { normalizeText } from "./text.ts";
 
 /**
@@ -49,29 +49,6 @@ export function storeRootRef(record: Omit<RootRefRecord, "ref">): RootRefRecord 
 
 export function rootRefRecord(ref: string): RootRefRecord | undefined {
 	return records.get(ref);
-}
-
-/** Maps a helper root delta onto a model-visible `@r`, minting one when the root is new. */
-export function rootRefForDelta(delta: RootDelta, owner?: { pid: number; appName: string; bundleId?: string }): string | undefined {
-	if (!delta.ref) return undefined;
-	if (delta.ref.startsWith("@r")) return delta.ref;
-	for (const record of records.values()) {
-		if (record.nativeWindowRef === delta.ref || record.ref === delta.ref) return record.ref;
-	}
-	const matchesOwner = owner?.pid === delta.pid;
-	return storeRootRef({
-		appName: matchesOwner ? owner.appName : "Unknown App",
-		bundleId: matchesOwner ? owner.bundleId : undefined,
-		pid: delta.pid,
-		windowTitle: delta.title ?? "(untitled)",
-		nativeWindowRef: delta.ref,
-		framePoints: { x: 0, y: 0, w: 1, h: 1 },
-		scaleFactor: 1,
-		isMinimized: false,
-		isOnscreen: true,
-		isMain: false,
-		isFocused: delta.change === "focused",
-	}).ref;
 }
 
 export function clearRootRefs(): void {

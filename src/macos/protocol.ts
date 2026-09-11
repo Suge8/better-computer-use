@@ -112,22 +112,11 @@ export interface HelperActPerformed {
 	focused?: boolean;
 }
 
-export interface RootDelta {
-	change: "appeared" | "closed" | "focused";
-	kind: string;
-	ref?: string;
-	title?: string;
-	pid: number;
-	isModal?: boolean;
-	metadata?: Record<string, unknown>;
-}
-
 export interface HelperActResult {
 	outcome: ActOutcome;
 	performed?: HelperActPerformed;
 	evidence?: Record<string, unknown>;
 	error?: { code?: string; message?: string; whatIsThere?: unknown };
-	rootDelta?: RootDelta[];
 	steps?: HelperActResult[];
 	stoppedAt?: number;
 }

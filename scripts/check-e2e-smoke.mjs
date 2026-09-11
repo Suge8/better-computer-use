@@ -24,10 +24,6 @@ const expectedText = `bcu smoke ${randomUUID()}`;
 let createdPid;
 let processMonitor;
 
-function flatten(node) {
-	return [node, ...(node.children ?? []).flatMap(flatten)];
-}
-
 async function expectCliFailure(stateId, action) {
 	const result = await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([action])}\n` });
 	assert.equal(result.code, 2, `${action.action} invalid payload exited ${result.code}`);
@@ -170,34 +166,37 @@ try {
 	await waitForAxWindow(createdPid, processMonitor.exited);
 
 	const found = await brokerRequest("find-roots", { pid: createdPid, kind: "window" });
-	const window = found.details.windows.find((candidate) => candidate.pid === createdPid);
+	const window = found.roots.find((candidate) => candidate.pid === createdPid);
 	assert(window, `TextEdit pid ${createdPid} did not expose a root after AXWindowCreated`);
-	const observed = await brokerRequest("observe-ui", { root: window.windowRef, mode: "semantic", image: "never" });
-		const editor = flatten(observed.details.outline.root).find((node) => node.canSetValue && node.wireRef && !node.pictureOnly);
-	assert(editor, "TextEdit observation did not expose an editable semantic node");
+	const observed = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
+	assert.equal(observed.root.pid, createdPid, "observe-ui returned another root");
+	assert(observed.nodes.every((node) => !/^ax/i.test(node.role)), "observation leaked raw accessibility roles");
+	assert.equal(observed.image, undefined, "semantic observation produced an image");
+	const editable = await sourceAgentRequest("search-ui", { stateId: observed.stateId, action: "setText", limit: 5 });
+	const editor = editable.matches.find((match) => match.caps.includes("setText"));
+	assert(editor, "TextEdit observation did not expose an editable element");
 	for (const invalidAction of [
 		{ action: "click", ref: 123 },
 		{ action: "click", ref: editor.ref, button: "banana" },
 		{ action: "click", ref: editor.ref, clickCount: "many" },
 		{ action: "scroll", ref: editor.ref, scrollY: "abc" },
 		{ action: "wait", ms: "soon" },
-	]) await expectCliFailure(observed.details.capture.stateId, invalidAction);
-	const searched = await sourceAgentRequest("search-ui", { stateId: observed.details.capture.stateId, role: "AXTextArea", limit: 50 });
-	assert.equal(searched.details?.stateId, observed.details.capture.stateId, "source agent search-ui did not hydrate the shared stateId");
-	assert(searched.details?.matches?.length > 0, "source agent search-ui did not return the observed text area");
-	const waited = await brokerRequest("wait-for", { stateId: observed.details.capture.stateId, role: "AXTextArea", timeoutMs: 1_000 });
-	assert.equal(waited.details?.found, true, "wait-for did not find the existing text area");
-	assert.doesNotThrow(() => JSON.stringify(waited), "wait-for returned a circular target node");
+	]) await expectCliFailure(observed.stateId, invalidAction);
+	const searched = await sourceAgentRequest("search-ui", { stateId: observed.stateId, role: "textarea", limit: 50 });
+	assert.equal(searched.stateId, observed.stateId, "source agent search-ui did not hydrate the shared stateId");
+	assert(searched.matches.length > 0, "source agent search-ui did not return the observed text area");
+	const waited = await brokerRequest("wait-for", { stateId: observed.stateId, role: "AXTextArea", timeoutMs: 1_000 });
+	assert.equal(waited.found, true, "wait-for did not find the existing text area");
+	assert.doesNotThrow(() => JSON.stringify(waited), "wait-for returned a circular result");
 	await expectBrokerFailure("wait-for", {
-		stateId: observed.details.capture.stateId,
+		stateId: observed.stateId,
 		text: "__BCU_NEVER_EXISTS__",
 		timeoutMs: 100,
 	}, "action_timeout");
 	const action = {
-		stateId: observed.details.capture.stateId,
+		stateId: observed.stateId,
 		actions: [{ action: "setText", ref: editor.ref, text: expectedText }],
-		expect: { value: expectedText, timeoutMs: 5_000 },
-		image: "never",
+		expect: { value: expectedText, scope: editor.ref, timeoutMs: 5_000 },
 	};
 	const concurrent = await Promise.allSettled([
 		brokerRequest("act-ui", action),
@@ -208,11 +207,12 @@ try {
 	assert.equal(worked.length, 1, `expected one successful concurrent action, got ${worked.length}`);
 	assert.equal(stale.length, 1, `expected one stale_state rejection, got ${stale.length}`);
 	const acted = worked[0].value;
-	assert.equal(acted.details.execution.outcome, "worked", "TextEdit setText was not verified as worked");
-	assert.equal(acted.details.execution.verification?.status, "verified", "TextEdit expect did not observe a new value");
-	assert(flatten(acted.details.outline.root).some((node) => node.value === expectedText), "resulting TextEdit outline does not contain the written value");
+	assert.equal(acted.outcome, "worked", "TextEdit setText was not reported as worked");
+	assert.equal(acted.verification.status, "verified", "TextEdit expect did not observe a new value");
+	assert.equal(acted.baseStateId, observed.stateId, "act-ui lost its base state");
+	assert(JSON.stringify(acted.changes ?? acted.nodes ?? []).includes(expectedText), "successor view does not carry the written value");
 	await expectBrokerFailure("act-ui", {
-		stateId: acted.details.capture.stateId,
+		stateId: acted.stateId,
 		actions: [{ action: "wait", ms: 0 }],
 		expect: { text: "__BCU_NEVER_EXISTS__", timeoutMs: 100 },
 	}, "action_failed");

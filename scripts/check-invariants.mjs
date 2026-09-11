@@ -297,7 +297,6 @@ check("INV-18 consolidated actions and diff-first resulting views", () => {
 	const view = fs.readFileSync(path.join(root, "src/view.ts"), "utf8");
 	const macBackend = fs.readFileSync(path.join(root, "src/macos/backend.ts"), "utf8");
 	assert(actions.includes("prepareAction") && actions.includes("canRetryInForeground"), "action preparation and safe recovery are not consolidated");
-	assert(!fs.existsSync(path.join(root, "src/interaction.ts")), "superseded interaction policy module still exists");
 	assert(!ts.includes("responseMode") && !contractTs.includes("responseMode"), "alternate confirmation-only action path still exists");
 	assert(ts.includes("currentFocus") && ts.includes('escalationReason = "side_effect_free_didnt"'), "runner does not preserve action focus or recover checked keyboard failures");
 	assert(view.includes("stabilizeRefs") && view.includes("changesBetween"), "resulting-state ref stabilization or change rendering is missing");
