@@ -298,7 +298,12 @@ async function performInspectUi(params: InspectUiParams): Promise<InspectResult>
 	if (!ref) throw new BcuError("invalid_arguments", "inspect-ui requires --ref.");
 	const target = nodeByRef(outline, ref);
 	if (!target) throw new BcuError("element_not_found", `Ref '${ref}' is not in the current state.`);
-	return { stateId: operationState().currentCapture!.stateId, node: { ...serializeOutlineNode(target), children: [] } };
+	const projected = project(outline, UNFOLDED).nodes.find((node) => node.ref === target.ref);
+	return {
+		stateId: operationState().currentCapture!.stateId,
+		node: { ...serializeOutlineNode(target), children: [] },
+		owners: projected?.owners,
+	};
 }
 
 async function performReadText(params: ReadTextParams, signal?: AbortSignal): Promise<ReadTextResult> {

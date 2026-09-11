@@ -1,5 +1,5 @@
 import type { SerializedOutlineNode } from "./outline.ts";
-import type { ProjectedNode } from "./projection.ts";
+import type { Capability, ProjectedNode } from "./projection.ts";
 
 export type RootSelector = string | number;
 export type ImageMode = "never" | "always";
@@ -174,6 +174,8 @@ export interface ExpandResult {
 export interface InspectResult {
 	stateId: string;
 	node: SerializedOutlineNode;
+	/** Capabilities this ref advertises that another element performs. */
+	owners?: Partial<Record<Capability, string>>;
 }
 
 export interface ReadTextResult {

@@ -32,6 +32,8 @@ export interface ProjectedNode {
 	name: string;
 	value?: string;
 	caps: Capability[];
+	/** Capabilities this node inherited from a merged descendant, and the ref that performs them. */
+	owners?: Partial<Record<Capability, string>>;
 	state?: ProjectedState;
 	/** Descendants the render budget folded away; they stay expandable through expand-ui. */
 	hidden?: { count: number; roles: Record<string, number> };
@@ -124,8 +126,9 @@ const ABSORBING_ROLES = new Set([...STRUCTURAL_ROLES, "row", "listitem", "tab", 
 const TEXT_ROLES = new Set(["textfield", "textarea", "combobox", "searchfield"]);
 const TOGGLE_ROLES = new Set(["checkbox", "radio", "switch", "disclosuretriangle", "togglebutton"]);
 
-interface ProjectedTree extends Omit<ProjectedNode, "depth" | "parent" | "hidden"> {
+interface ProjectedTree extends Omit<ProjectedNode, "depth" | "parent" | "hidden" | "owners"> {
 	children: ProjectedTree[];
+	owners: Partial<Record<Capability, string>>;
 	/** Outline refs this node speaks for: itself plus everything merged into it. */
 	refs: string[];
 }
@@ -198,6 +201,18 @@ function mergeCapabilities(...groups: Capability[][]): Capability[] {
 	return CAPABILITIES.filter((capability) => found.has(capability));
 }
 
+/** Records who actually performs the capabilities a node inherits from a merged node. */
+function delegate(target: ProjectedTree, sources: ProjectedTree[]): Partial<Record<Capability, string>> {
+	const owners = { ...target.owners };
+	for (const source of sources) {
+		for (const capability of source.caps) {
+			if (target.caps.includes(capability) || owners[capability]) continue;
+			owners[capability] = source.owners[capability] ?? source.ref;
+		}
+	}
+	return owners;
+}
+
 function isTextLeaf(tree: ProjectedTree): boolean {
 	return tree.children.length === 0 && (tree.role === "text" || tree.role === "image");
 }
@@ -223,6 +238,7 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 		state,
 		children,
 		refs: [node.ref],
+		owners: {},
 	};
 	if (!name && ABSORBING_ROLES.has(role)) {
 		// An unnamed wrapper speaks through the text it wraps, and through the one
@@ -234,6 +250,7 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 				...tree,
 				name,
 				caps: mergeCapabilities(tree.caps, ...absorbed.map((child) => child.caps)),
+				owners: delegate(tree, absorbed),
 				children: children.filter((child) => !isTextLeaf(child)),
 				refs: [...tree.refs, ...absorbed.flatMap((child) => child.refs)],
 			};
@@ -244,8 +261,8 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 			const only = tree.children[0];
 			const caps = mergeCapabilities(tree.caps, only.caps);
 			const refs = [...tree.refs, ...only.refs];
-			if (STRUCTURAL_ROLES.has(only.role)) tree = { ...tree, name: only.name, value: tree.value ?? only.value, caps, children: only.children, refs };
-			else if (STRUCTURAL_ROLES.has(tree.role)) tree = { ...only, caps, refs };
+			if (STRUCTURAL_ROLES.has(only.role)) tree = { ...tree, name: only.name, value: tree.value ?? only.value, caps, owners: delegate(tree, [only]), children: only.children, refs };
+			else if (STRUCTURAL_ROLES.has(tree.role)) tree = { ...only, caps, owners: delegate(only, [tree]), refs };
 		}
 	}
 	if (!tree.name) tree = { ...tree, name: identifierName(node) };
@@ -307,8 +324,8 @@ function foldAtDepth(trees: ProjectedTree[], total: number, maxDepth: number, ma
 			return;
 		}
 		const fold = tree.children.length > 0 && depth >= maxDepth && !unfolded.has(tree.ref);
-		const { children: _children, refs: _refs, ...fields } = tree;
-		nodes.push({ ...fields, depth, parent, hidden: fold ? descendantRoles(tree) : undefined });
+		const { children: _children, refs: _refs, owners, ...fields } = tree;
+		nodes.push({ ...fields, owners: Object.keys(owners).length > 0 ? owners : undefined, depth, parent, hidden: fold ? descendantRoles(tree) : undefined });
 		if (fold) return;
 		for (const child of tree.children) emit(child, depth + 1, tree.ref);
 	};

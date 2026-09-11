@@ -5,7 +5,7 @@ import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { ActOutcome, ActRequest, DeliveryPolicy, HelperActResult, NativeInputDelivery } from "./macos/protocol.ts";
 import { nodeByRef, searchOutline, type LookResponse } from "./outline.ts";
-import { project } from "./projection.ts";
+import { project, type Capability, type ProjectedNode } from "./projection.ts";
 import {
 	captureCurrentTarget,
 	ensurePointIsInLookImage,
@@ -124,11 +124,33 @@ async function helperAct(
 	}
 }
 
-function prepareUiAction(action: UiAction, state: ActionState, look: LookResponse, headless: boolean): PreparedAction {
+/** Semantic actions are delivered to the element that owns the capability the view promised. */
+const ACTION_CAPABILITIES = {
+	press: ["press", "toggle", "open"],
+	click: ["press", "toggle", "open"],
+	doubleClick: ["press", "toggle", "open"],
+	setText: ["setText"],
+	typeText: ["typeText"],
+	scroll: ["scroll"],
+} as const satisfies Partial<Record<UiAction["action"], readonly Capability[]>>;
+
+type ResolveActionNode = (ref: string, action: UiAction["action"]) => ReturnType<typeof outlineNodeByRef>;
+
+function actionNodeResolver(nodes: ProjectedNode[]): ResolveActionNode {
+	const byRef = new Map(nodes.map((node) => [node.ref, node]));
+	return (ref, action) => {
+		const capabilities = ACTION_CAPABILITIES[action as keyof typeof ACTION_CAPABILITIES] as readonly Capability[] | undefined;
+		const owners = byRef.get(ref)?.owners;
+		const owner = capabilities && owners ? capabilities.map((capability) => owners[capability]).find(Boolean) : undefined;
+		return outlineNodeByRef(owner ?? ref);
+	};
+}
+
+function prepareUiAction(action: UiAction, state: ActionState, look: LookResponse, headless: boolean, resolve: ResolveActionNode): PreparedAction {
 	return prepareAction(action, state, {
 		headless,
 		image: look.image,
-		node: outlineNodeByRef,
+		node: (ref) => resolve(ref, action.action),
 		center: outlineNodeCenter,
 		validatePoint: (x, y, label) => ensurePointIsInLookImage(x, y, look, label),
 	});
@@ -148,8 +170,8 @@ function aggregateExecutions(steps: ExecutionTrace[]): ExecutionTrace {
 	});
 }
 
-async function dispatchUiAction(action: UiAction, target: ResolvedTarget, look: LookResponse, headless: boolean, state: ActionState, signal?: AbortSignal): Promise<ExecutionTrace> {
-	const prepared = prepareUiAction(action, state, look, headless);
+async function dispatchUiAction(action: UiAction, target: ResolvedTarget, look: LookResponse, headless: boolean, state: ActionState, resolve: ResolveActionNode, signal?: AbortSignal): Promise<ExecutionTrace> {
+	const prepared = prepareUiAction(action, state, look, headless, resolve);
 	if (prepared.action === "wait") {
 		await sleep(prepared.params.ms, signal);
 		return executionTrace("wait", "stealth", { outcome: "worked" });
@@ -161,13 +183,13 @@ async function dispatchUiAction(action: UiAction, target: ResolvedTarget, look: 
 	return trace;
 }
 
-async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget, look: LookResponse, headless: boolean, signal?: AbortSignal): Promise<ExecutionTrace> {
+async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget, look: LookResponse, headless: boolean, resolve: ResolveActionNode, signal?: AbortSignal): Promise<ExecutionTrace> {
 	// Strict-headless batches have one immutable delivery class. When foreground
 	// fallback is permitted, decide independently per action so a completed
 	// background prefix is never replayed as part of a foreground batch.
 	if (headless && actions.every((action) => action.action !== "wait")) {
 		const actionState: ActionState = { currentFocus: false };
-		const requests = actions.map((action) => helperActRequest(target, prepareUiAction(action, actionState, look, true) as NativePreparedAction, "ax_only"));
+		const requests = actions.map((action) => helperActRequest(target, prepareUiAction(action, actionState, look, true, resolve) as NativePreparedAction, "ax_only"));
 		const textLength = actions.reduce((sum, action) => sum + (action.text?.length ?? 0), 0);
 		const result = await macosBackend.actBatch(requests, { signal, timeoutMs: Math.max(COMMAND_TIMEOUT_MS, textLength * TEXT_DELIVERY_MS_PER_CHAR + 6_000) });
 		if (!result.steps || result.steps.length === 0) throw new Error("Native action transaction returned no checked steps.");
@@ -180,7 +202,7 @@ async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget
 	const steps: ExecutionTrace[] = [];
 	const actionState: ActionState = { currentFocus: false };
 	for (const action of actions) {
-		const step = await dispatchUiAction(action, target, look, headless, actionState, signal);
+		const step = await dispatchUiAction(action, target, look, headless, actionState, resolve, signal);
 		steps.push(step);
 		if (step.outcome === "didnt") break;
 	}
@@ -253,7 +275,7 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 	const target = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
 	return await withWindowWriteLock(target, async () => {
 		const headless = params.headless ?? getComputerUseConfig().headless;
-		const execution = await dispatchUiTransaction(actions, target, look, headless, signal);
+		const execution = await dispatchUiTransaction(actions, target, look, headless, actionNodeResolver(baseNodes), signal);
 		const executedActions = actions.slice(0, execution.actionCount ?? actions.length);
 		const verification = params.expect
 			? await verifyExpectation(params, target, look, scopeRef, execution, signal)

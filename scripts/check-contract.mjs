@@ -14,15 +14,20 @@ import { HELPER_ARCHITECTURE_VERSION, REQUIRED_HELPER_INVARIANTS } from "../src/
 const APP = { pid: 4242, appName: "Fixture", bundleId: "com.example.fixture", isFrontmost: true };
 const EMPTY_APP = { pid: 4343, appName: "Empty", bundleId: "com.example.empty", isFrontmost: false };
 const DESKTOP_APP = { pid: 4444, appName: "Desktop", bundleId: "com.example.desktop", isFrontmost: false };
+const ROWS_APP = { pid: 4545, appName: "Rows", bundleId: "com.example.rows", isFrontmost: false };
+const ROWS_WINDOW_ID = 9002;
 const WINDOW_ID = 9001;
 const fixture = JSON.parse(await fs.readFile(new URL("./fixtures/textedit-outline.json", import.meta.url), "utf8"));
+const rowFixture = JSON.parse(await fs.readFile(new URL("./fixtures/finder-outline.json", import.meta.url), "utf8"));
 
 function toWireNode(node) {
 	return { ...node, ref: node.wireRef, wireRef: undefined, children: node.children.map(toWireNode) };
 }
 
 const outline = toWireNode(fixture.root);
+const rowOutline = toWireNode(rowFixture.root);
 const values = new Map();
+const actRequests = [];
 
 function withValues(node) {
 	return { ...node, value: values.get(node.ref) ?? node.value, children: node.children.map(withValues) };
@@ -44,9 +49,28 @@ function helperResult(request) {
 			screenRecordingPreflight: true,
 			source: { attribution: "helper-app", pid: process.pid },
 		};
-		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP] };
+		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP, ROWS_APP] };
 		case "listRoots": return {
-			roots: request.pid === EMPTY_APP.pid ? [] : request.pid === DESKTOP_APP.pid ? [{
+			roots: request.pid === EMPTY_APP.pid ? [] : request.pid === ROWS_APP.pid ? [{
+				kind: "window",
+				windowRef: "w2",
+				rootRef: "w2",
+				windowId: ROWS_WINDOW_ID,
+				pid: ROWS_APP.pid,
+				appName: ROWS_APP.appName,
+				title: "MacBook Pro",
+				role: "AXWindow",
+				subrole: "AXStandardWindow",
+				framePoints: { x: 0, y: 0, w: 920, h: 556 },
+				scaleFactor: 2,
+				zOrder: 2,
+				isMinimized: false,
+				isOnscreen: true,
+				isMain: true,
+				isFocused: false,
+				isModal: false,
+				metadata: { pairing: { confidence: "exact", score: 110 } },
+			}] : request.pid === DESKTOP_APP.pid ? [{
 				kind: "window",
 				windowRef: "desktop",
 				rootRef: "desktop",
@@ -91,7 +115,7 @@ function helperResult(request) {
 			lookId: `look-${++lookCounter}`,
 			capturedAt: Date.now() / 1000,
 			window: {
-				windowId: WINDOW_ID,
+				windowId: request.windowId,
 				rootRef: "w1",
 				kind: "window",
 				framePoints: { x: 0, y: 0, w: 586, h: 488 },
@@ -102,10 +126,11 @@ function helperResult(request) {
 				metadata: { pairing: { confidence: "exact", score: 110 } },
 			},
 			image: request.includeImage === false ? undefined : { jpegBase64: Buffer.from("fixture-image").toString("base64"), mimeType: "image/jpeg", width: 586, height: 488 },
-			outline: withValues(outline),
+			outline: request.windowId === ROWS_WINDOW_ID ? rowOutline : withValues(outline),
 			timings: {},
 		};
 		case "act": {
+			actRequests.push(request);
 			if (request.action === "setText") values.set(request.target.ref, request.params.text);
 			return { outcome: "worked", performed: { delivery: "ax" }, evidence: {} };
 		}
@@ -216,6 +241,23 @@ try {
 	const noWindow = await runCli(["observe-ui", "--app", "Empty", "--json"], { env });
 	assert.equal(noWindow.code, 6, `running app without windows exited ${noWindow.code}: ${noWindow.stderr}`);
 	assert.match(noWindow.stderr, /^error window_stale: App 'Empty' is running but has no controllable window/m, `window_stale message drifted: ${noWindow.stderr}`);
+
+	const rows = json(await runCli(["observe-ui", "--app", "Rows", "--json"], { env }), "observe-ui --app Rows");
+	const rowsText = await runCli(["observe-ui", "--app", "Rows"], { env });
+	assert.equal(rowsText.stdout.trim().split("\n").length, rows.nodes.length + 1, "JSON nodes and the text view disagree about what is shown");
+	const rowMatch = json(await runCli(["search-ui", "--state", rows.stateId, "--text", "下载", "--json"], { env }), "search-ui --text").matches[0];
+	assert.equal(rowMatch.role, "row", `folded sidebar entry projected as ${rowMatch.role}`);
+	assert.deepEqual(rowMatch.caps, ["open"], "folded sidebar entry lost its merged capability");
+	assert.equal(rowMatch.owners?.open, "@e55", `capability owner is not reported: ${JSON.stringify(rowMatch.owners)}`);
+	const inspectedRow = json(await runCli(["inspect-ui", "--state", rows.stateId, "--ref", rowMatch.ref, "--json"], { env }), "inspect-ui row");
+	assert.equal(inspectedRow.owners?.open, "@e55", "inspect-ui does not expose the capability owner");
+	actRequests.length = 0;
+	const pressed = await runCli(["act-ui", "--state", rows.stateId, "--json", "-"], {
+		env,
+		input: `${JSON.stringify([{ action: "press", ref: rowMatch.ref }])}\n`,
+	});
+	assert.equal(pressed.code, 0, `press on a folded row exited ${pressed.code}: ${pressed.stderr}`);
+	assert.equal(actRequests.at(-1)?.target?.ref, "e1411", `press was delivered to ${JSON.stringify(actRequests.at(-1)?.target)} instead of the element that owns the capability`);
 
 	const desktopOnly = await runCli(["observe-ui", "--app", "Desktop", "--json"], { env });
 	assert.equal(desktopOnly.code, 6, `app with only a desktop root exited ${desktopOnly.code}: ${desktopOnly.stderr}`);
