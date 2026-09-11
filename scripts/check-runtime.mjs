@@ -13,7 +13,7 @@ import { graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline
 import { project } from "../src/projection.ts";
 import { ResourceScheduler, StateStore, StaleResourceStateError } from "../src/runtime.ts";
 import { SavedStates } from "../src/state.ts";
-import { changesBetween, stabilizeRefs } from "../src/view.ts";
+import { changesBetween, renderChanges, stabilizeRefs } from "../src/view.ts";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -97,6 +97,32 @@ stabilizeRefs(baseLook.parsedOutline, regeneratedLook.parsedOutline);
 const regeneratedEditor = regeneratedLook.parsedOutline.nodes.find((node) => node.wireRef === "editor-new");
 assert.equal(regeneratedEditor?.ref, baseLook.parsedOutline.wireRefToRef.get("editor"), "structurally stable nodes did not retain refs when native refs regenerated");
 assert.equal(changesBetween(projected(baseLook.parsedOutline), projected(regeneratedLook.parsedOutline)).useFullView, false, "regenerated native refs forced an unnecessary full view");
+
+// A successor diff has to say what moved. State-only changes are named, and a node that
+// merely scrolled in or out of sight while staying out of the view says nothing worth a line.
+const visibilityBase = rawLook("look-vis-1", [
+	{ ref: "hidden-item", role: "AXMenuItem", title: "Far", actions: ["AXPress"], canPress: true, offscreen: true },
+	{ ref: "shown-item", role: "AXMenuItem", title: "Near", actions: ["AXPress"], canPress: true },
+]);
+const visibilityNext = rawLook("look-vis-2", [
+	{ ref: "hidden-item", role: "AXMenuItem", title: "Far", actions: ["AXPress"], canPress: true },
+	{ ref: "shown-item", role: "AXMenuItem", title: "Near", actions: ["AXPress"], canPress: true, focused: true, canFocus: true },
+]);
+const shownRef = visibilityNext.parsedOutline.wireRefToRef.get("shown-item");
+const hiddenRef = visibilityNext.parsedOutline.wireRefToRef.get("hidden-item");
+const visibilityDiff = changesBetween(projected(visibilityBase.parsedOutline), projected(visibilityNext.parsedOutline), new Set([shownRef]));
+assert.deepEqual(
+	visibilityDiff.changes.map((change) => change.ref),
+	[shownRef],
+	`successor diff kept an invisible node's visibility flip: ${JSON.stringify(visibilityDiff.changes)}`,
+);
+assert.equal(renderChanges(visibilityDiff.changes), `~ ${shownRef} focused`, `state changes are not named: ${renderChanges(visibilityDiff.changes)}`);
+const visibleFlip = changesBetween(projected(visibilityBase.parsedOutline), projected(visibilityNext.parsedOutline), new Set([shownRef, hiddenRef]));
+assert.equal(
+	renderChanges(visibleFlip.changes.filter((change) => change.ref === hiddenRef)),
+	`~ ${hiddenRef} onscreen`,
+	`a visible node's return to screen is not named: ${renderChanges(visibleFlip.changes)}`,
+);
 
 // Expanding a subtree the helper cut short must not renumber the state around it.
 const graftBase = rawLook("look-graft", [

@@ -334,9 +334,9 @@ async function performReadText(params: ReadTextParams, signal?: AbortSignal): Pr
 
 /** Successor view of a state transition: a diff when identity holds, the full view otherwise. */
 export function successorView(base: ProjectedNode[], next: Outline): { changes?: Change[]; nodes?: ProjectedNode[]; shown?: number; total?: number } {
-	const transition = changesBetween(base, project(next, UNFOLDED).nodes);
-	if (!transition.useFullView) return { changes: transition.changes };
 	const folded = project(next);
+	const transition = changesBetween(base, project(next, UNFOLDED).nodes, new Set(folded.nodes.map((node) => node.ref)));
+	if (!transition.useFullView) return { changes: transition.changes };
 	return { nodes: folded.nodes, shown: folded.shown, total: folded.total };
 }
 

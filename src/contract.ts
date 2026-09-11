@@ -206,7 +206,8 @@ export interface ReadTextResult {
 	text: string;
 }
 
-export type ChangedFields = Partial<Pick<ProjectedNode, "role" | "name" | "value" | "caps" | "state">>;
+/** `state` names the words that moved, e.g. `["onscreen"]`, not the whole state object. */
+export type ChangedFields = Partial<Pick<ProjectedNode, "role" | "name" | "value" | "caps">> & { state?: string[] };
 
 export type Change =
 	| { type: "added"; ref: string; parent?: string; node: ProjectedNode }

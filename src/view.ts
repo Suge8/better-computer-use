@@ -1,6 +1,6 @@
 import type { Change, ChangedFields } from "./contract.ts";
 import type { Outline, OutlineNode } from "./outline.ts";
-import { renderNodeBody, type ProjectedNode } from "./projection.ts";
+import { renderNodeBody, type ProjectedNode, type ProjectedState } from "./projection.ts";
 
 function numericRef(ref: string): number {
 	const match = /^@e(\d+)$/.exec(ref);
@@ -78,18 +78,46 @@ export interface Transition {
 	useFullView: boolean;
 }
 
+/** What a state word says when it turns on, and what it says when it turns off. */
+const STATE_WORDS = {
+	focused: ["focused", "unfocused"],
+	offscreen: ["offscreen", "onscreen"],
+	truncated: ["truncated", "complete"],
+} as const;
+
+/** Names every state word that moved, so a diff line never reads just "changed". */
+function changedStateWords(before: ProjectedState | undefined, after: ProjectedState | undefined): string[] {
+	const words: string[] = [];
+	for (const [key, [on, off]] of Object.entries(STATE_WORDS)) {
+		const was = Boolean(before?.[key as keyof typeof STATE_WORDS]);
+		const is = Boolean(after?.[key as keyof typeof STATE_WORDS]);
+		if (was !== is) words.push(is ? on : off);
+	}
+	const scroll = after?.scroll;
+	if (JSON.stringify(before?.scroll) !== JSON.stringify(scroll)) words.push(scroll ? `scroll ${scroll.seen}/${scroll.total}` : "scroll end");
+	return words;
+}
+
 function changedFields(before: ProjectedNode, after: ProjectedNode): ChangedFields {
 	const fields: ChangedFields = {};
 	if (before.role !== after.role) fields.role = after.role;
 	if (before.name !== after.name) fields.name = after.name;
 	if (before.value !== after.value) fields.value = after.value;
 	if (before.caps.join(",") !== after.caps.join(",")) fields.caps = after.caps;
-	if (JSON.stringify(before.state) !== JSON.stringify(after.state)) fields.state = after.state;
+	const state = changedStateWords(before.state, after.state);
+	if (state.length > 0) fields.state = state;
 	return fields;
 }
 
-/** Compares two unfolded projections of the same root. */
-export function changesBetween(base: ProjectedNode[], next: ProjectedNode[]): Transition {
+/** Scrolling in and out of sight is not news about a node the view does not show. */
+function isInvisibleVisibilityFlip(fields: ChangedFields, ref: string, visible?: Set<string>): boolean {
+	if (!visible || visible.has(ref)) return false;
+	const keys = Object.keys(fields);
+	return keys.length === 1 && keys[0] === "state" && fields.state!.every((word) => word === "onscreen" || word === "offscreen");
+}
+
+/** Compares two unfolded projections of the same root; `visible` is what the view will show. */
+export function changesBetween(base: ProjectedNode[], next: ProjectedNode[], visible?: Set<string>): Transition {
 	const before = new Map(base.map((node) => [node.ref, node]));
 	const after = new Map(next.map((node) => [node.ref, node]));
 	const changes: Change[] = [];
@@ -100,7 +128,8 @@ export function changesBetween(base: ProjectedNode[], next: ProjectedNode[]): Tr
 			continue;
 		}
 		const fields = changedFields(previous, node);
-		if (Object.keys(fields).length > 0) changes.push({ type: "updated", ref: node.ref, fields });
+		if (Object.keys(fields).length === 0 || isInvisibleVisibilityFlip(fields, node.ref, visible)) continue;
+		changes.push({ type: "updated", ref: node.ref, fields });
 	}
 	for (const node of base) if (!after.has(node.ref)) changes.push({ type: "removed", ref: node.ref, parent: node.parent });
 
@@ -117,7 +146,7 @@ function renderFields(fields: ChangedFields): string {
 		fields.name === undefined ? undefined : JSON.stringify(fields.name),
 		fields.value === undefined ? undefined : `=${JSON.stringify(fields.value)}`,
 		fields.caps === undefined ? undefined : `{${fields.caps.join(",")}}`,
-		fields.state === undefined ? undefined : Object.keys(fields.state).join(" ") || "no state",
+		fields.state?.join(" "),
 	].filter(Boolean);
 	return parts.join(" ") || "changed";
 }

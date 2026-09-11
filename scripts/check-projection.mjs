@@ -70,3 +70,26 @@ const menu = project(restoreOutline({
 }), { maxDepth: 8 });
 assert.deepEqual(menu.nodes.map((node) => node.ref), ["@e1", "@e2", "@e4"], `menu separator survived projection: ${menu.nodes.map((node) => node.ref).join(",")}`);
 console.log("PASS menu separators are dropped from the view");
+
+// AppKit hands out developer strings where a label belongs: private names, build-time
+// constants and Objective-C selectors. None of them is something an agent can read or say.
+const internalNames = ["_SC_SEARCH_FIELD", "SC_SEARCH_FIELD", "searchFieldAction:", "_NS:24", "insertText:replacementRange:"];
+const internals = project(restoreOutline({
+	lookId: "internal",
+	root: {
+		...menuNode("@e1", ""),
+		role: "AXMenu",
+		actions: [],
+		canPress: false,
+		children: [
+			...internalNames.map((name, index) => ({ ...menuNode(`@e${index + 2}`, name), children: [] })),
+			{ ...menuNode(`@e${internalNames.length + 2}`, "新建"), children: [] },
+			{ ...menuNode(`@e${internalNames.length + 3}`, "File:"), children: [] },
+		],
+	},
+}), { maxDepth: 8 });
+for (const name of internalNames) {
+	assert(!internals.nodes.some((node) => node.name === name), `projection presented the internal string '${name}' as a name`);
+}
+assert(internals.nodes.some((node) => node.name === "新建") && internals.nodes.some((node) => node.name === "File:"), "the internal-name filter swallowed a real label");
+console.log("PASS developer strings never stand in for a name");

@@ -151,15 +151,25 @@ function clean(value: string, limit: number): string {
 	return normalized.length > limit ? `${normalized.slice(0, limit)}…` : normalized;
 }
 
-/** AppKit leaks internal identifiers through titles; they are never a name an agent can use. */
+/**
+ * AppKit hands out developer strings where a label belongs — private names, build-time
+ * constants and Objective-C selectors. None of them is a name an agent can read or say.
+ */
+const INTERNAL_NAME_PATTERNS = [
+	/^_/,
+	/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/,
+	/^[a-z][A-Za-z0-9_]*:[A-Za-z0-9_:]*$/,
+	/Identifier(\.\d+)?$/,
+];
+
 function isInternalIdentifier(value: string): boolean {
-	return /^_+[A-Za-z]+[:.]/.test(value) || /Identifier(\.\d+)?$/.test(value);
+	return INTERNAL_NAME_PATTERNS.some((pattern) => pattern.test(value));
 }
 
 function nameOf(node: OutlineNode): string {
 	for (const candidate of [node.title, node.description]) {
 		const text = clean(candidate, MAX_NAME_CHARS);
-		if (text) return text;
+		if (text && !isInternalIdentifier(text)) return text;
 	}
 	return "";
 }

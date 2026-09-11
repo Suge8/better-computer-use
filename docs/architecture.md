@@ -91,7 +91,9 @@ find-roots → observe-ui → cached query → act-ui → successor state
 
 根的身份由 helper 的 root reference 承载，`look` 只按它定位。窗口 id 是窗口的一个属性，仅用于截图；菜单栏、菜单、sheet 和 popover 往往没有窗口 id，只能通过 root reference 观察。root reference 失效时 helper 直接返回 `root_not_found`，不会退回到应用的其他窗口。
 
-每个有菜单栏的应用暴露一个 `kind: "menubar"` 根（指向 AXMenuBar），它是应用全部命令的入口：`observe-ui --root @rN` 返回菜单栏项的投影，press 其中一项就打开对应菜单。菜单栏只在前台应用身上生效，背景应用的菜单栏项接受 AXPress 却不做事，因此 helper 把它当作 `foreground_required`，由投递梯子激活应用后重试。菜单栏和桌面一样：可以被指名观察，bcu 不会替 agent 默选它。
+每个有菜单栏的应用暴露一个 `kind: "menubar"` 根（指向 AXMenuBar），它是应用全部命令的入口：`observe-ui --root @rN` 返回菜单栏项的投影，press 其中一项就打开对应菜单。菜单栏只在前台应用身上生效，背景应用的菜单栏项接受 AXPress 却不做事，因此 helper 把它当作 `foreground_required`，由投递梯子激活应用后重试。菜单栏和桌面一样：可以被指名观察，bcu 不会替 agent 默选它，也不会出现在无过滤的 `find-roots` 里。
+
+菜单栏的 observation 故意遍历全部子菜单（TextEdit 约 350 节点、450 ms）：闭合菜单里的项因此能被 `search-ui` 找到并直接 press，一步就能执行一条菜单命令，不必先打开父菜单再观察一次。这份遍历只发生在被指名观察菜单栏根时。
 
 StateStore 有四道容量边界：
 
@@ -178,7 +180,9 @@ helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证�
 
 投影里带 `toggle` 能力的元素就是 helper 按第 4 条判定的那一类，两侧取同一组 role 与 subrole。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
 
-只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
+只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。变化行必须说出变了什么：值和名字按原格式，状态写成它变成了什么（`~ @e51 onscreen`、`~ @e51 focused`）。只是 offscreen↔onscreen 翻转、而该节点本来就不在首屏视图里的变化不输出。
+
+可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
 
 动作打开的根跟结果一起回来：helper 已经为判定 outcome 等过根森林的变化，`act-ui` 把新出现的根经 `src/root-refs.ts` 铸成稳定 `@r`，以 `roots: [{ref, kind, app, title}]` 返回，文本视图写作 `+ root @r12 menu "文件"`。按完菜单栏项的 agent 直接 `observe-ui --root @r12`，不需要再 `find-roots`，也就没有“动作刚发出、发现还没看到新根”的竞态。
 
