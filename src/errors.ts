@@ -11,8 +11,7 @@ export const ERROR_DEFINITIONS = {
 	action_failed: { exitCode: 9, recovery: "Observe the current UI before deciding whether the action is safe to retry." },
 	broker_unavailable: { exitCode: 10, recovery: "Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry." },
 	helper_unavailable: { exitCode: 11, recovery: "Run 'bcu doctor', repair the helper it reports, then retry." },
-	browser_unavailable: { exitCode: 12, recovery: "Install the requested browser or run 'bcu browser launch --browser helium'." },
-	unsupported_platform: { exitCode: 13, recovery: "Use bcu on a supported macOS or Windows interactive desktop session." },
+	unsupported_platform: { exitCode: 13, recovery: "Run bcu in an interactive macOS desktop session." },
 	state_too_large: { exitCode: 14, recovery: "Observe a smaller root or narrow the UI before retrying." },
 	internal_error: { exitCode: 1, recovery: "Run 'bcu doctor' and retry. If it repeats, report the full error." },
 } as const;
@@ -92,7 +91,7 @@ function explicitCode(error: Error): ErrorCode | undefined {
 function inferCode(message: string): ErrorCode {
 	if (/\bstate\b.*(?:stale|unavailable|evicted)|stale state/i.test(message)) return "stale_state";
 	if (/permission|Accessibility|Screen Recording/i.test(message) && /missing|required|grant/i.test(message)) return "permission_missing";
-	if (/\bapp\b.*(?:not running|not found)|executable was not found/i.test(message)) return /browser|chrome|helium/i.test(message) ? "browser_unavailable" : "app_not_found";
+	if (/\bapp\b.*(?:not running|not found)|executable was not found/i.test(message)) return "app_not_found";
 	if (/window|root/i.test(message) && /stale|not found|no longer|unavailable|closed/i.test(message)) return "window_stale";
 	if (/outline ref|element ref|@e\w*/i.test(message) && /stale|not available|not found|requires/i.test(message)) return "element_not_found";
 	if (/timed out|timeout/i.test(message)) return "action_timeout";

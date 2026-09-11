@@ -33,28 +33,13 @@ export interface FindParams {
 	app?: string;
 	bundleId?: string;
 	pid?: number;
-	/** Filters on the platform's best-effort presentation hint; only window vs transient is guaranteed. */
-	kind?: "window" | "menu" | "sheet" | "popover" | "dialog" | "browser_page";
+	/** Filters on the helper's best-effort presentation hint; only window vs transient is guaranteed. */
+	kind?: "window" | "menu" | "sheet" | "popover" | "dialog";
 }
 
 export interface StateTargetParams {
 	stateId?: string;
 	image?: ImageMode;
-}
-
-export interface NavigateBrowserParams extends StateTargetParams {
-	url: string;
-}
-
-export interface LaunchBrowserParams {
-	browser?: "helium" | "chrome";
-	url?: string;
-	port?: number;
-}
-
-export interface EvaluateBrowserParams {
-	stateId: string;
-	expression: string;
 }
 
 export interface ObserveParams extends ObserveTargetParams {
@@ -109,7 +94,7 @@ export interface ActParams extends StateTargetParams {
 }
 
 export interface ReadTextParams extends StateTargetParams {
-	ref?: string;
+	ref: string;
 	offset?: number;
 	limit?: number;
 }
@@ -130,9 +115,6 @@ export interface CliCommandParams {
 	"act-ui": ActParams;
 	"read-text": ReadTextParams;
 	"wait-for": WaitForParams;
-	"launch-browser": LaunchBrowserParams;
-	"navigate-browser": NavigateBrowserParams;
-	"evaluate-browser": EvaluateBrowserParams;
 }
 
 export const CLI_COMMAND_NAMES = [
@@ -144,9 +126,6 @@ export const CLI_COMMAND_NAMES = [
 	"act-ui",
 	"read-text",
 	"wait-for",
-	"launch-browser",
-	"navigate-browser",
-	"evaluate-browser",
 ] as const satisfies readonly (keyof CliCommandParams)[];
 export type CliCommandName = typeof CLI_COMMAND_NAMES[number];
 export type CliCommandExecutor<Name extends CliCommandName> = (

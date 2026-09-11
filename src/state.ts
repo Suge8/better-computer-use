@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { CdpPageSnapshot } from "./cdp.ts";
 import type { ImageMode } from "./contract.ts";
 import type { WindowNote } from "./note.ts";
 import { restoreOutline, serializeOutline, type LookResponse, type Outline, type SerializedOutline } from "./outline.ts";
@@ -40,12 +39,9 @@ export interface OperationState {
 	resourceKey?: string;
 	epoch?: number;
 	lastSearchOcrEscalatedLookId?: string;
-	browserSnapshot?: CdpPageSnapshot;
-	contextId?: string;
 }
 
-interface DesktopObservation {
-	kind: "desktop";
+export interface UiObservation {
 	target: CurrentTarget;
 	capture: CurrentCapture;
 	look: Omit<LookResponse, "parsedOutline" | "outline">;
@@ -53,14 +49,6 @@ interface DesktopObservation {
 	note?: WindowNote;
 	imageMode?: ImageMode;
 }
-
-interface BrowserObservation {
-	kind: "browser";
-	snapshot: CdpPageSnapshot;
-	outline: SerializedOutline;
-}
-
-export type UiObservation = DesktopObservation | BrowserObservation;
 
 export class SavedStates {
 	readonly store = new StateStore<UiObservation>(128);
@@ -86,25 +74,6 @@ export class SavedStates {
 
 	hydrate(record: StoredState<UiObservation> | undefined): OperationState {
 		if (!record) return {};
-		if (record.value.kind === "browser") {
-			const outline = restoreOutline(record.value.outline);
-			return {
-				currentCapture: { stateId: record.stateId, width: 0, height: 0, scaleFactor: 1, timestamp: record.value.snapshot.capturedAt },
-				currentLook: {
-					lookId: record.value.snapshot.snapshotId,
-					capturedAt: record.value.snapshot.capturedAt / 1000,
-					window: { windowId: 0, framePoints: { x: 0, y: 0, w: 1, h: 1 }, scaleFactor: 1, isModal: false, role: "document", subrole: "" },
-					outline: outline.root,
-					timings: {},
-					parsedOutline: outline,
-				},
-				currentOutline: outline,
-				resourceKey: record.resourceKey,
-				epoch: record.epoch,
-				browserSnapshot: record.value.snapshot,
-				contextId: record.value.snapshot.contextId,
-			};
-		}
 		const outline = restoreOutline(record.value.outline);
 		return {
 			currentTarget: { ...record.value.target },
@@ -126,7 +95,6 @@ export class SavedStates {
 			resourceKey,
 			epoch,
 			value: {
-				kind: "desktop",
 				target: { ...state.currentTarget },
 				capture: { ...state.currentCapture },
 				look: {

@@ -7,12 +7,9 @@ import {
 	type CliCommandExecutor,
 	type CliCommandName,
 	type CliCommandParams,
-	type EvaluateBrowserParams,
 	type ExpandUiParams,
 	type FindParams,
 	type InspectUiParams,
-	type LaunchBrowserParams,
-	type NavigateBrowserParams,
 	type ObserveParams,
 	type ReadTextParams,
 	type SearchUiParams,
@@ -35,15 +32,12 @@ export const CLI_COMMANDS = {
 	"act-ui": executor("act-ui"),
 	"read-text": executor("read-text"),
 	"wait-for": executor("wait-for"),
-	"launch-browser": executor("launch-browser"),
-	"navigate-browser": executor("navigate-browser"),
-	"evaluate-browser": executor("evaluate-browser"),
 } satisfies { [Name in CliCommandName]: CliCommandExecutor<Name> };
 
 const USAGE = `Usage: bcu <command> [options]
 
 Commands:
-  find-roots       Find desktop windows and browser pages
+  find-roots       Find desktop windows, sheets, and menus
   observe-ui       Observe one root and return a stateId
   search-ui        Search a saved UI outline
   expand-ui        Expand one saved element
@@ -51,9 +45,6 @@ Commands:
   act-ui           Read an action array from stdin and execute it
   read-text        Read text owned by a saved state
   wait-for         Wait for text or a role to appear or disappear
-  browser launch   Launch a managed browser
-  browser navigate Navigate a browser state
-  browser eval     Evaluate JavaScript in a browser state
   status           Report Broker status without starting it
   doctor           Start and diagnose Broker, helper, permissions, and config
   setup            Register and verify macOS permissions
@@ -139,7 +130,7 @@ function parseFind(args: string[]): FindParams {
 		"--app": { key: "app", kind: "string" },
 		"--bundle-id": { key: "bundleId", kind: "string" },
 		"--pid": { key: "pid", kind: "number" },
-		"--kind": { key: "kind", kind: "string", values: ["window", "menu", "sheet", "popover", "dialog", "browser_page"] },
+		"--kind": { key: "kind", kind: "string", values: ["window", "menu", "sheet", "popover", "dialog"] },
 	});
 	noPositionals(parsed);
 	return parsed.values as FindParams;
@@ -261,8 +252,12 @@ function parseReadText(args: string[]): ReadTextParams {
 		"--limit": { key: "limit", kind: "number" },
 	});
 	noPositionals(parsed);
-	required(parsed.values, "stateId", "--state");
-	return parsed.values as ReadTextParams;
+	return {
+		stateId: required(parsed.values, "stateId", "--state"),
+		ref: required(parsed.values, "ref", "--ref"),
+		offset: optionalNumber(parsed.values, "offset"),
+		limit: optionalNumber(parsed.values, "limit"),
+	};
 }
 
 function parseWait(args: string[]): WaitForParams {
@@ -277,48 +272,6 @@ function parseWait(args: string[]): WaitForParams {
 	required(parsed.values, "stateId", "--state");
 	if (!optionalString(parsed.values, "text") && !optionalString(parsed.values, "role")) invalid("wait-for requires --text or --role.");
 	return parsed.values as WaitForParams;
-}
-
-type BrowserCommand =
-	| { command: "launch-browser"; params: LaunchBrowserParams }
-	| { command: "navigate-browser"; params: NavigateBrowserParams }
-	| { command: "evaluate-browser"; params: EvaluateBrowserParams };
-
-function parseBrowser(args: string[]): BrowserCommand {
-	const [operation, ...operationArgs] = args;
-	if (operation === "launch") {
-		const parsed = parseOptions(operationArgs, {
-			"--browser": { key: "browser", kind: "string", values: ["helium", "chrome"] },
-			"--url": { key: "url", kind: "string" },
-			"--port": { key: "port", kind: "number" },
-		});
-		noPositionals(parsed);
-		return { command: "launch-browser", params: parsed.values as LaunchBrowserParams };
-	}
-	if (operation === "navigate") {
-		const parsed = parseOptions(operationArgs, { "--state": STATE, "--url": { key: "url", kind: "string" }, "--image": IMAGE });
-		noPositionals(parsed);
-		return {
-			command: "navigate-browser",
-			params: {
-				stateId: required(parsed.values, "stateId", "--state"),
-				url: required(parsed.values, "url", "--url"),
-				image: parsed.values.image as NavigateBrowserParams["image"],
-			},
-		};
-	}
-	if (operation === "eval") {
-		const parsed = parseOptions(operationArgs, { "--state": STATE, "--expression": { key: "expression", kind: "string" } });
-		noPositionals(parsed);
-		return {
-			command: "evaluate-browser",
-			params: {
-				stateId: required(parsed.values, "stateId", "--state"),
-				expression: required(parsed.values, "expression", "--expression"),
-			},
-		};
-	}
-	invalid("browser requires one subcommand: launch, navigate, or eval.");
 }
 
 function writeResult(result: unknown, json: boolean, text?: string): void {
@@ -369,12 +322,7 @@ async function runDoctor(json: boolean): Promise<void> {
 }
 
 async function runSetup(json: boolean): Promise<void> {
-	if (process.platform === "win32") {
-		const result = await requestBroker<Record<string, unknown>>("setup", { phase: "complete" });
-		writeResult(result, json, "setup: ready");
-		return;
-	}
-	if (process.platform === "darwin" && (!process.stdin.isTTY || !process.stderr.isTTY)) {
+	if (!process.stdin.isTTY || !process.stderr.isTTY) {
 		throw new BcuError("permission_missing", "bcu setup requires an interactive terminal so you can grant macOS permissions.");
 	}
 	const registered = await requestBroker<Record<string, unknown>>("setup", { phase: "register" });
@@ -399,6 +347,9 @@ function internalRequest(args: string[]): { command: string; params: Record<stri
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
+	if (process.platform !== "darwin") {
+		throw new BcuError("unsupported_platform", `bcu controls macOS apps and does not support platform '${process.platform}'.`);
+	}
 	const [internalCommand, ...internalArgs] = args;
 	if (internalCommand === "__serve") {
 		if (internalArgs.length > 0) invalid("__serve accepts no arguments.");
@@ -430,12 +381,6 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 		case "act-ui": return await runTool(command, await parseAct(commandArgs), json);
 		case "read-text": return await runTool(command, parseReadText(commandArgs), json);
 		case "wait-for": return await runTool(command, parseWait(commandArgs), json);
-		case "browser": {
-			const browser = parseBrowser(commandArgs);
-			if (browser.command === "launch-browser") return await runTool(browser.command, browser.params, json);
-			if (browser.command === "navigate-browser") return await runTool(browser.command, browser.params, json);
-			return await runTool(browser.command, browser.params, json);
-		}
 		case "status":
 			if (commandArgs.length > 0) invalid("status accepts no options except --json.");
 			return await runStatus(json);

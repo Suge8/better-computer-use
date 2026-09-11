@@ -1,4 +1,3 @@
-import type { ChildProcess } from "node:child_process";
 import { watch } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -78,51 +77,4 @@ export async function waitForPathReady(
 		if (!settled) await check();
 	}
 	await completion;
-}
-
-export function waitForCdpReady(
-	child: ChildProcess,
-	port: number,
-	options: ReadinessOptions,
-): Promise<void> {
-	if (options.signal?.aborted) return Promise.reject(abortError());
-	const stderr = child.stderr;
-	if (!stderr) return Promise.reject(new Error("Managed browser stderr is unavailable."));
-	stderr.setEncoding("utf8");
-	return new Promise<void>((resolve, reject) => {
-		let buffer = "";
-		let settled = false;
-		const finish = (error?: Error) => {
-			if (settled) return;
-			settled = true;
-			clearTimeout(timeout);
-			stderr.removeListener("data", onData);
-			child.removeListener("error", onError);
-			child.removeListener("exit", onExit);
-			options.signal?.removeEventListener("abort", onAbort);
-			stderr.resume();
-			if (error) reject(error);
-			else resolve();
-		};
-		const onData = (chunk: string) => {
-			buffer = (buffer + chunk).slice(-8_192);
-			const match = /DevTools listening on ws:\/\/.*:(\d+)\/devtools\/browser\//.exec(buffer);
-			if (!match) return;
-			const reportedPort = Number(match[1]);
-			if (reportedPort !== port) {
-				finish(new Error(`Managed browser reported CDP port ${reportedPort}, expected ${port}.`));
-				return;
-			}
-			finish();
-		};
-		const onError = (error: Error) => finish(error);
-		const onExit = (code: number | null, signal: NodeJS.Signals | null) =>
-			finish(new Error(`Managed browser exited before CDP was ready (${signal ?? code ?? "unknown"}).`));
-		const onAbort = () => finish(abortError());
-		const timeout = setTimeout(() => finish(new Error(`Timed out waiting for ${options.description}.`)), options.timeoutMs);
-		stderr.on("data", onData);
-		child.once("error", onError);
-		child.once("exit", onExit);
-		options.signal?.addEventListener("abort", onAbort, { once: true });
-	});
 }
