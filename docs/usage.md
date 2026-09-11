@@ -1,6 +1,6 @@
 # bcu CLI 使用手册
 
-`bcu` 提供 13 个顶层命令；`browser` 下有 `launch`、`navigate`、`eval` 三个子命令。所有成功结果写入 stdout，日志、交互提示和错误写入 stderr。
+`bcu` 提供 12 个命令：8 个 UI 命令和 4 个服务命令。所有成功结果写入 stdout，日志、交互提示和错误写入 stderr。
 
 ## 基本流程
 
@@ -43,7 +43,7 @@ screenshot: /Users/me/Library/Caches/bcu/shots/35d7….jpg (1200x800)
 }
 ```
 
-桌面观察和动作的 JSON 只保留后续调用需要的状态、目标、变化和执行证据；完整 outline 缓存在 Broker 中，不在 `details` 重复返回。可见 outline 位于 `result.text`，未展开内容用 `search-ui`、`expand-ui` 或 `inspect-ui` 查询。截图字节不会进入文本或 JSON 输出。macOS 截图目录权限为 `0700`，文件权限为 `0600`。
+观察和动作的 JSON 只保留后续调用需要的状态、目标、变化和执行证据；完整 outline 缓存在 Broker 中，不在 `details` 重复返回。可见 outline 位于 `result.text`，未展开内容用 `search-ui`、`expand-ui` 或 `inspect-ui` 查询。截图字节不会进入文本或 JSON 输出。截图目录权限为 `0700`，文件权限为 `0600`。
 
 失败时进程返回非零退出码，stdout 为空，即使使用 `--json` 也不会输出假成功对象。stderr 固定为两行：
 
@@ -60,10 +60,10 @@ recovery: Run observe-ui again and retry with the new stateId and refs.
 
 ```bash
 bcu find-roots [--query TEXT] [--app NAME] [--bundle-id ID] [--pid PID]
-               [--kind window|menu|sheet|popover|dialog|browser_page] [--json]
+               [--kind window|menu|sheet|popover|dialog] [--json]
 ```
 
-不带过滤条件时列出当前可见的桌面根节点和已连接的 CDP 页面。
+不带过滤条件时列出当前可见的全部根节点：窗口、菜单、sheet、popover 和对话框。
 
 ### `bcu observe-ui`
 
@@ -88,10 +88,10 @@ bcu observe-ui [--root @r1] [--app NAME] [--window-title TITLE]
 bcu search-ui --state ID [--text TEXT] [--role ROLE] [--action ACTION] [--limit N]
 bcu expand-ui --state ID --ref @e7 [--depth N]
 bcu inspect-ui --state ID --ref @e7 [--include-raw]
-bcu read-text --state ID [--ref @e7] [--offset N] [--limit N]
+bcu read-text --state ID --ref @e7 [--offset N] [--limit N]
 ```
 
-桌面 `read-text` 需要 `--ref`。浏览器状态可以直接分页读取整页文本。
+`read-text` 按 `@e` ref 分页读取该元素的文本。
 
 ## 执行动作
 
@@ -152,22 +152,9 @@ bcu wait-for --state ID (--text TEXT | --role ROLE) [--gone] [--timeout MS]
 
 `wait-for` 在一次有超时边界的调用中完成等待。条件未满足时返回 `action_timeout` 和非零退出码，不会返回 `ok:true`。调用方不需要在 shell 中轮询或 `sleep`。
 
-## 浏览器
+## 浏览器窗口
 
-启动受管浏览器：
-
-```bash
-bcu browser launch [--browser helium|chrome] [--url URL] [--port PORT]
-```
-
-观察返回的 `@r` 页面后，可以导航或执行 JavaScript：
-
-```bash
-bcu browser navigate --state ID --url https://example.com
-bcu browser eval --state ID --expression 'document.title'
-```
-
-页面观察、查询、动作和桌面窗口共用同一套 `stateId`、`@r`、`@e` 语义。
+浏览器窗口对 `bcu` 只是普通的无障碍窗口，可以照常 `observe-ui` 和 `act-ui`。页面级自动化（导航、DOM、console、network）由 `flow-browser-use` 负责，`bcu` 不提供 CDP 能力。
 
 ## Broker 与权限
 
@@ -180,11 +167,11 @@ bcu stop [--json]
 
 - `status` 不启动 Broker。
 - `doctor` 按需启动 Broker，并检查 helper、协议、权限和配置。
-- `setup` 在 macOS 注册 TCC 项，等待用户打开两个开关，重启 helper 后复查权限。非交互终端返回 `permission_missing`。
+- `setup` 注册 TCC 项，等待用户打开两个开关，重启 helper 后复查权限。非交互终端返回 `permission_missing`。
 - `stop` 在 Broker 未运行时直接成功，不会先启动一个新进程。
 
 普通业务命令自带 connect-or-start。不要先执行 `status` 再决定是否启动，这会增加调用并产生检查后状态改变的竞态。
 
 ## 并发语义
 
-缓存查询可并行执行。不同桌面进程或 CDP 页面可以并行；同一物理资源上的实时操作按顺序执行。两个 agent 从同一状态并发写入时，只有一个操作成功，另一个收到 `stale_state`。
+缓存查询可并行执行。不同应用进程可以并行；同一进程上的实时操作按顺序执行。两个 agent 从同一状态并发写入时，只有一个操作成功，另一个收到 `stale_state`。

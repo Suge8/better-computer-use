@@ -1,23 +1,31 @@
 # 架构
 
-`bcu` 由薄 CLI、用户级 Broker 和平台 native helper 组成。
+`bcu` 由薄 CLI、用户级 Broker 和 macOS native helper 组成。
 
 ```text
 任意有 shell 的 agent
         │
         ▼
    bcu CLI（无状态）
-        │ UDS / Named Pipe
+        │ Unix domain socket
         ▼
    用户级 Broker
    ├─ StateStore
    ├─ ResourceScheduler
-   ├─ screenshot artifacts
-   └─ CDP connections
+   └─ screenshot artifacts
         │
-        ├─ macOS: /Applications/bcu.app
-        └─ Windows: windows-bridge.exe
+        ▼
+   /Applications/bcu.app（Swift helper）
 ```
+
+## 运行时模块
+
+Broker 内的工具运行时按职责分四块：
+
+- `src/session.ts`：operation state、资源调度、保存状态的读写与工具执行入口；
+- `src/roots.ts` 与 `src/root-refs.ts`：根发现、目标选择、pairing 与稳定 `@r` 身份；
+- `src/observe.ts`：observation 采集、结果渲染与全部缓存查询；
+- `src/act.ts`：动作事务、投递升级、后置条件校验与后继观察。
 
 ## 职责边界
 
@@ -30,7 +38,7 @@ CLI 只负责：
 - 渲染文本或 JSON；
 - 把稳定错误码和恢复动作写入 stderr。
 
-CLI 不保存 UI 状态，不直接连接 native helper，也不管理 CDP。
+CLI 不保存 UI 状态，也不直接连接 native helper。平台守卫只在 CLI 入口执行一次：非 macOS 立即返回 `unsupported_platform`。
 
 ### Broker
 
@@ -40,22 +48,20 @@ Broker 是运行时单一事实源，拥有：
 - 每个资源的 epoch；
 - 同资源串行调度；
 - native helper 长连接；
-- CDP 页面与受管浏览器；
 - 截图文件生命周期；
 - helper 诊断和权限 setup。
 
-macOS 使用 Unix domain socket，目录权限为 `0700`，socket 权限为 `0600`。Windows 使用当前用户命名管道。Broker 按需启动，空闲 10 分钟后退出。
+IPC 使用 Unix domain socket，目录权限为 `0700`，socket 权限为 `0600`。Broker 按需启动，空闲 10 分钟后退出。
 
 ### Native helper
 
-helper 负责平台事实和输入投递：
+helper 负责系统事实和输入投递：
 
-- macOS Accessibility、ScreenCaptureKit、Vision；
-- Windows UIA、窗口捕获和输入；
+- Accessibility、ScreenCaptureKit、Vision；
 - element grounding、遮挡检查、动作验证；
 - 全局物理键鼠互斥。
 
-macOS helper 必须保留 `.app` 身份。TCC 授权绑定 bundle id 和代码签名身份，AppKit 也需要自己的主运行循环。把这部分合并进 Node 进程会让授权归因到启动终端。
+helper 必须保留 `.app` 身份。TCC 授权绑定 bundle id 和代码签名身份，AppKit 也需要自己的主运行循环。把这部分合并进 Node 进程会让授权归因到启动终端。
 
 ## 启动与退出
 
@@ -70,7 +76,7 @@ macOS helper 必须保留 `.app` 身份。TCC 授权绑定 bundle id 和代码�
 
 启动路径不使用 sleep 或重试轮询。`status` 只连接现有 Broker，`stop` 只停止现有 Broker。
 
-Broker 退出时关闭状态、调度器、CDP 和 Windows helper。macOS helper 继续由系统管理，以保留稳定的 TCC 身份和下次调用的低延迟。
+Broker 退出时关闭状态与调度器。helper 继续由系统管理，以保留稳定的 TCC 身份和下次调用的低延迟。
 
 ## 状态模型
 
@@ -95,7 +101,7 @@ StateStore 有四道容量边界：
 
 ## 截图 artifact
 
-helper v1 仍通过 native 协议返回 base64。Broker 在响应 CLI 前完成以下步骤：
+helper 通过 native 协议返回 base64。Broker 在响应 CLI 前完成以下步骤：
 
 1. 解码图片；
 2. 写入 `shots/<stateId>.jpg`；
@@ -109,8 +115,7 @@ helper v1 仍通过 native 协议返回 base64。Broker 在响应 CLI 前完成�
 
 ResourceScheduler 按物理资源维护单调递增 epoch：
 
-- 桌面资源按进程 PID 分 lane；
-- CDP 资源按页面 target 分 lane；
+- 资源按应用进程 PID 分 lane；
 - 缓存查询不进入调度器；
 - 不同 lane 可并行；
 - 同一 lane 的实时工作顺序执行。
@@ -121,10 +126,10 @@ mutation 必须携带 observation 对应的 epoch。两个调用从同一状态�
 
 ## Observation
 
-桌面 observation 包含：
+observation 包含：
 
 - 根节点身份和窗口几何；
-- Accessibility/UIA outline；
+- Accessibility outline；
 - 可选图片和 OCR；
 - helper timings；
 - 完整序列化 outline。
@@ -141,15 +146,13 @@ helper 返回 `worked`、`didnt` 或 `unknown`，并附投递与验证证据。�
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
 
-## Browser
+## 浏览器窗口
 
-CDP 页面与桌面窗口共用 `@r`、`stateId`、`@e` 和 epoch。Broker 保存 target id，CLI 不暴露第二套 context 标识。
-
-受管浏览器、CDP 连接和 console 缓冲都由 Broker 持有。Broker 退出时只关闭自己启动的浏览器，不关闭外部浏览器。桌面与浏览器的等待超时、动作失败使用同一公开错误语义。
+浏览器窗口是普通的 AX 窗口，没有专用代码路径。页面级自动化由 `flow-browser-use` 负责。
 
 ## 错误契约
 
-Broker 把 native、bridge 和 IPC 错误归一到 [`src/errors.ts`](../src/errors.ts) 的稳定代码。CLI 失败时 stdout 为空，stderr 输出：
+Broker 把 native、运行时和 IPC 错误归一到 [`src/errors.ts`](../src/errors.ts) 的稳定代码。CLI 失败时 stdout 为空，stderr 输出：
 
 ```text
 error <code>: <message>

@@ -1,8 +1,10 @@
 # Better Computer Use
 
-`bcu` 是面向 AI agent 的桌面操控 CLI。只要 agent 能运行 shell，就能用它观察和操作 macOS、Windows 应用，无需注入一组常驻工具 Schema。
+`bcu` 是面向 AI agent 的 macOS 桌面操控 CLI。只要 agent 能运行 shell，就能用它观察和操作 macOS 应用，无需注入一组常驻工具 Schema。
 
-`bcu` 可以查找窗口、读取界面结构、搜索控件、点击、输入、滚动、等待界面变化，也能通过 CDP 操作浏览器页面。状态、并发调度和截图文件由同一个用户级 Broker 管理。
+`bcu` 可以查找窗口、读取界面结构、搜索控件、点击、输入、滚动、等待界面变化。状态、并发调度和截图文件由同一个用户级 Broker 管理。
+
+网页自动化不属于 `bcu`，由 `flow-browser-use` 负责；浏览器窗口对 `bcu` 只是普通的无障碍窗口。
 
 ## 适用场景
 
@@ -11,7 +13,6 @@
 支持环境：
 
 - macOS 14 或更高版本
-- Windows 交互式桌面会话
 - Node.js 20.6 或更高版本
 
 ## 安装
@@ -27,7 +28,7 @@ which bcu
 
 `which bcu` 应指向 npm link 创建的全局命令。
 
-macOS 首次使用前运行：
+首次使用前运行：
 
 ```bash
 bcu setup
@@ -37,8 +38,6 @@ bcu setup
 
 - 辅助功能
 - 屏幕录制（新版 macOS 显示为“屏幕与系统音频录制”）
-
-Windows 不需要这套 TCC 授权流程。包内已包含 Windows helper，运行时不需要 Rust 或 Cargo。
 
 ## 快速开始
 
@@ -90,5 +89,3 @@ bcu stop          # 停止 Broker；macOS helper 保留授权身份并继续按�
 ## License
 
 MIT
-
-最后核对：2026-07-14

@@ -14,8 +14,7 @@
 | `action_failed` | 9 | 先观察当前 UI，再判断动作是否适合安全重试。 |
 | `broker_unavailable` | 10 | 运行 `bcu doctor`；若仍有陈旧进程，运行 `bcu stop` 后重试。 |
 | `helper_unavailable` | 11 | 运行 `bcu doctor`，按报告修复 helper 后重试。 |
-| `browser_unavailable` | 12 | 安装目标浏览器，或运行 `bcu browser launch --browser helium`。 |
-| `unsupported_platform` | 13 | 在受支持的 macOS 或 Windows 交互式桌面会话中使用 bcu。 |
+| `unsupported_platform` | 13 | 在交互式 macOS 桌面会话中运行 bcu。 |
 | `state_too_large` | 14 | 观察更小的根，或先缩小 UI 范围再重试。 |
 | `internal_error` | 1 | 运行 `bcu doctor` 后重试；若重复，报告完整错误。 |
 

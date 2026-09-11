@@ -1,18 +1,31 @@
-# Track upstream engine, own the tool surface
+# Hand-port the upstream macOS engine, own everything else
 
-bcu is a rebranded fork of `injaneity/pi-computer-use` that replaced the Pi-extension
-tool layer with a standalone CLI (`ToolResult` text contract, `BcuError`, broker-backed
-commands). Upstream keeps evolving both layers, so every sync must decide what follows
-and what stays.
+bcu began as a fork of `injaneity/pi-computer-use` and has since diverged on purpose:
+it is macOS-only, has no browser or CDP path, exposes a standalone CLI contract
+(`ToolResult` text, `BcuError` codes, broker-backed commands), and splits the runtime
+into session, roots, observe, and act modules. Upstream still evolves the parts bcu
+cares about: the Swift helper's accessibility traversal, capture, grounding, input
+delivery, and root discovery.
 
-Decision: sync by full `git merge upstream/main` (never cherry-pick, so the merge base
-stays current). The platform/engine layer (`native/*`, `src/platform/*`, `scripts/setup-helper.mjs`)
-follows upstream; the tool layer (`src/bridge.ts`, `src/contract.ts`, `src/actions.ts`,
-`src/cli.ts`) keeps the bcu architecture, and upstream extension-coupled modules
-(e.g. `src/output.ts`) are dropped rather than adapted. All identities are bcu-owned:
-`BCU_*` env vars, `~/.bcu` helper paths, `com.sugeh.bcu`, `bcu.app`. Upstream community
-files (CONTRIBUTING, release notes) are removed on sync.
+Decision: treat upstream as an engine reference, not a merge parent. When syncing,
+read the diff for the engine surface only and port the relevant hunks by hand:
 
-Rejected: cherry-picking selected fixes — permanently degrades the merge base and makes
-every future sync harder; adapting upstream's output envelope into the CLI — it exists to
-serve the Pi extension runtime we deleted.
+```bash
+git fetch upstream
+git diff upstream/main -- native/macos src/macos
+```
+
+Port what applies to the macOS engine; reimplement fixes that touch bcu-owned layers in
+bcu's own structure; drop everything else. All identities stay bcu-owned: `BCU_*` env
+vars, `~/.bcu` helper paths, `com.sugeh.bcu`, `bcu.app`.
+
+Rejected: whole-repository `git merge upstream/main`. Most upstream churn now lands in
+directories bcu deleted (Windows and Linux helpers, browser/CDP control, the Pi
+extension tool layer), so every merge would be a conflict-resolution exercise that
+re-adds deleted platforms before deleting them again. Keeping a current merge base is
+worth less than keeping the tree small, and the engine surface that actually matters is
+two directories wide.
+
+Rejected: vendoring upstream's Swift helper as an unmodified dependency. bcu's helper
+carries local protocol changes (architecture invariants, batched transactions, the agent
+cursor) that upstream does not have.

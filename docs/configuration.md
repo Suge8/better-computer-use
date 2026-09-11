@@ -12,7 +12,6 @@
 
 ```json
 {
-  "browser_use": true,
   "headless": false,
   "cursor_overlay": true
 }
@@ -21,12 +20,6 @@
 运行 `bcu doctor --json` 可以查看生效值、配置文件路径和解析错误。
 
 ## 选项
-
-### `browser_use`
-
-默认值：`true`
-
-设为 `false` 后，`bcu` 拒绝操作已知桌面浏览器窗口，`find-roots` 也不会列出 CDP 页面。
 
 ### `headless`
 
@@ -40,38 +33,29 @@
 
 默认值：`true`
 
-macOS 执行指针动作时显示一个不接收输入的 agent 光标动画。它不会移动系统指针，也不延迟动作。`headless: true` 会关闭动画。
+执行指针动作时显示一个不接收输入的 agent 光标动画。它不会移动系统指针，也不延迟动作。`headless: true` 会关闭动画。
 
 ## 环境变量
 
 ```bash
-BCU_BROWSER_USE=0
-BCU_BROWSER_USE=1
 BCU_HEADLESS=0
 BCU_HEADLESS=1
 BCU_CURSOR_OVERLAY=0
 BCU_CURSOR_OVERLAY=1
 BCU_DELIVERY_POLICY=default
 BCU_DELIVERY_POLICY=foreground
-BCU_CDP_PORT=9222
 ```
 
-前三组变量接受 `1/0`、`true/false`、`yes/no`、`on/off`、`enabled/disabled`。
+布尔变量接受 `1/0`、`true/false`、`yes/no`、`on/off`、`enabled/disabled`。
 
 `BCU_DELIVERY_POLICY` 只用于底层投递诊断。正常调用使用 `headless` 配置或 `act-ui --headless`。
 
-`BCU_CDP_PORT` 连接已开启远程调试端口的 Chromium 浏览器。连接成功后：
-
-- `find-roots --kind browser_page` 列出页面根节点；
-- `browser navigate` 优先走 CDP；
-- 相关结果会附带浏览器 console 消息。
-
 ## 运行时路径
 
-| 内容 | macOS | Windows |
-| --- | --- | --- |
-| Broker IPC | `~/Library/Caches/bcu/broker.sock` | `\\.\pipe\bcu-broker-<user-hash>` |
-| 截图 | `~/Library/Caches/bcu/shots/` | `%LOCALAPPDATA%\bcu\shots\` |
-| native helper | `/Applications/bcu.app` | `%USERPROFILE%\.bcu\helpers\windows-bridge.exe` |
+| 内容 | 路径 |
+| --- | --- |
+| Broker IPC | `~/Library/Caches/bcu/broker.sock` |
+| 截图 | `~/Library/Caches/bcu/shots/` |
+| native helper | `/Applications/bcu.app` |
 
 Broker 默认按需启动，空闲 10 分钟后退出。`status` 只检查现状；普通命令自动连接或启动。

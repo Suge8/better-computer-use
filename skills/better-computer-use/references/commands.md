@@ -7,7 +7,7 @@
 ```text
 bcu find-roots
   [--query TEXT] [--app NAME] [--bundle-id ID] [--pid PID]
-  [--kind window|menu|sheet|popover|dialog|browser_page]
+  [--kind window|menu|sheet|popover|dialog]
 
 bcu observe-ui
   [--root @rN] [--app NAME] [--window-title TITLE]
@@ -21,14 +21,14 @@ bcu expand-ui --state ID --ref @eN [--depth N]
 
 bcu inspect-ui --state ID --ref @eN [--include-raw]
 
-bcu read-text --state ID
-  [--ref @eN] [--offset N] [--limit N]
+bcu read-text --state ID --ref @eN
+  [--offset N] [--limit N]
 
 bcu wait-for --state ID (--text TEXT | --role ROLE)
   [--gone] [--timeout MILLISECONDS]
 ```
 
-桌面 `read-text` 需要 `--ref`；浏览器状态可直接读取整页文本。`wait-for` 未找到条件时返回 `action_timeout`。
+`read-text` 按 `@e` ref 读取元素文本。`wait-for` 未找到条件时返回 `action_timeout`。
 
 ## 动作
 
@@ -68,20 +68,6 @@ cat <<'JSON' | bcu act-ui --state ID --expect-text Saved --timeout 3000 --json -
 JSON
 ```
 
-## 浏览器
-
-```text
-bcu browser launch
-  [--browser helium|chrome] [--url URL] [--port PORT]
-
-bcu browser navigate --state ID --url URL
-  [--image auto|always|never]
-
-bcu browser eval --state ID --expression JAVASCRIPT
-```
-
-`launch` 返回页面根；随后用 `observe-ui` 取得页面状态。
-
 ## 诊断与权限
 
 ```text
@@ -91,4 +77,4 @@ bcu setup
 bcu stop
 ```
 
-这四条命令除全局 `--json` 外没有参数。普通业务命令会自行连接或启动 Broker，不需要先执行服务管理命令。`setup` 在 macOS 需要交互式终端。
+这四条命令除全局 `--json` 外没有参数。普通业务命令会自行连接或启动 Broker，不需要先执行服务管理命令。`setup` 需要交互式终端。

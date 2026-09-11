@@ -20,7 +20,7 @@ which bcu
 
 `package.json` 的 bin 入口应指向 `dist/bcu.mjs`。
 
-## macOS helper 缺失
+## helper 缺失
 
 正常安装会把 helper 放到：
 
@@ -47,7 +47,7 @@ node scripts/setup-helper.mjs --force
 codesign --verify --strict /Applications/bcu.app
 ```
 
-## macOS 权限缺失
+## 权限缺失
 
 在交互式终端运行：
 
@@ -91,7 +91,7 @@ bcu doctor
 
 普通命令会自动恢复失效的 socket。`status` 不启动 Broker，`stop` 在 Broker 未运行时也不会创建新进程。
 
-macOS IPC 路径为 `~/Library/Caches/bcu/broker.sock`。目录权限应为 `0700`，socket 权限应为 `0600`。
+IPC 路径为 `~/Library/Caches/bcu/broker.sock`。目录权限应为 `0700`，socket 权限应为 `0600`。
 
 ## 状态或 ref 过期
 
@@ -144,19 +144,3 @@ screenshot: /…/shots/<stateId>.jpg (宽x高)
 ```bash
 stat -f '%Sp %N' ~/Library/Caches/bcu/shots/*.jpg
 ```
-
-## 浏览器命令失败
-
-`bcu browser launch` 支持 Helium 和 Google Chrome，并使用固定应用路径。确认目标浏览器已安装，或用 `BCU_CDP_PORT` 连接已开启远程调试端口的 Chromium 浏览器。
-
-若 macOS 桌面浏览器回退路径提示 Apple Events JavaScript 被禁用，请在浏览器中启用“Allow JavaScript from Apple Events”后重试。
-
-## Windows
-
-Windows 必须运行在已解锁的交互式桌面会话中。helper 路径为：
-
-```text
-%USERPROFILE%\.bcu\helpers\windows-bridge.exe
-```
-
-Windows 不使用 `/Applications/bcu.app`，也没有 macOS TCC 授权步骤。npm 包内含 `prebuilt/windows/windows-bridge.exe`，首次运行会直接安装该文件，不需要 Rust 或 Cargo。若 `bcu doctor` 报 helper 缺失，请重新安装包；打包门会拒绝缺少该二进制的 tarball。
