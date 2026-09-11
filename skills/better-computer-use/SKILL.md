@@ -51,6 +51,6 @@ bcu wait-for --state STATE_ID --text Saved --timeout 3000 --json
 bcu observe-ui --app Finder --mode fused --image always --json
 ```
 
-浏览器窗口就是普通窗口，可以照常 observe/search/act。页面级自动化（导航、DOM、console）用 `flow-browser-use`。
+浏览器窗口就是普通窗口，可以照常 observe/search/act。页面级自动化（导航、DOM、console）用 `better-browser-use`。
 
 完整命令参数见 [references/commands.md](references/commands.md)，错误恢复见 [references/errors.md](references/errors.md)。
