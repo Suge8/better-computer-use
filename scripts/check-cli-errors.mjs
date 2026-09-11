@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { execFile as execFileCallback, spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { validateActions } from "../src/actions.ts";
 import { ERROR_CODE_ALIASES, normalizeCliError, toolResultFailure } from "../src/errors.ts";
@@ -19,9 +18,7 @@ const bundle = path.join(root, "dist", "bcu.mjs");
 const [npm, npmArgs] = npmInvocation(["run", "build", "--silent"]);
 await execFile(npm, npmArgs, { cwd: root });
 const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-cli-errors-"));
-const socketPath = process.platform === "win32"
-	? `\\\\.\\pipe\\bcu-cli-errors-${process.pid}-${randomUUID()}`
-	: path.join(temporaryRoot, "broker.sock");
+const socketPath = path.join(temporaryRoot, "broker.sock");
 
 function coded(code, message = "opaque native failure") {
 	return Object.assign(new Error(message), { code });
@@ -29,11 +26,7 @@ function coded(code, message = "opaque native failure") {
 
 function sourceErrorCodes() {
 	const swift = readFileSync(path.join(root, "native", "macos", "bridge.swift"), "utf8");
-	const rust = readFileSync(path.join(root, "native", "windows", "bridge-rs", "src", "error.rs"), "utf8");
-	return new Set([
-		...[...swift.matchAll(/code:\s*"([a-z0-9_]+)"/g)].map((match) => match[1]),
-		...[...rust.matchAll(/serde\(rename = "([a-z0-9_]+)"\)/g)].map((match) => match[1]),
-	]);
+	return new Set([...swift.matchAll(/code:\s*"([a-z0-9_]+)"/g)].map((match) => match[1]));
 }
 
 function checkKnownErrorsAndFailures() {
@@ -113,6 +106,26 @@ function run(args, { env = {}, input = "" } = {}) {
 	});
 }
 
+function runOnPlatform(platform, args) {
+	return new Promise((resolve, reject) => {
+		const source = `Object.defineProperty(process, "platform", { value: ${JSON.stringify(platform)} });\nawait import(${JSON.stringify(pathToFileURL(bundle).href)});\n`;
+		const child = spawn(process.execPath, ["--input-type=module", "-e", source, bundle, ...args], {
+			cwd: root,
+			env: { ...process.env, BCU_BROKER_SOCKET_PATH: socketPath },
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+		let stdout = "";
+		let stderr = "";
+		child.stdout.setEncoding("utf8");
+		child.stderr.setEncoding("utf8");
+		child.stdout.on("data", (chunk) => { stdout += chunk; });
+		child.stderr.on("data", (chunk) => { stderr += chunk; });
+		child.on("error", reject);
+		child.on("close", (code, signal) => resolve({ code, signal, stdout, stderr }));
+		child.stdin.end("");
+	});
+}
+
 function assertFailure(result, code) {
 	assert.notEqual(result.code, 0, `${code} unexpectedly exited zero`);
 	assert.equal(result.stdout, "", `${code} wrote protocol errors to stdout`);
@@ -183,11 +196,14 @@ try {
 	assert.equal(help.code, 0, "bcu --help failed");
 	const publicCommands = [
 		"find-roots", "observe-ui", "search-ui", "expand-ui", "inspect-ui", "act-ui", "read-text", "wait-for",
-		"browser launch", "browser navigate", "browser eval", "status", "doctor", "setup", "stop",
+		"status", "doctor", "setup", "stop",
 	];
 	for (const command of publicCommands) {
 		assert(help.stdout.includes(command), `bcu --help omitted ${command}`);
 	}
+	assert(!/browser/i.test(help.stdout), "bcu --help still advertises browser commands");
+	assertFailure(await run(["browser", "launch"]), "invalid_arguments");
+	assertFailure(await run(["read-text", "--state", "state-1"]), "invalid_arguments");
 
 	const compactOutput = await run(["observe-ui", "--app", "__bcu_compact_output__", "--json"]);
 	assert.equal(compactOutput.code, 0, "compact JSON output failed");
@@ -205,11 +221,12 @@ try {
 	assertFailure(await run(["inspect-ui", "--state", "state-1", "--ref", "@e404"]), "element_not_found");
 
 	await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-	if (process.platform !== "win32") await fs.rm(socketPath, { force: true });
+	await fs.rm(socketPath, { force: true });
 	assertFailure(await run(["find-roots"], {
 		env: { BCU_BROKER_ENTRY_PATH: path.join(temporaryRoot, "missing-broker.mjs") },
 	}), "broker_unavailable");
-	console.log(`CLI error checks passed (6 CLI scenarios, ${sourceErrorCodes().size} native codes, result failures, action validation).`);
+	assertFailure(await runOnPlatform("linux", ["find-roots"]), "unsupported_platform");
+	console.log(`CLI error checks passed (9 CLI scenarios, ${sourceErrorCodes().size} native codes, result failures, action validation).`);
 } finally {
 	if (server.listening) await new Promise((resolve) => server.close(resolve));
 	await fs.rm(temporaryRoot, { recursive: true, force: true });

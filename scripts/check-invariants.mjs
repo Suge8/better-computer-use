@@ -12,17 +12,22 @@ import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
 const agentCursorSwift = fs.readFileSync(path.join(root, "native/macos/agent_cursor.swift"), "utf8");
-const ts = fs.readFileSync(path.join(root, "src/bridge.ts"), "utf8");
+const toolModuleFiles = ["src/session.ts", "src/roots.ts", "src/observe.ts", "src/act.ts"];
+const toolModules = Object.fromEntries(toolModuleFiles.map((file) => [file, fs.readFileSync(path.join(root, file), "utf8")]));
+const ts = toolModuleFiles.map((file) => toolModules[file]).join("\n");
 const noteTs = fs.readFileSync(path.join(root, "src/note.ts"), "utf8");
 const configTs = fs.readFileSync(path.join(root, "src/config.ts"), "utf8");
 const contractTs = fs.readFileSync(path.join(root, "src/contract.ts"), "utf8");
 const cliTs = fs.readFileSync(path.join(root, "src/cli.ts"), "utf8");
 const brokerTs = fs.readFileSync(path.join(root, "src/broker.ts"), "utf8");
 const setupHelper = fs.readFileSync(path.join(root, "scripts/setup-helper.mjs"), "utf8");
-const macosHelperPath = fs.readFileSync(path.join(root, "src/platform/macos/helper-path.mjs"), "utf8");
+const macosHelperPath = fs.readFileSync(path.join(root, "src/macos/helper-path.mjs"), "utf8");
 const srcFiles = fs.readdirSync(path.join(root, "src"), { recursive: true })
 	.filter((file) => typeof file === "string" && file.endsWith(".ts"))
 	.map((file) => [file, fs.readFileSync(path.join(root, "src", file), "utf8")]);
+const scriptFiles = fs.readdirSync(path.join(root, "scripts"), { recursive: true })
+	.filter((file) => typeof file === "string" && file.endsWith(".mjs"))
+	.map((file) => [`scripts/${file}`, fs.readFileSync(path.join(root, "scripts", file), "utf8")]);
 const results = [];
 
 function check(name, fn) {
@@ -106,11 +111,24 @@ check("INV-8 deleted architecture-v1 identifiers absent", () => {
 	}
 });
 
-check("INV-5 listRoots seam stays platform-neutral", () => {
-	assert(srcFiles.some(([, text]) => /interface PlatformRoot[\s\S]*isModal: boolean/.test(text)), "PlatformRoot lacks required isModal fact");
-	assert(srcFiles.some(([, text]) => /interface PlatformRoot[\s\S]*metadata\?: Record<string, unknown>/.test(text)), "PlatformRoot lacks metadata escape hatch");
-	assert(!srcFiles.some(([, text]) => /interface PlatformRoot[\s\S]*\bpairing:/.test(text)), "PlatformRoot must not require pairing");
-	assert(!srcFiles.some(([, text]) => /interface PlatformRoot[\s\S]*\bsheetCount:/.test(text)), "PlatformRoot must not require sheetCount");
+check("INV-5 root contract carries modality as a fact and hints as metadata", () => {
+	const protocol = fs.readFileSync(path.join(root, "src/macos/protocol.ts"), "utf8");
+	assert(/interface HelperRoot[\s\S]*isModal: boolean/.test(protocol), "HelperRoot lacks required isModal fact");
+	assert(/interface HelperRoot[\s\S]*metadata\?: Record<string, unknown>/.test(protocol), "HelperRoot lacks metadata escape hatch");
+	assert(!/interface HelperRoot[\s\S]*\bpairing:/.test(protocol), "HelperRoot must not require pairing");
+	assert(!/interface HelperRoot[\s\S]*\bsheetCount:/.test(protocol), "HelperRoot must not require sheetCount");
+});
+
+check("INV-5 macOS is the only platform surface", () => {
+	for (const forbidden of ["src/platform", "native/windows", "native/linux", "prebuilt/windows", "prebuilt/linux", "src/cdp.ts"]) {
+		assert(!fs.existsSync(path.join(root, forbidden)), `${forbidden} still exists`);
+	}
+	for (const [file, text] of srcFiles) {
+		assert(!/\bwin32\b|\bWindows helper\b|\bCDP\b|browser_use/.test(text), `non-macOS or browser surface appears in src/${file}`);
+	}
+	const guards = [...cliTs.matchAll(/process\.platform !== "darwin"/g)].length;
+	assert(guards === 1, `expected exactly one CLI platform guard, found ${guards}`);
+	assert(/unsupported_platform/.test(cliTs), "CLI platform guard does not raise unsupported_platform");
 });
 
 check("explicit root is not replaced by a modal window behind it", () => {
@@ -150,8 +168,8 @@ check("INV-6 static note is derived and disposable", () => {
 		assert(/^note|^render/.test(match[1]), `src/note.ts exports non-note/render function ${match[1]}`);
 	}
 	assert(!/export\s+(let|const|var)\s+/.test(noteTs), "src/note.ts exports mutable or module state");
-	const allowed = new Set(["captureCurrentTarget", "runActionTool", "shutdownComputerUseSession"]);
-	for (const match of ts.matchAll(/runtimeState\.currentNote\s*=/g)) {
+	const allowed = new Set(["captureCurrentTarget", "performAct"]);
+	for (const match of ts.matchAll(/state\.currentNote\s*=/g)) {
 		const fn = enclosingFunctionName(ts, match.index ?? 0);
 		assert(allowed.has(fn), `runtimeState.currentNote assigned in ${fn}`);
 	}
@@ -171,7 +189,7 @@ check("INV-8 tsc no unused locals", () => {
 check("INV-9 immutable state ownership", () => {
 	const state = fs.readFileSync(path.join(root, "src/state.ts"), "utf8");
 	const runtime = fs.readFileSync(path.join(root, "src/runtime.ts"), "utf8");
-	assert(!/runtimeState\.current(Target|Capture|Look|Outline|Note|ImageMode|StateTarget)/.test(ts), "global current UI state remains in bridge");
+	assert(!/runtimeState\.current(Target|Capture|Look|Outline|Note|ImageMode|StateTarget)/.test(ts), "global current UI state remains in the tool modules");
 	assert(state.includes("class SavedStates") && state.includes("new StateStore<UiObservation>"), "unified bounded observation store is missing");
 	for (const gate of ["maxEntries", "maxBytes", "maxRecordBytes", "ttlMs"]) assert(runtime.includes(gate), `state store lacks ${gate} gate`);
 	assert(!/image: state\.currentLook\.image \? \{ \.\.\.state\.currentLook\.image \}/.test(state), "saved state retains screenshot bytes");
@@ -184,17 +202,15 @@ check("INV-10 resource-keyed scheduling", () => {
 
 check("INV-11 unified CLI contract and bridge ownership", () => {
 	const commands = [...cliTs.matchAll(/^\s*"([^"]+)": executor\("[^"]+"\),$/gm)].map((match) => match[1]);
-	const expected = ["find-roots", "observe-ui", "search-ui", "expand-ui", "inspect-ui", "act-ui", "read-text", "wait-for", "launch-browser", "navigate-browser", "evaluate-browser"];
+	const expected = ["find-roots", "observe-ui", "search-ui", "expand-ui", "inspect-ui", "act-ui", "read-text", "wait-for"];
 	assert(JSON.stringify(commands) === JSON.stringify(expected), `unexpected public CLI tool surface: ${commands.join(", ")}`);
 	for (const command of expected) assert(contractTs.includes(`"${command}"`), `CLI parameter contract lacks ${command}`);
 	assert(cliTs.includes("satisfies { [Name in CliCommandName]: CliCommandExecutor<Name> }"), "CLI command table is not type-checked against the contract");
 	const sourceFiles = [
 		...srcFiles.map(([file, text]) => [`src/${file}`, text]),
-		...fs.readdirSync(path.join(root, "scripts"), { recursive: true })
-			.filter((file) => typeof file === "string" && file.endsWith(".mjs"))
-			.map((file) => [`scripts/${file}`, fs.readFileSync(path.join(root, "scripts", file), "utf8")]),
+		...scriptFiles,
 	];
-	const bridgeImports = [];
+	const toolModuleImports = new Set();
 	for (const [file, text] of sourceFiles) {
 		const source = typescript.createSourceFile(file, text, typescript.ScriptTarget.Latest, false, file.endsWith(".ts") ? typescript.ScriptKind.TS : typescript.ScriptKind.JS);
 		const visit = (node) => {
@@ -206,42 +222,33 @@ check("INV-11 unified CLI contract and bridge ownership", () => {
 				const requireCall = typescript.isIdentifier(node.expression) && node.expression.text === "require";
 				if (dynamicImport || requireCall) specifier = node.arguments[0].text;
 			}
-			if (specifier?.endsWith("bridge.ts")) bridgeImports.push(file);
+			if (specifier && toolModuleFiles.some((module) => specifier.endsWith(`/${module.replace("src/", "")}`))) toolModuleImports.add(file);
 			typescript.forEachChild(node, visit);
 		};
 		visit(source);
 	}
-	const allowedBridgeImports = ["scripts/check-linux-live.mjs", "scripts/check-session-lifecycle.mjs", "src/broker.ts"];
-	assert(JSON.stringify(bridgeImports.sort()) === JSON.stringify(allowedBridgeImports), `unexpected bridge runtime owners: ${bridgeImports.join(", ")}`);
-	const cubench = fs.readFileSync(path.join(root, "scripts/pi-cubench-agent.mjs"), "utf8");
-	const cubenchCommands = [...cubench.matchAll(/tool\("([^"]+)"/g)].map((match) => match[1]).sort();
-	assert(JSON.stringify(cubenchCommands) === JSON.stringify(["act-ui", "find-roots", "observe-ui", "search-ui"]), `unexpected Cubench broker commands: ${cubenchCommands.join(", ")}`);
-	for (const command of cubenchCommands) assert(brokerTs.includes(`case "${command}"`), `broker does not dispatch Cubench command ${command}`);
-	assert(cubench.includes('from "../src/client.ts"'), "Cubench agent does not use the broker client");
+	// Only the broker owns the tool runtime; everything else must go through IPC.
+	const externalOwners = [...toolModuleImports].filter((file) => !toolModuleFiles.includes(file) && !file.startsWith("src/"));
+	assert(externalOwners.length === 0, `unexpected tool-runtime owners outside the broker: ${externalOwners.join(", ")}`);
+	assert(toolModuleImports.has("src/broker.ts"), "broker no longer owns the tool runtime");
+	for (const command of expected) assert(brokerTs.includes(`case "${command}"`), `broker does not dispatch ${command}`);
 	assert(cliTs.includes('await import("./broker.ts")'), "broker is not lazily loaded behind __serve");
 	assert(!fs.existsSync(path.join(root, "extensions")), "Pi extension surface still exists");
 });
 
-check("INV-12 parallel native transports", () => {
-	const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
-	const windows = fs.readFileSync(path.join(root, "native/windows/bridge-rs/src/main.rs"), "utf8");
+check("INV-12 concurrent native transport", () => {
 	assert(swift.includes("Thread.detachNewThread") && swift.includes("physicalInputLock"), "macOS helper is not concurrent with protected physical input");
 	assert(swift.includes("flock(lockFile, LOCK_EX | LOCK_NB)"), "macOS helper daemon is not singleton-safe");
-	assert(windows.includes("thread::spawn") && windows.includes("physical_input_lock"), "Windows helper is not concurrent with protected physical input");
 });
 
 check("INV-14 native batches settle once", () => {
-	const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
-	const windows = fs.readFileSync(path.join(root, "native/windows/bridge-rs/src/main.rs"), "utf8");
-	assert(ts.includes("currentPlatformBackend.actBatch") && ts.includes("dispatchUiTransaction"), "bridge does not route batches through the native transaction seam");
+	assert(ts.includes("macosBackend.actBatch") && ts.includes("dispatchUiTransaction"), "act does not route batches through the native transaction seam");
 	assert(swift.includes('case "actBatch"') && swift.includes("deferRootDelta"), "macOS helper does not defer per-step root deltas");
-	assert(windows.includes('"actBatch" => handle_act_batch') && windows.includes("deferRootDelta"), "Windows helper does not defer per-step root deltas");
-	assert(swift.includes('response["stoppedAt"]') && windows.includes('response["stoppedAt"]'), "native batches do not report their checked stop boundary");
+	assert(swift.includes('response["stoppedAt"]'), "native batches do not report their checked stop boundary");
 });
 
 check("INV-15 semantic action postconditions", () => {
 	const actions = fs.readFileSync(path.join(root, "src/actions.ts"), "utf8");
-	const swift = fs.readFileSync(path.join(root, "native/macos/bridge.swift"), "utf8");
 	assert(contractTs.includes("expect?: {") && contractTs.includes("timeoutMs?: number"), "act_ui does not expose a semantic postcondition");
 	assert(ts.includes('code: "postcondition_failed"') && ts.includes('status: "verified" | "preexisting" | "failed"'), "postcondition failure is not represented honestly");
 	assert(ts.includes("outcomeAfterCheck") && actions.includes('check === "verified"') && actions.includes('return "worked"'), "newly verified expectations do not determine the request outcome");
@@ -268,44 +275,24 @@ check("INV-17 macOS agent cursor stays native, configurable, and background-only
 });
 
 check("INV-19 all timed waits are classified", () => {
-	const helper = fs.readFileSync(path.join(root, "src/platform/macos/helper.ts"), "utf8");
+	const helper = fs.readFileSync(path.join(root, "src/macos/helper.ts"), "utf8");
 	const smoke = fs.readFileSync(path.join(root, "scripts/check-e2e-smoke.mjs"), "utf8");
 	const timedFiles = [
 		...srcFiles.map(([file, text]) => [`src/${file}`, text]),
-		...fs.readdirSync(path.join(root, "scripts"), { recursive: true })
-			.filter((file) => typeof file === "string" && file.endsWith(".mjs"))
-			.map((file) => [`scripts/${file}`, fs.readFileSync(path.join(root, "scripts", file), "utf8")]),
+		...scriptFiles,
 	];
 	const rules = [
 		["src/broker.ts", /idleTimer =/, "broker idle TTL"],
-		["src/cdp.ts", /Timed out connecting to CDP target/, "connection timeout"],
-		["src/cdp.ts", /NAVIGATE_LOAD_TIMEOUT_MS/, "navigation event timeout"],
-		["src/cdp.ts", /CDP command.*timed out/, "command timeout"],
-		["src/bridge.ts", /cleanup\(\);\s*resolve\(\)/, "abortable timer primitive"],
-		["src/bridge.ts", /^await sleep\(200/, "explicit browser wait_for"],
-		["src/bridge.ts", /^} while \(Date\.now/, "explicit browser wait_for deadline"],
-		["src/bridge.ts", /^await sleep\(prepared\.params\.ms/, "explicit desktop wait action"],
-		["src/bridge.ts", /^await sleep\(settleMsForExecution/, "action settle"],
-		["src/bridge.ts", /^await sleep\(Math\.max/, "explicit browser wait action"],
-		["src/bridge.ts", /^if \(!satisfied\) await sleep\(100/, "semantic browser postcondition"],
-		["src/bridge.ts", /^} while \(!satisfied/, "semantic browser postcondition deadline"],
-		["src/bridge.ts", /^await sleep\(ACTION_SETTLE_MS/, "navigation settle"],
-		["src/readiness.ts", /options\.description/, "readiness failure timeout", 2],
-		["src/platform/macos/helper.ts", /Command timed out after/, "helper process timeout"],
-		["src/platform/macos/helper.ts", /old bcu helper to exit/, "helper exit timeout"],
-		["src/platform/macos/helper.ts", /Daemon command.*timed out/, "helper command timeout"],
-		["src/platform/windows/helper.ts", /Command timed out after/, "Windows process timeout"],
-		["src/platform/windows/helper.ts", /Helper command.*timed out/, "Windows command timeout"],
-		["src/platform/linux/helper.ts", /Command timed out after/, "Linux process timeout"],
-		["src/platform/linux/helper.ts", /Helper command.*timed out/, "Linux command timeout"],
+		["src/session.ts", /cleanup\(\);\s*resolve\(\)/, "abortable timer primitive"],
+		["src/act.ts", /^await sleep\(prepared\.params\.ms/, "explicit desktop wait action"],
+		["src/act.ts", /^else await sleep\(settleMsForExecution/, "action settle"],
+		["src/readiness.ts", /options\.description/, "readiness failure timeout"],
+		["src/macos/helper.ts", /Command timed out after/, "helper process timeout"],
+		["src/macos/helper.ts", /old bcu helper to exit/, "helper exit timeout"],
+		["src/macos/helper.ts", /Daemon command.*timed out/, "helper command timeout"],
 		["scripts/check-invariants.mjs", /recentCompletedRequestIds\?\.includes/, "abandoned-request completion poll", 2],
-		["scripts/check-linux-live.mjs", /await delay\(|setTimeout\(resolve, ms\)|while \(Date\.now/, "Linux live-test settle", 5],
-		["scripts/check-platform-linux.mjs", /fs\.chmodSync/, "Linux install-race fixture"],
 		["scripts/setup-helper.mjs", /local signing identity lock/, "signing lock timeout"],
-		["scripts/check-e2e-smoke.mjs", /Timed out waiting for/, "live-test failure timeout"],
-		["scripts/check-broker-lifecycle.mjs", /Timed out waiting for/, "broker-test failure timeout"],
-		["scripts/check-session-lifecycle.mjs", /CDP socket remained open/, "session-test failure timeout"],
-		["scripts/check-windows-build-scripts.mjs", /Timed out after/, "build-test failure timeout"],
+		["scripts/lib/harness.mjs", /Timed out waiting for/, "harness failure timeout"],
 		["scripts/check-invariants.mjs", /timeout calling/, "live invariant call timeout", 2],
 		["scripts/check-runtime-concurrency.mjs", /^const sleep =/, "scheduler test work"],
 		["scripts/check-runtime-concurrency.mjs", /^await sleep\(25\)/, "scheduler test work"],
@@ -327,7 +314,6 @@ check("INV-19 all timed waits are classified", () => {
 	assert(unclassified.length === 0, `unclassified timed waits:\n${unclassified.join("\n")}`);
 	for (const rule of rules) assert(rule.count === rule.expected, `${rule.file} ${rule.category} expected ${rule.expected}, found ${rule.count}`);
 	assert(helper.includes("waitForPathReady"), "macOS helper does not wait on socket filesystem events");
-	assert(ts.includes("waitForCdpReady"), "managed browser does not wait on the CDP stderr event");
 	assert(setupHelper.includes("watch(directory)") && !setupHelper.includes("retryMs"), "signing lock is not event-driven");
 	assert(smoke.includes("AXObserverAddNotification") && smoke.includes("NSWorkspace.shared.open") && smoke.includes("makeProcessSource"), "live smoke does not use launch, process, and AX events");
 });
@@ -335,7 +321,7 @@ check("INV-19 all timed waits are classified", () => {
 check("INV-18 consolidated actions and diff-first resulting views", () => {
 	const actions = fs.readFileSync(path.join(root, "src/actions.ts"), "utf8");
 	const view = fs.readFileSync(path.join(root, "src/view.ts"), "utf8");
-	const macBackend = fs.readFileSync(path.join(root, "src/platform/macos/backend.ts"), "utf8");
+	const macBackend = fs.readFileSync(path.join(root, "src/macos/backend.ts"), "utf8");
 	assert(actions.includes("prepareAction") && actions.includes("canRetryInForeground"), "action preparation and safe recovery are not consolidated");
 	assert(!fs.existsSync(path.join(root, "src/interaction.ts")), "superseded interaction policy module still exists");
 	assert(!ts.includes("responseMode") && !contractTs.includes("responseMode"), "alternate confirmation-only action path still exists");
@@ -614,7 +600,6 @@ async function liveChecks() {
 				console.log(`SKIP LIVE note frontier (no truncated or partially scrolled node in ${windowLabel(target)})`);
 			}
 		});
-		console.log("LIVE INV-4 act behavior is limited to hitTest, stale_ref, and stale_look; side-effect verification belongs to cubench.");
 		assert(Number.isFinite(target.pid), `could not resolve pid for ${windowLabel(target)}`);
 		const centerX = Math.floor(look.image.width / 2);
 		const centerY = Math.floor(look.image.height / 2);

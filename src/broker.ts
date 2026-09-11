@@ -2,28 +2,15 @@ import { chmodSync, closeSync, constants as fsConstants, mkdirSync, openSync, un
 import net from "node:net";
 import path from "node:path";
 import { materializeScreenshot } from "./artifacts.ts";
-import {
-	executeAct,
-	executeEvaluateBrowser,
-	executeExpandUi,
-	executeFind,
-	executeInspectUi,
-	executeLaunchBrowser,
-	executeNavigateBrowser,
-	executeObserve,
-	executeReadText,
-	executeSearchUi,
-	executeWaitFor,
-	shutdownComputerUseSession,
-} from "./bridge.ts";
+import { executeAct } from "./act.ts";
+import { executeExpandUi, executeInspectUi, executeObserve, executeReadText, executeSearchUi, executeWaitFor } from "./observe.ts";
+import { executeFind } from "./roots.ts";
+import { shutdownComputerUseSession } from "./session.ts";
 import type {
 	ActParams,
-	EvaluateBrowserParams,
 	ExpandUiParams,
 	FindParams,
 	InspectUiParams,
-	LaunchBrowserParams,
-	NavigateBrowserParams,
 	ObserveParams,
 	ReadTextParams,
 	SearchUiParams,
@@ -35,7 +22,6 @@ import { normalizeCliError, toolResultFailure } from "./errors.ts";
 import {
 	BROKER_PROTOCOL_VERSION,
 	BROKER_SOCKET_PATH,
-	BROKER_SOCKET_USES_FILESYSTEM,
 	decodeJsonLines,
 	parseBrokerRequest,
 	type BrokerError,
@@ -43,9 +29,8 @@ import {
 	type BrokerRequest,
 	type BrokerResponse,
 } from "./ipc.ts";
-import { HELPER_APP_PATH, HELPER_PROTOCOL_VERSION, macosHelper } from "./platform/macos/helper.ts";
-import { checkMacosPermissions } from "./platform/macos/permissions.ts";
-import { WINDOWS_HELPER_PROTOCOL_VERSION, windowsHelper } from "./platform/windows/helper.ts";
+import { HELPER_APP_PATH, HELPER_PROTOCOL_VERSION, macosHelper } from "./macos/helper.ts";
+import { checkMacosPermissions } from "./macos/permissions.ts";
 import { ensurePermissions } from "./permissions.ts";
 import { StaleResourceStateError } from "./runtime.ts";
 
@@ -53,9 +38,7 @@ const DEFAULT_IDLE_MS = 10 * 60 * 1_000;
 
 const MACOS_O_EXLOCK = 0x20;
 
-function acquireStartupLock(): number | undefined {
-	if (!BROKER_SOCKET_USES_FILESYSTEM) return undefined;
-	if (process.platform !== "darwin") throw new Error(`bcu broker IPC does not support platform '${process.platform}'.`);
+function acquireStartupLock(): number {
 	const directory = path.dirname(BROKER_SOCKET_PATH);
 	mkdirSync(directory, { recursive: true, mode: 0o700 });
 	chmodSync(directory, 0o700);
@@ -67,7 +50,6 @@ function releaseStartupLock(fileDescriptor: number | undefined): void {
 }
 
 function unlinkBrokerSocket(): void {
-	if (!BROKER_SOCKET_USES_FILESYSTEM) return;
 	try {
 		unlinkSync(BROKER_SOCKET_PATH);
 	} catch (error) {
@@ -96,44 +78,29 @@ async function prepareSocketPath(): Promise<boolean> {
 	return true;
 }
 
-function helperProtocolVersion(): number | null {
-	if (process.platform === "darwin") return HELPER_PROTOCOL_VERSION;
-	if (process.platform === "win32") return WINDOWS_HELPER_PROTOCOL_VERSION;
-	return null;
-}
-
 async function helperDiagnostics(): Promise<unknown> {
-	if (process.platform === "darwin") {
-		await macosHelper.ensureInstalled();
-		if (!(await macosHelper.ensureDaemon())) throw Object.assign(new Error(`bcu helper app daemon is unavailable at ${HELPER_APP_PATH}.`), { code: "helper_unavailable" });
-		return await macosHelper.ensureProtocol();
-	}
-	if (process.platform === "win32") return await windowsHelper.command("diagnostics");
-	throw Object.assign(new Error(`bcu does not support platform '${process.platform}' yet.`), { code: "unsupported_platform" });
+	await macosHelper.ensureInstalled();
+	if (!(await macosHelper.ensureDaemon())) throw Object.assign(new Error(`bcu helper app daemon is unavailable at ${HELPER_APP_PATH}.`), { code: "helper_unavailable" });
+	return await macosHelper.ensureProtocol();
 }
 
 async function doctor(): Promise<unknown> {
-	const helper = await helperDiagnostics();
-	const permissions = process.platform === "darwin" ? await checkMacosPermissions() : undefined;
 	return {
 		broker: { pid: process.pid, protocolVersion: BROKER_PROTOCOL_VERSION },
-		platform: process.platform,
-		helper,
-		permissions,
+		helper: await helperDiagnostics(),
+		permissions: await checkMacosPermissions(),
 		config: loadComputerUseConfig(),
 	};
 }
 
 async function setup(phase: unknown): Promise<unknown> {
-	if (process.platform === "win32") return { platform: "win32", ready: true };
-	if (process.platform !== "darwin") throw Object.assign(new Error(`bcu does not support platform '${process.platform}' yet.`), { code: "unsupported_platform" });
 	await helperDiagnostics();
 	if (phase === "register") return await macosHelper.command("registerPermissions");
 	if (phase !== "complete") throw Object.assign(new Error("setup phase must be 'register' or 'complete'."), { code: "invalid_args" });
 	await macosHelper.restart();
 	const permissions = await checkMacosPermissions();
 	ensurePermissions(permissions, ["accessibility", "screenRecording"], "bcu still lacks required macOS permissions.");
-	return { platform: "darwin", ready: true, permissions };
+	return { ready: true, permissions };
 }
 
 async function withArtifact(result: ToolResult): Promise<ToolResult> {
@@ -154,11 +121,8 @@ async function dispatchCommand(request: BrokerRequest): Promise<unknown> {
 		case "expand-ui": return await withArtifact(await executeExpandUi(request.args as unknown as ExpandUiParams));
 		case "inspect-ui": return await withArtifact(await executeInspectUi(request.args as unknown as InspectUiParams));
 		case "act-ui": return await withArtifact(await executeAct(request.args as unknown as ActParams));
-		case "read-text": return await withArtifact(await executeReadText(request.args as ReadTextParams));
-		case "wait-for": return await withArtifact(await executeWaitFor(request.args as WaitForParams));
-		case "launch-browser": return await withArtifact(await executeLaunchBrowser(request.args as LaunchBrowserParams));
-		case "navigate-browser": return await withArtifact(await executeNavigateBrowser(request.args as unknown as NavigateBrowserParams));
-		case "evaluate-browser": return await withArtifact(await executeEvaluateBrowser(request.args as unknown as EvaluateBrowserParams));
+		case "read-text": return await withArtifact(await executeReadText(request.args as unknown as ReadTextParams));
+		case "wait-for": return await withArtifact(await executeWaitFor(request.args as unknown as WaitForParams));
 		default: throw Object.assign(new Error(`Unknown broker command '${request.cmd}'.`), { code: "unknown_command" });
 	}
 }
@@ -191,7 +155,7 @@ export async function serveBroker(): Promise<void> {
 	// The launching client destroys our stderr pipe once startup completes; a later
 	// write (e.g. codesign output passthrough) must not crash the daemon with EPIPE.
 	process.stderr.on("error", () => {});
-	let startupLock = acquireStartupLock();
+	let startupLock: number | undefined = acquireStartupLock();
 	let shouldStart: boolean;
 	try {
 		shouldStart = await prepareSocketPath();
@@ -251,7 +215,7 @@ export async function serveBroker(): Promise<void> {
 			if (request.cmd === "hello") {
 				const result: BrokerHandshake = {
 					brokerVersion: BROKER_PROTOCOL_VERSION,
-					helperProtocolVersion: helperProtocolVersion(),
+					helperProtocolVersion: HELPER_PROTOCOL_VERSION,
 					pid: process.pid,
 				};
 				handshaken.value = true;
@@ -326,16 +290,14 @@ export async function serveBroker(): Promise<void> {
 		if (code === "EADDRINUSE" || code === "EEXIST") return;
 		throw error;
 	}
-	if (BROKER_SOCKET_USES_FILESYSTEM) {
-		try {
-			chmodSync(BROKER_SOCKET_PATH, 0o600);
-		} catch (error) {
-			await new Promise<void>((resolve) => server.close(() => resolve()));
-			unlinkBrokerSocket();
-			releaseStartupLock(startupLock);
-			startupLock = undefined;
-			throw error;
-		}
+	try {
+		chmodSync(BROKER_SOCKET_PATH, 0o600);
+	} catch (error) {
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+		unlinkBrokerSocket();
+		releaseStartupLock(startupLock);
+		startupLock = undefined;
+		throw error;
 	}
 	releaseStartupLock(startupLock);
 	startupLock = undefined;
