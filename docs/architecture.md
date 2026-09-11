@@ -20,7 +20,7 @@
 
 ## 运行时模块
 
-Broker 内的工具运行时按职责分四块：
+Broker 内的工具运行时按职责分块：
 
 - `src/session.ts`：operation state、资源调度、保存状态的读写与工具执行入口；
 - `src/roots.ts` 与 `src/root-refs.ts`：根发现、目标选择、pairing 与稳定 `@r` 身份；
@@ -152,6 +152,16 @@ observation 包含：
 
 caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外层 ref 上，这时投影同时记录 `owners`（capability → 真正执行它的 ref）。`act-ui` 收到语义动作时按 `owners` 解析到拥有者再投递，坐标类动作仍用渲染 ref 的几何；`inspect-ui` 输出同一份 `owners` 映射。
 
+## 投递梯子
+
+同一个动作按代价从低到高投递，越靠前越不打扰用户：
+
+1. 后台无障碍语义（`ax_only`）——直接对元素执行 AX 动作，不激活窗口、不动指针；
+2. 后台原始输入（`pid`）——把事件投递给目标进程，仍不抢前台；
+3. 前台原始输入（`hid`）——激活窗口后走系统事件流，只在前两级失败或动作本身需要真实焦点时使用。
+
+升级只在安全时发生：`didnt` 且动作无副作用（打字、按键），或 helper 明确要求 `foreground_required`。`headless` 把梯子钉死在第一级。
+
 ## Action transaction
 
 `act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
@@ -159,6 +169,27 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 helper 返回 `worked`、`didnt` 或 `unknown`。只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
+
+## 已知局限
+
+- Electron/Chromium 窗口常常拒收后台原始输入，动作会回落到前台投递。若同类应用反复回落，考虑用 SkyLight 的 `SLEventPostToPid` 直接投递到进程，再评估是否值得引入私有 API。
+- `act-ui click` 落在文本区只移动插入点，界面没有可观测变化，helper 因此判定 `unknown`，root delta 也帮不上忙。要确认写入，用 `setText` 配 `--expect-value`。
+
+## 测量
+
+首屏视图大小用 fixture 复现，不需要真机：
+
+```bash
+node scripts/check-projection.mjs
+```
+
+它渲染 `scripts/fixtures/` 里两份真机 outline（TextEdit 一个文档窗口、Finder 一个文件夹窗口）。投影层落地前同样两个窗口的文本视图是 1517 和 4683 字节（基线 `b97686f`），现在是 491 和 704 字节。
+
+端到端时延直接量命令本身：
+
+```bash
+time bcu observe-ui --app TextEdit
+```
 
 ## 浏览器窗口
 

@@ -30,13 +30,13 @@ native/macos/agent_cursor*.swift Agent cursor overlay and motion
 scripts/build-native.mjs         Helper build script
 scripts/setup-helper.mjs         Helper install and local signing
 scripts/lib/harness.mjs          Shared broker/CLI test harness and live TextEdit fixtures
-scripts/check-*.mjs              Regression and architecture checks
-scripts/bench.mjs                Helper and broker benchmarks
+scripts/fixtures/                Real outlines captured from TextEdit and Finder
+scripts/check-*.mjs              Behaviour gates; each file opens with what it protects
 ```
 
-The public command surface lives in `src/cli.ts`, with shared parameter and result
-types in `src/contract.ts`. Keep it small: internal complexity belongs in the four
-runtime modules, `src/outline.ts`, and the native helper.
+The public command surface lives in `src/cli.ts`, with shared parameter and result types
+in `src/contract.ts`. Keep it small: internal complexity belongs in the runtime modules
+and the native helper. [architecture.md](./architecture.md) owns the design rules.
 
 `skills/better-computer-use/` is the Skill source. This machine installs it as a real
 directory at `~/.agents/skills/operations/better-computer-use/`; recursive Agent Skill
@@ -50,43 +50,18 @@ socket replacement is protected with an `O_EXLOCK` kernel lock.
 ## Checks
 
 ```bash
-npm test
+npm test                      # every gate in the test script of package.json
+BCU_LIVE=1 npm run test:smoke # needs an unlocked desktop session
 ```
 
-This runs TypeScript, CLI contract and bundled-layout checks, broker and helper
-lifecycle checks, architecture invariants, packaging checks, and the Swift typecheck.
-
-Live checks need a real desktop session:
-
-```bash
-BCU_LIVE=1 npm run test:smoke        # TextEdit end-to-end smoke and transient menu/sheet roots
-BCU_LIVE=1 npm run test:invariants   # helper invariants against the running helper
-```
+Each `npm run test:*` entry maps to one `scripts/check-*.mjs`; the file header states the
+behaviour it protects. A change that breaks a gate is either a regression or a contract
+change — in the second case update the gate in the same commit.
 
 Rebuild the native helper after Swift changes:
 
 ```bash
 npm run build:native
-```
-
-## Architecture rules
-
-The runtime is state-scoped and outline-first:
-
-- `observe-ui` returns a folded projection of the outline.
-- `search-ui`, `expand-ui`, and `inspect-ui` provide progressive disclosure.
-- `act-ui` is the only public action entrypoint.
-- UI observations are immutable records; request-local hydration replaces global current state.
-- The broker is the only process that owns saved states and resource scheduling; CLI clients are stateless.
-- Cached queries bypass scheduling; live work is ordered per physical resource.
-- The helper owns grounding, preflight, execution, and verification.
-- Removed direct operations such as `screenshot`, `click`, `set_text`, and `computer_actions` must not reappear as public CLI commands.
-- bcu is macOS-only and has no browser or CDP code path. Page-level automation belongs to `better-browser-use`.
-
-Run invariants after architecture changes:
-
-```bash
-npm run test:invariants
 ```
 
 ## Upstream engine

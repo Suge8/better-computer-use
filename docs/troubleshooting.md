@@ -1,68 +1,12 @@
 # 故障排查
 
-先运行：
+先运行 `bcu doctor`：它检查 Broker、helper、协议版本、权限和配置来源，失败时的 `recovery:` 就是下一步。下面只记 `doctor` 和错误输出讲不清的原因。
 
-```bash
-bcu doctor
-```
+## 权限打开了却仍报缺失
 
-`doctor` 检查 Broker、native helper、协议版本、macOS 权限和配置来源。错误输出中的 `recovery:` 给出下一步操作。
+macOS 把 Accessibility 和 Screen Recording 授权绑定在代码签名身份上，并按进程缓存。helper 更新或重新签名后，旧授权对新身份无效，运行中的旧 helper 进程也会继续报告缺失。
 
-## `bcu` 不在 PATH
-
-在仓库中重新构建并创建全局链接：
-
-```bash
-npm run build
-npm link
-which bcu
-```
-
-`package.json` 的 bin 入口应指向 `dist/bcu.mjs`。
-
-## helper 缺失
-
-正常安装会把 helper 放到：
-
-```text
-/Applications/bcu.app
-```
-
-从源码修复安装：
-
-```bash
-node scripts/setup-helper.mjs --runtime
-```
-
-本地重建后安装：
-
-```bash
-npm run build:native
-node scripts/setup-helper.mjs --force
-```
-
-验证签名：
-
-```bash
-codesign --verify --strict /Applications/bcu.app
-```
-
-## 权限缺失
-
-在交互式终端运行：
-
-```bash
-bcu setup
-```
-
-然后在“系统设置 → 隐私与安全性”中为 `bcu` 打开：
-
-- 辅助功能
-- 屏幕录制
-
-`setup` 会重启 helper 再复查。macOS 会缓存进程权限；只打开开关但不重启 helper，旧进程仍可能报告缺失。
-
-如果 helper 更新或重新签名后权限失效，先关闭再打开两个开关。仍无法恢复时重置当前 bundle id 后重新授权：
+`bcu setup` 会重启 helper 再复查，所以先跑它；仍然缺失时在系统设置里把两个开关关掉再打开。还不行就重置当前 bundle id 的授权：
 
 ```bash
 tccutil reset Accessibility com.sugeh.bcu
@@ -70,77 +14,16 @@ tccutil reset ScreenCapture com.sugeh.bcu
 bcu setup
 ```
 
-## 非交互环境无法 setup
+授权需要用户在系统设置里点击，非交互 shell 里的 `bcu setup` 会直接以 `permission_missing` 退出。先在本机交互式终端完成授权，再跑 agent 任务。
 
-授权需要用户操作系统设置。非交互 shell 中的 `bcu setup` 会返回：
+## 锁屏期间一切都找不到窗口
 
-```text
-error permission_missing: …
-recovery: Run 'bcu setup' in an interactive terminal, grant both permissions, then retry.
-```
+屏幕锁定时 Accessibility 不再枚举任何应用的窗口：`find-roots` 的 pairing 全变 `low`，观察会退化。这不是 bcu 或 helper 的故障，解锁后立即恢复。
 
-先在本机交互式终端完成授权，再运行 agent 任务。
-
-## Broker 无法启动
+## 从源码修复 helper
 
 ```bash
-bcu status
-bcu stop
-bcu doctor
-```
-
-普通命令会自动恢复失效的 socket。`status` 不启动 Broker，`stop` 在 Broker 未运行时也不会创建新进程。
-
-IPC 路径为 `~/Library/Caches/bcu/broker.sock`。目录权限应为 `0700`，socket 权限应为 `0600`。
-
-## 状态或 ref 过期
-
-`stateId`、`@e` ref 和坐标属于同一次观察。收到 `stale_state` 或 `element_not_found` 后：
-
-1. 再次运行 `bcu observe-ui`；
-2. 使用新状态返回的 `stateId` 和 ref；
-3. 不要重放结果不确定的点击或输入。
-
-## 找不到应用或窗口
-
-先确认应用已打开，再查看当前根节点：
-
-```bash
-bcu find-roots
-bcu find-roots --app TextEdit
-```
-
-应用查询会匹配显示名、bundle id 和 bundle id 尾段。窗口标题有歧义时同时指定应用和标题：
-
-```bash
-bcu observe-ui --app TextEdit --window-title Untitled
-```
-
-## 坐标被拒绝
-
-坐标使用产生该状态的截图像素。以下变化会让坐标失效：
-
-- 窗口尺寸或目标窗口改变；
-- 新观察替换了原状态；
-- 坐标超出截图边界；
-- 状态没有图片尺寸元数据。
-
-重新观察并显式请求图片：
-
-```bash
-bcu observe-ui --root @r1 --image always
-```
-
-## 截图没有出现在 stdout
-
-这是预期行为。截图写入 `~/Library/Caches/bcu/shots/<stateId>.jpg`，stdout 只返回：
-
-```text
-screenshot: /…/shots/<stateId>.jpg (宽x高)
-```
-
-检查文件权限：
-
-```bash
-stat -f '%Sp %N' ~/Library/Caches/bcu/shots/*.jpg
+node scripts/setup-helper.mjs --runtime     # 重新安装缺失或被替换的 helper
+npm run build:native && node scripts/setup-helper.mjs --force   # 本地改过 Swift 后
+codesign --verify --strict /Applications/bcu.app
 ```

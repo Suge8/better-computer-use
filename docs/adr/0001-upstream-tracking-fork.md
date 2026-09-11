@@ -2,8 +2,8 @@
 
 bcu began as a fork of `injaneity/pi-computer-use` and has since diverged on purpose:
 it is macOS-only, has no browser or CDP path, exposes a standalone CLI contract
-(`ToolResult` text, `BcuError` codes, broker-backed commands), and splits the runtime
-into session, roots, observe, and act modules. Upstream still evolves the parts bcu
+(one top-level JSON result per command, `BcuError` codes, broker-backed commands), and
+splits the runtime into session, roots, observe, act and projection modules. Upstream still evolves the parts bcu
 cares about: the Swift helper's accessibility traversal, capture, grounding, input
 delivery, and root discovery.
 
