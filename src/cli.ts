@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { brokerHandshakeIfRunning, requestBroker, requestRunningBroker } from "./client.ts";
 import {
 	CLI_COMMAND_NAMES,
+	type ActEvidence,
 	type ActParams,
 	type ActResult,
 	type Change,
@@ -172,6 +173,13 @@ function successorLines(result: { changes?: Change[]; nodes?: ProjectedNode[] })
 	return renderChanges(result.changes) || "(no element changes)";
 }
 
+/** The helper's reason for the outcome, as it reported it. */
+function evidenceWords(evidence: ActEvidence | undefined): string {
+	if (!evidence) return "";
+	if (evidence.field && evidence.from !== undefined && evidence.to !== undefined) return ` · ${evidence.field} ${evidence.from}→${evidence.to}`;
+	return ` · ${evidence.field ?? evidence.source}`;
+}
+
 function imageLine(image?: { path: string; width: number; height: number }): string {
 	return image ? `image ${image.path} (${image.width}x${image.height})` : "";
 }
@@ -300,7 +308,7 @@ const COMMANDS: { [Name in CliCommandName]: CommandSpec<Name> } = {
 				? ` · verified${result.verification.preexisting ? " (preexisting)" : ""}`
 				: "";
 			return [
-				`state ${result.stateId} ← ${result.baseStateId} · ${result.outcome} via ${result.delivery}${verified}`,
+				`state ${result.stateId} ← ${result.baseStateId} · ${result.outcome} via ${result.delivery}${evidenceWords(result.verification.evidence)}${verified}`,
 				successorLines(result),
 				imageLine(result.image),
 			].filter(Boolean).join("\n");

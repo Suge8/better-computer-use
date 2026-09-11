@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // The full loop against a real TextEdit window: find, observe, search, reject invalid
 // payloads, wait, act with a verified postcondition, and fail honestly when it is not met.
+// It also holds bcu to its evidence rule: an action counts as worked only when the helper
+// can name the fact that moved.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -14,9 +16,17 @@ if (process.env.BCU_LIVE !== "1") {
 if (process.platform !== "darwin") throw new Error("The TextEdit smoke test requires macOS.");
 
 const fixtureDirectory = await makeTemporaryRoot("e2e-smoke");
-const fixtureName = `bcu-smoke-${randomUUID()}.txt`;
+const fixtureTitle = `bcu-smoke-${randomUUID()}`;
+const fixtureName = `${fixtureTitle}.rtf`;
 const fixturePath = path.join(fixtureDirectory, fixtureName);
-const initialText = "bcu smoke fixture\n";
+// Rich text is what makes TextEdit show its format bar, the one real toolbar of toggles.
+const initialText = [
+	"{\\rtf1\\ansi\\ansicpg1252\\cocoartf2709",
+	"{\\fonttbl\\f0\\fswiss\\fcharset0 Helvetica;}",
+	"{\\colortbl;\\red255\\green255\\blue255;}",
+	"\\pard\\tx720\\pardirnatural\\partightenfactor0",
+	"\\f0\\fs24 \\cf0 bcu smoke fixture}",
+].join("\n");
 const expectedText = `bcu smoke ${randomUUID()}`;
 let createdPid;
 let processMonitor;
@@ -46,11 +56,13 @@ try {
 	await fs.writeFile(fixturePath, initialText);
 	createdPid = await launchTextEdit(fixturePath);
 	processMonitor = await monitorProcess(createdPid);
-	await waitForAxWindow(createdPid, processMonitor.exited);
+	await waitForAxWindow(createdPid, processMonitor.exited, fixtureTitle);
 
 	const found = await brokerRequest("find-roots", { pid: createdPid, kind: "window" });
-	const window = found.roots.find((candidate) => candidate.pid === createdPid);
-	assert(window, `TextEdit pid ${createdPid} did not expose a root after AXWindowCreated`);
+	// TextEdit restores earlier documents into a fresh instance, so the fixture window is
+	// the one named after the fixture, not simply the first root of this pid.
+	const window = found.roots.find((candidate) => candidate.pid === createdPid && candidate.title.startsWith(fixtureTitle));
+	assert(window, `TextEdit pid ${createdPid} did not expose a root titled ${fixtureTitle}`);
 	const observed = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
 	assert.equal(observed.root.pid, createdPid, "observe-ui returned another root");
 	assert(observed.nodes.every((node) => !/^ax/i.test(node.role)), "observation leaked raw accessibility roles");
@@ -99,7 +111,32 @@ try {
 		actions: [{ action: "wait", ms: 0 }],
 		expect: { text: "__BCU_NEVER_EXISTS__", timeoutMs: 100 },
 	}, "action_failed");
-	console.log(`PASS TextEdit stdin validation → wait errors → concurrent act → postcondition error in isolated pid ${createdPid}`);
+	// Evidence: a toggle proves itself by its own value, and a click that only places a
+	// caret proves itself by reaching the element that then holds focus.
+	const formatted = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
+	const toggles = await brokerRequest("search-ui", { stateId: formatted.stateId, role: "segment", limit: 20 });
+	const toggle = toggles.matches.find((match) => match.caps.includes("toggle") && match.value === "0");
+	assert(toggle, `the TextEdit format bar exposed no clear toggle: ${toggles.matches.map((match) => `${match.role} ${match.name}=${match.value} {${match.caps}}`).join(", ")}`);
+	const toggled = await brokerRequest("act-ui", { stateId: formatted.stateId, actions: [{ action: "press", ref: toggle.ref }] });
+	assert.equal(toggled.outcome, "worked", `pressing toggle '${toggle.name}' was not reported as worked`);
+	assert.deepEqual(
+		{ source: toggled.verification.evidence?.source, field: toggled.verification.evidence?.field, from: toggled.verification.evidence?.from, to: toggled.verification.evidence?.to },
+		{ source: "ax", field: "value", from: "0", to: "1" },
+		`pressing toggle '${toggle.name}' did not report the value that moved: ${JSON.stringify(toggled.verification.evidence)}`,
+	);
+	const restored = await brokerRequest("act-ui", { stateId: toggled.stateId, actions: [{ action: "press", ref: toggle.ref }] });
+	assert.equal(restored.verification.evidence?.to, "0", `toggle '${toggle.name}' did not return to its original value`);
+
+	const caretState = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
+	const textArea = caretState.nodes.find((node) => node.role === "textarea") ?? (await brokerRequest("search-ui", { stateId: caretState.stateId, role: "textarea", limit: 1 })).matches[0];
+	assert(textArea, "the RTF document exposed no text area to click into");
+	const firstClick = await brokerRequest("act-ui", { stateId: caretState.stateId, actions: [{ action: "click", ref: textArea.ref }] });
+	assert.equal(firstClick.outcome, "worked", "clicking into the text area was not reported as worked");
+	const secondClick = await brokerRequest("act-ui", { stateId: firstClick.stateId, actions: [{ action: "click", ref: textArea.ref }] });
+	assert.equal(secondClick.outcome, "worked", "a repeated click into the focused text area lost its evidence");
+	assert.equal(secondClick.verification.evidence?.source, "focus", `a caret-only click reported ${JSON.stringify(secondClick.verification.evidence)} instead of reaching the focused element`);
+
+	console.log(`PASS TextEdit stdin validation → wait errors → concurrent act → postcondition error → toggle and caret evidence in isolated pid ${createdPid}`);
 } finally {
 	if (createdPid) await stopTextEdit(createdPid, processMonitor);
 	await fs.rm(fixtureDirectory, { recursive: true, force: true });

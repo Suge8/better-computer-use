@@ -124,7 +124,8 @@ const STRUCTURAL_ROLES = new Set([
 /** Roles that speak through the content they wrap; a window or a list never does. */
 const ABSORBING_ROLES = new Set([...STRUCTURAL_ROLES, "row", "listitem", "tab", "link", "menuitem", "button", "checkbox", "radio"]);
 const TEXT_ROLES = new Set(["textfield", "textarea", "combobox", "searchfield"]);
-const TOGGLE_ROLES = new Set(["checkbox", "radio", "switch", "disclosuretriangle", "togglebutton"]);
+/** Role words whose press flips a value. The helper judges the same family by AX role and subrole. */
+const TOGGLE_ROLES = new Set(["checkbox", "radio", "switch", "disclosuretriangle", "togglebutton", "segment"]);
 
 interface ProjectedTree extends Omit<ProjectedNode, "depth" | "parent" | "hidden" | "owners"> {
 	children: ProjectedTree[];

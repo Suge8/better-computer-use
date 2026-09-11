@@ -122,11 +122,6 @@ function nativeTarget(action: UiAction, operation: PreparedAction["action"], env
 	if (typeof action.ref === "string" && action.ref.trim()) {
 		const node = env.node(action.ref.trim());
 		const semanticClick = operation === "click" || operation === "press";
-		if (semanticClick && node.isTextInput) {
-			const point = env.center(node);
-			env.validatePoint(point.x, point.y);
-			return point;
-		}
 		const onlyIncidentalActions = node.actions.every((candidate) => candidate === "AXShowMenu" || candidate === "AXScrollToVisible");
 		if (node.wireRef && !node.pictureOnly && (!semanticClick || node.canPress || node.canFocus || node.canSetValue || !onlyIncidentalActions)) {
 			return { ref: node.wireRef };

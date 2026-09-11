@@ -1,3 +1,4 @@
+import type { ActEvidence } from "../contract.ts";
 import type { PermissionStatus } from "./permissions.ts";
 
 export const HELPER_ARCHITECTURE_VERSION = 1;
@@ -122,7 +123,7 @@ export interface HelperActPerformed {
 export interface HelperActResult {
 	outcome: ActOutcome;
 	performed?: HelperActPerformed;
-	evidence?: Record<string, unknown>;
+	verification?: ActEvidence;
 	error?: { code?: string; message?: string; whatIsThere?: unknown };
 	steps?: HelperActResult[];
 	stoppedAt?: number;

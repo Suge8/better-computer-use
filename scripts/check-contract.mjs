@@ -132,7 +132,11 @@ function helperResult(request) {
 		case "act": {
 			actRequests.push(request);
 			if (request.action === "setText") values.set(request.target.ref, request.params.text);
-			return { outcome: "worked", performed: { delivery: "ax" }, evidence: {} };
+			return {
+				outcome: "worked",
+				performed: { delivery: "ax" },
+				verification: { source: "ax", field: "value", from: "0", to: "1" },
+			};
 		}
 		case "axWaitFor": {
 			const wanted = request.value ?? request.text;
@@ -227,6 +231,7 @@ try {
 	assert.deepEqual(Object.keys(acted).sort(), ["baseStateId", "changes", "delivery", "outcome", "stateId", "verification"], "act-ui result shape drifted");
 	assert.equal(acted.baseStateId, stateId, "act-ui lost the base state");
 	assert.equal(acted.verification.status, "verified", "act-ui did not verify its postcondition");
+	assert.deepEqual(acted.verification.evidence, { source: "ax", field: "value", from: "0", to: "1" }, "act-ui dropped the helper's evidence for the outcome");
 	assert.deepEqual(acted.changes, [{ type: "updated", ref: editorRef, fields: { value: "typed" } }], "act-ui successor diff drifted");
 
 	const waited = json(await runCli(["wait-for", "--state", acted.stateId, "--text", "typed", "--timeout", "1000", "--json"], { env }), "wait-for");
@@ -237,6 +242,13 @@ try {
 	assert.equal(timedOut.code, 8, `wait-for timeout exited ${timedOut.code}`);
 	assert.equal(timedOut.stdout, "", "wait-for timeout wrote to stdout");
 	assert.match(timedOut.stderr, /^error action_timeout: /m, "wait-for timeout is not a stable action_timeout");
+
+	const actedText = await runCli(["act-ui", "--state", acted.stateId, "-"], {
+		env,
+		input: `${JSON.stringify([{ action: "press", ref: editorRef }])}\n`,
+	});
+	assert.equal(actedText.code, 0, `act-ui text view exited ${actedText.code}: ${actedText.stderr}`);
+	assert.match(actedText.stdout.split("\n")[0], / · worked via ax · value 0→1$/, `act-ui does not show why the helper called it worked: ${actedText.stdout.split("\n")[0]}`);
 
 	const noWindow = await runCli(["observe-ui", "--app", "Empty", "--json"], { env });
 	assert.equal(noWindow.code, 6, `running app without windows exited ${noWindow.code}: ${noWindow.stderr}`);

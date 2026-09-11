@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { saveScreenshot } from "./artifacts.ts";
 import { isHeadlessMode } from "./config.ts";
-import type { Change, ExpandResult, ExpandUiParams, ImageInfo, ImageMode, InspectResult, InspectUiParams, ObserveParams, ObserveResult, ReadTextParams, ReadTextResult, RootSummary, SearchMatch, SearchResult, SearchUiParams, WaitForParams, WaitForResult } from "./contract.ts";
+import type { ActEvidence, Change, ExpandResult, ExpandUiParams, ImageInfo, ImageMode, InspectResult, InspectUiParams, ObserveParams, ObserveResult, ReadTextParams, ReadTextResult, RootSummary, SearchMatch, SearchResult, SearchUiParams, WaitForParams, WaitForResult } from "./contract.ts";
 import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import { toFiniteNumber, type ActOutcome, type HelperActPerformed, type HelperActResult, type NativeInputDelivery } from "./macos/protocol.ts";
@@ -30,6 +30,7 @@ export interface ExecutionTrace {
 	deliveryPolicy?: DeliveryPolicy;
 	outcome?: ActOutcome;
 	performed?: HelperActPerformed;
+	evidence?: ActEvidence;
 	error?: HelperActResult["error"];
 	steps?: ExecutionTrace[];
 	actionCount?: number;

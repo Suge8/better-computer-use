@@ -156,7 +156,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 同一个动作按代价从低到高投递，越靠前越不打扰用户：
 
-1. 后台无障碍语义（`ax_only`）——直接对元素执行 AX 动作，不激活窗口、不动指针；
+1. 后台无障碍语义（`ax_only`）——直接对元素执行 AX 动作，不激活窗口、不动指针；文本输入等需要真实指针焦点的角色由 helper 判定并要求升级，元素身份始终跟着动作走，动作结果才有证据可依；
 2. 后台原始输入（`pid`）——把事件投递给目标进程，仍不抢前台；
 3. 前台原始输入（`hid`）——激活窗口后走系统事件流，只在前两级失败或动作本身需要真实焦点时使用。
 
@@ -166,14 +166,23 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 `act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
 
-helper 返回 `worked`、`didnt` 或 `unknown`。只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
+helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证据强弱排序：
+
+1. 目标元素自身的事实移动了——AXValue、AXSelected、AXFocused、选区或插入点——`worked`，`verification.evidence` 记下是哪个字段、从什么变成什么；
+2. 指针确实落在该元素上（命中测试通过）且动作后它持有键盘焦点——`worked`；只移动插入点的点击没有别的痕迹；
+3. 根森林发生变化（菜单打开、sheet 出现、窗口易主）——`worked`；
+4. 元素是有值的切换类控件（checkbox、radio、segment、switch、disclosure）而值没动——`didnt`，错误信息带上停在哪个值；
+5. 其余——`unknown`，不伪装成成功。
+
+投影里带 `toggle` 能力的元素就是 helper 按第 4 条判定的那一类，两侧取同一组 role 与 subrole。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
+
+只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
 
 ## 已知局限
 
 - Electron/Chromium 窗口常常拒收后台原始输入，动作会回落到前台投递。若同类应用反复回落，考虑用 SkyLight 的 `SLEventPostToPid` 直接投递到进程，再评估是否值得引入私有 API。
-- `act-ui click` 落在文本区只移动插入点，界面没有可观测变化，helper 因此判定 `unknown`，root delta 也帮不上忙。要确认写入，用 `setText` 配 `--expect-value`。
 
 ## 测量
 

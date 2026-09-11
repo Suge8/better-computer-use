@@ -111,8 +111,9 @@ const preparedClick = prepareAction({ action: "click", ref: editor.ref }, { curr
 assert.equal(preparedClick.params.button, "left", "omitted click.button did not default to left");
 assert.equal(preparedClick.params.clickCount, 1, "omitted click.clickCount did not default to one");
 assert.equal(preparedClick.establishesFocus, true, "editable semantic clicks should establish transaction focus");
-assert("x" in preparedClick.target, "text-input clicks should use their observed center to establish deterministic focus");
-assert.equal(preparedClick.needsForeground, true, "text-input clicks should establish focus through foreground pointer input");
+// The element identity survives into the helper, which is what lets the outcome be judged
+// on the element itself; the helper decides that a text role needs real pointer input.
+assert.deepEqual(preparedClick.target, { ref: editor.wireRef }, "text-input clicks lost the element the outcome is judged on");
 const pictureTarget = { ...editor, ref: "@e-picture", wireRef: undefined, isTextInput: false, pictureOnly: true };
 const pictureClick = prepareAction({ action: "click", ref: pictureTarget.ref }, { currentFocus: false }, { ...actionEnv, node: () => pictureTarget });
 assert.equal(pictureClick.needsForeground, true, "picture-only clicks should use foreground pointer delivery");

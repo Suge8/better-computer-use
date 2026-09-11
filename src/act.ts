@@ -56,6 +56,7 @@ function executionTraceFromAct(result: HelperActResult, policy = currentDelivery
 	return executionTrace("act", result.performed?.delivery === "ax" ? "stealth" : "default", {
 		outcome: result.outcome,
 		performed: result.performed,
+		evidence: result.verification,
 		error: result.error,
 		stoppedAt: result.stoppedAt,
 		delivery: result.performed?.delivery,
@@ -162,6 +163,7 @@ function aggregateExecutions(steps: ExecutionTrace[]): ExecutionTrace {
 	const fallback = steps.find((step) => step.escalatedToForeground);
 	return executionTrace("act", steps.every((step) => step.variant === "stealth") ? "stealth" : "default", {
 		outcome,
+		evidence: steps.filter((step) => step.evidence).at(-1)?.evidence,
 		steps,
 		actionCount: steps.length,
 		delivery: steps.at(-1)?.delivery,
@@ -196,6 +198,7 @@ async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget
 		const execution = aggregateExecutions(result.steps.map((step) => executionTraceFromAct(step, "ax_only")));
 		execution.outcome = result.outcome;
 		execution.performed = result.performed;
+		execution.evidence = result.verification ?? execution.evidence;
 		execution.stoppedAt = result.stoppedAt;
 		return execution;
 	}
@@ -239,6 +242,7 @@ async function verifyExpectation(params: ActParams, target: ResolvedTarget, look
 	execution.verified = true;
 	return {
 		status: "verified",
+		evidence: execution.evidence,
 		text: expectedText,
 		role: expectedRole,
 		value: expectedValue,
@@ -254,10 +258,12 @@ function descendants(node: ReturnType<typeof outlineNodeByRef>): ReturnType<type
 }
 
 function actionFailure(execution: ExecutionTrace): BcuError {
+	const evidence = execution.evidence;
+	const unchanged = evidence?.field && evidence.from === evidence.to ? ` Its ${evidence.field} stayed ${JSON.stringify(evidence.from)}.` : "";
 	const message = execution.error?.message
 		?? (execution.outcome === "unknown"
 			? "The action outcome is unknown; bcu will not report it as success."
-			: "The action did not produce the requested result.");
+			: `The action did not produce the requested result.${unchanged}`);
 	return new BcuError("action_failed", message);
 }
 
@@ -277,9 +283,9 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 		const headless = params.headless ?? getComputerUseConfig().headless;
 		const execution = await dispatchUiTransaction(actions, target, look, headless, actionNodeResolver(baseNodes), signal);
 		const executedActions = actions.slice(0, execution.actionCount ?? actions.length);
-		const verification = params.expect
+		const verification: Verification = params.expect
 			? await verifyExpectation(params, target, look, scopeRef, execution, signal)
-			: { status: "none" as const };
+			: { status: "none", evidence: execution.evidence };
 		if (!params.expect) await sleep(settleMsForExecution(execution), signal);
 		const capture = await captureCurrentTarget(
 			signal,

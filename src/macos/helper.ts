@@ -10,7 +10,7 @@ import { toBoolean, toFiniteNumber, toOptionalString, type HelperDiagnostics } f
 import { resolveMacosHelperAppPath } from "./helper-path.mjs";
 
 const COMMAND_TIMEOUT_MS = 15_000;
-export const HELPER_PROTOCOL_VERSION = 7;
+export const HELPER_PROTOCOL_VERSION = 8;
 const HELPER_SETUP_TIMEOUT_MS = 60_000;
 
 interface PendingResponse {

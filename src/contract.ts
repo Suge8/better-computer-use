@@ -83,6 +83,17 @@ export interface UiAction {
 	ms?: number;
 }
 
+/**
+ * Why the helper called an action landed: the element fact that moved, the root
+ * forest changing, or the pointer reaching an element that then held focus.
+ */
+export interface ActEvidence {
+	source: "ax" | "root" | "focus";
+	field?: "value" | "selected" | "focused" | "selection" | "selectedText" | "scroll";
+	from?: string;
+	to?: string;
+}
+
 /** Semantic postcondition; `scope` limits it to one element subtree. */
 export interface Expectation {
 	text?: string;
@@ -212,6 +223,8 @@ export interface Verification {
 	timeoutMs?: number;
 	/** True when the expectation already held before the transaction ran. */
 	preexisting?: boolean;
+	/** The helper's own reason for the outcome, independent of any expectation. */
+	evidence?: ActEvidence;
 }
 
 export interface ActResult {

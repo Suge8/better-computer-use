@@ -369,7 +369,7 @@ final class InputSuppressionGuard {
 }
 
 final class Bridge {
-	private let protocolVersion = 7
+	private let protocolVersion = 8
 	private let cgMenuRefPrefix = "cgmenu:"
 	private let refStore = AXRefStore()
 	private let inputSuppressionGuard = InputSuppressionGuard()
@@ -1864,6 +1864,62 @@ final class Bridge {
 		return payloadNode(element: element)
 	}
 
+	/// The facts an element tells about itself, in the order they are reported.
+	private static let evidenceAttributes: [(field: String, attribute: CFString)] = [
+		("value", kAXValueAttribute as CFString),
+		("selected", "AXSelected" as CFString),
+		("focused", kAXFocusedAttribute as CFString),
+		("selection", kAXSelectedTextRangeAttribute as CFString),
+		("selectedText", kAXSelectedTextAttribute as CFString),
+	]
+	/// Longest evidence value reported back; comparison always uses the full string.
+	private static let evidenceReportLimit = 40
+
+	private func evidenceSnapshot(_ element: AXUIElement) -> [String: String]? {
+		guard stringAttribute(element, attribute: kAXRoleAttribute as CFString) != nil else { return nil }
+		var snapshot: [String: String] = [:]
+		for entry in Self.evidenceAttributes {
+			if let value = attributeSignature(element, attribute: entry.attribute) { snapshot[entry.field] = value }
+		}
+		return snapshot
+	}
+
+	private func evidenceExcerpt(_ value: String) -> String {
+		let flat = value.replacingOccurrences(of: "\n", with: " ")
+		return flat.count > Self.evidenceReportLimit ? String(flat.prefix(Self.evidenceReportLimit)) + "\u{2026}" : flat
+	}
+
+	private func evidenceDifference(before: [String: String], after: [String: String]) -> [String: Any]? {
+		for entry in Self.evidenceAttributes {
+			let from = before[entry.field] ?? ""
+			let to = after[entry.field] ?? ""
+			guard from != to else { continue }
+			return ["source": "ax", "field": entry.field, "from": evidenceExcerpt(from), "to": evidenceExcerpt(to)]
+		}
+		return nil
+	}
+
+	/// Accessibility facts settle a run loop turn after delivery, so the helper waits for
+	/// the change instead of guessing a sleep. A dead element yields no evidence at all.
+	private func evidenceAfterAction(_ element: AXUIElement, before: [String: String], timeout: TimeInterval) -> [String: String]? {
+		let deadline = Date().addingTimeInterval(timeout)
+		while true {
+			guard let after = evidenceSnapshot(element) else { return nil }
+			if evidenceDifference(before: before, after: after) != nil || Date() >= deadline { return after }
+			usleep(20_000)
+		}
+	}
+
+	/// Elements whose press flips a value. `src/projection.ts` promises these the `toggle`
+	/// capability from the same role and subrole families.
+	private func isToggleLike(_ element: AXUIElement) -> Bool {
+		let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
+		let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
+		let roles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXSwitch", "AXDisclosureTriangle", "AXToggleButton"]
+		let subroles: Set<String> = ["AXSwitch", "AXSegment"]
+		return roles.contains(role) || subroles.contains(subrole)
+	}
+
 	private func act(_ request: [String: Any]) throws -> [String: Any] {
 		let lookId = try stringArg(request, "lookId")
 		guard let record = lookRecord(for: lookId) else {
@@ -1884,10 +1940,14 @@ final class Bridge {
 			}
 		}
 		defer { if holdsPhysicalInput { physicalInputLock.unlock() } }
+		let pressLike = action == "press" || action == "click"
 		var performed: [String: Any] = ["delivery": delivery]
 		var element: AXUIElement?
 		var rawPoint: CGPoint?
-		var preflightCapsUnknown = false
+		// The element the outcome is judged on, and whether the pointer provably reached it.
+		var evidenceElement: AXUIElement?
+		var beforeEvidence: [String: String]?
+		var hitVerified = false
 		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
 		let eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
 		let beforeRootSnapshot = deferRootDelta ? [:] : rootMetadataSnapshot(pid: pid)
@@ -1895,8 +1955,6 @@ final class Bridge {
 		let beforeFrontmostPid = deferRootDelta ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
 		let beforeSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
 		let beforeFocusedWindow = focusedWindowSummary(pid: pid)
-		let beforeValue: String?
-		let beforeSelected: String?
 		func finish(_ response: [String: Any]) -> [String: Any] {
 			if deferRootDelta { return response }
 			return attachRootDelta(to: response, before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
@@ -1920,15 +1978,13 @@ final class Bridge {
 			}
 			if refound { performed["refound"] = true }
 			element = stored
-			beforeValue = stringAttribute(stored, attribute: kAXValueAttribute as CFString)
-			beforeSelected = stringAttribute(stored, attribute: kAXSelectedTextAttribute as CFString)
+			evidenceElement = stored
+			beforeEvidence = evidenceSnapshot(stored)
 		} else if let xNumber = target["x"] as? NSNumber, let yNumber = target["y"] as? NSNumber {
 			guard record.hasImage else {
 				throw BridgeFailure(message: "Coordinate targeting is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
 			}
 			rawPoint = lookPoint(record: record, x: xNumber.doubleValue, y: yNumber.doubleValue)
-			beforeValue = nil
-			beforeSelected = nil
 		} else {
 			throw BridgeFailure(message: "act target must include ref or x/y", code: "invalid_args")
 		}
@@ -1965,12 +2021,15 @@ final class Bridge {
 		}
 
 		func preflight(_ point: CGPoint) throws {
-			guard let element else { preflightCapsUnknown = true; return }
+			guard let element else { return }
 			for attempt in 0..<4 {
-				guard let hit = hitTestElement(at: point) else { preflightCapsUnknown = true; return }
-				if sameElement(hit, element) || isElement(hit, descendantOf: element) || isElement(element, descendantOf: hit) { return }
+				guard let hit = hitTestElement(at: point) else { return }
+				if sameElement(hit, element) || isElement(hit, descendantOf: element) || isElement(element, descendantOf: hit) {
+					hitVerified = true
+					return
+				}
 				let role = stringAttribute(hit, attribute: kAXRoleAttribute as CFString) ?? ""
-				if role == "AXWindow" || role == "AXApplication" { preflightCapsUnknown = true; return }
+				if role == "AXWindow" || role == "AXApplication" { return }
 				if delivery == "hid" && attempt < 3 {
 					focusTargetForPhysicalInput()
 					usleep(20_000)
@@ -1989,6 +2048,13 @@ final class Bridge {
 			acquirePhysicalInputIfNeeded()
 			focusTargetForPhysicalInput()
 			if delivery == "hid" { try preflight(point) }
+			// A bare coordinate still lands on an element; binding it now is what lets the
+			// outcome be judged on the thing that was actually hit.
+			if element == nil, pressLike, let hit = hitTestElement(at: point) {
+				evidenceElement = hit
+				beforeEvidence = evidenceSnapshot(hit)
+				hitVerified = true
+			}
 			switch action {
 			case "press", "click":
 				animateCursor(at: point)
@@ -2073,7 +2139,11 @@ final class Bridge {
 				performed["grounding"] = "keyboard-events"
 				performed["delivery"] = delivery
 				performed["selectionGrounding"] = selected ? "ax" : "keyboard"
-				return finish(["outcome": value == text ? "worked" : "didnt", "performed": performed, "evidence": ["value": value]])
+				return finish([
+					"outcome": value == text ? "worked" : "didnt",
+					"performed": performed,
+					"verification": ["source": "ax", "field": "value", "from": evidenceExcerpt(currentValue), "to": evidenceExcerpt(value)],
+				])
 			}
 			var targetElement = element
 			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
@@ -2088,7 +2158,11 @@ final class Bridge {
 				if value != text && policy != "foreground" {
 					throw BridgeFailure(message: "The background accessibility value write was accepted but did not take effect", code: "foreground_required")
 				}
-				return finish(["outcome": value == text ? "worked" : "didnt", "performed": performed, "evidence": ["value": value]])
+				return finish([
+					"outcome": value == text ? "worked" : "didnt",
+					"performed": performed,
+					"verification": ["source": "ax", "field": "value", "from": evidenceExcerpt(beforeEvidence?["value"] ?? ""), "to": evidenceExcerpt(value)],
+				])
 			}
 			try executeCoordinates(coordinatePoint())
 		} else if action == "typeText" {
@@ -2104,9 +2178,13 @@ final class Bridge {
 			performed["grounding"] = "coordinates"
 			if let element, !text.isEmpty {
 				usleep(30_000)
+				let beforeValue = beforeEvidence?["value"] ?? ""
 				let afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
-				let changed = afterValue != (beforeValue ?? "")
-				return finish(["outcome": changed ? "worked" : "didnt", "performed": performed, "evidence": ["value": afterValue, "valueChanged": changed]])
+				return finish([
+					"outcome": afterValue != beforeValue ? "worked" : "didnt",
+					"performed": performed,
+					"verification": ["source": "ax", "field": "value", "from": evidenceExcerpt(beforeValue), "to": evidenceExcerpt(afterValue)],
+				])
 			}
 		} else if action == "keypress" {
 			let preserveFocus = params["preserveFocus"] as? Bool ?? false
@@ -2143,7 +2221,8 @@ final class Bridge {
 				performed["delivery"] = "ax"
 				if let cursorPoint { animateCursor(at: cursorPoint) }
 				let after = scrollPositionSignature(element)
-				return finish(["outcome": before != after ? "worked" : "unknown", "performed": performed])
+				guard before != after else { return finish(["outcome": "unknown", "performed": performed]) }
+				return finish(["outcome": "worked", "performed": performed, "verification": ["source": "ax", "field": "scroll"]])
 			}
 			try executeCoordinates(coordinatePoint())
 		} else {
@@ -2152,20 +2231,31 @@ final class Bridge {
 
 		let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
 		let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
-		var outcome = preflightCapsUnknown ? "unknown" : "unknown"
-		var evidence: [String: Any] = [:]
-		if let element, action == "press" || action == "click" {
-			let afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString)
-			let afterSelected = stringAttribute(element, attribute: kAXSelectedTextAttribute as CFString)
-			if beforeValue != afterValue || beforeSelected != afterSelected || windowChanged {
+		var outcome = "unknown"
+		var verification: [String: Any]?
+		// The element that was acted on speaks first: its own value, selection or focus
+		// moving is proof no window-level summary can contradict.
+		if let subject = element ?? evidenceElement, let before = beforeEvidence {
+			let after = evidenceAfterAction(subject, before: before, timeout: 0.25)
+			if let after, let difference = evidenceDifference(before: before, after: after) {
 				outcome = "worked"
+				verification = difference
+			} else if pressLike, hitVerified, after?["focused"] == "1" {
+				// The pointer provably reached this element and it now holds keyboard focus:
+				// a click that only places a caret leaves no other trace.
+				outcome = "worked"
+				verification = ["source": "focus", "field": "focused"]
+			} else if pressLike, after != nil, before["value"] != nil, isToggleLike(subject) {
+				outcome = "didnt"
+				verification = ["source": "ax", "field": "value", "from": evidenceExcerpt(before["value"] ?? ""), "to": evidenceExcerpt(before["value"] ?? "")]
 			}
-		} else if windowChanged {
-			outcome = "worked"
 		}
-		if windowChanged { evidence["windowChanged"] = true }
+		if outcome == "unknown", windowChanged {
+			outcome = "worked"
+			verification = ["source": "root"]
+		}
 		var response: [String: Any] = ["outcome": outcome, "performed": performed]
-		if !evidence.isEmpty { response["evidence"] = evidence }
+		if let verification { response["verification"] = verification }
 		return finish(response)
 	}
 
@@ -2302,9 +2392,7 @@ final class Bridge {
 		// window is then the only evidence the action landed.
 		if !delta.isEmpty, (output["outcome"] as? String) == "unknown" {
 			output["outcome"] = "worked"
-			var evidence = output["evidence"] as? [String: Any] ?? [:]
-			evidence["rootChanged"] = true
-			output["evidence"] = evidence
+			output["verification"] = ["source": "root"]
 		}
 		return output
 	}
@@ -2830,15 +2918,31 @@ final class Bridge {
 		copyAttribute(element, attribute: attribute) as? String
 	}
 
+	/// One comparable string for an accessibility fact, so the same attribute can be
+	/// diffed across an action whatever type it carries.
+	private func attributeSignature(_ element: AXUIElement, attribute: CFString) -> String? {
+		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
+		if let text = value as? String { return text }
+		if let number = value as? NSNumber { return number.stringValue }
+		guard CFGetTypeID(value) == AXValueGetTypeID(), AXValueGetType(value as! AXValue) == .cfRange else { return nil }
+		var range = CFRange()
+		guard AXValueGetValue(value as! AXValue, .cfRange, &range) else { return nil }
+		return "\(range.location),\(range.length)"
+	}
+
 	// Secure fields can expose plaintext through AX value in non-native apps,
 	// and serialized values flow into the model conversation. Never emit them.
 	private func isSecureTextElement(role: String, subrole: String) -> Bool {
 		role == "AXSecureTextField" || subrole == "AXSecureTextField"
 	}
 
+	/// Toggles carry their state in a numeric AXValue, so a value is rendered whatever
+	/// its type: an agent that cannot read `0`/`1` cannot tell a checked box from a clear one.
 	private func displayValue(_ element: AXUIElement, role: String, subrole: String) -> String {
 		if isSecureTextElement(role: role, subrole: subrole) { return "" }
-		return stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
+		guard let value = copyAttribute(element, attribute: kAXValueAttribute as CFString) else { return "" }
+		if let text = value as? String { return text }
+		return (value as? NSNumber)?.stringValue ?? ""
 	}
 
 	// kAXSheetsAttribute is unsupported (-25205) on recent macOS; sheets are
