@@ -1,4 +1,6 @@
-import { serializeOutlineNode, type Outline, type OutlineChange, type OutlineDiff, type OutlineNode, type SerializedOutlineNode } from "./outline.ts";
+import type { Change, ChangedFields } from "./contract.ts";
+import type { Outline, OutlineNode } from "./outline.ts";
+import { renderNodeBody, type ProjectedNode } from "./projection.ts";
 
 function numericRef(ref: string): number {
 	const match = /^@e(\d+)$/.exec(ref);
@@ -70,78 +72,60 @@ export function stabilizeRefs(base: Outline | undefined, next: Outline): Outline
 	return next;
 }
 
-function comparable(node: OutlineNode): Omit<SerializedOutlineNode, "children"> {
-	const { children: _children, ...fields } = serializeOutlineNode(node);
-	return {
-		...fields,
-		rect: fields.rect ? { x: Math.round(fields.rect.x), y: Math.round(fields.rect.y), w: Math.round(fields.rect.w), h: Math.round(fields.rect.h) } : undefined,
-		text: fields.text.map((item) => ({ string: item.string, confidence: Math.round(item.confidence * 100) / 100 })),
-	};
+export interface Transition {
+	changes: Change[];
+	/** True when the successor is too different to describe as a diff. */
+	useFullView: boolean;
 }
 
-function changedFields(base: OutlineNode, next: OutlineNode): Partial<Omit<SerializedOutlineNode, "children">> {
-	const before = comparable(base);
-	const after = comparable(next);
-	const fields: Partial<Omit<SerializedOutlineNode, "children">> = {};
-	for (const key of Object.keys(after) as Array<keyof typeof after>) {
-		if (key === "ref" || key === "wireRef") continue;
-		if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) (fields as Record<string, unknown>)[key] = after[key];
-	}
+function changedFields(before: ProjectedNode, after: ProjectedNode): ChangedFields {
+	const fields: ChangedFields = {};
+	if (before.role !== after.role) fields.role = after.role;
+	if (before.name !== after.name) fields.name = after.name;
+	if (before.value !== after.value) fields.value = after.value;
+	if (before.caps.join(",") !== after.caps.join(",")) fields.caps = after.caps;
+	if (JSON.stringify(before.state) !== JSON.stringify(after.state)) fields.state = after.state;
 	return fields;
 }
 
-function refPath(node: OutlineNode): string[] {
-	const refs: string[] = [];
-	let current: OutlineNode | undefined = node;
-	while (current) {
-		refs.unshift(current.ref);
-		current = current.parent;
-	}
-	return refs;
-}
-
-export function changesBetween(base: Outline, next: Outline): OutlineDiff {
-	if (base.root.role !== next.root.role || base.root.subrole !== next.root.subrole) {
-		return { changes: [], changedNodeCount: next.nodes.length, fullNodeCount: next.nodes.length, useFullView: true, reason: "root_replaced" };
-	}
-	const before = new Map(base.nodes.map((node) => [node.ref, node]));
-	const after = new Map(next.nodes.map((node) => [node.ref, node]));
-	const changes: OutlineChange[] = [];
-	for (const node of next.nodes) {
+/** Compares two unfolded projections of the same root. */
+export function changesBetween(base: ProjectedNode[], next: ProjectedNode[]): Transition {
+	const before = new Map(base.map((node) => [node.ref, node]));
+	const after = new Map(next.map((node) => [node.ref, node]));
+	const changes: Change[] = [];
+	for (const node of next) {
 		const previous = before.get(node.ref);
-		if (!previous) changes.push({ type: "added", ref: node.ref, parent: node.parent?.ref, node: { ...serializeOutlineNode(node), children: [] } });
-		else {
-			const fields = changedFields(previous, node);
-			if (Object.keys(fields).length > 0) changes.push({ type: "updated", ref: node.ref, path: refPath(node), fields });
+		if (!previous) {
+			changes.push({ type: "added", ref: node.ref, parent: node.parent, node });
+			continue;
 		}
+		const fields = changedFields(previous, node);
+		if (Object.keys(fields).length > 0) changes.push({ type: "updated", ref: node.ref, fields });
 	}
-	for (const node of base.nodes) if (!after.has(node.ref)) changes.push({ type: "removed", ref: node.ref, parent: node.parent?.ref });
-	const identityConfidence = next.nodes.length === 0 ? 1 : next.nodes.filter((node) => before.has(node.ref)).length / next.nodes.length;
-	const changeRatio = changes.length / Math.max(1, Math.max(base.nodes.length, next.nodes.length));
-	const identityLow = next.nodes.length > 8 && identityConfidence < 0.4;
-	const overBudget = changes.length > 100 || (changes.length > 20 && changeRatio > 0.65);
-	return {
-		changes,
-		changedNodeCount: changes.length,
-		fullNodeCount: next.nodes.length,
-		useFullView: identityLow || overBudget,
-		reason: identityLow ? "identity_confidence_low" : overBudget ? "change_budget_exceeded" : undefined,
-	};
+	for (const node of base) if (!after.has(node.ref)) changes.push({ type: "removed", ref: node.ref, parent: node.parent });
+
+	const rootReplaced = base[0]?.ref !== next[0]?.ref || base[0]?.role !== next[0]?.role;
+	const kept = next.filter((node) => before.has(node.ref)).length;
+	const identityLow = next.length > 8 && kept / next.length < 0.4;
+	const overBudget = changes.length > 40 || (changes.length > 20 && changes.length / Math.max(1, Math.max(base.length, next.length)) > 0.65);
+	return { changes, useFullView: rootReplaced || identityLow || overBudget };
 }
 
-function label(node: SerializedOutlineNode): string {
-	return node.title || node.description || node.value || node.identifier || node.text.map((item) => item.string).join(" ").trim() || node.role || "node";
+function renderFields(fields: ChangedFields): string {
+	const parts = [
+		fields.role,
+		fields.name === undefined ? undefined : JSON.stringify(fields.name),
+		fields.value === undefined ? undefined : `=${JSON.stringify(fields.value)}`,
+		fields.caps === undefined ? undefined : `{${fields.caps.join(",")}}`,
+		fields.state === undefined ? undefined : Object.keys(fields.state).join(" ") || "no state",
+	].filter(Boolean);
+	return parts.join(" ") || "changed";
 }
 
-export function renderChanges(changes: OutlineChange[]): string {
+export function renderChanges(changes: Change[]): string {
 	return changes.map((change) => {
-		if (change.type === "added") return `+ ${change.ref}${change.parent ? ` under ${change.parent}` : ""} ${JSON.stringify(label(change.node))}`;
-		if (change.type === "removed") return `- ${change.ref}${change.parent ? ` from ${change.parent}` : ""}`;
-		const fields = Object.entries(change.fields).filter(([key]) => !["rect", "text", "actions"].includes(key)).slice(0, 6).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(", ");
-		const supplemental = [
-			change.fields.text ? `text=${JSON.stringify(change.fields.text.map((item) => item.string))}` : undefined,
-			change.fields.actions ? `actions=${JSON.stringify(change.fields.actions)}` : undefined,
-		].filter(Boolean).join(", ");
-		return `~ ${change.ref} (${change.path.join(" > ")}) ${[fields, supplemental].filter(Boolean).join(", ") || "changed"}`;
+		if (change.type === "added") return `+ ${change.ref}${change.parent ? ` in ${change.parent}` : ""} ${renderNodeBody(change.node)}`;
+		if (change.type === "removed") return `- ${change.ref}`;
+		return `~ ${change.ref} ${renderFields(change.fields)}`;
 	}).join("\n");
 }

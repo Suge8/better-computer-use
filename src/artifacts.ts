@@ -1,7 +1,8 @@
 import { chmod, mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ScreenshotArtifact, ToolResult } from "./contract.ts";
+import type { ImageInfo, ToolImage } from "./contract.ts";
+import { BcuError } from "./errors.ts";
 
 const ARTIFACT_TTL_MS = 10 * 60 * 1_000;
 const MAX_ARTIFACTS = 128;
@@ -11,20 +12,6 @@ const directoryTails = new Map<string, Promise<unknown>>();
 
 export function screenshotDirectory(): string {
 	return path.join(os.homedir(), "Library", "Caches", "bcu", "shots");
-}
-
-function captureDetails(details: unknown): { stateId: string; width: number; height: number } | undefined {
-	if (!details || typeof details !== "object") return undefined;
-	const record = details as Record<string, unknown>;
-	const capture = record.capture && typeof record.capture === "object"
-		? record.capture as Record<string, unknown>
-		: record;
-	if (typeof capture.stateId !== "string" || !/^[A-Za-z0-9_-]+$/.test(capture.stateId)) return undefined;
-	return {
-		stateId: capture.stateId,
-		width: typeof capture.width === "number" ? capture.width : 0,
-		height: typeof capture.height === "number" ? capture.height : 0,
-	};
 }
 
 async function remove(filePath: string): Promise<void> {
@@ -80,33 +67,26 @@ async function serializeDirectory<Result>(directory: string, work: () => Promise
 	}
 }
 
-export async function materializeScreenshot<Details>(
-	result: ToolResult<Details>,
+/** Writes one look image into the artifact directory and returns its public reference. */
+export async function saveScreenshot(
+	stateId: string,
+	image: ToolImage,
 	directory = screenshotDirectory(),
-): Promise<ToolResult<Details>> {
-	const image = result.image;
-	if (!image) return result;
-	const capture = captureDetails(result.details);
-	if (!capture) throw Object.assign(new Error("Screenshot result is missing a valid stateId and dimensions."), { code: "internal_error" });
+): Promise<ImageInfo> {
+	if (!/^[A-Za-z0-9_-]+$/.test(stateId)) throw new BcuError("internal_error", `Screenshot stateId '${stateId}' is not a safe artifact name.`);
 	const bytes = Buffer.from(image.data, "base64");
 	if (bytes.length === 0 || bytes.length > MAX_SCREENSHOT_BYTES) {
-		throw Object.assign(new Error(`Screenshot size ${bytes.length} is outside the supported range.`), { code: "internal_error" });
+		throw new BcuError("internal_error", `Screenshot size ${bytes.length} is outside the supported range.`);
 	}
 	const artifactDirectory = path.resolve(directory);
 	return await serializeDirectory(artifactDirectory, async () => {
 		await mkdir(artifactDirectory, { recursive: true, mode: 0o700 });
 		await chmod(artifactDirectory, 0o700);
 		const extension = image.mimeType === "image/png" ? "png" : "jpg";
-		const filePath = path.join(artifactDirectory, `${capture.stateId}.${extension}`);
+		const filePath = path.join(artifactDirectory, `${stateId}.${extension}`);
 		await writeFile(filePath, bytes, { mode: 0o600 });
 		await chmod(filePath, 0o600);
 		await prune(artifactDirectory, filePath);
-		const screenshot: ScreenshotArtifact = {
-			path: filePath,
-			mimeType: image.mimeType,
-			width: capture.width,
-			height: capture.height,
-		};
-		return { text: result.text, details: result.details, screenshot };
+		return { path: filePath, mime: image.mimeType, width: image.width, height: image.height };
 	});
 }

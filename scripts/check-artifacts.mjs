@@ -3,26 +3,21 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { materializeScreenshot } from "../src/artifacts.ts";
+import { saveScreenshot } from "../src/artifacts.ts";
 
 const directory = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-artifacts-"));
 const jpegBytes = Buffer.from("test-jpeg-bytes");
 const stateId = "state-artifact-test";
 try {
-	const result = await materializeScreenshot({
-		text: "Observed fixture.",
-		details: { capture: { stateId, width: 800, height: 600 } },
-		image: { data: jpegBytes.toString("base64"), mimeType: "image/jpeg" },
-	}, directory);
-	assert.equal(result.image, undefined, "materialized result retained base64 image data");
-	assert.deepEqual(result.screenshot, {
+	const result = await saveScreenshot(stateId, { data: jpegBytes.toString("base64"), mimeType: "image/jpeg", width: 800, height: 600 }, directory);
+	assert.deepEqual(result, {
 		path: path.join(directory, `${stateId}.jpg`),
-		mimeType: "image/jpeg",
+		mime: "image/jpeg",
 		width: 800,
 		height: 600,
 	});
-	assert.deepEqual(await fs.readFile(result.screenshot.path), jpegBytes, "artifact bytes changed on disk");
-	assert.equal((await fs.stat(result.screenshot.path)).mode & 0o777, 0o600, "screenshot artifact is not mode 0600");
+	assert.deepEqual(await fs.readFile(result.path), jpegBytes, "artifact bytes changed on disk");
+	assert.equal((await fs.stat(result.path)).mode & 0o777, 0o600, "screenshot artifact is not mode 0600");
 	assert.equal((await fs.stat(directory)).mode & 0o777, 0o700, "screenshot directory is not mode 0700");
 	assert(!JSON.stringify(result).includes(jpegBytes.toString("base64")), "base64 image leaked into the broker result");
 
@@ -31,11 +26,11 @@ try {
 	await Promise.all(Array.from({ length: 128 }, async (_, index) => {
 		await fs.writeFile(path.join(directory, `old-${index}.jpg`), jpegBytes, { mode: 0o600 });
 	}));
-	const concurrent = await Promise.allSettled(Array.from({ length: 160 }, (_, index) => materializeScreenshot({
-		text: "Concurrent fixture.",
-		details: { capture: { stateId: `concurrent-${index}`, width: 80, height: 60 } },
-		image: { data: jpegBytes.toString("base64"), mimeType: "image/jpeg" },
-	}, directory)));
+	const concurrent = await Promise.allSettled(Array.from({ length: 160 }, (_, index) => saveScreenshot(
+		`concurrent-${index}`,
+		{ data: jpegBytes.toString("base64"), mimeType: "image/jpeg", width: 80, height: 60 },
+		directory,
+	)));
 	const rejected = concurrent.filter((outcome) => outcome.status === "rejected");
 	assert.deepEqual(rejected, [], `concurrent artifact writes failed: ${rejected.map((outcome) => outcome.reason).join("; ")}`);
 	const files = await fs.readdir(directory);

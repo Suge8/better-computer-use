@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { BcuError } from "./errors.ts";
 
 export interface StoredState<T> {
 	stateId: string;
@@ -8,6 +9,7 @@ export interface StoredState<T> {
 }
 
 export class StaleResourceStateError extends Error {
+	readonly code: string;
 	readonly resourceKey: string;
 	readonly expectedEpoch: number;
 	readonly actualEpoch: number;
@@ -15,6 +17,7 @@ export class StaleResourceStateError extends Error {
 	constructor(resourceKey: string, expectedEpoch: number, actualEpoch: number) {
 		super(`State is stale for ${resourceKey}: expected epoch ${expectedEpoch}, current epoch ${actualEpoch}.`);
 		this.name = "StaleResourceStateError";
+		this.code = "stale_state";
 		this.resourceKey = resourceKey;
 		this.expectedEpoch = expectedEpoch;
 		this.actualEpoch = actualEpoch;
@@ -179,7 +182,7 @@ export class ResourceScheduler {
 	}
 
 	private async enqueue<T>(resourceKey: string, work: (record: ResourceRecord) => Promise<T>): Promise<T> {
-		if (this.closed) throw new Error("Computer-use session is shutting down.");
+		if (this.closed) throw new BcuError("broker_unavailable", "The bcu broker is shutting down. Retry the command.");
 		const record = this.resource(resourceKey);
 		const previous = record.tail;
 		let release!: () => void;

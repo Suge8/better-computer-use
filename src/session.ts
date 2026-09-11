@@ -1,4 +1,5 @@
 import { loadComputerUseConfig } from "./config.ts";
+import { BcuError } from "./errors.ts";
 import { ensureMacosReady } from "./macos/permissions.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { HelperDiagnostics } from "./macos/protocol.ts";
@@ -9,9 +10,8 @@ import { ResourceScheduler } from "./runtime.ts";
 import { SavedStates, type CurrentCapture, type CurrentTarget, type OperationState } from "./state.ts";
 import { trimOrUndefined } from "./text.ts";
 
-export const MISSING_TARGET_ERROR = "No current controlled window. Call observe-ui first to choose a target window.";
-export const CURRENT_TARGET_GONE_ERROR =
-	"The current controlled window is no longer available. Call observe-ui to choose a new target window.";
+export const MISSING_TARGET_ERROR = "No root is being controlled. Run observe-ui first to choose one.";
+export const CURRENT_TARGET_GONE_ERROR = "The controlled root is gone. Run observe-ui to choose a current root.";
 export const COMMAND_TIMEOUT_MS = 15_000;
 
 interface SessionRuntime {
@@ -57,7 +57,7 @@ export async function shutdownComputerUseSession(): Promise<void> {
 }
 
 export function throwIfAborted(signal?: AbortSignal): void {
-	if (signal?.aborted) throw new Error("Operation aborted.");
+	if (signal?.aborted) throw new BcuError("internal_error", "Operation aborted.");
 }
 
 export async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -72,7 +72,7 @@ export async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 		const onAbort = () => {
 			cleanup();
-			reject(new Error("Operation aborted."));
+			reject(new BcuError("internal_error", "Operation aborted."));
 		};
 
 		const cleanup = () => {
@@ -98,29 +98,25 @@ export async function withWindowWriteLock<T>(target: Pick<CurrentTarget, "pid">,
 
 export function currentTargetOrThrow(): CurrentTarget {
 	const target = operationState().currentTarget;
-	if (!target) throw new Error(MISSING_TARGET_ERROR);
+	if (!target) throw new BcuError("window_stale", MISSING_TARGET_ERROR);
 	return target;
 }
 
 export function currentLookOrThrow(): LookResponse {
 	const state = operationState();
-	if (!state.currentLook || !state.currentCapture) {
-		throw new Error("No current look. Call observe-ui first, then act using refs or coordinates from that look.");
-	}
+	if (!state.currentLook || !state.currentCapture) throw new BcuError("stale_state", "No observation is available. Run observe-ui first.");
 	return state.currentLook;
 }
 
 export function validateStateId(stateId?: string): CurrentCapture {
 	const state = operationState();
-	if (!state.currentCapture) throw new Error("No observation state is available. Call observe-ui first.");
+	if (!state.currentCapture) throw new BcuError("stale_state", "No observation is available. Run observe-ui first.");
 	if (stateId && state.currentCapture.stateId !== stateId) {
-		throw new Error(
-			`Stale state '${stateId}'. The active operation state is '${state.currentCapture.stateId}'. Observe the root again and retry.`,
-		);
+		throw new BcuError("stale_state", `State '${stateId}' is not the active state '${state.currentCapture.stateId}'. Observe the root again.`);
 	}
 	const stateTarget = state.currentStateTarget;
 	if (stateTarget && state.currentTarget && (stateTarget.pid !== state.currentTarget.pid || stateTarget.windowId !== state.currentTarget.windowId)) {
-		throw new Error("The latest state belongs to a different window. Call observe-ui for the target window and retry.");
+		throw new BcuError("stale_state", "The saved state belongs to another root. Observe the root you want and retry.");
 	}
 	return state.currentCapture;
 }
@@ -128,14 +124,14 @@ export function validateStateId(stateId?: string): CurrentCapture {
 export function currentOutlineOrThrow(stateId?: string): Outline {
 	validateStateId(stateId);
 	const outline = operationState().currentOutline;
-	if (!outline) throw new Error("No observation outline is available. Call observe-ui first.");
+	if (!outline) throw new BcuError("stale_state", "No observation outline is available. Run observe-ui first.");
 	return outline;
 }
 
 /** Live resource identity of the current observation, required before scheduled reads. */
 export function currentResourceOrThrow(): { resourceKey: string; epoch: number } {
 	const state = operationState();
-	if (!state.resourceKey || state.epoch === undefined) throw new Error("The observation has no live resource identity. Observe again.");
+	if (!state.resourceKey || state.epoch === undefined) throw new BcuError("stale_state", "The observation has no live resource identity. Observe again.");
 	return { resourceKey: state.resourceKey, epoch: state.epoch };
 }
 
@@ -161,7 +157,7 @@ export function makeToolExecutor<P, R>(perform: (params: P, signal?: AbortSignal
 		const requestedStateId = trimOrUndefined((params as { stateId?: string } | undefined)?.stateId);
 		const stateRecord = requestedStateId ? savedStates.get(requestedStateId) : undefined;
 		if (requestedStateId && !stateRecord) {
-			throw new Error(`State '${requestedStateId}' is unavailable or was evicted. Observe the root again.`);
+			throw new BcuError("stale_state", `State '${requestedStateId}' is unavailable or was evicted. Observe the root again.`);
 		}
 		const operation = savedStates.hydrate(stateRecord);
 		return await savedStates.operations.run(operation, async () => {

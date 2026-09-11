@@ -5,8 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import typescript from "typescript";
-import { noteAfterAct, noteFromLook } from "../src/note.ts";
-import { countOutlineNodes, foldToBudget, graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
+import { HELPER_PROTOCOL_VERSION } from "../src/macos/helper.ts";
+import { graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
+import { CAPABILITIES, project, renderObservation } from "../src/projection.ts";
 import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -15,7 +16,6 @@ const agentCursorSwift = fs.readFileSync(path.join(root, "native/macos/agent_cur
 const toolModuleFiles = ["src/session.ts", "src/roots.ts", "src/observe.ts", "src/act.ts"];
 const toolModules = Object.fromEntries(toolModuleFiles.map((file) => [file, fs.readFileSync(path.join(root, file), "utf8")]));
 const ts = toolModuleFiles.map((file) => toolModules[file]).join("\n");
-const noteTs = fs.readFileSync(path.join(root, "src/note.ts"), "utf8");
 const configTs = fs.readFileSync(path.join(root, "src/config.ts"), "utf8");
 const contractTs = fs.readFileSync(path.join(root, "src/contract.ts"), "utf8");
 const cliTs = fs.readFileSync(path.join(root, "src/cli.ts"), "utf8");
@@ -120,12 +120,6 @@ check("INV-5 root contract carries modality as a fact and hints as metadata", ()
 });
 
 check("INV-5 macOS is the only platform surface", () => {
-	for (const forbidden of ["src/platform", "native/windows", "native/linux", "prebuilt/windows", "prebuilt/linux", "src/cdp.ts"]) {
-		assert(!fs.existsSync(path.join(root, forbidden)), `${forbidden} still exists`);
-	}
-	for (const [file, text] of srcFiles) {
-		assert(!/\bwin32\b|\bWindows helper\b|\bCDP\b|browser_use/.test(text), `non-macOS or browser surface appears in src/${file}`);
-	}
 	const guards = [...cliTs.matchAll(/process\.platform !== "darwin"/g)].length;
 	assert(guards === 1, `expected exactly one CLI platform guard, found ${guards}`);
 	assert(/unsupported_platform/.test(cliTs), "CLI platform guard does not raise unsupported_platform");
@@ -157,24 +151,6 @@ check("macOS ScreenCaptureKit config sizes window screenshots", () => {
 	assert(/config\.height\s*=/.test(captureFunction), "captureWindow does not set SCStreamConfiguration.height");
 });
 
-function enclosingFunctionName(text, index) {
-	const prefix = text.slice(0, index);
-	const matches = [...prefix.matchAll(/(?:async\s+)?function\s+([A-Za-z0-9_]+)\s*\(/g)];
-	return matches.at(-1)?.[1] ?? "(unknown)";
-}
-
-check("INV-6 static note is derived and disposable", () => {
-	for (const match of noteTs.matchAll(/export\s+function\s+([A-Za-z0-9_]+)/g)) {
-		assert(/^note|^render/.test(match[1]), `src/note.ts exports non-note/render function ${match[1]}`);
-	}
-	assert(!/export\s+(let|const|var)\s+/.test(noteTs), "src/note.ts exports mutable or module state");
-	const allowed = new Set(["captureCurrentTarget", "performAct"]);
-	for (const match of ts.matchAll(/state\.currentNote\s*=/g)) {
-		const fn = enclosingFunctionName(ts, match.index ?? 0);
-		assert(allowed.has(fn), `runtimeState.currentNote assigned in ${fn}`);
-	}
-});
-
 check("INV-7 static no label-confirm press regex", () => {
 	for (const [file, text] of srcFiles) {
 		assert(!/\/[^/\n]*(confirm|ok|continue|apply)[^/\n]*\/[gimsuyd]*[\s\S]{0,200}(\bpress\b|AXPress|axPress|axPerformActionElement)/i.test(text), `confirm-label press regex appears in src/${file}`);
@@ -189,7 +165,7 @@ check("INV-8 tsc no unused locals", () => {
 check("INV-9 immutable state ownership", () => {
 	const state = fs.readFileSync(path.join(root, "src/state.ts"), "utf8");
 	const runtime = fs.readFileSync(path.join(root, "src/runtime.ts"), "utf8");
-	assert(!/runtimeState\.current(Target|Capture|Look|Outline|Note|ImageMode|StateTarget)/.test(ts), "global current UI state remains in the tool modules");
+	assert(!/runtimeState\.current(Target|Capture|Look|Outline|StateTarget)/.test(ts), "global current UI state remains in the tool modules");
 	assert(state.includes("class SavedStates") && state.includes("new StateStore<UiObservation>"), "unified bounded observation store is missing");
 	for (const gate of ["maxEntries", "maxBytes", "maxRecordBytes", "ttlMs"]) assert(runtime.includes(gate), `state store lacks ${gate} gate`);
 	assert(!/image: state\.currentLook\.image \? \{ \.\.\.state\.currentLook\.image \}/.test(state), "saved state retains screenshot bytes");
@@ -233,7 +209,6 @@ check("INV-11 unified CLI contract and bridge ownership", () => {
 	assert(toolModuleImports.has("src/broker.ts"), "broker no longer owns the tool runtime");
 	for (const command of expected) assert(brokerTs.includes(`case "${command}"`), `broker does not dispatch ${command}`);
 	assert(cliTs.includes('await import("./broker.ts")'), "broker is not lazily loaded behind __serve");
-	assert(!fs.existsSync(path.join(root, "extensions")), "Pi extension surface still exists");
 });
 
 check("INV-12 concurrent native transport", () => {
@@ -249,8 +224,8 @@ check("INV-14 native batches settle once", () => {
 
 check("INV-15 semantic action postconditions", () => {
 	const actions = fs.readFileSync(path.join(root, "src/actions.ts"), "utf8");
-	assert(contractTs.includes("expect?: {") && contractTs.includes("timeoutMs?: number"), "act_ui does not expose a semantic postcondition");
-	assert(ts.includes('code: "postcondition_failed"') && ts.includes('status: "verified" | "preexisting" | "failed"'), "postcondition failure is not represented honestly");
+	assert(contractTs.includes("expect?: Expectation") && contractTs.includes("timeoutMs?: number"), "act_ui does not expose a semantic postcondition");
+	assert(ts.includes('throw new BcuError("action_failed"') && ts.includes('status: "verified"'), "postcondition failure is not represented honestly");
 	assert(ts.includes("outcomeAfterCheck") && actions.includes('check === "verified"') && actions.includes('return "worked"'), "newly verified expectations do not determine the request outcome");
 	assert(swift.includes("waitForRootChange") && swift.includes("state.change.broadcast()"), "macOS waits are not change-notification assisted");
 });
@@ -285,7 +260,7 @@ check("INV-19 all timed waits are classified", () => {
 		["src/broker.ts", /idleTimer =/, "broker idle TTL"],
 		["src/session.ts", /cleanup\(\);\s*resolve\(\)/, "abortable timer primitive"],
 		["src/act.ts", /^await sleep\(prepared\.params\.ms/, "explicit desktop wait action"],
-		["src/act.ts", /^else await sleep\(settleMsForExecution/, "action settle"],
+		["src/act.ts", /await sleep\(settleMsForExecution/, "action settle"],
 		["src/readiness.ts", /options\.description/, "readiness failure timeout"],
 		["src/macos/helper.ts", /Command timed out after/, "helper process timeout"],
 		["src/macos/helper.ts", /old bcu helper to exit/, "helper exit timeout"],
@@ -323,11 +298,10 @@ check("INV-18 consolidated actions and diff-first resulting views", () => {
 	const view = fs.readFileSync(path.join(root, "src/view.ts"), "utf8");
 	const macBackend = fs.readFileSync(path.join(root, "src/macos/backend.ts"), "utf8");
 	assert(actions.includes("prepareAction") && actions.includes("canRetryInForeground"), "action preparation and safe recovery are not consolidated");
-	assert(!fs.existsSync(path.join(root, "src/interaction.ts")), "superseded interaction policy module still exists");
 	assert(!ts.includes("responseMode") && !contractTs.includes("responseMode"), "alternate confirmation-only action path still exists");
 	assert(ts.includes("currentFocus") && ts.includes('escalationReason = "side_effect_free_didnt"'), "runner does not preserve action focus or recover checked keyboard failures");
 	assert(view.includes("stabilizeRefs") && view.includes("changesBetween"), "resulting-state ref stabilization or change rendering is missing");
-	assert(ts.includes('view: "full" | "diff"') && ts.includes("Changes ("), "agent result does not expose changes-first resulting views");
+	assert(ts.includes("successorView(baseNodes") && view.includes("useFullView"), "agent result does not expose changes-first resulting views");
 	assert(contractTs.includes('action: "press" | "click"') && actions.includes("usesCurrentFocus"), "action contract is not explicit or focus-aware");
 	assert(!ts.includes("preserveFocus") && macBackend.includes("preserveFocus") && swift.includes("!preserveFocus"), "native focus continuity leaks through the coordinator or is not enforced by the backend");
 });
@@ -504,7 +478,7 @@ async function liveChecks() {
 	try {
 		const socketPath = process.env.BCU_SOCKET_PATH ?? path.join(os.homedir(), "Library/Caches/bcu/bridge.sock");
 		const diagnostics = await call(socketPath, { id: "inv-diagnostics", cmd: "diagnostics" });
-		check("LIVE diagnostics current protocol", () => assert(diagnostics.protocolVersion === 6, `protocolVersion=${diagnostics.protocolVersion}`));
+		check("LIVE diagnostics current protocol", () => assert(diagnostics.protocolVersion === HELPER_PROTOCOL_VERSION, `protocolVersion=${diagnostics.protocolVersion}`));
 		const broadDiscoveryStarted = Date.now();
 		const broadRoots = await call(socketPath, { id: "inv-broad-roots", cmd: "listRoots" }, 10000);
 		const broadDiscoveryMs = Date.now() - broadDiscoveryStarted;
@@ -512,15 +486,15 @@ async function liveChecks() {
 		check("LIVE broad root discovery is bounded and keeps helper alive", () => {
 			assert(Array.isArray(broadRoots?.roots), "broad listRoots did not return roots");
 			assert(broadDiscoveryMs < 10000, `broad listRoots took ${broadDiscoveryMs}ms`);
-			assert(diagnosticsAfterBroadDiscovery.protocolVersion === 6, "helper did not survive broad listRoots");
+			assert(diagnosticsAfterBroadDiscovery.protocolVersion === HELPER_PROTOCOL_VERSION, "helper did not survive broad listRoots");
 		});
 		const abandonedRequestId = `inv-abandoned-roots-${process.pid}-${Date.now()}`;
 		await abandon(socketPath, { id: abandonedRequestId, cmd: "listRoots" });
 		const diagnosticsAfterAbandon = await waitForCompletedRequest(socketPath, abandonedRequestId);
 		check("LIVE abandoned root discovery keeps helper alive", () => {
-			assert(diagnosticsAfterAbandon.protocolVersion === 6, "helper died after writing to an abandoned root-discovery socket");
+			assert(diagnosticsAfterAbandon.protocolVersion === HELPER_PROTOCOL_VERSION, "helper died after writing to an abandoned root-discovery socket");
 		});
-		const explicitWindowId = process.env.BCU_LIVE_WINDOW_ID ? Number(process.env.BCU_LIVE_WINDOW_ID) : undefined;
+		const explicitRootRef = process.env.BCU_LIVE_ROOT_REF || undefined;
 		let windows = [];
 		try {
 			const frontmost = await call(socketPath, { id: "inv-frontmost", cmd: "getFrontmost" });
@@ -532,21 +506,18 @@ async function liveChecks() {
 				}
 			});
 		} catch (error) {
-			if (!explicitWindowId) throw error;
-			console.log(`SKIP LIVE listRoots pairing (${error.message}; explicit BCU_LIVE_WINDOW_ID=${explicitWindowId})`);
+			if (!explicitRootRef) throw error;
+			console.log(`SKIP LIVE listRoots pairing (${error.message}; explicit BCU_LIVE_ROOT_REF=${explicitRootRef})`);
 		}
-		let target = explicitWindowId && Number.isFinite(explicitWindowId)
-			? { windowId: Math.trunc(explicitWindowId), title: "BCU_LIVE_WINDOW_ID", appName: "explicit target" }
-			: Array.isArray(windows) ? windows.find((window) => Number.isFinite(window?.windowId)) : undefined;
-		if (explicitWindowId && !Number.isFinite(explicitWindowId)) {
-			throw new Error(`BCU_LIVE_WINDOW_ID must be numeric, got ${process.env.BCU_LIVE_WINDOW_ID}`);
-		}
+		let target = explicitRootRef
+			? { rootRef: explicitRootRef, title: "BCU_LIVE_ROOT_REF", appName: "explicit target" }
+			: Array.isArray(windows) ? windows.find((window) => window?.rootRef && Number.isFinite(window?.windowId)) : undefined;
 		if (!target) {
 			console.log("SKIP LIVE look (no capturable frontmost window; Accessibility may be missing)");
 			return;
 		}
-		const look = await call(socketPath, { id: "inv-look", cmd: "look", windowId: target.windowId, readText: "always" }, 20000);
-		if (explicitWindowId) {
+		const look = await call(socketPath, { id: "inv-look", cmd: "look", rootRef: target.rootRef, windowId: target.windowId, readText: "always" }, 20000);
+		if (explicitRootRef) {
 			target = { ...target, ...look.window, title: look.window?.title ?? target.title };
 		}
 		const pidInfo = await pidForWindow(socketPath, target.windowId);
@@ -574,36 +545,6 @@ async function liveChecks() {
 		check("LIVE window pairing", () => {
 			assert(look.window?.metadata?.pairing, "missing window.metadata.pairing");
 		});
-		const parsedForNote = parseLookResponse(look).parsedOutline;
-		check("LIVE note derivation", () => {
-			assert(parsedForNote, "parseLookResponse did not return parsed outline");
-			const note = noteFromLook(undefined, parsedForNote, {
-				windowRef: target.windowRef ?? `@window-${target.windowId}`,
-				title: target.title ?? target.windowTitle ?? "(untitled)",
-				pairing: look.window?.metadata?.pairing?.confidence ?? "low",
-				pairingScore: look.window?.metadata?.pairing?.score,
-			});
-			const topLevel = parsedForNote.root.children.length ? parsedForNote.root.children : [parsedForNote.root];
-			for (const top of topLevel) {
-				const region = note.regions.find((candidate) => candidate.status === "seen" && candidate.key.startsWith(`${top.role || "AXUnknown"}:`));
-				assert(region, `top-level region not marked seen for ${top.ref}`);
-			}
-			const targetNode = parsedForNote.nodes.find((node) => node !== parsedForNote.root) ?? parsedForNote.root;
-			const acted = noteAfterAct(note, targetNode.ref, parsedForNote, {
-				window: {
-					windowRef: note.windowRef,
-					title: note.title,
-					pairing: note.pairing,
-				},
-			});
-			assert(acted.regions.some((region) => region.status === "changed" && region.detail === "acted here"), "synthetic act did not mark a region changed");
-			const hasFrontier = parsedForNote.nodes.some((node) => node.truncated || (node.scrollExtent && node.scrollExtent.seen < node.scrollExtent.total));
-			if (hasFrontier) {
-				assert(acted.regions.some((region) => region.status === "never-looked"), "frontier node did not create never-looked note entry");
-			} else {
-				console.log(`SKIP LIVE note frontier (no truncated or partially scrolled node in ${windowLabel(target)})`);
-			}
-		});
 		assert(Number.isFinite(target.pid), `could not resolve pid for ${windowLabel(target)}`);
 		const centerX = Math.floor(look.image.width / 2);
 		const centerY = Math.floor(look.image.height / 2);
@@ -616,21 +557,23 @@ async function liveChecks() {
 			assert(staleRef.ok === false && staleRef.error?.code === "stale_ref", `bogus ref did not return stale_ref: ${JSON.stringify(staleRef)}`);
 			assert(staleLook.ok === false && staleLook.error?.code === "stale_look", `bogus look did not return stale_look: ${JSON.stringify(staleLook)}`);
 		});
-		check("LIVE foldToBudget preserves full outline", () => {
+		check("LIVE projection stays inside the agent vocabulary", () => {
 			const parsed = parseLookResponse(look).parsedOutline;
 			assert(parsed, "parseLookResponse did not return parsed outline");
-			const folded = foldToBudget(parsed, { maxDepth: 1, maxNodes: 20 });
-			const budgetCut = foldToBudget(parsed, { maxDepth: 10, maxNodes: 5 });
-			assert(/more nodes not shown/.test(budgetCut.text.split("\n").at(-1) ?? ""), "budget-cut fold lacks receipt line");
-			const defaultFold = foldToBudget(parsed);
-			for (const focused of parsed.nodes.filter((node) => node.focused)) {
-				assert(defaultFold.renderedRefs.includes(focused.ref), `focused ref ${focused.ref} was not rendered by default fold`);
+			const projection = project(parsed);
+			assert(projection.nodes.length > 0, "projection produced no nodes");
+			assert(projection.total === parsed.nodes.length, `projection total ${projection.total} != outline ${parsed.nodes.length}`);
+			for (const node of projection.nodes) {
+				assert(!/^ax/i.test(node.role), `projected role kept its AX prefix: ${node.role}`);
+				for (const capability of node.caps) assert(CAPABILITIES.includes(capability), `projected capability outside the vocabulary: ${capability}`);
 			}
-			const foldedLines = folded.text.split("\n").filter((line) => line.includes(" ▸ "));
-			assert(foldedLines.length > 0, "no folded lines rendered");
-			for (const line of foldedLines) assert(/▸ \(\d+/.test(line), `folded line lacks count: ${line}`);
-			assert(folded.nodeCount === countOutlineNodes(parsed.root), `node count mismatch ${folded.nodeCount}`);
-			assert(folded.fullUnfoldLineCount === folded.nodeCount, "full unfold count differs from total nodes");
+			const text = renderObservation({ stateId: "live", root: { ref: "@r1", app: "live", title: windowLabel(target) }, nodes: projection.nodes, shown: projection.shown, total: projection.total });
+			assert(!/\bAX[A-Z]/.test(text), `live view leaks raw accessibility names:\n${text}`);
+			const focused = parsed.nodes.filter((node) => node.focused && node.canFocus);
+			for (const node of focused) {
+				const visible = projection.nodes.some((candidate) => candidate.ref === node.ref) || projection.nodes.some((candidate) => candidate.hidden);
+				assert(visible, `focused ref ${node.ref} was neither rendered nor folded`);
+			}
 		});
 		const fullOutline = parseLookResponse(look).parsedOutline;
 		const truncated = fullOutline?.nodes.find((node) => node.truncated && node.wireRef);

@@ -16,7 +16,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const bundle = path.join(root, "dist", "bcu.mjs");
 const socketPath = process.env.BCU_SOCKET_PATH ?? path.join(os.homedir(), "Library/Caches/bcu/bridge.sock");
 const helperBundleId = "com.sugeh.bcu";
-const protocolVersion = 6;
+const protocolVersion = 7;
 const semanticObserveSampleCount = 5;
 let requestNumber = 0;
 
@@ -283,15 +283,15 @@ async function textEditTarget() {
 	await fs.writeFile(fixturePath, "bcu benchmark\nThe quick brown fox jumps over the lazy dog.\n0123456789\n");
 	await execFile("open", ["-a", "TextEdit", fixturePath]);
 	const frontmost = await callHelper("getFrontmost");
-	if (frontmost.bundleId !== "com.apple.TextEdit" || !Number.isFinite(frontmost.windowId)) {
+	if (frontmost.bundleId !== "com.apple.TextEdit" || !frontmost.rootRef) {
 		throw new Error("TextEdit did not expose a frontmost window. Activate its benchmark document and rerun.");
 	}
-	return { app: frontmost.appName, title: frontmost.windowTitle, windowId: frontmost.windowId };
+	return { app: frontmost.appName, title: frontmost.windowTitle, windowId: frontmost.windowId, rootRef: frontmost.rootRef };
 }
 
 async function textEditLook(target) {
 	const startedAt = performance.now();
-	const look = await callHelper("look", { windowId: target.windowId, readText: "always" });
+	const look = await callHelper("look", { rootRef: target.rootRef, windowId: target.windowId, readText: "always" });
 	return { ...look.timings, rttMs: rounded(performance.now() - startedAt) };
 }
 

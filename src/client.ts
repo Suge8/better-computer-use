@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import net from "node:net";
 import { fileURLToPath } from "node:url";
+import { BcuError } from "./errors.ts";
 import {
 	BROKER_PROTOCOL_VERSION,
 	BROKER_SOCKET_PATH,
@@ -27,7 +28,7 @@ export class BrokerCommandError extends Error {
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
-	if (signal?.aborted) throw new Error("Operation aborted.");
+	if (signal?.aborted) throw new BcuError("internal_error", "Operation aborted.");
 }
 
 function connectBroker(signal?: AbortSignal): Promise<net.Socket> {
@@ -40,7 +41,7 @@ function connectBroker(signal?: AbortSignal): Promise<net.Socket> {
 			socket.destroy();
 			reject(error);
 		};
-		const onAbort = () => fail(new Error("Operation aborted."));
+		const onAbort = () => fail(new BcuError("internal_error", "Operation aborted."));
 		socket.once("connect", () => {
 			cleanup();
 			socket.removeListener("error", fail);
@@ -87,11 +88,11 @@ async function startBroker(signal?: AbortSignal): Promise<void> {
 			if (error) reject(error);
 			else resolve();
 		};
-		const onAbort = () => finish(new Error("Operation aborted."));
+		const onAbort = () => finish(new BcuError("internal_error", "Operation aborted."));
 		child.once("error", finish);
 		child.once("exit", (code, childSignal) => {
 			if (code === 0) finish();
-			else finish(new Error(`bcu broker exited during startup (${childSignal ?? code ?? "unknown"})${startupStderr.trim() ? `: ${startupStderr.trim()}` : "."}`));
+			else finish(new BcuError("broker_unavailable", `bcu broker exited during startup (${childSignal ?? code ?? "unknown"})${startupStderr.trim() ? `: ${startupStderr.trim()}` : "."}`));
 		});
 		ready?.once("data", () => finish());
 		ready?.once("error", finish);
@@ -120,11 +121,11 @@ class BrokerConnection {
 		socket.setEncoding("utf8");
 		socket.on("data", (chunk: string) => this.onData(chunk));
 		socket.on("error", (error) => this.fail(error));
-		socket.on("close", () => this.fail(new Error("bcu broker connection closed.")));
+		socket.on("close", () => this.fail(new BcuError("broker_unavailable", "bcu broker connection closed.")));
 	}
 
 	async call(command: string, args: object): Promise<unknown> {
-		if (this.closed) throw new Error("bcu broker connection is closed.");
+		if (this.closed) throw new BcuError("broker_unavailable", "bcu broker connection is closed.");
 		const id = randomUUID();
 		const response = await new Promise<BrokerResponse>((resolve, reject) => {
 			this.pending.set(id, { resolve, reject });
@@ -142,7 +143,7 @@ class BrokerConnection {
 		if (this.closed) return;
 		this.closed = true;
 		this.socket.end();
-		this.rejectPending(new Error("bcu broker connection closed."));
+		this.rejectPending(new BcuError("broker_unavailable", "bcu broker connection closed."));
 	}
 
 	private onData(chunk: string): void {
@@ -151,7 +152,7 @@ class BrokerConnection {
 			this.buffer = decoded.remainder;
 			for (const value of decoded.values) {
 				const response = parseBrokerResponse(value);
-				if (!response) throw new Error("bcu broker returned an invalid response.");
+				if (!response) throw new BcuError("broker_unavailable", "bcu broker returned an invalid response.");
 				const pending = this.pending.get(response.id);
 				if (!pending) continue;
 				this.pending.delete(response.id);
@@ -182,7 +183,8 @@ async function connectAndHandshake(signal?: AbortSignal, start = true): Promise<
 		socket = start ? await connectOrStart(signal) : await connectBroker(signal);
 	} catch (error) {
 		if (!start && isMissingBroker(error)) return undefined;
-		throw error;
+		if (error instanceof BcuError) throw error;
+		throw new BcuError("broker_unavailable", error instanceof Error ? error.message : String(error));
 	}
 	const connection = new BrokerConnection(socket);
 	try {
@@ -192,7 +194,7 @@ async function connectAndHandshake(signal?: AbortSignal, start = true): Promise<
 			|| (result as BrokerHandshake).brokerVersion !== BROKER_PROTOCOL_VERSION
 			|| !Number.isInteger((result as BrokerHandshake).pid)
 		) {
-			throw new Error(`bcu broker protocol mismatch: expected ${BROKER_PROTOCOL_VERSION}.`);
+			throw new BcuError("broker_unavailable", `bcu broker protocol mismatch: expected ${BROKER_PROTOCOL_VERSION}.`);
 		}
 		return { connection, handshake: result as BrokerHandshake };
 	} catch (error) {
@@ -222,7 +224,7 @@ async function call<Result>(connected: { connection: BrokerConnection }, command
 
 export async function requestBroker<Result>(command: string, args: object, signal?: AbortSignal): Promise<Result> {
 	const connected = await connectAndHandshake(signal);
-	if (!connected) throw new Error("bcu broker is unavailable.");
+	if (!connected) throw new BcuError("broker_unavailable", "bcu broker is unavailable.");
 	return await call<Result>(connected, command, args, signal);
 }
 

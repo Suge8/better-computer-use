@@ -1,31 +1,33 @@
-export type RootSelector = string | number;
-export type ImageMode = "auto" | "always" | "never";
-export type MouseButtonName = "left" | "right" | "middle";
+import type { SerializedOutlineNode } from "./outline.ts";
+import type { Capability, ProjectedNode } from "./projection.ts";
 
+export type RootSelector = string | number;
+export type ImageMode = "never" | "always";
+export type ObserveMode = "semantic" | "fused";
+export type ReadTextMode = "auto" | "always" | "never";
+export type MouseButtonName = "left" | "right" | "middle";
+export type RootKindName = "window" | "menu" | "sheet" | "popover" | "dialog";
+
+export interface Frame {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+/** Raw image bytes as the helper returns them; never part of a public result. */
 export interface ToolImage {
 	data: string;
 	mimeType: "image/jpeg" | "image/png";
-}
-
-export interface ScreenshotArtifact {
-	path: string;
-	mimeType: ToolImage["mimeType"];
 	width: number;
 	height: number;
 }
 
-export interface ToolResult<Details = unknown> {
-	text: string;
-	details: Details;
-	image?: ToolImage;
-	screenshot?: ScreenshotArtifact;
-}
-
-export interface ObserveTargetParams {
-	app?: string;
-	windowTitle?: string;
-	root?: RootSelector;
-	image?: ImageMode;
+export interface ImageInfo {
+	path: string;
+	mime: ToolImage["mimeType"];
+	width: number;
+	height: number;
 }
 
 export interface FindParams {
@@ -34,17 +36,20 @@ export interface FindParams {
 	bundleId?: string;
 	pid?: number;
 	/** Filters on the helper's best-effort presentation hint; only window vs transient is guaranteed. */
-	kind?: "window" | "menu" | "sheet" | "popover" | "dialog";
+	kind?: RootKindName;
+}
+
+export interface ObserveParams {
+	app?: string;
+	windowTitle?: string;
+	root?: RootSelector;
+	mode?: ObserveMode;
+	image?: ImageMode;
+	readText?: ReadTextMode;
 }
 
 export interface StateTargetParams {
 	stateId?: string;
-	image?: ImageMode;
-}
-
-export interface ObserveParams extends ObserveTargetParams {
-	mode?: "semantic" | "visual" | "fused";
-	readText?: "auto" | "always" | "never";
 }
 
 export interface SearchUiParams extends StateTargetParams {
@@ -61,7 +66,6 @@ export interface ExpandUiParams extends StateTargetParams {
 
 export interface InspectUiParams extends StateTargetParams {
 	ref: string;
-	includeRaw?: boolean;
 }
 
 export interface UiAction {
@@ -79,18 +83,22 @@ export interface UiAction {
 	ms?: number;
 }
 
+/** Semantic postcondition; `scope` limits it to one element subtree. */
+export interface Expectation {
+	text?: string;
+	role?: string;
+	value?: string;
+	scope?: string;
+	gone?: boolean;
+	timeoutMs?: number;
+}
+
 export interface ActParams extends StateTargetParams {
 	actions: UiAction[];
 	/** Prohibits foreground fallback when true. Background is always attempted first. */
 	headless?: boolean;
-	/** Optional semantic postcondition checked before the transaction reports success. */
-	expect?: {
-		text?: string;
-		role?: string;
-		value?: string;
-		gone?: boolean;
-		timeoutMs?: number;
-	};
+	image?: ImageMode;
+	expect?: Expectation;
 }
 
 export interface ReadTextParams extends StateTargetParams {
@@ -102,8 +110,121 @@ export interface ReadTextParams extends StateTargetParams {
 export interface WaitForParams extends StateTargetParams {
 	text?: string;
 	role?: string;
+	scope?: string;
 	gone?: boolean;
 	timeoutMs?: number;
+}
+
+export interface RootInfo {
+	ref: string;
+	app: string;
+	bundleId?: string;
+	pid: number;
+	title: string;
+	windowId?: number;
+	kind: RootKindName;
+	frame: Frame;
+	focused: boolean;
+	main: boolean;
+	onscreen: boolean;
+	minimized: boolean;
+	modal: boolean;
+	pairing?: "exact" | "high" | "low";
+}
+
+export interface FindRootsResult {
+	roots: RootInfo[];
+}
+
+export interface RootSummary {
+	ref?: string;
+	app: string;
+	pid: number;
+	title: string;
+	windowId?: number;
+	frame: Frame;
+	scale: number;
+}
+
+export interface ObserveResult {
+	stateId: string;
+	root: RootSummary;
+	nodes: ProjectedNode[];
+	shown: number;
+	total: number;
+	image?: ImageInfo;
+}
+
+export interface SearchMatch extends ProjectedNode {
+	path: string[];
+}
+
+export interface SearchResult {
+	stateId: string;
+	matches: SearchMatch[];
+	total: number;
+}
+
+export interface ExpandResult {
+	stateId: string;
+	ref: string;
+	nodes: ProjectedNode[];
+}
+
+export interface InspectResult {
+	stateId: string;
+	node: SerializedOutlineNode;
+	/** Capabilities this ref advertises that another element performs. */
+	owners?: Partial<Record<Capability, string>>;
+}
+
+export interface ReadTextResult {
+	stateId: string;
+	ref: string;
+	offset: number;
+	limit: number;
+	total: number;
+	text: string;
+}
+
+export type ChangedFields = Partial<Pick<ProjectedNode, "role" | "name" | "value" | "caps" | "state">>;
+
+export type Change =
+	| { type: "added"; ref: string; parent?: string; node: ProjectedNode }
+	| { type: "updated"; ref: string; fields: ChangedFields }
+	| { type: "removed"; ref: string; parent?: string };
+
+export interface WaitForResult {
+	stateId: string;
+	found: boolean;
+	gone?: boolean;
+	changes?: Change[];
+	nodes?: ProjectedNode[];
+}
+
+export interface Verification {
+	status: "verified" | "none";
+	text?: string;
+	role?: string;
+	value?: string;
+	scope?: string;
+	gone?: boolean;
+	timeoutMs?: number;
+	/** True when the expectation already held before the transaction ran. */
+	preexisting?: boolean;
+}
+
+export interface ActResult {
+	stateId: string;
+	baseStateId: string;
+	outcome: "worked";
+	verification: Verification;
+	delivery: string;
+	changes?: Change[];
+	nodes?: ProjectedNode[];
+	shown?: number;
+	total?: number;
+	image?: ImageInfo;
 }
 
 export interface CliCommandParams {
@@ -115,6 +236,17 @@ export interface CliCommandParams {
 	"act-ui": ActParams;
 	"read-text": ReadTextParams;
 	"wait-for": WaitForParams;
+}
+
+export interface CliCommandResults {
+	"find-roots": FindRootsResult;
+	"observe-ui": ObserveResult;
+	"search-ui": SearchResult;
+	"expand-ui": ExpandResult;
+	"inspect-ui": InspectResult;
+	"act-ui": ActResult;
+	"read-text": ReadTextResult;
+	"wait-for": WaitForResult;
 }
 
 export const CLI_COMMAND_NAMES = [
@@ -131,4 +263,4 @@ export type CliCommandName = typeof CLI_COMMAND_NAMES[number];
 export type CliCommandExecutor<Name extends CliCommandName> = (
 	params: CliCommandParams[Name],
 	signal?: AbortSignal,
-) => Promise<ToolResult>;
+) => Promise<CliCommandResults[Name]>;

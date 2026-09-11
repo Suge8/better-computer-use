@@ -28,6 +28,8 @@ export const HELPER_SOCKET_PATH = process.env.BCU_SOCKET_PATH ?? DEFAULT_HELPER_
 const usingExternalHelperSocket = HELPER_SOCKET_PATH !== DEFAULT_HELPER_SOCKET_PATH;
 
 export class HelperTransportError extends Error {
+	readonly code = "helper_unavailable";
+
 	constructor(message: string) {
 		super(message);
 		this.name = "HelperTransportError";
@@ -45,7 +47,7 @@ export class HelperCommandError extends Error {
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
-	if (signal?.aborted) throw new Error("Operation aborted.");
+	if (signal?.aborted) throw Object.assign(new Error("Operation aborted."), { code: "internal_error" });
 }
 
 async function isExecutable(filePath: string): Promise<boolean> {
@@ -87,7 +89,7 @@ export async function runProcess(
 		const timer = setTimeout(() => {
 			child.kill("SIGTERM");
 			cleanup();
-			reject(new Error(`Command timed out after ${timeoutMs}ms: ${command} ${args.join(" ")}`));
+			reject(new HelperTransportError(`Command timed out after ${timeoutMs}ms: ${command} ${args.join(" ")}`));
 		}, timeoutMs);
 
 		const onAbort = () => {
@@ -167,7 +169,7 @@ export class MacosHelperClient {
 		});
 		if (setupOutput.stderr) process.stderr.write(setupOutput.stderr);
 		if (!(await isExecutable(HELPER_APP_EXECUTABLE_PATH))) {
-			throw new Error(`Failed to install bcu helper app at ${HELPER_APP_PATH}.`);
+			throw new HelperTransportError(`Failed to install bcu helper app at ${HELPER_APP_PATH}.`);
 		}
 		this.helperInstallChecked = true;
 	}
@@ -355,7 +357,7 @@ export class MacosHelperClient {
 		await this.command("shutdown", {}, { signal, timeoutMs: 2_000 }).catch(() => undefined);
 		await disconnected;
 		if (!(await this.ensureDaemon(signal))) {
-			throw new Error(`bcu helper did not come back after restart. Helper app: ${HELPER_APP_PATH}`);
+			throw new HelperTransportError(`bcu helper did not come back after restart. Helper app: ${HELPER_APP_PATH}`);
 		}
 	}
 
@@ -394,7 +396,7 @@ export class MacosHelperClient {
 		const relaunchedExecutableMatches = await isResolvedHelperExecutable(diagnostics.executablePath);
 		if (diagnostics.protocolVersion !== HELPER_PROTOCOL_VERSION || !relaunchedExecutableMatches) {
 			this.daemonAvailable = false;
-			throw new Error(
+			throw new HelperTransportError(
 				`bcu helper mismatch after relaunch: expected protocol ${HELPER_PROTOCOL_VERSION} and executable ${HELPER_APP_EXECUTABLE_PATH}; got protocol ${diagnostics.protocolVersion} and executable ${diagnostics.executablePath ?? "unknown"}. Reinstall or rebuild the helper app at ${HELPER_APP_PATH}.`,
 			);
 		}

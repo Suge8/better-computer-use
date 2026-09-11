@@ -46,14 +46,6 @@ const AX_PRELUDE = [
 	"DispatchQueue.global().asyncAfter(deadline: .now() + 12) { exit(2) }",
 ];
 
-function flatten(node) {
-	return [node, ...(node.children ?? []).flatMap(flatten)];
-}
-
-function actionsOf(outlineRoot) {
-	return flatten(outlineRoot).flatMap((node) => node.actions ?? []);
-}
-
 /** Activates the app, presses a menu bar item and resolves on AXMenuOpened. */
 async function openMenuBarMenu(pid, index, processExited) {
 	await runSwiftReadyProbe([
@@ -97,7 +89,17 @@ async function waitForSheet(pid, processExited) {
 
 async function rootsOfKind(pid, kind) {
 	const found = await brokerRequest("find-roots", { pid, kind });
-	return (found.details?.windows ?? []).filter((candidate) => candidate.pid === pid && candidate.kind === kind);
+	return found.roots.filter((candidate) => candidate.pid === pid && candidate.kind === kind);
+}
+
+/** The projection hides raw action names, so the helper's own output is the subject here. */
+async function assertReadableActions(stateId, refs) {
+	for (const ref of refs) {
+		const inspected = await brokerRequest("inspect-ui", { stateId, ref });
+		for (const action of inspected.node.actions ?? []) {
+			assert(!action.includes("\n") && !action.includes("Target:0x"), `helper reported an unreadable action name ${JSON.stringify(action)}`);
+		}
+	}
 }
 
 try {
@@ -112,53 +114,46 @@ try {
 	const menus = await rootsOfKind(createdPid, "menu");
 	assert.equal(menus.length, 1, `expected exactly one open TextEdit menu root, got ${menus.length}`);
 
-	const menuObserved = await brokerRequest("observe-ui", { root: menus[0].windowRef, mode: "semantic", image: "never" });
-	assert.equal(menuObserved.details.outline.root.role, "AXMenu", "the observed menu root is not an AXMenu");
-	const menuItems = flatten(menuObserved.details.outline.root).filter((node) => node.role === "AXMenuItem" && node.title);
-	assert(menuItems.length >= 5, `expected a populated File menu, got ${menuItems.length} titled items`);
+	const menuObserved = await brokerRequest("observe-ui", { root: menus[0].ref, mode: "semantic" });
+	assert.equal(menuObserved.root.ref, menus[0].ref, "observe-ui returned another root than the open menu");
+	const menuItems = menuObserved.nodes.filter((node) => node.role === "menuitem" && node.name);
+	assert(menuItems.length >= 5, `expected a populated File menu, got ${menuItems.length} named items`);
 	const newDocumentItem = menuItems[0];
-	assert(newDocumentItem.canPress, `the first File menu item '${newDocumentItem.title}' is not pressable`);
+	assert(newDocumentItem.caps.includes("press"), `the first File menu item '${newDocumentItem.name}' cannot be pressed`);
+	await assertReadableActions(menuObserved.stateId, menuItems.slice(0, 5).map((node) => node.ref));
 
 	const pressed = await brokerRequest("act-ui", {
-		stateId: menuObserved.details.capture.stateId,
+		stateId: menuObserved.stateId,
 		actions: [{ action: "press", ref: newDocumentItem.ref }],
-		image: "never",
 	});
-	assert.equal(pressed.details.execution.outcome, "worked", `pressing menu item '${newDocumentItem.title}' did not work`);
+	assert.equal(pressed.outcome, "worked", `pressing menu item '${newDocumentItem.name}' did not work`);
 	await waitForWindowCount(createdPid, 2, processMonitor.exited);
 
 	// A sheet root: TextEdit only raises the save sheet for a dirty untitled document.
-	const untitled = (await rootsOfKind(createdPid, "window")).find((candidate) => candidate.windowTitle !== path.basename(fixturePath));
+	const untitled = (await rootsOfKind(createdPid, "window")).find((candidate) => candidate.title !== path.basename(fixturePath));
 	assert(untitled, "pressing the first File menu item did not produce a second TextEdit window");
-	const untitledObserved = await brokerRequest("observe-ui", { root: untitled.windowRef, mode: "semantic", image: "never" });
-	const editor = flatten(untitledObserved.details.outline.root).find((node) => node.canSetValue && node.wireRef && !node.pictureOnly);
-	assert(editor, "the new TextEdit window did not expose an editable node");
+	const untitledObserved = await brokerRequest("observe-ui", { root: untitled.ref, mode: "semantic" });
+	const editor = untitledObserved.nodes.find((node) => node.caps.includes("setText"));
+	assert(editor, "the new TextEdit window did not expose an editable element");
 	const typed = await brokerRequest("act-ui", {
-		stateId: untitledObserved.details.capture.stateId,
+		stateId: untitledObserved.stateId,
 		actions: [{ action: "setText", ref: editor.ref, text: `bcu sheet fixture ${randomUUID()}` }],
-		image: "never",
 	});
-	assert.equal(typed.details.execution.outcome, "worked", "writing the untitled document did not work");
 	await brokerRequest("act-ui", {
-		stateId: typed.details.capture.stateId,
+		stateId: typed.stateId,
 		actions: [{ action: "keypress", keys: ["cmd+w"] }],
-		image: "never",
 	});
 	await waitForSheet(createdPid, processMonitor.exited);
 
 	const sheets = await rootsOfKind(createdPid, "sheet");
 	assert.equal(sheets.length, 1, `expected exactly one TextEdit save sheet root, got ${sheets.length}`);
-	const sheetObserved = await brokerRequest("observe-ui", { root: sheets[0].windowRef, mode: "semantic", image: "never" });
-	assert.equal(sheetObserved.details.outline.root.role, "AXSheet", "the observed sheet root is not an AXSheet");
-	const sheetButtons = flatten(sheetObserved.details.outline.root).filter((node) => node.role === "AXButton" && node.canPress);
+	const sheetObserved = await brokerRequest("observe-ui", { root: sheets[0].ref, mode: "semantic" });
+	assert.equal(sheetObserved.root.ref, sheets[0].ref, "observe-ui returned another root than the save sheet");
+	const sheetButtons = sheetObserved.nodes.filter((node) => node.role === "button" && node.caps.includes("press"));
 	assert(sheetButtons.length >= 2, `expected the save sheet to expose its buttons, got ${sheetButtons.length}`);
+	await assertReadableActions(sheetObserved.stateId, sheetButtons.slice(0, 3).map((node) => node.ref));
 
-	// Custom Accessibility actions must not leak multi-line NSAccessibilityCustomAction descriptions.
-	for (const action of [...actionsOf(menuObserved.details.outline.root), ...actionsOf(sheetObserved.details.outline.root), ...actionsOf(untitledObserved.details.outline.root)]) {
-		assert(!action.includes("\n") && !action.includes("Target:0x"), `helper reported an unreadable action name ${JSON.stringify(action)}`);
-	}
-
-	console.log(`PASS menu root observe → press '${newDocumentItem.title}' → sheet root observe in isolated pid ${createdPid}`);
+	console.log(`PASS menu root observe → press '${newDocumentItem.name}' → sheet root observe in isolated pid ${createdPid}`);
 } finally {
 	if (createdPid) await stopTextEdit(createdPid, processMonitor);
 	await fs.rm(fixtureDirectory, { recursive: true, force: true });

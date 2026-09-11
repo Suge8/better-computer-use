@@ -24,7 +24,8 @@ Broker 内的工具运行时按职责分四块：
 
 - `src/session.ts`：operation state、资源调度、保存状态的读写与工具执行入口；
 - `src/roots.ts` 与 `src/root-refs.ts`：根发现、目标选择、pairing 与稳定 `@r` 身份；
-- `src/observe.ts`：observation 采集、结果渲染与全部缓存查询；
+- `src/observe.ts`：observation 采集、结果组装与全部缓存查询；
+- `src/projection.ts`：唯一的 agent 视图——把 outline 投影为 `ProjectedNode[]`，并渲染文本行；
 - `src/act.ts`：动作事务、投递升级、后置条件校验与后继观察。
 
 ## 职责边界
@@ -103,13 +104,12 @@ StateStore 有四道容量边界：
 
 ## 截图 artifact
 
-helper 通过 native 协议返回 base64。Broker 在响应 CLI 前完成以下步骤：
+helper 通过 native 协议返回 base64。只有显式要求图片时，Broker 在返回结果前完成以下步骤：
 
 1. 解码图片；
 2. 写入 `shots/<stateId>.jpg`；
 3. 设置目录 `0700`、文件 `0600`；
-4. 删除结果中的 base64；
-5. 返回路径、MIME 和尺寸。
+4. 结果只带 `image: {path, mime, width, height}`，不含 base64。
 
 清理在新截图写入时执行，不创建后台清理 timer。同一 artifact 目录的写入与清理由 Broker 内 Promise 队列串行化，避免并发 agent 在枚举、stat、删除之间互相破坏；不同目录仍可并行。只有性能数据证明 native 直写文件有显著收益时，才需要改 helper 协议。
 
@@ -136,25 +136,41 @@ observation 包含：
 - helper timings；
 - 完整序列化 outline。
 
-首次结果返回折叠后的完整视图。`search-ui`、`expand-ui`、`inspect-ui` 查询完整缓存。截断节点需要扩展时，Broker 在相同 epoch 上做 scoped look，不能把并发 mutation 后的数据 graft 到旧状态。
+完整 outline 只存在 StateStore 里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 仍然查询完整缓存，因此被投影省略或折叠的节点照样可达。截断节点需要扩展时，Broker 在相同 epoch 上做 scoped look，不能把并发 mutation 后的数据 graft 到旧状态。
 
-`observe-ui` 默认 `fused`。`semantic` 默认不取图、不做 OCR。`act-ui` 的后继观察默认 `semantic + no-image`，显式 `--image always` 才生成截图。
+`observe-ui` 默认 `--mode semantic`：不取图、不做 OCR。`--mode fused` 或 `--image always` 才产生截图文件。`act-ui` 的后继观察同样默认无图。
+
+## 投影
+
+`src/projection.ts` 是 agent 看到的唯一视图，文本与 `--json` 渲染同一组 `ProjectedNode`：
+
+- role 用短词表，去掉 `AX` 前缀，subrole 更具体时优先（`AXWindow/AXStandardWindow` → `window`）；
+- caps 只能取固定词表（press、toggle、setText、typeText、menu、open、expand、scroll、increment、decrement、raise），其余 AX action 一律不外泄；
+- name 取 title、description，其次是被包裹的文本，最后才是非内部标识的 identifier；
+- 没有名称、能力和状态的节点消失；结构性容器把子节点提升；只包裹文本的条目折成一行并合并能力；
+- 首屏按字节预算逐层展开：焦点所在的子树始终展开，其余用 `▸ N hidden: role×n` 概括，可用 `expand-ui` 继续打开；`--json` 的 `nodes` 与文本视图展示的是同一组节点，被折叠的后代只由 `hidden: {count, roles}` 概括。
+
+caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外层 ref 上，这时投影同时记录 `owners`（capability → 真正执行它的 ref）。`act-ui` 收到语义动作时按 `owners` 解析到拥有者再投递，坐标类动作仍用渲染 ref 的几何；`inspect-ui` 输出同一份 `owners` 映射。
 
 ## Action transaction
 
 `act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
 
-helper 返回 `worked`、`didnt` 或 `unknown`，并附投递与验证证据。只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败统一变成 `action_failed`，stdout 为空，调用方必须重新观察。可信的小变更返回 successor diff；根替换、身份置信度不足或变更过大时返回完整折叠视图。
+helper 返回 `worked`、`didnt` 或 `unknown`。只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
 
 ## 浏览器窗口
 
-浏览器窗口是普通的 AX 窗口，没有专用代码路径。页面级自动化由 `flow-browser-use` 负责。
+浏览器窗口是普通的 AX 窗口，没有专用代码路径。页面级自动化由 `better-browser-use` 负责。
+
+## 结果契约
+
+每条命令返回一个顶层 JSON 对象，没有 `ok`/`result`/`text`/`details` 外壳；类型定义在 [`src/contract.ts`](../src/contract.ts)。除 `find-roots` 外都带 `stateId`。文本视图由 CLI 从同一个对象渲染，Broker 不再传第二份视图。
 
 ## 错误契约
 
-Broker 把 native、运行时和 IPC 错误归一到 [`src/errors.ts`](../src/errors.ts) 的稳定代码。CLI 失败时 stdout 为空，stderr 输出：
+每个失败路径在抛出点就带明确错误码（`BcuError`，或 helper 的 code 经 `ERROR_CODE_ALIASES` 映射）。没有码的错误一律是 `internal_error`，代表真实缺陷。CLI 失败时 stdout 为空，stderr 输出：
 
 ```text
 error <code>: <message>

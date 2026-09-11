@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction } from "../src/actions.ts";
 import { nodeByRef, parseLookResponse } from "../src/outline.ts";
+import { project } from "../src/projection.ts";
 import { ResourceScheduler, StateStore, StaleResourceStateError } from "../src/runtime.ts";
 import { SavedStates } from "../src/state.ts";
 import { changesBetween, stabilizeRefs } from "../src/view.ts";
@@ -62,7 +63,7 @@ const imageLook = rawLook("look-image", [{ ref: "button", role: "AXButton", titl
 const savedStates = new SavedStates();
 savedStates.saveDesktop({
 	currentTarget: { appName: "Fixture", pid: 1, windowTitle: "Fixture", windowId: 1 },
-	currentCapture: { stateId: "state-image", width: 800, height: 600, scaleFactor: 1, timestamp: Date.now() },
+	currentCapture: { stateId: "state-image", timestamp: Date.now() },
 	currentLook: imageLook,
 	currentOutline: imageLook.parsedOutline,
 }, "desktop-pid:1", 0);
@@ -73,7 +74,8 @@ const hydratedImage = savedStates.hydrate(savedImageState).currentLook?.image;
 assert.deepEqual(hydratedImage, { mimeType: "image/jpeg", width: 800, height: 600 }, "stored state did not retain coordinate metadata");
 stabilizeRefs(baseLook.parsedOutline, nextLook.parsedOutline);
 assert.equal(nextLook.parsedOutline.wireRefToRef.get("editor"), baseLook.parsedOutline.wireRefToRef.get("editor"), "successor state did not preserve a confidently matched ref");
-const successorDiff = changesBetween(baseLook.parsedOutline, nextLook.parsedOutline);
+const projected = (outline) => project(outline, { maxDepth: Number.MAX_SAFE_INTEGER, maxNodes: Number.MAX_SAFE_INTEGER }).nodes;
+const successorDiff = changesBetween(projected(baseLook.parsedOutline), projected(nextLook.parsedOutline));
 assert.equal(successorDiff.useFullView, false, "small successor change unexpectedly required a full view");
 assert(successorDiff.changes.some((change) => change.type === "updated" && change.ref === baseLook.parsedOutline.wireRefToRef.get("editor") && change.fields.value === "hello"), "successor diff omitted the editor value change");
 assert(successorDiff.changes.some((change) => change.type === "added" && change.ref === nextLook.parsedOutline.wireRefToRef.get("inserted")), "successor diff omitted the added node");
@@ -85,7 +87,7 @@ const regeneratedLook = rawLook("look-3", [
 stabilizeRefs(baseLook.parsedOutline, regeneratedLook.parsedOutline);
 const regeneratedEditor = regeneratedLook.parsedOutline.nodes.find((node) => node.wireRef === "editor-new");
 assert.equal(regeneratedEditor?.ref, baseLook.parsedOutline.wireRefToRef.get("editor"), "structurally stable nodes did not retain refs when native refs regenerated");
-assert.equal(changesBetween(baseLook.parsedOutline, regeneratedLook.parsedOutline).useFullView, false, "regenerated native refs forced an unnecessary full view");
+assert.equal(changesBetween(projected(baseLook.parsedOutline), projected(regeneratedLook.parsedOutline)).useFullView, false, "regenerated native refs forced an unnecessary full view");
 
 const editor = nextLook.parsedOutline.nodes.find((node) => node.wireRef === "editor");
 assert(editor, "editor fixture was not parsed");
