@@ -1,4 +1,4 @@
-import type { PermissionStatus } from "../permissions.ts";
+import type { PermissionStatus } from "./permissions.ts";
 
 export const HELPER_ARCHITECTURE_VERSION = 1;
 export const REQUIRED_HELPER_INVARIANTS = [

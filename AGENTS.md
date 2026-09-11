@@ -11,5 +11,5 @@
 - `src/actions.ts`、`src/view.ts`、`src/state.ts`、`src/runtime.ts`：动作校验与准备、状态间差异、保存状态与资源调度。
 - `src/macos/`：macOS helper 客户端、backend 与 helper 线协议。
 - `native/macos/`：Swift helper（Accessibility、ScreenCaptureKit、输入投递、agent 光标）。
-- `skills/better-computer-use/SKILL.md`：Agent Skill 源文件（安装副本在 `~/.agents/skills/operations/`）。
+- `skills/better-computer-use/SKILL.md`：Agent Skill 源文件，`~/.agents/skills/operations/better-computer-use` 软链到它。
 - `scripts/`：构建、打包与行为门；每个 `check-*.mjs` 文件头写明它保护什么，共享脚手架在 `scripts/lib/`，真机 outline fixture 在 `scripts/fixtures/`。

@@ -1,6 +1,44 @@
-import { ensurePermissions, type PermissionKind, type PermissionStatus } from "../permissions.ts";
 import { assertHelperArchitecture, toBoolean, toFiniteNumber, toOptionalString, type HelperReadyState } from "./protocol.ts";
 import { HELPER_APP_PATH, HelperTransportError, macosHelper } from "./helper.ts";
+
+export type PermissionAttribution = "helper-app" | "caller";
+export type PermissionKind = "accessibility" | "screenRecording";
+
+export interface PermissionSource {
+	attribution: PermissionAttribution;
+	pid?: number;
+	parentPid?: number;
+	executablePath?: string;
+	parentPath?: string;
+	parentBundleId?: string;
+	os?: string;
+}
+
+export interface PermissionStatus {
+	accessibility: boolean;
+	screenRecording: boolean;
+	screenRecordingPreflight?: boolean;
+	source?: PermissionSource;
+}
+
+export class PermissionMissingError extends Error {
+	readonly code = "permission_missing";
+
+	constructor(message: string, missing: PermissionKind[]) {
+		super(`${message}\nMissing permissions: ${missing.join(" and ")}. Run 'bcu setup' to grant them, then retry.`);
+		this.name = "PermissionMissingError";
+	}
+}
+
+export function ensurePermissions(
+	status: PermissionStatus,
+	kinds: readonly PermissionKind[],
+	message: string,
+): PermissionStatus {
+	const missing = kinds.filter((kind) => status[kind] !== true);
+	if (missing.length > 0) throw new PermissionMissingError(message, missing);
+	return status;
+}
 
 const GRANT_INSTRUCTIONS =
 	"Grant Accessibility and Screen Recording to bcu.app in System Settings → Privacy & Security. " +

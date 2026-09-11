@@ -1,10 +1,9 @@
 import { loadComputerUseConfig } from "./config.ts";
 import { BcuError } from "./errors.ts";
-import { ensureMacosReady } from "./macos/permissions.ts";
+import { ensureMacosReady, type PermissionStatus } from "./macos/permissions.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { HelperDiagnostics } from "./macos/protocol.ts";
 import type { Outline, LookResponse } from "./outline.ts";
-import type { PermissionStatus } from "./permissions.ts";
 import { clearRootRefs } from "./root-refs.ts";
 import { ResourceScheduler } from "./runtime.ts";
 import { SavedStates, type CurrentCapture, type CurrentTarget, type OperationState } from "./state.ts";

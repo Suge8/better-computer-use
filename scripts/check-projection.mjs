@@ -58,3 +58,15 @@ assert(downloads, "Finder sidebar entry was not folded into a single named row")
 assert.equal(downloads.role, "row", `Finder sidebar entry projected as '${downloads.role}'`);
 assert.deepEqual(downloads.caps, ["open"], `Finder sidebar entry lost or invented capabilities: ${downloads.caps.join(",")}`);
 console.log("PASS Finder sidebar rows fold into one line with merged capabilities");
+
+// A menu separator is an unnamed, childless AXMenuItem that still answers AXPress;
+// it is not something an agent can act on and only pads the menu view.
+function menuNode(ref, title, children = []) {
+	return { ref, wireRef: ref.slice(1), role: "AXMenuItem", subrole: "", identifier: "_NS:1", title, description: "", value: "", actions: ["AXCancel", "AXPress", "AXPick"], canPress: true, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: { x: 0, y: 0, w: 200, h: 20 }, focused: false, offscreen: false, pictureOnly: false, truncated: false, text: [], children };
+}
+const menu = project(restoreOutline({
+	lookId: "menu",
+	root: { ...menuNode("@e1", ""), role: "AXMenu", actions: [], canPress: false, children: [menuNode("@e2", "新建"), menuNode("@e3", ""), menuNode("@e4", "关闭")] },
+}), { maxDepth: 8 });
+assert.deepEqual(menu.nodes.map((node) => node.ref), ["@e1", "@e2", "@e4"], `menu separator survived projection: ${menu.nodes.map((node) => node.ref).join(",")}`);
+console.log("PASS menu separators are dropped from the view");

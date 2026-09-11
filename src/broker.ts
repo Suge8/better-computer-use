@@ -28,8 +28,7 @@ import {
 	type BrokerResponse,
 } from "./ipc.ts";
 import { HELPER_APP_PATH, HELPER_PROTOCOL_VERSION, macosHelper } from "./macos/helper.ts";
-import { checkMacosPermissions } from "./macos/permissions.ts";
-import { ensurePermissions } from "./permissions.ts";
+import { checkMacosPermissions, ensurePermissions } from "./macos/permissions.ts";
 
 const DEFAULT_IDLE_MS = 10 * 60 * 1_000;
 

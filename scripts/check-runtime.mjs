@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction } from "../src/actions.ts";
 import { loadComputerUseConfig } from "../src/config.ts";
-import { ensurePermissions } from "../src/permissions.ts";
+import { ensurePermissions } from "../src/macos/permissions.ts";
 import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
 import { nodeByRef, parseLookResponse } from "../src/outline.ts";
 import { project } from "../src/projection.ts";

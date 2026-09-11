@@ -228,6 +228,8 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 	// A node with no name, no capability and no state says nothing an agent can use.
 	// Structural wrappers hand their children up; everything else disappears.
 	if (!name && !caps.length && !state && (children.length === 0 || STRUCTURAL_ROLES.has(role) || role === "image")) return children;
+	// An unnamed, childless menu item is a separator: it answers AXPress but does nothing.
+	if (!name && role === "menuitem" && children.length === 0) return [];
 
 	let tree: ProjectedTree = {
 		ref: node.ref,
