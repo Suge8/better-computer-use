@@ -278,11 +278,12 @@ function pathRefs(node: OutlineNode): string[] {
 	return refs;
 }
 
-/** Always-open paths: the live focus, subtrees the helper cut short, and modal roots. */
+// Always-open paths: the live focus and modal roots. A subtree the helper cut short
+// keeps its `truncated` state word instead, so one deep frontier cannot blow up the view.
 function defaultUnfolded(outline: Outline, requested: string[]): Set<string> {
 	const refs = new Set<string>(requested);
 	for (const node of outline.nodes) {
-		if ((node.focused && node.canFocus) || node.truncated || node.role === "AXSheet" || node.role === "AXDialog") {
+		if ((node.focused && node.canFocus) || node.role === "AXSheet" || node.role === "AXDialog") {
 			for (const ref of pathRefs(node)) refs.add(ref);
 		}
 	}
