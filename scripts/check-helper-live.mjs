@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 // The installed helper still honours the contract the runtime depends on: one look per
 // moment, rects inside the captured image, stable root and element identities, and an
-// outline that projects into the agent vocabulary.
+// outline that projects into the agent vocabulary. The subject is a TextEdit window this
+// gate opens itself, so the verdict never depends on what the desktop happens to show.
+import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { launchTextEdit, makeTemporaryRoot, monitorProcess, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
 import { HELPER_PROTOCOL_VERSION } from "../src/macos/helper.ts";
-import { graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
+import { parseLookResponse } from "../src/outline.ts";
 import { CAPABILITIES, project, renderObservation } from "../src/projection.ts";
 
 const results = [];
@@ -112,21 +116,18 @@ function windowLabel(window) {
 	return `${window.appName ?? window.app ?? "unknown app"} — ${window.title ?? window.windowTitle ?? "(untitled)"} (${window.windowId ?? "no windowId"})`;
 }
 
-async function pidForWindow(socketPath, windowId) {
-	const apps = await call(socketPath, { id: "inv-apps", cmd: "listApps" });
-	for (const app of Array.isArray(apps) ? apps : []) {
-		const windows = ((await call(socketPath, { id: `inv-roots-${app.pid}`, cmd: "listRoots", pid: app.pid }).catch(() => ({ roots: [] }))).roots) ?? [];
-		const match = Array.isArray(windows) ? windows.find((window) => window?.windowId === windowId) : undefined;
-		if (match) return { pid: app.pid, appName: app.appName, title: match.title ?? match.windowTitle };
-	}
-	return undefined;
-}
+/** Several lines of plain text, so the captured image has something for OCR to find. */
+const FIXTURE_TEXT = "bcu live helper fixture\nsecond line of fixture text\nthird line of fixture text\n";
 
 async function liveChecks() {
 	if (process.env.BCU_LIVE !== "1") {
 		console.log("SKIP live helper checks (set BCU_LIVE=1)");
 		return;
 	}
+	const fixtureDirectory = await makeTemporaryRoot("helper-live");
+	const fixtureTitle = `bcu-helper-live-${randomUUID()}`;
+	let fixturePid;
+	let fixtureMonitor;
 	try {
 		const socketPath = process.env.BCU_SOCKET_PATH ?? path.join(os.homedir(), "Library/Caches/bcu/bridge.sock");
 		const diagnostics = await call(socketPath, { id: "inv-diagnostics", cmd: "diagnostics" });
@@ -146,41 +147,31 @@ async function liveChecks() {
 		check("abandoned root discovery keeps helper alive", () => {
 			assert(diagnosticsAfterAbandon.protocolVersion === HELPER_PROTOCOL_VERSION, "helper died after writing to an abandoned root-discovery socket");
 		});
-		const explicitRootRef = process.env.BCU_LIVE_ROOT_REF || undefined;
-		let windows = [];
-		try {
-			const frontmost = await call(socketPath, { id: "inv-frontmost", cmd: "getFrontmost" });
-			windows = ((await call(socketPath, { id: "inv-roots", cmd: "listRoots", pid: frontmost.pid })).roots) ?? [];
-			check("listRoots pairing", () => {
-				assert(Array.isArray(windows), "listRoots did not return an array");
-				for (const window of windows) {
-					// The menu bar is the one root with no window of its own to pair with.
-					if (window?.kind === "menubar") {
-						assert(window.metadata?.pairing === undefined, `the menu bar claimed a window pairing: ${JSON.stringify(window.metadata)}`);
-						continue;
-					}
-					assert(["exact", "high", "low"].includes(window?.metadata?.pairing?.confidence), `invalid pairing ${JSON.stringify(window?.metadata?.pairing)}`);
+		await fs.writeFile(path.join(fixtureDirectory, `${fixtureTitle}.txt`), FIXTURE_TEXT);
+		fixturePid = await launchTextEdit(path.join(fixtureDirectory, `${fixtureTitle}.txt`));
+		fixtureMonitor = await monitorProcess(fixturePid);
+		await waitForAxWindow(fixturePid, fixtureMonitor.exited, fixtureTitle);
+		const windows = ((await call(socketPath, { id: "inv-roots", cmd: "listRoots", pid: fixturePid })).roots) ?? [];
+		check("listRoots pairing", () => {
+			assert(Array.isArray(windows), "listRoots did not return an array");
+			for (const window of windows) {
+				// The menu bar is the one root with no window of its own to pair with.
+				if (window?.kind === "menubar") {
+					assert(window.metadata?.pairing === undefined, `the menu bar claimed a window pairing: ${JSON.stringify(window.metadata)}`);
+					continue;
 				}
-			});
-		} catch (error) {
-			if (!explicitRootRef) throw error;
-			console.log(`SKIP listRoots pairing (${error.message}; explicit BCU_LIVE_ROOT_REF=${explicitRootRef})`);
-		}
-		let target = explicitRootRef
-			? { rootRef: explicitRootRef, title: "BCU_LIVE_ROOT_REF", appName: "explicit target" }
-			: Array.isArray(windows) ? windows.find((window) => window?.rootRef && Number.isFinite(window?.windowId)) : undefined;
-		if (!target) {
-			console.log("SKIP look (no capturable frontmost window; Accessibility may be missing)");
-			return;
-		}
+				assert(["exact", "high", "low"].includes(window?.metadata?.pairing?.confidence), `invalid pairing ${JSON.stringify(window?.metadata?.pairing)}`);
+			}
+		});
+		// TextEdit restores earlier documents into a fresh instance; the fixture window is the
+		// one named after the fixture.
+		const target = {
+			...windows.find((window) => (window?.title ?? "").startsWith(fixtureTitle) && window?.rootRef && Number.isFinite(window?.windowId)),
+			pid: fixturePid,
+			appName: "TextEdit",
+		};
+		assert(target.rootRef, `the fixture window ${fixtureTitle} is not a capturable root: ${JSON.stringify(windows.map((window) => window?.title))}`);
 		const look = await call(socketPath, { id: "inv-look", cmd: "look", rootRef: target.rootRef, windowId: target.windowId, readText: "always" }, 20000);
-		if (explicitRootRef) {
-			target = { ...target, ...look.window, title: look.window?.title ?? target.title };
-		}
-		const pidInfo = await pidForWindow(socketPath, target.windowId);
-		if (pidInfo) {
-			target = { ...target, ...pidInfo, appName: pidInfo.appName ?? target.appName, title: pidInfo.title ?? target.title };
-		}
 		check("look one moment", () => {
 			assert(typeof look.capturedAt === "number", "missing capturedAt");
 			assert(look.image && look.outline, "missing image or outline");
@@ -232,37 +223,13 @@ async function liveChecks() {
 				assert(visible, `focused ref ${node.ref} was neither rendered nor folded`);
 			}
 		});
-		const fullOutline = parseLookResponse(look).parsedOutline;
-		const truncated = fullOutline?.nodes.find((node) => node.truncated && node.wireRef);
-		if (!fullOutline || !truncated) {
-			console.log(`SKIP scoped graft (no truncated node in ${windowLabel(target)})`);
-		} else {
-			const beforeRefs = new Map(fullOutline.nodes.map((node) => [node.ref, node.wireRef]));
-			const beforeMax = Math.max(...fullOutline.nodes.map((node) => Number(/^@e(\d+)$/.exec(node.ref)?.[1] ?? 0)));
-			const state = { stateId: "full-state", capture: { width: look.image.width, height: look.image.height } };
-			const scopedLook = await call(socketPath, { id: "inv-look-scope", cmd: "look", windowId: target.windowId, readText: "auto", scopeRef: truncated.wireRef, maxDimension: 1 }, 20000);
-			check("scoped graft preserves full state", () => {
-				const scopedOutline = parseLookResponse(scopedLook).parsedOutline;
-				assert(scopedOutline, "scoped look did not parse");
-				graftScopedOutline(fullOutline, truncated.ref, scopedOutline);
-				for (const [ref, wireRef] of beforeRefs) {
-					const node = nodeByRef(fullOutline, ref);
-					assert(node, `pre-existing ref disappeared: ${ref}`);
-					assert(node.wireRef === wireRef, `pre-existing ref changed elementRef: ${ref}`);
-				}
-				assert(state.stateId === "full-state" && state.capture.width === look.image.width && state.capture.height === look.image.height, "state/capture sentinel changed");
-				const afterMax = Math.max(...fullOutline.nodes.map((node) => Number(/^@e(\d+)$/.exec(node.ref)?.[1] ?? 0)));
-				assert(afterMax >= beforeMax, "ref counter moved backwards");
-				for (const node of fullOutline.nodes) {
-					const number = Number(/^@e(\d+)$/.exec(node.ref)?.[1] ?? 0);
-					if (!beforeRefs.has(node.ref)) assert(number > beforeMax, `new ref did not continue numbering: ${node.ref}`);
-				}
-			});
-		}
 	} catch (error) {
 		results.push(["live", false]);
 		process.exitCode = 1;
 		console.error(`FAIL live helper ${error.message}`);
+	} finally {
+		if (fixturePid) await stopTextEdit(fixturePid, fixtureMonitor);
+		await fs.rm(fixtureDirectory, { recursive: true, force: true });
 	}
 }
 

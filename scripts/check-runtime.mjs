@@ -9,7 +9,7 @@ import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, pr
 import { loadComputerUseConfig } from "../src/config.ts";
 import { ensurePermissions } from "../src/macos/permissions.ts";
 import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
-import { nodeByRef, parseLookResponse } from "../src/outline.ts";
+import { graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
 import { project } from "../src/projection.ts";
 import { ResourceScheduler, StateStore, StaleResourceStateError } from "../src/runtime.ts";
 import { SavedStates } from "../src/state.ts";
@@ -97,6 +97,33 @@ stabilizeRefs(baseLook.parsedOutline, regeneratedLook.parsedOutline);
 const regeneratedEditor = regeneratedLook.parsedOutline.nodes.find((node) => node.wireRef === "editor-new");
 assert.equal(regeneratedEditor?.ref, baseLook.parsedOutline.wireRefToRef.get("editor"), "structurally stable nodes did not retain refs when native refs regenerated");
 assert.equal(changesBetween(projected(baseLook.parsedOutline), projected(regeneratedLook.parsedOutline)).useFullView, false, "regenerated native refs forced an unnecessary full view");
+
+// Expanding a subtree the helper cut short must not renumber the state around it.
+const graftBase = rawLook("look-graft", [
+	{ ref: "toolbar", role: "AXToolbar", title: "Toolbar" },
+	{ ref: "list", role: "AXList", title: "Files", truncated: true },
+]);
+const scopedLook = rawLook("look-graft-scope", []);
+scopedLook.parsedOutline = parseLookResponse({
+	lookId: "look-graft-scope",
+	capturedAt: Date.now() / 1000,
+	window: { windowId: 1, framePoints: { x: 0, y: 0, w: 800, h: 600 }, scaleFactor: 1, isModal: false, role: "AXWindow", subrole: "AXStandardWindow" },
+	outline: { ref: "list", role: "AXList", title: "Files", children: [{ ref: "row-1", role: "AXRow", title: "one" }, { ref: "row-2", role: "AXRow", title: "two" }] },
+	timings: {},
+}).parsedOutline;
+const graftTargetRef = graftBase.parsedOutline.wireRefToRef.get("list");
+const graftBefore = new Map(graftBase.parsedOutline.nodes.map((node) => [node.ref, node.wireRef]));
+const graftMaxBefore = Math.max(...graftBase.parsedOutline.nodes.map((node) => Number(/^@e(\d+)$/.exec(node.ref)?.[1] ?? 0)));
+const grafted = graftScopedOutline(graftBase.parsedOutline, graftTargetRef, scopedLook.parsedOutline);
+assert.equal(grafted.ref, graftTargetRef, "graft renamed the element that was expanded");
+for (const [ref, wireRef] of graftBefore) {
+	assert.equal(nodeByRef(graftBase.parsedOutline, ref)?.wireRef, wireRef, `graft lost the pre-existing ref ${ref}`);
+}
+for (const node of graftBase.parsedOutline.nodes) {
+	if (graftBefore.has(node.ref)) continue;
+	assert(Number(/^@e(\d+)$/.exec(node.ref)?.[1] ?? 0) > graftMaxBefore, `grafted node reused a ref number: ${node.ref}`);
+}
+assert.equal(grafted.children.length, 2, "graft did not adopt the scoped children");
 
 const editor = nextLook.parsedOutline.nodes.find((node) => node.wireRef === "editor");
 assert(editor, "editor fixture was not parsed");
