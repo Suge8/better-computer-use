@@ -25,10 +25,10 @@ printf '%s' '[{"action":"setText","ref":"@e9","text":"hello"}]' |
 ```text
 @r5 文本编辑 — bcu-p3.txt · state 937572b9-4296-4525-931f-ca663bd7af56 · 12 nodes, 8 shown
 @e1 window "bcu-p3.txt" {raise}
-  @e9 textarea "First Text View" ="hello" {setText,typeText,menu,scroll} focused
+  @e9 textarea "First Text View" {setText,typeText,menu,scroll} focused
 
 state e4441aa2-a994-40e9-93c4-a654c4599f43 ← 937572b9-… · worked via ax · verified
-~ @e9 ="phase2 live check"
+~ @e9 ="hello"
 ```
 
 - **投递梯子**：语义后台优先、失败自动升级前台、坐标兜底，由 bcu 自己走完；你只给 ref 和动作。
