@@ -1138,6 +1138,7 @@ final class Bridge {
 	}
 
 	private func rootKind(role: String, subrole: String) -> String {
+		if role == "AXMenuBar" { return "menubar" }
 		if role == "AXMenu" { return "menu" }
 		if role == "AXSheet" { return "sheet" }
 		if subrole.localizedCaseInsensitiveContains("popover") { return "popover" }
@@ -1154,6 +1155,38 @@ final class Bridge {
 
 	private func rootMetadata(pairing: WindowPairing, sheetCount: Int) -> [String: Any] {
 		["pairing": ["confidence": pairing.confidence, "score": pairing.score], "sheetCount": sheetCount]
+	}
+
+	/// An app's menu bar is a root in its own right: it is how every app command is reached,
+	/// and it exists whether or not the app owns a window on screen.
+	private func menuBarRoot(pid: Int32, appName: String, bundleId: String?) -> [String: Any]? {
+		let appElement = AXUIElementCreateApplication(pid)
+		guard let bar = copyAttribute(appElement, attribute: kAXMenuBarAttribute as CFString).flatMap(asAXElement) else { return nil }
+		let frame = frameForWindow(bar)
+		guard frame.width > 1, frame.height > 1 else { return nil }
+		// A menu bar has no title of its own, and discovery may know the app only by its
+		// executable name; the localized app name is the one identity that always matches.
+		let title = NSRunningApplication(processIdentifier: pid)?.localizedName ?? appName
+		var root: [String: Any] = [
+			"kind": "menubar",
+			"rootRef": refStore.storeWindow(bar),
+			// Behind every window, and never the root an unqualified query should land on.
+			"zOrder": Int.max,
+			"title": title,
+			"role": "AXMenuBar",
+			"subrole": "",
+			"isModal": false,
+			"framePoints": ["x": frame.origin.x, "y": frame.origin.y, "w": frame.width, "h": frame.height],
+			"scaleFactor": displayScaleFactor(for: frame),
+			"isMinimized": false,
+			"isOnscreen": true,
+			"isMain": false,
+			"isFocused": false,
+			"pid": Int(pid),
+			"appName": appName,
+		]
+		if let bundleId { root["bundleId"] = bundleId }
+		return root
 	}
 
 	private func broadRootCandidateApps(entries: [[String: Any]]) -> [[String: Any]] {
@@ -1227,6 +1260,7 @@ final class Bridge {
 				if let bundleId { menu["bundleId"] = bundleId }
 				roots.append(menu)
 			}
+			if let bar = menuBarRoot(pid: appPid, appName: appName, bundleId: bundleId) { roots.append(bar) }
 		}
 		roots.sort { (($0["zOrder"] as? Int) ?? Int.max) < (($1["zOrder"] as? Int) ?? Int.max) }
 		return ["roots": roots]
@@ -1966,12 +2000,16 @@ final class Bridge {
 			let cachedIsLive = cached.map {
 				stringAttribute($0, attribute: kAXRoleAttribute as CFString) != nil && frameForElement($0) != nil
 			} ?? false
-			let resolved: AXUIElement?
+			var resolved: AXUIElement?
 			if cachedIsLive {
 				resolved = cached
 			} else {
-				refound = true
 				resolved = refindElement(ref: ref, pid: pid, windowId: record.windowId)
+				refound = resolved != nil
+				// Geometry is missing for whole families of live elements — the menu bar of a
+				// background app draws nothing — so an element that still answers accessibility
+				// is the target even when nothing can be refound for it.
+				if resolved == nil, let cached, stringAttribute(cached, attribute: kAXRoleAttribute as CFString) != nil { resolved = cached }
 			}
 			guard let stored = resolved else {
 				throw BridgeFailure(message: "Element reference is stale", code: "stale_ref")
@@ -2005,6 +2043,16 @@ final class Bridge {
 				["press", "click", "moveMouse", "scroll", "drag"].contains(action)
 			else { return }
 			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId) }
+		}
+
+		/// Activation is asynchronous: the menu bar item has no geometry until it belongs to
+		/// the frontmost app, and that geometry is the signal to wait for.
+		func activateForMenuBar(_ item: AXUIElement) {
+			guard let app = NSRunningApplication(processIdentifier: pid) else { return }
+			performed["activated"] = app.activate()
+			let deadline = Date().addingTimeInterval(1.5)
+			while Date() < deadline, (frameForElement(item)?.width ?? 0) <= 0 { usleep(20_000) }
+			beforeEvidence = evidenceSnapshot(item)
 		}
 
 		func focusTargetForPhysicalInput() {
@@ -2091,10 +2139,16 @@ final class Bridge {
 			return refreshed
 		}
 
-		if let element, action == "press" || action == "click" {
+		if let element, pressLike {
 			let elementRole = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 			let textRoles: Set<String> = ["AXTextField", "AXTextArea", "AXTextView", "AXSearchField", "AXComboBox", "AXEditableText", "AXSecureTextField"]
 			let requiresPointerFocus = hasAncestorRole(element, role: "AXWebArea") || textRoles.contains(elementRole)
+			// Only the frontmost app owns the menu bar. A background app accepts the press and
+			// does nothing with it, so activation is a precondition, not a fallback.
+			let requiresFrontmost = elementRole == "AXMenuBarItem" && !(NSRunningApplication(processIdentifier: pid)?.isActive ?? false)
+			if requiresFrontmost && policy != "ax_only" && policy != "foreground" {
+				throw BridgeFailure(message: "The menu bar only answers in the frontmost app", code: "foreground_required")
+			}
 			if requiresPointerFocus && policy != "ax_only" {
 				if policy == "foreground" {
 					try executeCoordinates(coordinatePoint())
@@ -2102,6 +2156,7 @@ final class Bridge {
 					throw BridgeFailure(message: "Web content requires pointer input", code: "foreground_required")
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
+				if requiresFrontmost { activateForMenuBar(element) }
 				let cursorPoint = try? coordinatePoint()
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
 				if status != .success, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
@@ -2346,11 +2401,12 @@ final class Bridge {
 		return delta
 	}
 
+	/// A changed root is reported in the same shape discovery uses, so a caller can observe
+	/// it straight away instead of listing roots again and racing the change.
 	private func rootDeltaItem(change: String, root: [String: Any], pid: Int32) -> [String: Any] {
-		var item: [String: Any] = ["change": change, "kind": root["kind"] as? String ?? "window", "title": root["title"] as? String ?? "", "pid": root["pid"] as? Int ?? Int(pid)]
-		if let isModal = root["isModal"] as? Bool { item["isModal"] = isModal }
-		if let metadata = root["metadata"] as? [String: Any] { item["metadata"] = metadata }
-		if let ref = root["rootRef"] as? String { item["ref"] = ref }
+		var item = root
+		item["change"] = change
+		item["pid"] = root["pid"] as? Int ?? Int(pid)
 		return item
 	}
 

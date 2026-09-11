@@ -40,7 +40,7 @@ function parseRoots(result: unknown): HelperRoot[] {
 		const rootRef = toOptionalString((raw as any)?.rootRef);
 		if (!rootRef) return [];
 		const metadata = typeof (raw as any)?.metadata === "object" && (raw as any).metadata !== null ? (raw as any).metadata as Record<string, unknown> : {};
-		const kind = ["window", "menu", "sheet", "popover", "dialog"].includes((raw as any)?.kind) ? (raw as any).kind as RootKind : "window";
+		const kind = ["window", "menubar", "menu", "sheet", "popover", "dialog"].includes((raw as any)?.kind) ? (raw as any).kind as RootKind : "window";
 		return [{
 			kind,
 			rootRef,
@@ -62,6 +62,14 @@ function parseRoots(result: unknown): HelperRoot[] {
 			metadata,
 		}];
 	});
+}
+
+/** Only roots that appeared are actionable news; closures and focus moves are already in the outcome. */
+function parseActResult(raw: unknown): HelperActResult {
+	const result = raw as HelperActResult & { rootDelta?: unknown };
+	const delta = Array.isArray(result?.rootDelta) ? result.rootDelta.filter((entry: any) => entry?.change === "appeared") : [];
+	const appearedRoots = parseRoots(delta);
+	return { ...result, appearedRoots: appearedRoots.length > 0 ? appearedRoots : undefined };
 }
 
 function helperAction(request: ActRequest): Record<string, unknown> {
@@ -114,12 +122,12 @@ export const macosBackend = {
 	},
 
 	async act(request: ActRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<HelperActResult> {
-		return await macosHelper.command<HelperActResult>("act", { ...helperAction(request), cursorOverlay: getComputerUseConfig().cursor_overlay }, options);
+		return parseActResult(await macosHelper.command<unknown>("act", { ...helperAction(request), cursorOverlay: getComputerUseConfig().cursor_overlay }, options));
 	},
 
 	async actBatch(requests: ActRequest[], options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<HelperActResult> {
 		const cursorOverlay = getComputerUseConfig().cursor_overlay;
-		return await macosHelper.command<HelperActResult>("actBatch", { actions: requests.map((request) => ({ ...helperAction(request), cursorOverlay })) }, options);
+		return parseActResult(await macosHelper.command<unknown>("actBatch", { actions: requests.map((request) => ({ ...helperAction(request), cursorOverlay })) }, options));
 	},
 
 	async readText(args: ReadTextRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<ReadTextResponse> {

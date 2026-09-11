@@ -3,7 +3,7 @@ import { getComputerUseConfig, isHeadlessMode } from "./config.ts";
 import type { ActParams, ActResult, UiAction, Verification } from "./contract.ts";
 import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
-import type { ActOutcome, ActRequest, DeliveryPolicy, HelperActResult, NativeInputDelivery } from "./macos/protocol.ts";
+import type { ActOutcome, ActRequest, DeliveryPolicy, HelperActResult, HelperRoot, NativeInputDelivery } from "./macos/protocol.ts";
 import { nodeByRef, searchOutline, type LookResponse } from "./outline.ts";
 import { project, type Capability, type ProjectedNode } from "./projection.ts";
 import {
@@ -22,7 +22,7 @@ import {
 	UNFOLDED,
 	type ExecutionTrace,
 } from "./observe.ts";
-import { ensureTargetWindowId, nativeWindowRequest, resolveCurrentTarget, type ResolvedTarget } from "./roots.ts";
+import { ensureTargetWindowId, nativeWindowRequest, resolveCurrentTarget, rootAppearance, type ResolvedTarget } from "./roots.ts";
 import { COMMAND_TIMEOUT_MS, currentLookOrThrow, makeToolExecutor, operationState, sleep, validateStateId, withWindowWriteLock } from "./session.ts";
 import { normalizeText, trimOrUndefined } from "./text.ts";
 
@@ -57,6 +57,7 @@ function executionTraceFromAct(result: HelperActResult, policy = currentDelivery
 		outcome: result.outcome,
 		performed: result.performed,
 		evidence: result.verification,
+		roots: result.appearedRoots,
 		error: result.error,
 		stoppedAt: result.stoppedAt,
 		delivery: result.performed?.delivery,
@@ -157,6 +158,12 @@ function prepareUiAction(action: UiAction, state: ActionState, look: LookRespons
 	});
 }
 
+/** One root per identity, whichever step opened it. */
+function mergeAppearedRoots(steps: ExecutionTrace[]): HelperRoot[] | undefined {
+	const byRef = new Map(steps.flatMap((step) => step.roots ?? []).map((root) => [root.rootRef, root]));
+	return byRef.size > 0 ? [...byRef.values()] : undefined;
+}
+
 function aggregateExecutions(steps: ExecutionTrace[]): ExecutionTrace {
 	const outcomes = steps.map((step) => step.outcome);
 	const outcome: ActOutcome = outcomes.includes("didnt") ? "didnt" : outcomes.includes("unknown") ? "unknown" : "worked";
@@ -164,6 +171,7 @@ function aggregateExecutions(steps: ExecutionTrace[]): ExecutionTrace {
 	return executionTrace("act", steps.every((step) => step.variant === "stealth") ? "stealth" : "default", {
 		outcome,
 		evidence: steps.filter((step) => step.evidence).at(-1)?.evidence,
+		roots: mergeAppearedRoots(steps),
 		steps,
 		actionCount: steps.length,
 		delivery: steps.at(-1)?.delivery,
@@ -199,6 +207,7 @@ async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget
 		execution.outcome = result.outcome;
 		execution.performed = result.performed;
 		execution.evidence = result.verification ?? execution.evidence;
+		execution.roots = result.appearedRoots ?? execution.roots;
 		execution.stoppedAt = result.stoppedAt;
 		return execution;
 	}
@@ -302,6 +311,7 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 			outcome: "worked",
 			verification,
 			delivery: execution.performed?.delivery ?? execution.delivery ?? "ax",
+			roots: execution.roots?.flatMap((root) => rootAppearance(root) ?? []),
 			...successorView(baseNodes, capture.outline),
 			image: await imageInfo(capture, imageMode),
 		};

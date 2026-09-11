@@ -6,7 +6,7 @@ export type ImageMode = "never" | "always";
 export type ObserveMode = "semantic" | "fused";
 export type ReadTextMode = "auto" | "always" | "never";
 export type MouseButtonName = "left" | "right" | "middle";
-export type RootKindName = "window" | "menu" | "sheet" | "popover" | "dialog";
+export type RootKindName = "window" | "menubar" | "menu" | "sheet" | "popover" | "dialog";
 
 export interface Frame {
 	x: number;
@@ -147,6 +147,14 @@ export interface FindRootsResult {
 	roots: RootInfo[];
 }
 
+/** A root an action brought into existence, ready to observe by `ref`. */
+export interface RootAppearance {
+	ref: string;
+	kind: RootKindName;
+	app: string;
+	title: string;
+}
+
 export interface RootSummary {
 	ref?: string;
 	app: string;
@@ -233,6 +241,8 @@ export interface ActResult {
 	outcome: "worked";
 	verification: Verification;
 	delivery: string;
+	/** Roots the transaction opened: menus, sheets, dialogs and new windows. */
+	roots?: RootAppearance[];
 	changes?: Change[];
 	nodes?: ProjectedNode[];
 	shown?: number;

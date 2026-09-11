@@ -4,7 +4,7 @@ import { isHeadlessMode } from "./config.ts";
 import type { ActEvidence, Change, ExpandResult, ExpandUiParams, ImageInfo, ImageMode, InspectResult, InspectUiParams, ObserveParams, ObserveResult, ReadTextParams, ReadTextResult, RootSummary, SearchMatch, SearchResult, SearchUiParams, WaitForParams, WaitForResult } from "./contract.ts";
 import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
-import { toFiniteNumber, type ActOutcome, type HelperActPerformed, type HelperActResult, type NativeInputDelivery } from "./macos/protocol.ts";
+import { toFiniteNumber, type ActOutcome, type HelperActPerformed, type HelperActResult, type HelperRoot, type NativeInputDelivery } from "./macos/protocol.ts";
 import { graftScopedOutline, nodeByRef, searchOutline, serializeOutlineNode, type LookResponse, type Outline, type OutlineNode } from "./outline.ts";
 import { project, type ProjectedNode } from "./projection.ts";
 import { ensureTargetWindowId, nativeWindowRequest, matchesTargetSelection, normalizeWindowSelector, resolveCurrentTarget, resolveTargetByWindowSelector, resolveTargetForObserve, sameRootIdentity, setCurrentTarget, type ResolvedTarget } from "./roots.ts";
@@ -31,6 +31,7 @@ export interface ExecutionTrace {
 	outcome?: ActOutcome;
 	performed?: HelperActPerformed;
 	evidence?: ActEvidence;
+	roots?: HelperRoot[];
 	error?: HelperActResult["error"];
 	steps?: ExecutionTrace[];
 	actionCount?: number;

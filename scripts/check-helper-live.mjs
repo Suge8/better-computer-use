@@ -154,6 +154,11 @@ async function liveChecks() {
 			check("listRoots pairing", () => {
 				assert(Array.isArray(windows), "listRoots did not return an array");
 				for (const window of windows) {
+					// The menu bar is the one root with no window of its own to pair with.
+					if (window?.kind === "menubar") {
+						assert(window.metadata?.pairing === undefined, `the menu bar claimed a window pairing: ${JSON.stringify(window.metadata)}`);
+						continue;
+					}
 					assert(["exact", "high", "low"].includes(window?.metadata?.pairing?.confidence), `invalid pairing ${JSON.stringify(window?.metadata?.pairing)}`);
 				}
 			});

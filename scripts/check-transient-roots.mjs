@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Transient roots — menus, sheets and popovers — have no stable window id. They are
-// only reachable through the helper's root reference, so this gate observes and acts
-// on a real menu and a real save sheet.
+// Roots without a window id — the menu bar, open menus and sheets — are reachable only
+// through the helper's root reference. This gate drives one real chain end to end: list the
+// menu bar, press a menu bar item, follow the menu root the action reports, press an item in
+// it, and observe the sheet that the document work then raises.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -60,22 +61,6 @@ const ACTIVATE_THEN = (action) => [
 	"  running.activate()",
 	"}",
 ];
-
-/** Activates the app, presses a menu bar item and resolves on AXMenuOpened. */
-async function openMenuBarMenu(pid, index, processExited) {
-	await runSwiftReadyProbe([
-		...AX_PRELUDE,
-		"observe(kAXMenuOpenedNotification as String)",
-		"func pressMenuBarItem() {",
-		"  guard let bar = attribute(app, kAXMenuBarAttribute as String) else { fail(\"the app exposes no menu bar\") }",
-		"  let items = children(bar as! AXUIElement)",
-		`  guard items.count > ${index} else { fail("the menu bar has only \\(items.count) items") }`,
-		`  guard AXUIElementPerformAction(items[${index}], kAXPressAction as CFString) == .success else { fail("pressing the menu bar item failed") }`,
-		"}",
-		...ACTIVATE_THEN("pressMenuBarItem"),
-		"RunLoop.main.run()",
-	], [pid], "the TextEdit File menu to open", { abortedBy: processExited });
-}
 
 /**
  * TextEdit replaces an unmodified document window rather than adding one, so the new
@@ -175,13 +160,25 @@ try {
 	processMonitor = await monitorProcess(createdPid);
 	await waitForAxWindow(createdPid, processMonitor.exited, fixtureTitle);
 
-	// A menu root: no stable window id, reachable only through the helper root reference.
-	await openMenuBarMenu(createdPid, FILE_MENU_BAR_INDEX, processMonitor.exited);
-	const menus = await rootsOfKind(createdPid, "menu");
-	assert.equal(menus.length, 1, `expected exactly one open TextEdit menu root, got ${menus.length}`);
+	// The menu bar: a root with no window id at all, and the way into every app command.
+	const menuBars = await rootsOfKind(createdPid, "menubar");
+	assert.equal(menuBars.length, 1, `expected exactly one TextEdit menu bar root, got ${menuBars.length}`);
+	assert.equal(menuBars[0].windowId, undefined, "the menu bar root claims a window id it does not have");
+	const barObserved = await brokerRequest("observe-ui", { root: menuBars[0].ref, mode: "semantic" });
+	const barItems = barObserved.nodes.filter((node) => node.role === "menuitem" && node.depth === 1);
+	assert(barItems.length > FILE_MENU_BAR_INDEX, `expected a populated menu bar, got ${barItems.length} items`);
+	const fileItem = barItems[FILE_MENU_BAR_INDEX];
+	assert(fileItem.caps.includes("press"), `the menu bar item '${fileItem.name}' cannot be pressed`);
 
-	const menuObserved = await brokerRequest("observe-ui", { root: menus[0].ref, mode: "semantic" });
-	assert.equal(menuObserved.root.ref, menus[0].ref, "observe-ui returned another root than the open menu");
+	// Pressing it opens a menu root, and the action itself hands that root over: an agent
+	// never has to race find-roots for a root its own action created.
+	const openedMenu = await brokerRequest("act-ui", { stateId: barObserved.stateId, actions: [{ action: "press", ref: fileItem.ref }] });
+	assert.equal(openedMenu.outcome, "worked", `pressing menu bar item '${fileItem.name}' did not work`);
+	const menuRoot = (openedMenu.roots ?? []).find((root) => root.kind === "menu");
+	assert(menuRoot, `pressing '${fileItem.name}' reported no menu root: ${JSON.stringify(openedMenu.roots)}`);
+
+	const menuObserved = await brokerRequest("observe-ui", { root: menuRoot.ref, mode: "semantic" });
+	assert.equal(menuObserved.root.ref, menuRoot.ref, "observe-ui returned another root than the menu the action opened");
 	const menuItems = menuObserved.nodes.filter((node) => node.role === "menuitem" && node.name);
 	assert(menuItems.length >= 5, `expected a populated File menu, got ${menuItems.length} named items`);
 	const newDocumentItem = menuItems[0];
@@ -210,7 +207,7 @@ try {
 	await assertReadableActions(sheetObserved.stateId, sheetButtons.slice(0, 3).map((node) => node.ref));
 	assert(!windowRefs.has(sheets[0].ref), "the sheet root is not distinguished from the window behind it");
 
-	console.log(`PASS menu root observe → press '${newDocumentItem.name}' → sheet root observe in isolated pid ${createdPid}`);
+	console.log(`PASS menu bar root → press '${fileItem.name}' → menu root from the action → press '${newDocumentItem.name}' → sheet root in isolated pid ${createdPid}`);
 } finally {
 	if (createdPid) {
 		await dismissSheets(createdPid).catch(() => undefined);

@@ -18,7 +18,7 @@ export type ActOutcome = "worked" | "didnt" | "unknown";
  * Presentation hint for a root. Only the `window` vs transient distinction is a
  * behavioral fact; specific transient kinds are display hints.
  */
-export type RootKind = "window" | "menu" | "sheet" | "popover" | "dialog";
+export type RootKind = "window" | "menubar" | "menu" | "sheet" | "popover" | "dialog";
 
 export interface HelperDiagnostics {
 	protocolVersion: number;
@@ -124,6 +124,8 @@ export interface HelperActResult {
 	outcome: ActOutcome;
 	performed?: HelperActPerformed;
 	verification?: ActEvidence;
+	/** Roots that appeared while the action ran; the helper already waited for them. */
+	appearedRoots?: HelperRoot[];
 	error?: { code?: string; message?: string; whatIsThere?: unknown };
 	steps?: HelperActResult[];
 	stoppedAt?: number;

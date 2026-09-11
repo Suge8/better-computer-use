@@ -12,6 +12,35 @@ import { HELPER_PROTOCOL_VERSION } from "../src/macos/helper.ts";
 import { HELPER_ARCHITECTURE_VERSION, REQUIRED_HELPER_INVARIANTS } from "../src/macos/protocol.ts";
 
 const APP = { pid: 4242, appName: "Fixture", bundleId: "com.example.fixture", isFrontmost: true };
+const ROOT_DEFAULTS = { scaleFactor: 2, isMinimized: false, isOnscreen: true, isMain: false, isModal: false };
+const MENU_BAR_ROOT = {
+	...ROOT_DEFAULTS,
+	kind: "menubar",
+	rootRef: "menubar1",
+	pid: 4242,
+	appName: "Fixture",
+	bundleId: "com.example.fixture",
+	title: "Fixture",
+	role: "AXMenuBar",
+	subrole: "",
+	framePoints: { x: 0, y: 0, w: 2560, h: 30 },
+	zOrder: 900,
+	isFocused: false,
+};
+const MENU_ROOT = {
+	...ROOT_DEFAULTS,
+	kind: "menu",
+	rootRef: "menu9",
+	pid: 4242,
+	appName: "Fixture",
+	bundleId: "com.example.fixture",
+	title: "文件",
+	role: "AXMenu",
+	subrole: "",
+	framePoints: { x: 110, y: 31, w: 237, h: 425 },
+	zOrder: 0,
+	isFocused: true,
+};
 const EMPTY_APP = { pid: 4343, appName: "Empty", bundleId: "com.example.empty", isFrontmost: false };
 const DESKTOP_APP = { pid: 4444, appName: "Desktop", bundleId: "com.example.desktop", isFrontmost: false };
 const ROWS_APP = { pid: 4545, appName: "Rows", bundleId: "com.example.rows", isFrontmost: false };
@@ -108,7 +137,7 @@ function helperResult(request) {
 				isFocused: true,
 				isModal: false,
 				metadata: { pairing: { confidence: "exact", score: 110 } },
-			}],
+			}, MENU_BAR_ROOT],
 		};
 		case "getFrontmost": return { ...APP, windowId: WINDOW_ID, windowTitle: "未命名2" };
 		case "look": return {
@@ -136,6 +165,7 @@ function helperResult(request) {
 				outcome: "worked",
 				performed: { delivery: "ax" },
 				verification: { source: "ax", field: "value", from: "0", to: "1" },
+				rootDelta: request.action === "press" ? [{ change: "appeared", ...MENU_ROOT }] : undefined,
 			};
 		}
 		case "axWaitFor": {
@@ -243,12 +273,30 @@ try {
 	assert.equal(timedOut.stdout, "", "wait-for timeout wrote to stdout");
 	assert.match(timedOut.stderr, /^error action_timeout: /m, "wait-for timeout is not a stable action_timeout");
 
-	const actedText = await runCli(["act-ui", "--state", acted.stateId, "-"], {
+	// A root the action opened is the agent's next target, so act-ui hands it over with a
+	// usable @r instead of making the agent race find-roots for it.
+	const opened = json(await runCli(["act-ui", "--state", acted.stateId, "--json", "-"], {
+		env,
+		input: `${JSON.stringify([{ action: "press", ref: editorRef }])}\n`,
+	}), "act-ui press");
+	const actedText = await runCli(["act-ui", "--state", opened.stateId, "-"], {
 		env,
 		input: `${JSON.stringify([{ action: "press", ref: editorRef }])}\n`,
 	});
 	assert.equal(actedText.code, 0, `act-ui text view exited ${actedText.code}: ${actedText.stderr}`);
 	assert.match(actedText.stdout.split("\n")[0], / · worked via ax · value 0→1$/, `act-ui does not show why the helper called it worked: ${actedText.stdout.split("\n")[0]}`);
+	assert.equal(opened.roots?.length, 1, `act-ui did not report the root the action opened: ${JSON.stringify(opened.roots)}`);
+	assert.match(opened.roots[0].ref, /^@r\d+$/, `act-ui reported a root without a usable ref: ${JSON.stringify(opened.roots[0])}`);
+	assert.deepEqual(
+		{ kind: opened.roots[0].kind, app: opened.roots[0].app, title: opened.roots[0].title },
+		{ kind: "menu", app: "Fixture", title: "文件" },
+		`act-ui root delta drifted: ${JSON.stringify(opened.roots[0])}`,
+	);
+	assert(actedText.stdout.includes(`+ root ${opened.roots[0].ref} menu "文件"`), `act-ui text view hides the new root: ${actedText.stdout}`);
+
+	const menuBars = json(await runCli(["find-roots", "--app", "Fixture", "--kind", "menubar", "--json"], { env }), "find-roots --kind menubar");
+	assert.equal(menuBars.roots.length, 1, `find-roots did not expose the app's menu bar as a root: ${JSON.stringify(menuBars.roots)}`);
+	assert.equal(menuBars.roots[0].windowId, undefined, "a menu bar root claimed a window id it does not have");
 
 	const noWindow = await runCli(["observe-ui", "--app", "Empty", "--json"], { env });
 	assert.equal(noWindow.code, 6, `running app without windows exited ${noWindow.code}: ${noWindow.stderr}`);

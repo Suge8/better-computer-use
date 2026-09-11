@@ -1,4 +1,4 @@
-import type { FindParams, FindRootsResult, RootInfo, RootSelector } from "./contract.ts";
+import type { FindParams, FindRootsResult, RootAppearance, RootInfo, RootSelector } from "./contract.ts";
 import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { FramePoints, FrontmostResult, HelperApp, HelperRoot, HelperTarget } from "./macos/protocol.ts";
@@ -142,6 +142,18 @@ function storeRootRefForAppWindow(app: HelperApp, window: HelperRoot) {
 	});
 }
 
+/** Gives a root the helper reported outside discovery the same stable `@r` identity find-roots mints. */
+export function rootAppearance(root: HelperRoot): RootAppearance | undefined {
+	if (!root.pid) return undefined;
+	const app: HelperApp = { appName: root.appName ?? "Unknown App", bundleId: root.bundleId, pid: root.pid };
+	return {
+		ref: storeRootRefForAppWindow(app, root).ref,
+		kind: root.kind,
+		app: app.appName,
+		title: root.title || "(untitled)",
+	};
+}
+
 function toResolvedTarget(app: HelperApp, window: HelperRoot): ResolvedTarget {
 	return {
 		appName: app.appName,
@@ -193,9 +205,13 @@ function noControllableRoot(appName: string): BcuError {
 	);
 }
 
-/** The Finder desktop is a root an agent can observe on request, never one bcu picks for it. */
+/** The desktop and an app's menu bar are roots an agent can observe on request, never ones bcu picks for it. */
+function isSelectableRoot(root: HelperRoot): boolean {
+	return root.subrole !== "AXDesktop" && root.kind !== "menubar";
+}
+
 function choosePreferredWindow(windows: HelperRoot[], appName: string): HelperRoot {
-	const selectable = windows.filter((window) => window.subrole !== "AXDesktop");
+	const selectable = windows.filter(isSelectableRoot);
 	if (!selectable.length) throw noControllableRoot(appName);
 	return [...selectable].sort((a, b) => scoreWindow(b) - scoreWindow(a))[0];
 }
@@ -220,7 +236,8 @@ function summarizeWindowCandidates(windows: HelperRoot[], limit = 6): string {
 		.join("; ");
 }
 
-function chooseRankedWindowOrUndefined(windows: HelperRoot[]): HelperRoot | undefined {
+function chooseRankedWindowOrUndefined(candidates: HelperRoot[]): HelperRoot | undefined {
+	const windows = candidates.filter(isSelectableRoot);
 	if (windows.length === 0) return undefined;
 	const ranked = [...windows].sort((a, b) => scoreWindow(b) - scoreWindow(a));
 	if (ranked.length === 1) return ranked[0];
@@ -416,7 +433,7 @@ async function resolveTargetByTitleAcrossApps(query: string, signal?: AbortSigna
 	const partialMatches: Array<{ app: HelperApp; window: HelperRoot }> = [];
 	const collect = (app: HelperApp, window: HelperRoot) => {
 		const title = normalizeText(window.title);
-		if (!title) return;
+		if (!title || !isSelectableRoot(window)) return;
 		if (title === normalizeText(query)) exactMatches.push({ app, window });
 		else if (title.includes(normalizeText(query))) partialMatches.push({ app, window });
 	};
@@ -464,7 +481,7 @@ export async function resolveTargetForObserve(selection: TargetSelection, signal
 		const windows = await listWindows(app.pid, signal);
 		if (!windows.length) throw noControllableRoot(app.appName);
 		const window = windowTitleQuery
-			? chooseWindowByTitle(windows, windowTitleQuery, app.appName)
+			? chooseWindowByTitle(windows.filter(isSelectableRoot), windowTitleQuery, app.appName)
 			: choosePreferredWindow(windows, app.appName);
 		const resolved = toResolvedTarget(app, window);
 		setCurrentTarget(resolved);
