@@ -1,5 +1,14 @@
+#!/usr/bin/env node
+// Pure runtime units the public commands are built on: bounded saved state, per-resource
+// scheduling and stale epochs, action preparation, successor diffs, root selection, and
+// the config and permission decisions no command can observe end to end.
 import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction } from "../src/actions.ts";
+import { loadComputerUseConfig } from "../src/config.ts";
+import { ensurePermissions } from "../src/permissions.ts";
+import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
 import { nodeByRef, parseLookResponse } from "../src/outline.ts";
 import { project } from "../src/projection.ts";
 import { ResourceScheduler, StateStore, StaleResourceStateError } from "../src/runtime.ts";
@@ -155,4 +164,47 @@ await assert.rejects(
 );
 
 await scheduler.close();
-console.log("Runtime concurrency checks passed.");
+
+const rootFixture = (overrides) => ({
+	windowId: 1,
+	rootRef: "w1",
+	title: "Input",
+	zOrder: 5,
+	isModal: false,
+	isFocused: false,
+	isMain: true,
+	isMinimized: false,
+	isOnscreen: true,
+	...overrides,
+});
+assert.equal(
+	shouldPreferForegroundModalWindow(rootFixture({}), rootFixture({ windowId: 2, rootRef: "w2", title: "Main", zOrder: 20, isModal: true })),
+	false,
+	"a modal root behind the requested one was promoted",
+);
+assert.equal(
+	shouldPreferForegroundModalWindow(rootFixture({}), rootFixture({ windowId: 3, rootRef: "w3", title: "Prompt", zOrder: 2, isModal: true })),
+	true,
+	"a modal root in front of the requested one was not promoted",
+);
+
+assert.throws(
+	() => ensurePermissions({ accessibility: false, screenRecording: true }, ["accessibility", "screenRecording"], "Permissions are required."),
+	(error) => error?.code === "permission_missing" && error.message.includes("bcu setup"),
+	"missing permissions must fail non-interactively with setup guidance",
+);
+
+const previousHeadless = process.env.BCU_HEADLESS;
+try {
+	process.env.BCU_HEADLESS = "1";
+	const loaded = loadComputerUseConfig();
+	assert.equal(loaded.sources.length, 1, "config must have one file source");
+	assert.equal(loaded.sources[0].path, path.join(os.homedir(), ".config", "bcu", "config.json"));
+	assert.equal(loaded.config.headless, true, "BCU_* environment variables must override the config file");
+} finally {
+	if (previousHeadless === undefined) delete process.env.BCU_HEADLESS;
+	else process.env.BCU_HEADLESS = previousHeadless;
+	loadComputerUseConfig();
+}
+
+console.log("PASS runtime units: state store, scheduler epochs, actions, diffs, root selection, config and permissions");

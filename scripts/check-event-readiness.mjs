@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Readiness waits on filesystem events instead of polling, and still fails with a named
+// timeout when the event never arrives.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";

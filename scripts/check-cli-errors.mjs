@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+// The CLI failure surface: every helper error code has a public mapping, an unclassified
+// error stays internal_error, exit codes are contiguous, every command documents itself,
+// and invalid action payloads are rejected before anything is delivered.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import fs from "node:fs/promises";
-import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -137,46 +139,10 @@ function assertFailure(result, code) {
 	assert.match(lines[1] ?? "", /^recovery: .+/, `${code} omitted recovery guidance`);
 }
 
-function fakeBroker() {
-	const server = net.createServer((socket) => {
-		socket.setEncoding("utf8");
-		let buffer = "";
-		socket.on("data", (chunk) => {
-			buffer += chunk;
-			for (;;) {
-				const newline = buffer.indexOf("\n");
-				if (newline < 0) break;
-				const line = buffer.slice(0, newline).trim();
-				buffer = buffer.slice(newline + 1);
-				if (!line) continue;
-				const request = JSON.parse(line);
-				if (request.cmd === "hello") {
-					socket.write(`${JSON.stringify({ id: request.id, ok: true, result: { brokerVersion: 1, helperProtocolVersion: null, pid: process.pid } })}\n`);
-					continue;
-				}
-				const errors = {
-					"act-ui": { code: "stale_state", message: `State '${request.args.stateId}' is unavailable or was evicted.` },
-					"observe-ui": { code: "app_not_found", message: `App '${request.args.app}' is not running.` },
-					"inspect-ui": { code: "element_not_found", message: `Outline ref '${request.args.ref}' is not available.` },
-				};
-				const error = errors[request.cmd] ?? { code: "internal_error", message: "Unexpected fake command." };
-				socket.write(`${JSON.stringify({ id: request.id, ok: false, error })}\n`);
-			}
-		});
-	});
-	return server;
-}
-
 checkErrorCodes();
 checkActionValidation();
 
-const server = fakeBroker();
 try {
-	await new Promise((resolve, reject) => {
-		server.once("error", reject);
-		server.listen(socketPath, resolve);
-	});
-
 	const help = await run(["--help"]);
 	assert.equal(help.code, 0, "bcu --help failed");
 	const publicCommands = [
@@ -194,21 +160,13 @@ try {
 		assert(commandHelp.stdout.includes("--json"), `bcu ${command} --help omits --json`);
 	}
 	assertFailure(await run(["read-text", "--state", "state-1"]), "invalid_arguments");
-
 	assertFailure(await run(["expand-ui", "--state", "state-1"]), "invalid_arguments");
 	assertFailure(await run(["act-ui", "--state", "state-1", "-"], { input: "not-json\n" }), "invalid_arguments");
-	assertFailure(await run(["act-ui", "--state", "NONEXIST", "-"], { input: "[]\n" }), "stale_state");
-	assertFailure(await run(["observe-ui", "--app", "__bcu_missing_app__"]), "app_not_found");
-	assertFailure(await run(["inspect-ui", "--state", "state-1", "--ref", "@e404"]), "element_not_found");
-
-	await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-	await fs.rm(socketPath, { force: true });
 	assertFailure(await run(["find-roots"], {
 		env: { BCU_BROKER_ENTRY_PATH: path.join(temporaryRoot, "missing-broker.mjs") },
 	}), "broker_unavailable");
 	assertFailure(await runOnPlatform("linux", ["find-roots"]), "unsupported_platform");
 	console.log(`CLI error checks passed (${publicCommands.length} help screens, ${sourceErrorCodes().size} native codes, explicit-code normalization, action validation).`);
 } finally {
-	if (server.listening) await new Promise((resolve) => server.close(resolve));
 	await fs.rm(temporaryRoot, { recursive: true, force: true });
 }

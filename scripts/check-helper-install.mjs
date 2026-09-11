@@ -1,12 +1,44 @@
 #!/usr/bin/env node
-
+// Installing the helper stays non-destructive and safe under concurrency: one stable local
+// signing identity, a lock that no waiter can lose, existing privacy grants untouched, and
+// an install destination that respects a non-writable /Applications.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { resolveMacosHelperAppPath } from "../src/macos/helper-path.mjs";
 import { ensureIdentityOnce, parseCodeSigningIdentities, withDirectoryLock } from "./setup-helper.mjs";
+
+const homeDir = path.join(path.sep, "Users", "standard-user");
+const systemHelperAppPath = path.join(path.sep, "Applications", "bcu.app");
+const userHelperAppPath = path.join(homeDir, "Applications", "bcu.app");
+
+assert.equal(
+	resolveMacosHelperAppPath({ env: { BCU_HELPER_APP_PATH: "/tmp/custom-helper.app" }, homeDir }),
+	"/tmp/custom-helper.app",
+	"explicit helper path should win",
+);
+
+assert.equal(
+	resolveMacosHelperAppPath({ env: {}, homeDir, systemHelperAppPath, fileExists: () => false }),
+	userHelperAppPath,
+	"fresh installs should use the per-user Applications directory",
+);
+
+assert.equal(
+	resolveMacosHelperAppPath({ env: {}, homeDir, systemHelperAppPath, fileExists: () => true, directoryIsWritable: () => true }),
+	systemHelperAppPath,
+	"existing writable system installs should remain in place",
+);
+
+assert.equal(
+	resolveMacosHelperAppPath({ env: {}, homeDir, systemHelperAppPath, fileExists: () => true, directoryIsWritable: () => false }),
+	userHelperAppPath,
+	"standard users should migrate away from a non-writable system install",
+);
+
 
 const sample = `
 Policy: Code Signing
@@ -96,4 +128,4 @@ try {
 	await fs.rm(tempDir, { force: true, recursive: true });
 }
 
-console.log("[check-local-signing] stable identity, non-destructive install, and concurrent creation passed");
+console.log("PASS helper install: stable identity, non-destructive install, concurrent locking, install path resolution");

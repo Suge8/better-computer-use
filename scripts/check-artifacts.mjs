@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// Screenshot artifacts stay on disk and bounded: bytes land in a 0700 directory as 0600
+// files under the state id, and concurrent writes at capacity neither fail nor exceed it.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";

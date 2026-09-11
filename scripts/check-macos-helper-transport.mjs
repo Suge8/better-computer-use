@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// The persistent helper connection survives the real world: one connection for concurrent
+// commands, correlated out-of-order responses, and recovery after a disconnect or restart.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import net from "node:net";

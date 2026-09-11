@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// One broker per user, started and stopped without polling: concurrent clients elect a
+// single server, a stale socket is replaced, stop ends it, and it exits on idle.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
 import { once } from "node:events";

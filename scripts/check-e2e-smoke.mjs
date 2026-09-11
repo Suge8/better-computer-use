@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// The full loop against a real TextEdit window: find, observe, search, reject invalid
+// payloads, wait, act with a verified postcondition, and fail honestly when it is not met.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";

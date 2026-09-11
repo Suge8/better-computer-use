@@ -1,5 +1,10 @@
 #!/usr/bin/env node
+// What ships and what it resolves at runtime: the npm tarball carries the CLI, the macOS
+// helper and its installer, an installed helper binary is repaired in place, and a bundled
+// CLI still finds setup-helper.mjs from both a checkout and a packed install.
 import assert from "node:assert/strict";
+import { build } from "esbuild";
+import { setupHelperScriptPath } from "../src/package-root.ts";
 import { execFile as execFileCallback } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -62,4 +67,27 @@ try {
 	await fs.rm(clientRoot, { recursive: true, force: true });
 }
 
-console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; macOS runtime repair verified).`);
+
+const bundledRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-bundled-runtime-"));
+const entry = 'import { setupHelperScriptPath } from "./src/package-root.ts";\nconsole.log(setupHelperScriptPath());\n';
+
+async function checkLayout(packageRoot, label) {
+	const setupScript = path.join(packageRoot, "scripts", "setup-helper.mjs");
+	const bundle = path.join(packageRoot, "dist", "probe.mjs");
+	await fs.mkdir(path.dirname(setupScript), { recursive: true });
+	await fs.writeFile(setupScript, "// fixture\n");
+	await build({ stdin: { contents: entry, resolveDir: root, sourcefile: "probe.ts" }, outfile: bundle, bundle: true, platform: "node", format: "esm", logLevel: "silent" });
+	const { stdout } = await execFile(process.execPath, [bundle]);
+	assert.equal(await fs.realpath(stdout.trim()), await fs.realpath(setupScript), `${label} bundle resolved the wrong setup-helper path`);
+}
+
+try {
+	assert.equal(await fs.realpath(setupHelperScriptPath()), await fs.realpath(path.join(root, "scripts", "setup-helper.mjs")), "source layout resolved the wrong setup-helper path");
+	await checkLayout(path.join(bundledRoot, "checkout"), "dist");
+	await checkLayout(path.join(bundledRoot, "consumer", "node_modules", "better-computer-use"), "packed");
+
+} finally {
+	await fs.rm(bundledRoot, { recursive: true, force: true });
+}
+
+console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; macOS runtime repair and bundled path resolution verified).`);

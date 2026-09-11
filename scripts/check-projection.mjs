@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// The projection is the agent's whole view of a window: short roles, a closed capability
+// vocabulary, folded entries, and a first view small enough to read.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
