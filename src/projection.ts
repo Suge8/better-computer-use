@@ -42,6 +42,8 @@ export interface Projection {
 	shown: number;
 	total: number;
 	truncated: boolean;
+	/** Outline ref → the projected node that speaks for it. Dropped nodes are absent. */
+	represents: Map<string, string>;
 }
 
 export interface ProjectOptions {
@@ -125,6 +127,8 @@ const TOGGLE_ROLES = new Set(["checkbox", "radio", "switch", "disclosuretriangle
 interface ProjectedTree extends Omit<ProjectedNode, "depth" | "parent" | "hidden"> {
 	children: ProjectedTree[];
 	source: OutlineNode;
+	/** Outline refs this node speaks for: itself plus everything merged into it. */
+	refs: string[];
 }
 
 function word(value: string): string {
@@ -220,6 +224,7 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 		state,
 		children,
 		source: node,
+		refs: [node.ref],
 	};
 	if (!name && ABSORBING_ROLES.has(role)) {
 		// An unnamed wrapper speaks through the text it wraps, and through the one
@@ -227,15 +232,22 @@ function buildTrees(node: OutlineNode): ProjectedTree[] {
 		const absorbed = children.filter(isTextLeaf);
 		if (absorbed.length > 0) {
 			name = absorbed.map((child) => child.name).filter(Boolean).join(" ");
-			tree = { ...tree, name, caps: mergeCapabilities(tree.caps, ...absorbed.map((child) => child.caps)), children: children.filter((child) => !isTextLeaf(child)) };
+			tree = {
+				...tree,
+				name,
+				caps: mergeCapabilities(tree.caps, ...absorbed.map((child) => child.caps)),
+				children: children.filter((child) => !isTextLeaf(child)),
+				refs: [...tree.refs, ...absorbed.flatMap((child) => child.refs)],
+			};
 		}
 		// An unnamed wrapper and its only child are one thing to an agent. The node that
 		// is not a structural wrapper keeps its ref, role and name; the other lends caps.
 		if (!tree.name && tree.children.length === 1) {
 			const only = tree.children[0];
 			const caps = mergeCapabilities(tree.caps, only.caps);
-			if (STRUCTURAL_ROLES.has(only.role)) tree = { ...tree, name: only.name, value: tree.value ?? only.value, caps, children: only.children };
-			else if (STRUCTURAL_ROLES.has(tree.role)) tree = { ...only, caps };
+			const refs = [...tree.refs, ...only.refs];
+			if (STRUCTURAL_ROLES.has(only.role)) tree = { ...tree, name: only.name, value: tree.value ?? only.value, caps, children: only.children, refs };
+			else if (STRUCTURAL_ROLES.has(tree.role)) tree = { ...only, caps, refs };
 		}
 	}
 	if (!tree.name) tree = { ...tree, name: identifierName(node) };
@@ -277,6 +289,16 @@ function defaultUnfolded(outline: Outline, requested: string[]): Set<string> {
 	return refs;
 }
 
+function representationOf(trees: ProjectedTree[]): Map<string, string> {
+	const represents = new Map<string, string>();
+	const visit = (tree: ProjectedTree) => {
+		for (const ref of tree.refs) represents.set(ref, tree.ref);
+		for (const child of tree.children) visit(child);
+	};
+	for (const tree of trees) visit(tree);
+	return represents;
+}
+
 function foldAtDepth(trees: ProjectedTree[], total: number, maxDepth: number, maxNodes: number, unfolded: Set<string>): Projection {
 	const nodes: ProjectedNode[] = [];
 	let truncated = false;
@@ -286,13 +308,13 @@ function foldAtDepth(trees: ProjectedTree[], total: number, maxDepth: number, ma
 			return;
 		}
 		const fold = tree.children.length > 0 && depth >= maxDepth && !unfolded.has(tree.ref);
-		const { children: _children, source: _source, ...fields } = tree;
+		const { children: _children, source: _source, refs: _refs, ...fields } = tree;
 		nodes.push({ ...fields, depth, parent, hidden: fold ? descendantRoles(tree) : undefined });
 		if (fold) return;
 		for (const child of tree.children) emit(child, depth + 1, tree.ref);
 	};
 	for (const tree of trees) emit(tree, 0);
-	return { nodes, shown: nodes.length, total, truncated };
+	return { nodes, shown: nodes.length, total, truncated, represents: representationOf(trees) };
 }
 
 function subtreeSize(node: OutlineNode): number {

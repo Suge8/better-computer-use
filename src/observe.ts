@@ -216,13 +216,14 @@ async function performObserve(params: ObserveParams, signal?: AbortSignal): Prom
 
 /** Maps outline hits onto the nodes the agent actually sees, with their projected ancestry. */
 function projectedMatches(outline: Outline, hits: OutlineNode[]): SearchMatch[] {
-	const projected = new Map(project(outline, UNFOLDED).nodes.map((node) => [node.ref, node]));
+	const projection = project(outline, UNFOLDED);
+	const projected = new Map(projection.nodes.map((node) => [node.ref, node]));
 	const matches: SearchMatch[] = [];
 	const seen = new Set<string>();
 	for (const hit of hits) {
-		let current: OutlineNode | undefined = hit;
-		while (current && !projected.has(current.ref)) current = current.parent;
-		const node = current ? projected.get(current.ref)! : undefined;
+		// A hit the projection dropped is noise the agent cannot act on; only a
+		// node that speaks for the hit may stand in for it.
+		const node = projected.get(projection.represents.get(hit.ref) ?? "");
 		if (!node || seen.has(node.ref)) continue;
 		seen.add(node.ref);
 		const path: string[] = [];

@@ -183,6 +183,7 @@ try {
 	const editorRef = searched.matches[0].ref;
 	const byCapability = json(await runCli(["search-ui", "--state", stateId, "--action", "setText", "--json"], { env }), "search-ui --action");
 	assert(byCapability.matches.some((match) => match.ref === editorRef), "search-ui --action setText did not find the editable element");
+	assert(byCapability.matches.every((match) => match.caps.includes("setText")), `search-ui --action setText returned elements without that capability: ${byCapability.matches.map((match) => `${match.ref} ${match.role}`).join(", ")}`);
 	const expanded = json(await runCli(["expand-ui", "--state", stateId, "--ref", "@e3", "--json"], { env }), "expand-ui");
 	assert.deepEqual(Object.keys(expanded).sort(), ["nodes", "ref", "stateId"], "expand-ui result shape drifted");
 	assert(expanded.nodes.length > 1, "expand-ui returned no subtree");
