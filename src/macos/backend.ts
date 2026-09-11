@@ -36,13 +36,14 @@ function parseRoots(result: unknown): HelperRoot[] {
 	const array = Array.isArray(result) ? result : (result as any)?.roots;
 	if (!Array.isArray(array)) return [];
 
-	return array.map((raw) => {
+	return array.flatMap((raw) => {
+		const rootRef = toOptionalString((raw as any)?.rootRef);
+		if (!rootRef) return [];
 		const metadata = typeof (raw as any)?.metadata === "object" && (raw as any).metadata !== null ? (raw as any).metadata as Record<string, unknown> : {};
 		const kind = ["window", "menu", "sheet", "popover", "dialog"].includes((raw as any)?.kind) ? (raw as any).kind as RootKind : "window";
-		return {
+		return [{
 			kind,
-			rootRef: toOptionalString((raw as any)?.rootRef ?? (raw as any)?.windowRef),
-			windowRef: toOptionalString((raw as any)?.windowRef ?? (raw as any)?.rootRef),
+			rootRef,
 			windowId: Number.isFinite((raw as any)?.windowId) ? Math.trunc((raw as any).windowId) : undefined,
 			pid: Number.isFinite((raw as any)?.pid) ? Math.trunc((raw as any).pid) : undefined,
 			appName: toOptionalString((raw as any)?.appName),
@@ -59,7 +60,7 @@ function parseRoots(result: unknown): HelperRoot[] {
 			isFocused: toBoolean((raw as any)?.isFocused),
 			isModal: toBoolean((raw as any)?.isModal),
 			metadata,
-		};
+		}];
 	});
 }
 
@@ -92,6 +93,7 @@ export const macosBackend = {
 			pid,
 			windowTitle: toOptionalString(result?.windowTitle),
 			windowId: Number.isFinite(result?.windowId) ? Math.trunc(result.windowId) : undefined,
+			rootRef: toOptionalString(result?.rootRef),
 		};
 	},
 
@@ -102,6 +104,7 @@ export const macosBackend = {
 	async observe(request: ObserveRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<LookResponse> {
 		return parseLookResponse(await macosHelper.command("look", {
 			baseLookId: request.baseLookId,
+			rootRef: request.rootRef,
 			windowId: request.windowId,
 			maxDimension: request.maxDimension,
 			readText: request.readText,

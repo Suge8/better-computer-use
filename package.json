@@ -54,7 +54,7 @@
 		"test:event-readiness": "node scripts/check-event-readiness.mjs",
 		"test:signing": "node scripts/check-local-signing.mjs",
 		"test:macos-path": "node scripts/check-macos-helper-path.mjs",
-		"test:smoke": "node scripts/check-e2e-smoke.mjs",
+		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs",
 		"test": "npm run typecheck && npm run test:schema && npm run test:bundle && npm run test:artifacts && npm run test:cli-errors && npm run test:package && npm run test:runtime && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:invariants && npm run test:signing && npm run test:macos-path"
 	},
 	"devDependencies": {

@@ -29,7 +29,7 @@ native/macos/bridge.swift        AX, capture, permissions, and input delivery
 native/macos/agent_cursor*.swift Agent cursor overlay and motion
 scripts/build-native.mjs         Helper build script
 scripts/setup-helper.mjs         Helper install and local signing
-scripts/lib/harness.mjs          Shared broker/CLI test harness
+scripts/lib/harness.mjs          Shared broker/CLI test harness and live TextEdit fixtures
 scripts/check-*.mjs              Regression and architecture checks
 scripts/bench.mjs                Helper and broker benchmarks
 ```
@@ -59,7 +59,7 @@ lifecycle checks, architecture invariants, packaging checks, and the Swift typec
 Live checks need a real desktop session:
 
 ```bash
-BCU_LIVE=1 npm run test:smoke        # TextEdit end-to-end smoke
+BCU_LIVE=1 npm run test:smoke        # TextEdit end-to-end smoke and transient menu/sheet roots
 BCU_LIVE=1 npm run test:invariants   # helper invariants against the running helper
 ```
 

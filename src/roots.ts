@@ -62,7 +62,7 @@ async function listWindowsByTitle(title: string, signal?: AbortSignal): Promise<
 }
 
 export function nativeWindowRequest(target: Pick<CurrentTarget, "pid" | "windowId" | "nativeWindowRef">): HelperTarget {
-	return { pid: target.pid, windowId: target.windowId, windowRef: target.nativeWindowRef };
+	return { pid: target.pid, windowId: target.windowId, rootRef: target.nativeWindowRef };
 }
 
 export function sameRootIdentity(a: CurrentTarget, b: CurrentTarget): boolean {
@@ -130,7 +130,7 @@ function storeRootRefForAppWindow(app: HelperApp, window: HelperRoot) {
 		pid: app.pid,
 		windowTitle: window.title || "(untitled)",
 		windowId: window.windowId,
-		nativeWindowRef: window.windowRef,
+		nativeWindowRef: window.rootRef,
 		framePoints: window.framePoints,
 		scaleFactor: window.scaleFactor,
 		isMinimized: window.isMinimized,
@@ -147,7 +147,7 @@ function toResolvedTarget(app: HelperApp, window: HelperRoot): ResolvedTarget {
 		pid: app.pid,
 		windowTitle: window.title || "(untitled)",
 		windowId: typeof window.windowId === "number" ? window.windowId : 0,
-		nativeWindowRef: window.windowRef,
+		nativeWindowRef: window.rootRef,
 		framePoints: window.framePoints,
 		scaleFactor: window.scaleFactor,
 		isMinimized: window.isMinimized,
@@ -277,7 +277,7 @@ export async function resolveTargetByWindowSelector(selector: RootSelector, sign
 		const windows = await listWindows(fromRef.pid, signal);
 		const match =
 			(fromRef.windowId ? windows.find((window) => window.windowId === fromRef.windowId) : undefined) ??
-			(fromRef.nativeWindowRef ? windows.find((window) => window.windowRef === fromRef.nativeWindowRef) : undefined) ??
+			(fromRef.nativeWindowRef ? windows.find((window) => window.rootRef === fromRef.nativeWindowRef) : undefined) ??
 			windows.find((window) => normalizeText(window.title || "(untitled)") === normalizeText(fromRef.windowTitle));
 		if (!match) throw new Error(`Root ref '${normalized}' is stale. Call find-roots again and choose a current window.`);
 		const resolved = toResolvedTarget(app, match);
@@ -310,7 +310,7 @@ export async function resolveTargetByWindowSelector(selector: RootSelector, sign
 	if (!match) throw new Error(`Root query '${normalized}' did not match any current root. Call find-roots to inspect roots.`);
 	const app: HelperApp = { appName: match.app, bundleId: match.bundleId, pid: match.pid };
 	const roots = await listWindows(match.pid, signal);
-	const helperRoot = roots.find((root) => root.rootRef === match.nativeWindowRef || root.windowRef === match.nativeWindowRef || root.windowId === match.windowId) ?? roots[0];
+	const helperRoot = roots.find((root) => root.rootRef === match.nativeWindowRef || root.windowId === match.windowId) ?? roots[0];
 	const resolved = toResolvedTarget(app, helperRoot);
 	setCurrentTarget(resolved);
 	return resolved;
@@ -323,7 +323,7 @@ export async function resolveCurrentTarget(signal?: AbortSignal): Promise<Resolv
 
 	const hadStableWindowId = current.windowId > 0;
 	const titleQuery = normalizeText(current.windowTitle);
-	let match = current.nativeWindowRef ? windows.find((window) => window.windowRef === current.nativeWindowRef || window.rootRef === current.nativeWindowRef) : undefined;
+	let match = current.nativeWindowRef ? windows.find((window) => window.rootRef === current.nativeWindowRef) : undefined;
 	match ??= hadStableWindowId ? windows.find((window) => window.windowId !== undefined && window.windowId === current.windowId) : undefined;
 	if (!match) {
 		const exactTitleMatches = titleQuery && titleQuery !== "(untitled)" ? windows.filter((window) => normalizeText(window.title) === titleQuery) : [];
@@ -475,7 +475,7 @@ function rootDetail(app: HelperApp, window: HelperRoot): RootDetail {
 		windowTitle: window.title || "(untitled)",
 		windowId: window.windowId,
 		windowRef: storeRootRefForAppWindow(app, window).ref,
-		nativeWindowRef: window.windowRef,
+		nativeWindowRef: window.rootRef,
 		framePoints: window.framePoints,
 		scaleFactor: window.scaleFactor,
 		isMinimized: window.isMinimized,

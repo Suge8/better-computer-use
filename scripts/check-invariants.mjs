@@ -134,7 +134,7 @@ check("INV-5 macOS is the only platform surface", () => {
 check("explicit root is not replaced by a modal window behind it", () => {
 	const root = (overrides) => ({
 		windowId: 1,
-		windowRef: "w1",
+		rootRef: "w1",
 		title: "Input",
 		zOrder: 5,
 		isModal: false,
@@ -145,8 +145,8 @@ check("explicit root is not replaced by a modal window behind it", () => {
 		...overrides,
 	});
 	const current = root({});
-	const behindModal = root({ windowId: 2, windowRef: "w2", title: "Main", zOrder: 20, isModal: true });
-	const foregroundModal = root({ windowId: 3, windowRef: "w3", title: "Prompt", zOrder: 2, isModal: true });
+	const behindModal = root({ windowId: 2, rootRef: "w2", title: "Main", zOrder: 20, isModal: true });
+	const foregroundModal = root({ windowId: 3, rootRef: "w3", title: "Prompt", zOrder: 2, isModal: true });
 	assert(!shouldPreferForegroundModalWindow(current, behindModal), "modal root behind the explicit target was promoted");
 	assert(shouldPreferForegroundModalWindow(current, foregroundModal), "foreground modal root was not promoted");
 });
@@ -276,7 +276,7 @@ check("INV-17 macOS agent cursor stays native, configurable, and background-only
 
 check("INV-19 all timed waits are classified", () => {
 	const helper = fs.readFileSync(path.join(root, "src/macos/helper.ts"), "utf8");
-	const smoke = fs.readFileSync(path.join(root, "scripts/check-e2e-smoke.mjs"), "utf8");
+	const harness = fs.readFileSync(path.join(root, "scripts/lib/harness.mjs"), "utf8");
 	const timedFiles = [
 		...srcFiles.map(([file, text]) => [`src/${file}`, text]),
 		...scriptFiles,
@@ -315,7 +315,7 @@ check("INV-19 all timed waits are classified", () => {
 	for (const rule of rules) assert(rule.count === rule.expected, `${rule.file} ${rule.category} expected ${rule.expected}, found ${rule.count}`);
 	assert(helper.includes("waitForPathReady"), "macOS helper does not wait on socket filesystem events");
 	assert(setupHelper.includes("watch(directory)") && !setupHelper.includes("retryMs"), "signing lock is not event-driven");
-	assert(smoke.includes("AXObserverAddNotification") && smoke.includes("NSWorkspace.shared.open") && smoke.includes("makeProcessSource"), "live smoke does not use launch, process, and AX events");
+	assert(harness.includes("AXObserverAddNotification") && harness.includes("NSWorkspace.shared.open") && harness.includes("makeProcessSource"), "live harness does not use launch, process, and AX events");
 });
 
 check("INV-18 consolidated actions and diff-first resulting views", () => {
@@ -354,8 +354,11 @@ if (process.platform === "darwin") {
 }
 
 check("INV-19 macOS root identity resolution", () => {
-	assert(swift.includes("let requestedRoot = windowRef.flatMap { refStore.window(for: $0) }"), "look does not resolve native root refs from the window store");
-	assert(swift.includes("else if let requestedRoot, let owner = pidForElement(requestedRoot)"), "look cannot recover the owner pid from a stored native root");
+	assert(swift.includes("let requestedRoot = refStore.window(for: rootRef)"), "look does not resolve the root from the helper root reference");
+	assert(swift.includes('let rootRef = try stringArg(request, "rootRef")'), "look treats the root reference as optional");
+	assert(!swift.includes("windowRef"), "the helper still names a root reference after windows");
+	assert(swift.includes("guard let pid = pidForElement(window) else"), "look cannot recover the owner pid from a stored native root");
+	assert(swift.includes("guard let menuWindowId = cgMenuWindowId(rootRef), let menuPid = pidForWindowId(menuWindowId) else"), "look cannot observe a popup menu Accessibility never exposed");
 	assert(!swift.includes("CGWindowListCopyWindowInfo([.optionIncludingWindow]"), "window lookup uses optionIncludingWindow without an above/below selector");
 	assert(swift.includes("CGWindowListCreateDescriptionFromArray(requestedIds)"), "window lookup does not use the targeted window-description API");
 	assert(swift.includes("CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID)"), "window lookup does not fall back to all onscreen and offscreen windows");
@@ -370,7 +373,8 @@ check("INV-20 bounded broad root discovery", () => {
 	assert(!swift.includes("for owner in cgWindowOwners() + cgPopupMenuOwners()"), "listApps includes unrelated popup-owner expansion");
 	assert(swift.includes("if let pid {\n\t\t\tapps = [[\"pid\": Int(pid)]]"), "explicit-pid root discovery no longer stays immediate");
 	assert(swift.includes("popupCandidates.isEmpty ? [] : openMenuElements"), "root discovery traverses menus when no popup exists");
-	assert(!swift.includes("let menuPairings = windowPairings(windows: menuElements, candidates: popupCandidates)"), "root discovery includes unrelated menu-pairing changes");
+	assert(swift.includes("let menuPairings = windowPairings(windows: menuElements, candidates: popupCandidates)"), "open menus are not paired with popup windows by geometry");
+	assert(swift.includes('== "AXMenu" && isOpenMenu($0)'), "menu discovery does not separate open menus from the closed menu tree");
 	assert(swift.includes("signal(SIGPIPE, SIG_IGN)"), "helper daemon does not ignore process-wide SIGPIPE");
 	assert(swift.includes("SO_NOSIGPIPE"), "helper sockets can terminate the daemon on a late response");
 	assert(swift.includes("Darwin.send(responseSocket"), "helper socket responses do not use failure-tolerant writes");

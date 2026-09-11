@@ -62,8 +62,9 @@ export interface FramePoints {
 
 export interface HelperRoot {
 	kind: RootKind;
-	rootRef?: string;
-	windowRef?: string;
+	/** Helper-owned root identity. Present for every root, including those without a window id. */
+	rootRef: string;
+	/** Quartz window id, absent for roots the window server does not expose separately. */
 	windowId?: number;
 	pid?: number;
 	appName?: string;
@@ -88,6 +89,12 @@ export interface FrontmostResult {
 	bundleId?: string;
 	pid: number;
 	windowTitle?: string;
+	windowId?: number;
+	rootRef?: string;
+}
+
+export interface HelperTarget {
+	pid?: number;
 	windowId?: number;
 	rootRef?: string;
 }
@@ -132,15 +139,11 @@ export interface HelperActResult {
 	stoppedAt?: number;
 }
 
-export interface HelperTarget {
-	pid?: number;
-	windowId?: number;
-	windowRef?: string;
-}
-
 export interface ObserveRequest {
-	/** `look` targets and captures by stable window id. */
-	windowId: number;
+	/** The only way `look` locates a root: menus, sheets and popovers have no window id. */
+	rootRef: string;
+	/** Quartz window id of the root's window, used only to capture an image. */
+	windowId?: number;
 	/** Existing immutable look whose untouched refs/coordinate geometry survive a scoped refresh. */
 	baseLookId?: string;
 	readText: "auto" | "always" | "never";

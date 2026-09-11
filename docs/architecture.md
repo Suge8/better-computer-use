@@ -88,6 +88,8 @@ find-roots → observe-ui → cached query → act-ui → successor state
 
 `find-roots` 返回 `@r`。`observe-ui` 生成不可变 `stateId` 和属于该状态的 `@e`。每个请求从 `stateId` hydrate 一份 request-local operation state，不存在跨请求共享的“当前窗口”。
 
+根的身份由 helper 的 root reference 承载，`look` 只按它定位。窗口 id 是窗口的一个属性，仅用于截图；菜单、sheet 和 popover 往往没有窗口 id，只能通过 root reference 观察。root reference 失效时 helper 直接返回 `root_not_found`，不会退回到应用的其他窗口。
+
 StateStore 有四道容量边界：
 
 - 最大记录数；

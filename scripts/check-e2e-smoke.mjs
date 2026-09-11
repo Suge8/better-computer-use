@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { execFile as execFileCallback, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { once } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
-import { brokerRequest, buildBundle, killProcess, makeTemporaryRoot, runCli, sourceAgentRequest, withTimeout } from "./lib/harness.mjs";
+import { brokerRequest, buildBundle, launchTextEdit, makeTemporaryRoot, monitorProcess, runCli, sourceAgentRequest, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP TextEdit smoke (set BCU_LIVE=1)");
@@ -14,8 +11,6 @@ if (process.env.BCU_LIVE !== "1") {
 }
 if (process.platform !== "darwin") throw new Error("The TextEdit smoke test requires macOS.");
 
-const execFile = promisify(execFileCallback);
-const textEditApp = "/System/Applications/TextEdit.app";
 const fixtureDirectory = await makeTemporaryRoot("e2e-smoke");
 const fixtureName = `bcu-smoke-${randomUUID()}.txt`;
 const fixturePath = path.join(fixtureDirectory, fixtureName);
@@ -48,120 +43,6 @@ async function expectBrokerFailure(command, args, code) {
 	}
 }
 
-async function launchTextEdit(documentPath) {
-	const source = [
-		"import AppKit",
-		"import Foundation",
-		"import Darwin",
-		`let appURL = URL(fileURLWithPath: ${JSON.stringify(textEditApp)})`,
-		"let documentURL = URL(fileURLWithPath: CommandLine.arguments[1])",
-		"let configuration = NSWorkspace.OpenConfiguration()",
-		"configuration.createsNewApplicationInstance = true",
-		"configuration.activates = false",
-		"NSWorkspace.shared.open([documentURL], withApplicationAt: appURL, configuration: configuration) { app, error in",
-		"  if let error { fputs(\"\\(error)\\n\", stderr); exit(2) }",
-		"  guard let app else { exit(3) }",
-		"  print(app.processIdentifier)",
-		"  fflush(stdout)",
-		"  exit(0)",
-		"}",
-		"RunLoop.main.run()",
-	].join("\n");
-	const { stdout } = await execFile("swift", ["-e", source, documentPath], { timeout: 15_000 });
-	const pid = Number(stdout.trim());
-	if (!Number.isInteger(pid) || pid <= 0) throw new Error(`NSWorkspace returned an invalid TextEdit pid: ${stdout.trim()}`);
-	return pid;
-}
-
-async function monitorProcess(pid) {
-	const source = [
-		"import Dispatch",
-		"import Darwin",
-		"let pid = pid_t(CommandLine.arguments[1])!",
-		"let source = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: .global())",
-		"source.setEventHandler { exit(0) }",
-		"source.resume()",
-		"print(\"ready\")",
-		"fflush(stdout)",
-		"dispatchMain()",
-	].join("\n");
-	const child = spawn("swift", ["-e", source, String(pid)], { stdio: ["ignore", "pipe", "pipe"] });
-	let stdout = "";
-	let stderr = "";
-	child.stdout.setEncoding("utf8");
-	child.stderr.setEncoding("utf8");
-	const ready = new Promise((resolve) => child.stdout.on("data", (chunk) => {
-		stdout += chunk;
-		if (stdout.includes("ready\n")) resolve();
-	}));
-	child.stderr.on("data", (chunk) => { stderr += chunk; });
-	const exited = once(child, "exit");
-	await withTimeout(Promise.race([
-		ready,
-		exited.then(([code, signal]) => { throw new Error(`Process monitor exited before registration (${signal ?? code}): ${stderr.trim()}`); }),
-	]), `the TextEdit ${pid} exit monitor`, 15_000);
-	return { child, exited };
-}
-
-async function waitForAxWindow(pid, processExited) {
-	const monitorSource = [
-		"import ApplicationServices",
-		"import Foundation",
-		"import Darwin",
-		"let pid = pid_t(CommandLine.arguments[1])!",
-		"let app = AXUIElementCreateApplication(pid)",
-		"func ready() { print(\"ready\"); fflush(stdout); exit(0) }",
-		"let callback: AXObserverCallback = { _, _, _, _ in ready() }",
-		"var observer: AXObserver?",
-		"guard AXObserverCreate(pid, callback, &observer) == .success, let observer else { exit(3) }",
-		"let added = AXObserverAddNotification(observer, app, \"AXWindowCreated\" as CFString, nil)",
-		"guard added == .success || added == .notificationAlreadyRegistered else { exit(4) }",
-		"CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)",
-		"var value: CFTypeRef?",
-		"if AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success, let windows = value as? [AXUIElement], !windows.isEmpty { ready() }",
-		"DispatchQueue.global().asyncAfter(deadline: .now() + 10) { exit(2) }",
-		"CFRunLoopRun()",
-	].join("\n");
-	const monitor = spawn("swift", ["-e", monitorSource, String(pid)], { stdio: ["ignore", "pipe", "pipe"] });
-	let stdout = "";
-	let stderr = "";
-	monitor.stdout.setEncoding("utf8");
-	monitor.stderr.setEncoding("utf8");
-	const ready = new Promise((resolve) => {
-		monitor.stdout.on("data", (chunk) => {
-			stdout += chunk;
-			if (stdout.includes("ready\n")) resolve();
-		});
-	});
-	monitor.stderr.on("data", (chunk) => { stderr += chunk; });
-	const exited = once(monitor, "exit");
-	try {
-		await withTimeout(Promise.race([
-			ready,
-			processExited.then(() => { throw new Error("TextEdit exited before exposing an Accessibility window."); }),
-			exited.then(([code, signal]) => { throw new Error(`AX window monitor exited before ready (${signal ?? code}): ${stderr.trim()}`); }),
-		]), "the TextEdit Accessibility window event", 15_000);
-		const [code, signal] = await exited;
-		if (code !== 0 || signal) throw new Error(`AX window monitor failed (${signal ?? code}): ${stderr.trim()}`);
-	} finally {
-		if (monitor.exitCode === null && !monitor.killed) monitor.kill("SIGTERM");
-	}
-}
-
-async function stopTextEdit(pid, monitor) {
-	if (!killProcess(pid, 0)) return;
-	monitor ??= await monitorProcess(pid);
-	if (!killProcess(pid, "SIGTERM")) return;
-	try {
-		await withTimeout(monitor.exited, "the smoke-test TextEdit process to exit", 3_000);
-	} catch (error) {
-		if (!error.message.startsWith("Timed out waiting for")) throw error;
-		if (killProcess(pid, "SIGKILL")) await withTimeout(monitor.exited, "the smoke-test TextEdit process to stop", 3_000);
-	} finally {
-		if (monitor.child.exitCode === null && !monitor.child.killed) monitor.child.kill("SIGTERM");
-	}
-}
-
 try {
 	await buildBundle();
 	await fs.writeFile(fixturePath, initialText);
@@ -173,7 +54,7 @@ try {
 	const window = found.details.windows.find((candidate) => candidate.pid === createdPid);
 	assert(window, `TextEdit pid ${createdPid} did not expose a root after AXWindowCreated`);
 	const observed = await brokerRequest("observe-ui", { root: window.windowRef, mode: "semantic", image: "never" });
-		const editor = flatten(observed.details.outline.root).find((node) => node.canSetValue && node.wireRef && !node.pictureOnly);
+	const editor = flatten(observed.details.outline.root).find((node) => node.canSetValue && node.wireRef && !node.pictureOnly);
 	assert(editor, "TextEdit observation did not expose an editable semantic node");
 	for (const invalidAction of [
 		{ action: "click", ref: 123 },

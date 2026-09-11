@@ -258,11 +258,12 @@ async function performLook(
 	options: { readText: "auto" | "always" | "never"; baseLookId?: string; scopeRef?: string; maxDimension?: number; includeImage?: boolean },
 	signal?: AbortSignal,
 ): Promise<LookResponse> {
-	if ((!Number.isFinite(target.windowId) || target.windowId <= 0) && !target.nativeWindowRef) {
-		throw new Error(`bcu requires a stable root id to observe '${target.windowTitle}'. Call find-roots and select a root with a stable id.`);
+	if (!target.nativeWindowRef) {
+		throw new Error(`bcu requires a helper root reference to observe '${target.windowTitle}'. Call find-roots and select a current root.`);
 	}
 	return await macosBackend.observe({
-		windowId: target.windowId,
+		rootRef: target.nativeWindowRef,
+		windowId: target.windowId > 0 ? target.windowId : undefined,
 		baseLookId: options.baseLookId,
 		readText: options.readText,
 		scopeRef: options.scopeRef,

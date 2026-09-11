@@ -369,7 +369,8 @@ final class InputSuppressionGuard {
 }
 
 final class Bridge {
-	private let protocolVersion = 6
+	private let protocolVersion = 7
+	private let cgMenuRefPrefix = "cgmenu:"
 	private let refStore = AXRefStore()
 	private let inputSuppressionGuard = InputSuppressionGuard()
 	private let physicalInputLock = NSRecursiveLock()
@@ -970,8 +971,8 @@ final class Bridge {
 			if let windowId = chosen["windowId"] {
 				result["windowId"] = windowId
 			}
-			if let windowRef = chosen["windowRef"] as? String {
-				result["windowRef"] = windowRef
+			if let rootRef = chosen["rootRef"] as? String {
+				result["rootRef"] = rootRef
 			}
 		}
 		return result
@@ -1064,8 +1065,8 @@ final class Bridge {
 	private func setWindowFrame(_ request: [String: Any]) throws -> [String: Any] {
 		let pid = Int32(try intArg(request, "pid"))
 		let windowId = optionalIntArg(request, "windowId").map { UInt32($0) }
-		let windowRef = optionalStringArg(request, "windowRef")
-		guard let window = windowElement(pid: pid, windowId: windowId, windowRef: windowRef) else {
+		let rootRef = optionalStringArg(request, "rootRef")
+		guard let window = resolveRoot(pid: pid, windowId: windowId, rootRef: rootRef) else {
 			return ["ok": false, "reason": "window_not_found"]
 		}
 		let x = try doubleArg(request, "x")
@@ -1091,8 +1092,8 @@ final class Bridge {
 	private func focusWindow(_ request: [String: Any]) throws -> [String: Any] {
 		let pid = Int32(try intArg(request, "pid"))
 		let windowId = optionalIntArg(request, "windowId").map { UInt32($0) }
-		let windowRef = optionalStringArg(request, "windowRef")
-		guard let window = windowElement(pid: pid, windowId: windowId, windowRef: windowRef) else {
+		let rootRef = optionalStringArg(request, "rootRef")
+		guard let window = resolveRoot(pid: pid, windowId: windowId, rootRef: rootRef) else {
 			return ["focused": false, "reason": "window_not_found"]
 		}
 
@@ -1129,7 +1130,15 @@ final class Bridge {
 		return score
 	}
 
+	/// A popup menu that Accessibility never exposed as an element is still a real root on
+	/// screen; its Quartz window id is the only identity it has.
+	private func cgMenuWindowId(_ rootRef: String) -> UInt32? {
+		guard rootRef.hasPrefix(cgMenuRefPrefix) else { return nil }
+		return UInt32(rootRef.dropFirst(cgMenuRefPrefix.count))
+	}
+
 	private func rootKind(role: String, subrole: String) -> String {
+		if role == "AXMenu" { return "menu" }
 		if role == "AXSheet" { return "sheet" }
 		if subrole.localizedCaseInsensitiveContains("popover") { return "popover" }
 		if subrole.localizedCaseInsensitiveContains("dialog") || role == "AXDialog" { return "dialog" }
@@ -1192,16 +1201,16 @@ final class Bridge {
 			}
 			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries)
 			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)
-			for (index, candidate) in popupCandidates.enumerated() {
-				let menuElement = index < menuElements.count ? menuElements[index] : nil
-				let menuRef = menuElement.map { refStore.storeWindow($0) } ?? "cgmenu:\(candidate.windowId)"
+			let menuPairings = windowPairings(windows: menuElements, candidates: popupCandidates)
+			for candidate in popupCandidates {
+				let menuElement = menuElements.first { menuPairings[ObjectIdentifier($0)]?.candidate?.windowId == candidate.windowId }
+				let menuRef = menuElement.map { refStore.storeWindow($0) } ?? "\(cgMenuRefPrefix)\(candidate.windowId)"
 				var menu: [String: Any] = [
 					"kind": "menu",
 					"rootRef": menuRef,
-					"windowRef": menuRef,
 					"windowId": Int(candidate.windowId),
 					"zOrder": candidate.zOrder,
-					"title": menuElement.flatMap { stringAttribute($0, attribute: kAXTitleAttribute as CFString) } ?? candidate.title,
+					"title": menuElement.flatMap { menuTitle($0) } ?? candidate.title,
 					"role": "AXMenu",
 					"subrole": "",
 					"isModal": false,
@@ -1244,7 +1253,7 @@ final class Bridge {
 			if effectiveFrame.width < 100 || effectiveFrame.height < 80 { continue }
 			let hasUsableAXFrame = axFrame.width > 1 && axFrame.height > 1
 			let title = hasUsableAXFrame && !axTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? axTitle : (candidate?.title.isEmpty == false ? candidate!.title : axTitle)
-			let windowRef = refStore.storeWindow(window)
+			let rootRef = refStore.storeWindow(window)
 			let isMinimized = boolAttribute(window, attribute: kAXMinimizedAttribute as CFString) ?? false
 			let isMain = boolAttribute(window, attribute: kAXMainAttribute as CFString) ?? false
 			let isFocused = boolAttribute(window, attribute: kAXFocusedAttribute as CFString) ?? false
@@ -1254,8 +1263,7 @@ final class Bridge {
 
 			var item: [String: Any] = [
 				"kind": rootKind(role: axRole, subrole: axSubrole),
-				"rootRef": windowRef,
-				"windowRef": windowRef,
+				"rootRef": rootRef,
 				"zOrder": candidate?.zOrder ?? zIndex,
 				"title": title,
 				"role": axRole,
@@ -1286,7 +1294,6 @@ final class Bridge {
 				var sheetItem: [String: Any] = [
 					"kind": "sheet",
 					"rootRef": sheetRef,
-					"windowRef": sheetRef,
 					"zOrder": sheetCandidate?.zOrder ?? candidate?.zOrder ?? zIndex,
 					"title": stringAttribute(sheet, attribute: kAXTitleAttribute as CFString) ?? title,
 					"role": stringAttribute(sheet, attribute: kAXRoleAttribute as CFString) ?? "AXSheet",
@@ -1307,9 +1314,25 @@ final class Bridge {
 		return output
 	}
 
+	/// A popup menu Accessibility never exposed still has screen geometry, so callers get a
+	/// picture-only root rather than a failure they cannot act on.
+	private func cgMenuLook(rootRef: String, windowId: UInt32, capturedAt: Date) -> [String: Any] {
+		let frame = windowInfo(windowId: windowId)?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+		let lookId = freshLookId()
+		storeLookRecord(LookRecord(lookId: lookId, windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false))
+		let outline = LookNode(element: nil, ref: rootRef, role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: max(1, frame.width), height: max(1, frame.height)), pictureOnly: true)
+		return [
+			"lookId": lookId,
+			"capturedAt": capturedAt.timeIntervalSince1970,
+			"window": ["windowId": Int(windowId), "rootRef": rootRef, "kind": "menu", "framePoints": ["x": frame.origin.x, "y": frame.origin.y, "w": frame.width, "h": frame.height], "scaleFactor": displayScaleFactor(for: frame), "isModal": false, "metadata": ["pairing": ["confidence": "low", "score": 0], "sheetCount": 0], "role": "AXMenu", "subrole": ""],
+			"outline": outline.payload(),
+			"timings": ["captureMs": 0, "describeMs": 0, "readTextMs": 0],
+		]
+	}
+
 	private func look(_ request: [String: Any]) throws -> [String: Any] {
 		let windowId = optionalIntArg(request, "windowId").map { UInt32($0) }
-		let windowRef = optionalStringArg(request, "windowRef")
+		let rootRef = try stringArg(request, "rootRef")
 		let maxDimension = optionalIntArg(request, "maxDimension").map { max(1, $0) }
 		let readText = optionalStringArg(request, "readText") ?? "auto"
 		let baseLookId = optionalStringArg(request, "baseLookId")
@@ -1318,39 +1341,25 @@ final class Bridge {
 			throw BridgeFailure(message: "readText must be auto, always, or never", code: "invalid_args")
 		}
 
-		let requestedRoot = windowRef.flatMap { refStore.window(for: $0) }
+		let requestedRoot = refStore.window(for: rootRef)
 		let requestedRole = requestedRoot.flatMap { stringAttribute($0, attribute: kAXRoleAttribute as CFString) } ?? ""
-		let isMenuRoot = requestedRole == "AXMenu" || (windowRef?.hasPrefix("cgmenu:") == true)
+		let isMenuRoot = requestedRole == "AXMenu" || rootRef.hasPrefix(cgMenuRefPrefix)
 		let captureStart = Date()
 		let shouldCapture = !isMenuRoot && (includeImage || readText == "always")
 		let capture = try shouldCapture ? windowId.map { try captureWindow(windowId: $0) } : nil
 		let captureMs = capture.map { _ in elapsedMs(captureStart) } ?? 0
 
-		let pid: Int32
-		if let windowId, let ownerPid = pidForWindowId(windowId) {
-			pid = ownerPid
-		} else if let requestedRoot, let owner = pidForElement(requestedRoot) {
-			pid = owner
-		} else {
-			throw BridgeFailure(message: "Root is not owned by a running app", code: "root_not_found")
+		guard let window = requestedRoot else {
+			guard let menuWindowId = cgMenuWindowId(rootRef), let menuPid = pidForWindowId(menuWindowId) else {
+				throw BridgeFailure(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
+			}
+			ensureEnhancedAccessibility(pid: menuPid)
+			return cgMenuLook(rootRef: rootRef, windowId: menuWindowId, capturedAt: captureStart)
+		}
+		guard let pid = pidForElement(window) else {
+			throw BridgeFailure(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
 		}
 		ensureEnhancedAccessibility(pid: pid)
-		if let windowRef, windowRef.hasPrefix("cgmenu:"), refStore.window(for: windowRef) == nil {
-			let frame = windowId.flatMap { windowInfo(windowId: $0)?.bounds } ?? CGRect(x: 0, y: 0, width: 1, height: 1)
-			let lookId = freshLookId()
-			storeLookRecord(LookRecord(lookId: lookId, windowId: windowId ?? 0, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false))
-			let outline = LookNode(element: nil, ref: windowRef, role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: max(1, frame.width), height: max(1, frame.height)), pictureOnly: true)
-			return [
-				"lookId": lookId,
-				"capturedAt": captureStart.timeIntervalSince1970,
-				"window": ["windowId": Int(windowId ?? 0), "rootRef": windowRef, "kind": "menu", "framePoints": ["x": frame.origin.x, "y": frame.origin.y, "w": frame.width, "h": frame.height], "scaleFactor": displayScaleFactor(for: frame), "isModal": false, "metadata": ["pairing": ["confidence": "low", "score": 0], "sheetCount": 0], "role": "AXMenu", "subrole": ""],
-				"outline": outline.payload(),
-				"timings": ["captureMs": 0, "describeMs": 0, "readTextMs": 0],
-			]
-		}
-		guard let window = windowElement(pid: pid, windowId: windowId, windowRef: windowRef) else {
-			throw BridgeFailure(message: "Root is not available through Accessibility", code: "root_not_found")
-		}
 		let rootElement: AXUIElement
 		if let scopeRef = optionalStringArg(request, "scopeRef") {
 			guard let scoped = refStore.element(for: scopeRef), isElement(scoped, descendantOf: window) else {
@@ -1419,7 +1428,7 @@ final class Bridge {
 			"capturedAt": captureStart.timeIntervalSince1970,
 			"window": [
 				"windowId": Int(windowId ?? 0),
-				"rootRef": windowRef ?? refStore.storeWindow(window),
+				"rootRef": rootRef,
 				"kind": rootKind(role: role, subrole: subrole),
 				"framePoints": ["x": (capture?.frame ?? rootFrame).origin.x, "y": (capture?.frame ?? rootFrame).origin.y, "w": (capture?.frame ?? rootFrame).width, "h": (capture?.frame ?? rootFrame).height],
 				"scaleFactor": scale,
@@ -1820,7 +1829,7 @@ final class Bridge {
 
 	private func refindElement(ref: String, pid: Int32, windowId: UInt32) -> AXUIElement? {
 		guard let snapshot = refStore.snapshot(for: ref),
-			let window = windowElement(pid: pid, windowId: windowId)
+			let window = resolveRoot(pid: pid, windowId: windowId)
 		else { return nil }
 		let targetCenter = CGPoint(x: snapshot.rect.midX, y: snapshot.rect.midY)
 		let candidates = collectDescendants(startingAt: window, maxDepth: 8).filter { candidate in
@@ -1884,7 +1893,7 @@ final class Bridge {
 		let beforeRootSnapshot = deferRootDelta ? [:] : rootMetadataSnapshot(pid: pid)
 		let beforeCgSignature = deferRootDelta ? [] : cgRootSignature(pid: pid)
 		let beforeFrontmostPid = deferRootDelta ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
-		let beforeSheetCount = windowElement(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
+		let beforeSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
 		let beforeFocusedWindow = focusedWindowSummary(pid: pid)
 		let beforeValue: String?
 		let beforeSelected: String?
@@ -1947,7 +1956,7 @@ final class Bridge {
 			if let app = NSRunningApplication(processIdentifier: pid), !app.isActive {
 				performed["activated"] = app.activate()
 			}
-			if let window = windowElement(pid: pid, windowId: record.windowId) {
+			if let window = resolveRoot(pid: pid, windowId: record.windowId) {
 				_ = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
 				_ = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
 				performed["raised"] = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
@@ -2141,7 +2150,7 @@ final class Bridge {
 			try executeCoordinates(coordinatePoint())
 		}
 
-		let afterSheetCount = windowElement(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
+		let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
 		let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
 		var outcome = preflightCapsUnknown ? "unknown" : "unknown"
 		var evidence: [String: Any] = [:]
@@ -2251,7 +2260,7 @@ final class Bridge {
 		var item: [String: Any] = ["change": change, "kind": root["kind"] as? String ?? "window", "title": root["title"] as? String ?? "", "pid": root["pid"] as? Int ?? Int(pid)]
 		if let isModal = root["isModal"] as? Bool { item["isModal"] = isModal }
 		if let metadata = root["metadata"] as? [String: Any] { item["metadata"] = metadata }
-		if let ref = root["rootRef"] as? String ?? root["windowRef"] as? String { item["ref"] = ref }
+		if let ref = root["rootRef"] as? String { item["ref"] = ref }
 		return item
 	}
 
@@ -2308,7 +2317,7 @@ final class Bridge {
 		let pid = Int32(try intArg(request, "pid"))
 		ensureEnhancedAccessibility(pid: pid)
 		let windowId = optionalIntArg(request, "windowId").map { UInt32($0) }
-		let windowRef = optionalStringArg(request, "windowRef")
+		let rootRef = optionalStringArg(request, "rootRef")
 		let role = optionalStringArg(request, "role")?.trimmingCharacters(in: .whitespacesAndNewlines)
 		let text = optionalStringArg(request, "text")?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 		let expectedValue = optionalStringArg(request, "value")?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -2319,7 +2328,7 @@ final class Bridge {
 		guard role?.isEmpty == false || text?.isEmpty == false || expectedValue?.isEmpty == false else {
 			throw BridgeFailure(message: "axWaitFor requires role, text, or value", code: "invalid_args")
 		}
-		guard let window = windowElement(pid: pid, windowId: windowId, windowRef: windowRef) else {
+		guard let window = resolveRoot(pid: pid, windowId: windowId, rootRef: rootRef) else {
 			return ["found": false, "reason": "window_not_found"]
 		}
 		let rootElement: AXUIElement
@@ -2460,13 +2469,15 @@ final class Bridge {
 		return ["performed": false, "reason": "no_matching_action"]
 	}
 
-	private func windowElement(pid: Int32, windowId: UInt32?, windowRef: String? = nil) -> AXUIElement? {
-		if let windowRef, let stored = refStore.window(for: windowRef) {
+	/// A supplied root ref is authoritative: menus, sheets and popovers have no window id,
+	/// so a ref that no longer resolves must fail instead of silently selecting another root.
+	private func resolveRoot(pid: Int32, windowId: UInt32?, rootRef: String? = nil) -> AXUIElement? {
+		if let rootRef {
+			guard let stored = refStore.window(for: rootRef) else { return nil }
 			AXUIElementSetMessagingTimeout(stored, 1.0)
 			var ownerPid: pid_t = 0
-			if AXUIElementGetPid(stored, &ownerPid) == .success, ownerPid == pid {
-				return stored
-			}
+			guard AXUIElementGetPid(stored, &ownerPid) == .success, ownerPid == pid else { return nil }
+			return stored
 		}
 
 		let appElement = AXUIElementCreateApplication(pid)
@@ -2681,12 +2692,22 @@ final class Bridge {
 		return false
 	}
 
+	/// Standard AX actions are stable API names. Custom actions arrive as multi-line
+	/// `Name:…\nTarget:…\nSelector:…` descriptions, of which only the name is useful.
+	private func readableActionName(_ raw: String) -> String? {
+		if raw.hasPrefix("AX") { return raw }
+		let firstLine = raw.split(separator: "\n", omittingEmptySubsequences: false).first.map(String.init) ?? raw
+		let named = firstLine.hasPrefix("Name:") ? String(firstLine.dropFirst("Name:".count)) : firstLine
+		let trimmed = named.trimmingCharacters(in: .whitespacesAndNewlines)
+		return trimmed.isEmpty ? nil : trimmed
+	}
+
 	private func actionNames(_ element: AXUIElement) -> [String] {
 		var actionsValue: CFArray?
 		let status = AXUIElementCopyActionNames(element, &actionsValue)
 		guard status == .success else { return [] }
 		guard let actionsArray = actionsValue as? [AnyObject] else { return [] }
-		return actionsArray.compactMap { $0 as? String }
+		return actionsArray.compactMap { ($0 as? String).flatMap(readableActionName) }
 	}
 
 	private func supportsAction(_ element: AXUIElement, action: CFString) -> Bool {
@@ -2696,15 +2717,15 @@ final class Bridge {
 	private func focusedElement(_ request: [String: Any]) throws -> [String: Any] {
 		let pid = Int32(try intArg(request, "pid"))
 		let windowId = optionalIntArg(request, "windowId").map { UInt32($0) }
-		let windowRef = optionalStringArg(request, "windowRef")
+		let rootRef = optionalStringArg(request, "rootRef")
 		let app = AXUIElementCreateApplication(pid)
 		guard let focusedValue = copyAttribute(app, attribute: kAXFocusedUIElementAttribute as CFString),
 			let element = asAXElement(focusedValue)
 		else {
 			return ["exists": false]
 		}
-		if windowId != nil || windowRef != nil {
-			guard let window = windowElement(pid: pid, windowId: windowId, windowRef: windowRef) else {
+		if windowId != nil || rootRef != nil {
+			guard let window = resolveRoot(pid: pid, windowId: windowId, rootRef: rootRef) else {
 				return ["exists": false, "reason": "window_not_found"]
 			}
 			guard isElement(element, descendantOf: window) else {
@@ -2993,11 +3014,26 @@ final class Bridge {
 		return candidates
 	}
 
+	/// AXMenu elements exist for every closed submenu too; only an open menu reports a frame,
+	/// so the frame is what separates the menu the user sees from the rest of the menu tree.
+	private func isOpenMenu(_ element: AXUIElement) -> Bool {
+		let frame = frameForWindow(element)
+		return frame.width > 1 && frame.height > 1
+	}
+
+	/// An AXMenu carries no title of its own; the menu bar item that owns it does.
+	private func menuTitle(_ menu: AXUIElement) -> String? {
+		if let own = stringAttribute(menu, attribute: kAXTitleAttribute as CFString), !own.isEmpty { return own }
+		guard let parent = parentElement(menu) else { return nil }
+		guard let title = stringAttribute(parent, attribute: kAXTitleAttribute as CFString), !title.isEmpty else { return nil }
+		return title
+	}
+
 	private func openMenuElements(pid: Int32, messagingTimeout: Float = 1.0) -> [AXUIElement] {
 		let app = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(app, messagingTimeout)
 		let descendants = collectDescendants(startingAt: app, maxDepth: 6)
-		var menus = descendants.filter { (stringAttribute($0, attribute: kAXRoleAttribute as CFString) ?? "") == "AXMenu" }
+		var menus = descendants.filter { (stringAttribute($0, attribute: kAXRoleAttribute as CFString) ?? "") == "AXMenu" && isOpenMenu($0) }
 		if menus.isEmpty,
 			let focused = copyAttribute(app, attribute: kAXFocusedUIElementAttribute as CFString).flatMap(asAXElement)
 		{
