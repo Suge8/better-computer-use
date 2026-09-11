@@ -28,7 +28,7 @@ try {
 	assert.equal(await fs.realpath(setupHelperScriptPath()), await fs.realpath(path.join(root, "scripts", "setup-helper.mjs")), "source layout resolved the wrong setup-helper path");
 	await checkLayout(path.join(temporaryRoot, "checkout"), "dist");
 	await checkLayout(path.join(temporaryRoot, "consumer", "node_modules", "better-computer-use"), "packed");
-	for (const relativePath of ["src/platform/macos/helper.ts", "src/platform/windows/helper.ts"]) {
+	for (const relativePath of ["src/macos/helper.ts"]) {
 		const source = await fs.readFile(path.join(root, relativePath), "utf8");
 		assert(source.includes("setupHelperScriptPath"), `${relativePath} does not use the shared package-root resolver`);
 	}

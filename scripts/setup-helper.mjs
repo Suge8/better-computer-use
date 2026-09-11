@@ -9,7 +9,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveMacosHelperAppPath } from "../src/platform/macos/helper-path.mjs";
+import { resolveMacosHelperAppPath } from "../src/macos/helper-path.mjs";
 
 const execFile = promisify(execFileCallback);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,10 +20,6 @@ const helperSourceHashPath = path.join(helperAppPath, "Contents", "Resources", "
 // hash; a second manifest records the final post-sign bytes for tamper detection.
 const helperInstalledHashPath = path.join(helperAppPath, "Contents", "Resources", "installed.sha256");
 const helperBundleId = "com.sugeh.bcu";
-const windowsCrateDir = path.join(rootDir, "native", "windows", "bridge-rs");
-const windowsHelperDestPath = process.env.BCU_WINDOWS_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "windows-bridge.exe");
-const linuxCrateDir = path.join(rootDir, "native", "linux", "bridge-rs");
-const linuxHelperDestPath = process.env.BCU_LINUX_HELPER_PATH || path.join(os.homedir(), ".bcu", "helpers", "linux-bridge");
 const helperSourcePaths = ["agent_cursor.swift", "agent_cursor_motion.swift", "bridge.swift"]
 	.map((file) => path.join(rootDir, "native", "macos", file));
 const packageJsonPath = path.join(rootDir, "package.json");
@@ -34,14 +30,8 @@ const localSigningLockPath = path.join(os.tmpdir(), `bcu-local-signing-${typeof 
 const args = new Set(process.argv.slice(2));
 const isPostinstall = args.has("--postinstall");
 const allowBuildFallback = args.has("--allow-build") || args.has("--runtime") || process.env.BCU_ALLOW_BUILD === "1";
-const allowLinuxBuildFallback = args.has("--allow-build") || process.env.BCU_ALLOW_BUILD === "1";
 const allowAdhocUpdate = args.has("--allow-adhoc-update") || process.env.BCU_ALLOW_ADHOC_UPDATE === "1";
 
-function getArg(name) {
-	const index = process.argv.indexOf(name);
-	if (index >= 0 && index + 1 < process.argv.length) return process.argv[index + 1];
-	return undefined;
-}
 const archTriples = {
 	arm64: "arm64-apple-macosx",
 	x64: "x86_64-apple-macosx",
@@ -542,79 +532,13 @@ async function buildHelper(arch, outputPath) {
 	await signHelper(outputPath);
 }
 
-function windowsBinaryPath() {
-	const releaseDir = path.join(windowsCrateDir, "target", "release");
-	return {
-		exePath: path.join(releaseDir, "windows-bridge.exe"),
-		binPath: path.join(releaseDir, "windows-bridge"),
-	};
-}
-
-async function setupWindowsHelper() {
-	const prebuiltPath = path.join(rootDir, "prebuilt", "windows", "windows-bridge.exe");
-	if (await exists(prebuiltPath)) {
-		const { changed } = await copyIfChanged(prebuiltPath, windowsHelperDestPath);
-		console.log(changed
-			? `[bcu] installed Windows helper from prebuilt to ${windowsHelperDestPath}`
-			: `[bcu] Windows helper already up to date at ${windowsHelperDestPath}`);
-		return;
-	}
-
-	if (allowBuildFallback) {
-		console.log("[bcu] Windows prebuilt helper missing; attempting source build with cargo...");
-		await run("cargo", ["build", "--release", "--manifest-path", path.join(windowsCrateDir, "Cargo.toml")]);
-		const { exePath, binPath } = windowsBinaryPath();
-		const cargoOutput = (await exists(exePath)) ? exePath : (await exists(binPath)) ? binPath : exePath;
-		const { changed } = await copyIfChanged(cargoOutput, windowsHelperDestPath);
-		console.log(changed
-			? `[bcu] built and installed Windows helper at ${windowsHelperDestPath}`
-			: `[bcu] Windows helper already up to date at ${windowsHelperDestPath}`);
-		return;
-	}
-
-	throw new Error(
-		`No Windows prebuilt helper found at ${prebuiltPath}. ` +
-			"Run 'node scripts/build-native.mjs --platform windows' to build, or set BCU_ALLOW_BUILD=1 to build at install time.",
-	);
-}
-
-async function setupLinuxHelper() {
-	const arch = normalizeArch(process.arch);
-	const prebuiltPath = path.join(rootDir, "prebuilt", "linux", arch, "linux-bridge");
-	if (await exists(prebuiltPath)) {
-		const { changed } = await copyIfChanged(prebuiltPath, linuxHelperDestPath);
-		console.log(changed ? `[bcu] installed Linux helper (${arch}) from prebuilt to ${linuxHelperDestPath}` : `[bcu] Linux helper already up to date at ${linuxHelperDestPath}`);
-		return;
-	}
-	if (allowLinuxBuildFallback) {
-		if (process.platform !== "linux") throw new Error("The Linux helper source fallback must be built on Linux.");
-		console.log("[bcu] Linux prebuilt helper missing; attempting source build with cargo...");
-		await run("cargo", ["build", "--release", "--manifest-path", path.join(linuxCrateDir, "Cargo.toml")]);
-		const cargoOutput = path.join(linuxCrateDir, "target", "release", "linux-bridge");
-		const { changed } = await copyIfChanged(cargoOutput, linuxHelperDestPath);
-		console.log(changed ? `[bcu] built and installed Linux helper at ${linuxHelperDestPath}` : `[bcu] Linux helper already up to date at ${linuxHelperDestPath}`);
-		return;
-	}
-	throw new Error(`No Linux prebuilt helper found for ${arch} at ${prebuiltPath}. Run node scripts/build-native.mjs --platform linux to build, or set BCU_ALLOW_BUILD=1 to build at install time.`);
-}
-
 async function setup() {
-	const explicitPlatform = getArg("--platform");
-	if (explicitPlatform === "windows" || (!explicitPlatform && process.platform === "win32")) {
-		await setupWindowsHelper();
-		return;
-	}
-	if (explicitPlatform === "linux" || (!explicitPlatform && process.platform === "linux")) {
-		await setupLinuxHelper();
-		return;
-	}
-
 	if (process.platform !== "darwin") {
 		if (isPostinstall) {
-			console.warn("[bcu] skipping helper setup: platform is not macOS.");
+			console.warn("[bcu] skipping helper setup: bcu only supports macOS.");
 			return;
 		}
-		throw new Error("bcu helper is supported on macOS, Windows, and Linux. Use the matching --platform option.");
+		throw new Error(`The bcu helper only supports macOS; this host is ${process.platform}.`);
 	}
 
 	const arch = normalizeArch(process.arch);

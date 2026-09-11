@@ -24,33 +24,19 @@ for (const required of [
 	"dist/bcu.mjs",
 	"prebuilt/macos/arm64/bridge",
 	"prebuilt/macos/x64/bridge",
-	"prebuilt/windows/windows-bridge.exe",
+	"native/macos/bridge.swift",
+	"scripts/setup-helper.mjs",
 ]) {
 	assert(files.has(required), `npm tarball is missing ${required}`);
 }
+for (const file of files) {
+	assert(!/^(prebuilt|native|src)\/(windows|linux)\//.test(file), `npm tarball still ships a non-macOS helper: ${file}`);
+}
 const bundle = await fs.readFile(path.join(root, "dist", "bcu.mjs"), "utf8");
 assert(bundle.startsWith("#!/usr/bin/env node\n"), "dist/bcu.mjs is not an executable CLI entrypoint");
-const windowsHelper = await fs.readFile(path.join(root, "prebuilt", "windows", "windows-bridge.exe"));
-assert(windowsHelper.length > 500_000, "Windows helper is unexpectedly small");
-assert.equal(windowsHelper.subarray(0, 2).toString("ascii"), "MZ", "Windows helper is not a PE executable");
-const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-package-windows-"));
-try {
-	const installedHelper = path.join(temporaryRoot, "windows-bridge.exe");
-	await execFile(process.execPath, [path.join(root, "scripts", "setup-helper.mjs"), "--platform", "windows", "--runtime"], {
-		cwd: root,
-		env: {
-			...process.env,
-			BCU_WINDOWS_HELPER_PATH: installedHelper,
-			PATH: path.dirname(process.execPath),
-		},
-	});
-	assert.deepEqual(await fs.readFile(installedHelper), windowsHelper, "Windows runtime setup did not install the packaged prebuilt");
-} finally {
-	await fs.rm(temporaryRoot, { recursive: true, force: true });
-}
+
 // macOS runtime repair: a replaced helper binary must be restored by ensureInstalled
 // (guards against an early-return that skips the per-session setup sync).
-if (process.platform === "darwin") {
 const macosHelper = await fs.readFile(path.join(root, "prebuilt", "macos", process.arch === "arm64" ? "arm64" : "x64", "bridge"));
 const clientRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-install-check-"));
 const clientApp = path.join(clientRoot, "bcu.app");
@@ -61,7 +47,7 @@ try {
 	process.env.BCU_NO_SIGN = "1";
 	await execFile(process.execPath, [path.join(root, "scripts", "setup-helper.mjs"), "--runtime"], { cwd: root, env: process.env });
 	await fs.copyFile("/bin/echo", clientExecutable);
-	const { MacosHelperClient } = await import("../src/platform/macos/helper.ts");
+	const { MacosHelperClient } = await import("../src/macos/helper.ts");
 	const repairClient = new MacosHelperClient();
 	try {
 		await repairClient.ensureInstalled();
@@ -75,6 +61,5 @@ try {
 	}
 	await fs.rm(clientRoot, { recursive: true, force: true });
 }
-}
 
-console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; Windows installs without Cargo; macOS runtime repair verified on darwin).`);
+console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; macOS runtime repair verified).`);

@@ -22,10 +22,8 @@ try {
 		height: 600,
 	});
 	assert.deepEqual(await fs.readFile(result.screenshot.path), jpegBytes, "artifact bytes changed on disk");
-	if (process.platform !== "win32") {
-		assert.equal((await fs.stat(result.screenshot.path)).mode & 0o777, 0o600, "screenshot artifact is not mode 0600");
-		assert.equal((await fs.stat(directory)).mode & 0o777, 0o700, "screenshot directory is not mode 0700");
-	}
+	assert.equal((await fs.stat(result.screenshot.path)).mode & 0o777, 0o600, "screenshot artifact is not mode 0600");
+	assert.equal((await fs.stat(directory)).mode & 0o777, 0o700, "screenshot directory is not mode 0700");
 	assert(!JSON.stringify(result).includes(jpegBytes.toString("base64")), "base64 image leaked into the broker result");
 
 	await fs.rm(directory, { recursive: true, force: true });
@@ -44,9 +42,7 @@ try {
 	assert(files.length <= 128, `artifact count exceeded capacity: ${files.length}`);
 	const stats = await Promise.all(files.map((file) => fs.stat(path.join(directory, file))));
 	assert(stats.reduce((sum, file) => sum + file.size, 0) <= 256 * 1024 * 1024, "artifact bytes exceeded capacity");
-	if (process.platform !== "win32") {
-		assert(stats.every((file) => (file.mode & 0o777) === 0o600), "a concurrent screenshot is not mode 0600");
-	}
+	assert(stats.every((file) => (file.mode & 0o777) === 0o600), "a concurrent screenshot is not mode 0600");
 	console.log("Screenshot artifact checks passed, including 160 writes at capacity.");
 } finally {
 	await fs.rm(directory, { recursive: true, force: true });

@@ -1,8 +1,6 @@
-import { ensurePermissions, type PermissionKind, type PermissionStatus } from "../../permissions.ts";
-import { toBoolean, toFiniteNumber, toOptionalString } from "../coerce.ts";
-import type { PlatformReadyState } from "../types.ts";
+import { ensurePermissions, type PermissionKind, type PermissionStatus } from "../permissions.ts";
+import { assertHelperArchitecture, toBoolean, toFiniteNumber, toOptionalString, type HelperReadyState } from "./protocol.ts";
 import { HELPER_APP_PATH, macosHelper } from "./helper.ts";
-import { assertPlatformArchitecture } from "../architecture.ts";
 
 const GRANT_INSTRUCTIONS =
 	"Grant Accessibility and Screen Recording to bcu.app in System Settings → Privacy & Security. " +
@@ -69,15 +67,15 @@ export async function checkMacosPermissions(signal?: AbortSignal): Promise<Permi
 }
 
 export async function ensureMacosReady(
-	state: PlatformReadyState,
+	state: HelperReadyState,
 	signal?: AbortSignal,
-): Promise<PlatformReadyState> {
+): Promise<HelperReadyState> {
 	await macosHelper.ensureInstalled(signal);
 	if (!(await macosHelper.ensureDaemon(signal))) {
 		throw new Error(`bcu helper app daemon did not start. Helper app: ${HELPER_APP_PATH}`);
 	}
 	const helperDiagnostics = await macosHelper.ensureProtocol(signal);
-	assertPlatformArchitecture("macOS", helperDiagnostics);
+	assertHelperArchitecture(helperDiagnostics);
 
 	const now = Date.now();
 	const cachedStatus = state.permissionStatus;

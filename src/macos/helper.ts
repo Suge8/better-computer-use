@@ -4,10 +4,9 @@ import { access, mkdir, realpath } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { setupHelperScriptPath } from "../../package-root.ts";
-import { waitForPathReady } from "../../readiness.ts";
-import { toBoolean, toFiniteNumber, toOptionalString } from "../coerce.ts";
-import type { PlatformDiagnostics } from "../types.ts";
+import { setupHelperScriptPath } from "../package-root.ts";
+import { waitForPathReady } from "../readiness.ts";
+import { toBoolean, toFiniteNumber, toOptionalString, type HelperDiagnostics } from "./protocol.ts";
 import { resolveMacosHelperAppPath } from "./helper-path.mjs";
 
 const COMMAND_TIMEOUT_MS = 15_000;
@@ -134,7 +133,7 @@ export class MacosHelperClient {
 	private helperInstallChecked = false;
 	private daemonAvailable = false;
 	private requestSequence = 0;
-	private diagnosticsCache?: PlatformDiagnostics;
+	private diagnosticsCache?: HelperDiagnostics;
 	private socket?: net.Socket;
 	private openingSocket?: net.Socket;
 	private connecting?: Promise<net.Socket>;
@@ -142,7 +141,7 @@ export class MacosHelperClient {
 	private readonly pending = new Map<string, PendingResponse>();
 	private readonly disconnectWaiters = new Set<() => void>();
 
-	get diagnostics(): PlatformDiagnostics | undefined {
+	get diagnostics(): HelperDiagnostics | undefined {
 		return this.diagnosticsCache;
 	}
 
@@ -361,7 +360,7 @@ export class MacosHelperClient {
 		}
 	}
 
-	async diagnosticsCommand(signal?: AbortSignal): Promise<PlatformDiagnostics> {
+	async diagnosticsCommand(signal?: AbortSignal): Promise<HelperDiagnostics> {
 		const result = await this.command<any>("diagnostics", {}, { signal });
 		const diagnostics = {
 			protocolVersion: Math.trunc(toFiniteNumber(result?.protocolVersion, 0)),
@@ -382,7 +381,7 @@ export class MacosHelperClient {
 		return diagnostics;
 	}
 
-	async ensureProtocol(signal?: AbortSignal): Promise<PlatformDiagnostics> {
+	async ensureProtocol(signal?: AbortSignal): Promise<HelperDiagnostics> {
 		let diagnostics = await this.diagnosticsCommand(signal);
 		const executableMatches = await isResolvedHelperExecutable(diagnostics.executablePath);
 		if (diagnostics.protocolVersion === HELPER_PROTOCOL_VERSION && executableMatches) return diagnostics;

@@ -1,10 +1,9 @@
-import { getComputerUseConfig } from "../../config.ts";
-import { parseLookResponse, type LookResponse } from "../../outline.ts";
-import { toBoolean, toFiniteNumber, toOptionalString } from "../coerce.ts";
-import type { ComputerUsePlatformBackend, FramePoints, HelperActResult, PlatformActRequest, PlatformApp, PlatformFocusWindowResult, PlatformFrontmostResult, PlatformObserveRequest, PlatformReadTextRequest, PlatformReadTextResponse, PlatformRoot, PlatformRootKind, PlatformRootQuery, PlatformTarget, PlatformWaitForRequest, PlatformWaitForResponse } from "../types.ts";
+import { getComputerUseConfig } from "../config.ts";
+import { parseLookResponse, type LookResponse } from "../outline.ts";
+import { toBoolean, toFiniteNumber, toOptionalString, type ActRequest, type FocusWindowResult, type FramePoints, type FrontmostResult, type HelperActResult, type HelperApp, type HelperRoot, type HelperTarget, type ObserveRequest, type ReadTextRequest, type ReadTextResponse, type RootKind, type RootQuery, type WaitForRequest, type WaitForResponse } from "./protocol.ts";
 import { macosHelper } from "./helper.ts";
 
-function parseApps(result: unknown): PlatformApp[] {
+function parseApps(result: unknown): HelperApp[] {
 	const array = Array.isArray(result) ? result : (result as any)?.apps;
 	if (!Array.isArray(array)) return [];
 
@@ -18,9 +17,9 @@ function parseApps(result: unknown): PlatformApp[] {
 				bundleId: toOptionalString((raw as any)?.bundleId),
 				pid,
 				isFrontmost: toBoolean((raw as any)?.isFrontmost),
-			} as PlatformApp;
+			} as HelperApp;
 		})
-		.filter((item): item is PlatformApp => Boolean(item));
+		.filter((item): item is HelperApp => Boolean(item));
 }
 
 function parseFramePoints(raw: unknown): FramePoints {
@@ -33,13 +32,13 @@ function parseFramePoints(raw: unknown): FramePoints {
 	};
 }
 
-function parseRoots(result: unknown): PlatformRoot[] {
+function parseRoots(result: unknown): HelperRoot[] {
 	const array = Array.isArray(result) ? result : (result as any)?.roots;
 	if (!Array.isArray(array)) return [];
 
 	return array.map((raw) => {
 		const metadata = typeof (raw as any)?.metadata === "object" && (raw as any).metadata !== null ? (raw as any).metadata as Record<string, unknown> : {};
-		const kind = ["window", "menu", "sheet", "popover", "dialog"].includes((raw as any)?.kind) ? (raw as any).kind as PlatformRootKind : "window";
+		const kind = ["window", "menu", "sheet", "popover", "dialog"].includes((raw as any)?.kind) ? (raw as any).kind as RootKind : "window";
 		return {
 			kind,
 			rootRef: toOptionalString((raw as any)?.rootRef ?? (raw as any)?.windowRef),
@@ -64,24 +63,24 @@ function parseRoots(result: unknown): PlatformRoot[] {
 	});
 }
 
-function helperAction(request: PlatformActRequest): Record<string, unknown> {
+function helperAction(request: ActRequest): Record<string, unknown> {
 	if (!("focus" in request.target)) return { ...request };
 	return { ...request, target: request.target.focus, params: { ...request.params, preserveFocus: true } };
 }
 
-export const macosBackend: Pick<ComputerUsePlatformBackend, "listApps" | "listRoots" | "getFrontmost" | "focusWindow" | "observe" | "act" | "actBatch" | "readText" | "waitFor"> = {
-	async listApps(signal?: AbortSignal): Promise<PlatformApp[]> {
+export const macosBackend = {
+	async listApps(signal?: AbortSignal): Promise<HelperApp[]> {
 		return parseApps(await macosHelper.command<unknown>("listApps", {}, { signal }));
 	},
 
-	async listRoots(query: PlatformRootQuery, signal?: AbortSignal): Promise<PlatformRoot[]> {
+	async listRoots(query: RootQuery, signal?: AbortSignal): Promise<HelperRoot[]> {
 		return parseRoots(await macosHelper.command<unknown>("listRoots", {
 			...(Number.isFinite(query.pid) ? { pid: Math.trunc(query.pid!) } : {}),
 			...(query.title?.trim() ? { title: query.title.trim() } : {}),
 		}, { signal }));
 	},
 
-	async getFrontmost(signal?: AbortSignal): Promise<PlatformFrontmostResult> {
+	async getFrontmost(signal?: AbortSignal): Promise<FrontmostResult> {
 		const result = await macosHelper.command<any>("getFrontmost", {}, { signal });
 		const pid = Math.trunc(toFiniteNumber(result?.pid, NaN));
 		if (!Number.isFinite(pid) || pid <= 0) {
@@ -96,15 +95,14 @@ export const macosBackend: Pick<ComputerUsePlatformBackend, "listApps" | "listRo
 		};
 	},
 
-	async focusWindow(target: PlatformTarget, signal?: AbortSignal): Promise<PlatformFocusWindowResult> {
-		return await macosHelper.command<PlatformFocusWindowResult>("focusWindow", { ...target }, { signal });
+	async focusWindow(target: HelperTarget, signal?: AbortSignal): Promise<FocusWindowResult> {
+		return await macosHelper.command<FocusWindowResult>("focusWindow", { ...target }, { signal });
 	},
 
-	async observe(request: PlatformObserveRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<LookResponse> {
+	async observe(request: ObserveRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<LookResponse> {
 		return parseLookResponse(await macosHelper.command("look", {
 			baseLookId: request.baseLookId,
-			windowId: request.target.windowId,
-			windowRef: request.target.rootRef,
+			windowId: request.windowId,
 			maxDimension: request.maxDimension,
 			readText: request.readText,
 			scopeRef: request.scopeRef,
@@ -112,20 +110,25 @@ export const macosBackend: Pick<ComputerUsePlatformBackend, "listApps" | "listRo
 		}, options));
 	},
 
-	async act(request: PlatformActRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<HelperActResult> {
+	async act(request: ActRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<HelperActResult> {
 		return await macosHelper.command<HelperActResult>("act", { ...helperAction(request), cursorOverlay: getComputerUseConfig().cursor_overlay }, options);
 	},
 
-	async actBatch(requests: PlatformActRequest[], options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<HelperActResult> {
+	async actBatch(requests: ActRequest[], options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<HelperActResult> {
 		const cursorOverlay = getComputerUseConfig().cursor_overlay;
 		return await macosHelper.command<HelperActResult>("actBatch", { actions: requests.map((request) => ({ ...helperAction(request), cursorOverlay })) }, options);
 	},
 
-	async readText(args: PlatformReadTextRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PlatformReadTextResponse> {
+	async readText(args: ReadTextRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<ReadTextResponse> {
 		return await macosHelper.command("axReadText", { ...args }, options);
 	},
 
-	async waitFor(args: PlatformWaitForRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<PlatformWaitForResponse> {
+	async waitFor(args: WaitForRequest, options?: { timeoutMs?: number; signal?: AbortSignal }): Promise<WaitForResponse> {
 		return await macosHelper.command("axWaitFor", { ...args }, options);
+	},
+
+	/** Release process-local helper resources when the current session is torn down. */
+	shutdown(): void {
+		macosHelper.dispose();
 	},
 };

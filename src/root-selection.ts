@@ -1,6 +1,6 @@
-import type { PlatformRoot } from "./platform/types.ts";
+import type { HelperRoot } from "./macos/protocol.ts";
 
-type RankedRoot = Pick<PlatformRoot,
+type RankedRoot = Pick<HelperRoot,
 	"windowId" | "windowRef" | "isModal" | "isFocused" | "isMain" | "isMinimized" | "isOnscreen" | "zOrder" | "title"
 >;
 

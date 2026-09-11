@@ -35,9 +35,4 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Run checks
-        run: npm test && npm run test:platform && npm run test:windows-scripts
-
-      - name: Check commit messages
-        env:
-          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: npm run test:commits
+        run: npm test

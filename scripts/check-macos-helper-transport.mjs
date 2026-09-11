@@ -5,15 +5,15 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 
-if (process.platform === "win32") {
-	console.log("SKIP macOS helper transport on Windows");
+if (process.platform !== "darwin") {
+	console.log("SKIP macOS helper transport (macOS only)");
 	process.exit(0);
 }
 
 const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-helper-transport-"));
 const socketPath = path.join(temporaryRoot, "helper.sock");
 process.env.BCU_SOCKET_PATH = socketPath;
-const { HelperTransportError, MacosHelperClient } = await import("../src/platform/macos/helper.ts");
+const { HelperTransportError, MacosHelperClient } = await import("../src/macos/helper.ts");
 
 let connectionCount = 0;
 let bufferedDropRequests = 0;

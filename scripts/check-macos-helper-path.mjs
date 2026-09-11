@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import path from "node:path";
-import { resolveMacosHelperAppPath } from "../src/platform/macos/helper-path.mjs";
+import { resolveMacosHelperAppPath } from "../src/macos/helper-path.mjs";
 
 const homeDir = path.join(path.sep, "Users", "standard-user");
 const systemHelperAppPath = path.join(path.sep, "Applications", "bcu.app");
