@@ -21,7 +21,6 @@ interface PendingResponse {
 	onAbort?: () => void;
 }
 
-export const HELPER_BUNDLE_ID = "com.sugeh.bcu";
 export const HELPER_APP_PATH = resolveMacosHelperAppPath();
 export const HELPER_APP_EXECUTABLE_PATH = path.join(HELPER_APP_PATH, "Contents", "MacOS", "bridge");
 const DEFAULT_HELPER_SOCKET_PATH = path.join(os.homedir(), "Library", "Caches", "bcu", "bridge.sock");

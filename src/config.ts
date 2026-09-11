@@ -83,10 +83,6 @@ export function getComputerUseConfig(): ComputerUseConfig {
 	return activeConfig;
 }
 
-export function getLoadedComputerUseConfig(): LoadedComputerUseConfig {
-	return activeLoadedConfig;
-}
-
 export function isHeadlessMode(): boolean {
 	return activeConfig.headless;
 }

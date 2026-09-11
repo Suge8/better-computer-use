@@ -93,7 +93,6 @@ export interface OutlineSearchMatch {
 	node: OutlineNode;
 }
 
-export type SerializedOutlineSearchMatch = Omit<OutlineSearchMatch, "node"> & { node?: never };
 
 export interface FoldResult {
 	text: string;
@@ -450,28 +449,6 @@ export function rankedTextMatch(values: string[], text: string): { reason: "exac
 	return score >= 0.72 ? { reason: "fuzzy", score } : undefined;
 }
 
-export function searchOutlineRanked(outline: Outline, text?: string, role?: string, capability?: string, limit = 12): { matches: OutlineSearchMatch[]; totalMatches: number } {
-	const query = text?.trim();
-	const roleQuery = role ? normalizedSearchRole(role) : undefined;
-	const actionQuery = capability?.trim();
-	const strong: Array<OutlineSearchMatch & { order: number }> = [];
-	const fuzzy: Array<OutlineSearchMatch & { order: number }> = [];
-	for (const [order, node] of outline.nodes.entries()) {
-		if (roleQuery && normalizedSearchRole(node.role) !== roleQuery) continue;
-		if (actionQuery && !actionMatches(node, actionQuery)) continue;
-		const label = outlineNodeLabel(node);
-		const match = query ? rankedTextMatch([label, node.identifier, node.title, node.description, node.value, ...node.text.map((item) => item.string)], query) : undefined;
-		if (query && !match) continue;
-		const result = { ref: node.ref, role: node.role, label, actions: node.actions, path: outlineNodePath(node), matchReason: match?.reason ?? "filter" as const, score: match?.score ?? 1, node, order };
-		(match?.reason === "fuzzy" ? fuzzy : strong).push(result);
-	}
-	const rank = { exact: 0, prefix: 1, substring: 2, filter: 3, fuzzy: 4 } as const;
-	const sorted = [...strong.sort((a, b) => rank[a.matchReason!] - rank[b.matchReason!] || b.score! - a.score! || a.order - b.order)];
-	const useFuzzy = sorted.length < limit;
-	if (useFuzzy) sorted.push(...fuzzy.sort((a, b) => b.score! - a.score! || a.order - b.order));
-	return { matches: sorted.slice(0, limit).map(({ order: _order, ...match }) => match), totalMatches: strong.length + (useFuzzy ? fuzzy.length : 0) };
-}
-
 export function searchOutline(outline: Outline, text?: string, role?: string, action?: string, limit = 50): OutlineSearchMatch[] {
 	const query = text?.trim().toLowerCase();
 	const roleQuery = role?.trim();
@@ -492,11 +469,6 @@ export function searchOutline(outline: Outline, text?: string, role?: string, ac
 	return matches;
 }
 
-export function serializeOutlineSearchMatch(match: OutlineSearchMatch): SerializedOutlineSearchMatch {
-	const { node: _node, ...serialized } = match;
-	return serialized;
-}
-
 export function countOutlineNodes(root: OutlineNode): number {
 	let count = 1;
 	for (const child of root.children) count += countOutlineNodes(child);
@@ -510,11 +482,6 @@ export function serializeOutline(outline: Outline): SerializedOutline {
 export function serializeOutlineNode(node: OutlineNode): SerializedOutlineNode {
 	const { parent: _parent, children, ...rest } = node;
 	return { ...rest, children: children.map(serializeOutlineNode) };
-}
-
-export function serializeOutlineNodeShallow(node: OutlineNode): SerializedOutlineNode {
-	const { parent: _parent, children: _children, ...rest } = node;
-	return { ...rest, children: [] };
 }
 
 export function restoreOutline(serialized: SerializedOutline): Outline {

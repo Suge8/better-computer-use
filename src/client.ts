@@ -201,13 +201,6 @@ async function connectAndHandshake(signal?: AbortSignal, start = true): Promise<
 	}
 }
 
-export async function brokerHandshake(signal?: AbortSignal): Promise<BrokerHandshake> {
-	const connected = await connectAndHandshake(signal);
-	if (!connected) throw new Error("bcu broker is unavailable.");
-	connected.connection.close();
-	return connected.handshake;
-}
-
 export async function brokerHandshakeIfRunning(signal?: AbortSignal): Promise<BrokerHandshake | undefined> {
 	const connected = await connectAndHandshake(signal, false);
 	connected?.connection.close();
