@@ -27,6 +27,7 @@ assert(report && Array.isArray(report.files), "npm pack did not return a file ma
 const files = new Set(report.files.map((entry) => entry.path));
 for (const required of [
 	"dist/bcu.mjs",
+	"dist/setup-helper.mjs",
 	"prebuilt/macos/arm64/bridge",
 	"prebuilt/macos/x64/bridge",
 	"scripts/setup-helper.mjs",
@@ -38,6 +39,7 @@ for (const file of files) {
 	assert(!/^(prebuilt|native|src)\/(windows|linux)\//.test(file), `npm tarball still ships a non-macOS helper: ${file}`);
 }
 const bundle = await fs.readFile(path.join(root, "dist", "bcu.mjs"), "utf8");
+assert((await fs.stat(path.join(root, "dist", "setup-helper.mjs"))).isFile(), "dist/setup-helper.mjs was not built");
 assert(bundle.startsWith("#!/usr/bin/env node\n"), "dist/bcu.mjs is not an executable CLI entrypoint");
 
 // macOS runtime repair: a replaced helper binary must be restored by ensureInstalled
@@ -90,4 +92,20 @@ try {
 	await fs.rm(bundledRoot, { recursive: true, force: true });
 }
 
-console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; macOS runtime repair and bundled path resolution verified).`);
+const installRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-package-install-"));
+try {
+	const [packCommand, packArgs] = npmInvocation(["pack", "--silent", "--ignore-scripts"]);
+	const { stdout: packed } = await execFile(packCommand, packArgs, { cwd: root });
+	const tarball = path.resolve(root, packed.trim());
+	const [installCommand, installArgs] = npmInvocation(["install", "--prefix", installRoot, "--ignore-scripts", tarball]);
+	await execFile(installCommand, installArgs, { cwd: root });
+	const packageRoot = path.join(installRoot, "node_modules", "better-computer-use");
+	await execFile(process.execPath, [path.join(packageRoot, "dist", "setup-helper.mjs"), "--postinstall"], { cwd: packageRoot, env: { ...process.env, BCU_HELPER_APP_PATH: path.join(installRoot, "bcu.app"), BCU_NO_SIGN: "1" } });
+	const { stdout: version } = await execFile(path.join(installRoot, "bin", "bcu"), ["--version"]);
+	assert.equal(version.trim(), "0.1.0", "installed bcu --version failed");
+	await fs.rm(tarball, { force: true });
+} finally {
+	await fs.rm(installRoot, { recursive: true, force: true });
+}
+
+console.log(`Package manifest checks passed (${report.entryCount} files, ${report.size} bytes packed; installed package verified).`);
