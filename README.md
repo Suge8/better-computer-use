@@ -21,7 +21,7 @@
 npm install --global github:Suge8/better-computer-use
 ```
 
-`prepare` 会在安装时打包 CLI；本地开发用 `npm install && npm link`。
+安装时会通过 `prepare` 打包 CLI 和 helper 安装入口；本地开发用 `npm install && npm link`。
 
 首次使用前运行：
 

@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SETUP_HELPER_PATH = path.join("scripts", "setup-helper.mjs");
+const SETUP_HELPER_PATH = path.join("dist", "setup-helper.mjs");
 
 export function setupHelperScriptPath(moduleUrl = import.meta.url): string {
 	let directory = path.dirname(fileURLToPath(moduleUrl));

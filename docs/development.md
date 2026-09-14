@@ -23,10 +23,10 @@ change — in the second case update the gate in the same commit.
 `/Applications/bcu.app` targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:
 
 ```bash
-npm run build:native && node scripts/setup-helper.mjs
+npm run build:native && node dist/setup-helper.mjs
 ```
 
-`build:native` compiles `prebuilt/macos/<arch>/bridge`; `setup-helper.mjs` installs that
+`build:native` compiles `prebuilt/macos/<arch>/bridge`; `dist/setup-helper.mjs` installs that
 binary as the helper app and signs it with a locally generated certificate whose identity is
 stable across rebuilds on this machine, because macOS keys the Accessibility and Screen
 Recording grants to the code-signing identity. Replacing the binary also restarts the helper

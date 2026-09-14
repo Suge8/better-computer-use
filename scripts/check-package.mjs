@@ -31,6 +31,7 @@ for (const required of [
 	"prebuilt/macos/arm64/bridge",
 	"prebuilt/macos/x64/bridge",
 	"scripts/setup-helper.mjs",
+	"dist/setup-helper.mjs",
 	"scripts/lib/helper-target.mjs",
 ]) {
 	assert(files.has(required), `npm tarball is missing ${required}`);
@@ -52,7 +53,7 @@ const previousEnvironment = { BCU_HELPER_APP_PATH: process.env.BCU_HELPER_APP_PA
 try {
 	process.env.BCU_HELPER_APP_PATH = clientApp;
 	process.env.BCU_NO_SIGN = "1";
-	await execFile(process.execPath, [path.join(root, "scripts", "setup-helper.mjs")], { cwd: root, env: process.env });
+	await execFile(process.execPath, [path.join(root, "dist", "setup-helper.mjs")], { cwd: root, env: process.env });
 	await fs.copyFile("/bin/echo", clientExecutable);
 	const { MacosHelperClient } = await import("../src/macos/helper.ts");
 	const repairClient = new MacosHelperClient();
@@ -74,7 +75,7 @@ const bundledRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-bundled-runtime
 const entry = 'import { setupHelperScriptPath } from "./src/package-root.ts";\nconsole.log(setupHelperScriptPath());\n';
 
 async function checkLayout(packageRoot, label) {
-	const setupScript = path.join(packageRoot, "scripts", "setup-helper.mjs");
+	const setupScript = path.join(packageRoot, "dist", "setup-helper.mjs");
 	const bundle = path.join(packageRoot, "dist", "probe.mjs");
 	await fs.mkdir(path.dirname(setupScript), { recursive: true });
 	await fs.writeFile(setupScript, "// fixture\n");
@@ -84,7 +85,7 @@ async function checkLayout(packageRoot, label) {
 }
 
 try {
-	assert.equal(await fs.realpath(setupHelperScriptPath()), await fs.realpath(path.join(root, "scripts", "setup-helper.mjs")), "source layout resolved the wrong setup-helper path");
+	assert.equal(await fs.realpath(setupHelperScriptPath()), await fs.realpath(path.join(root, "dist", "setup-helper.mjs")), "source layout resolved the wrong setup-helper path");
 	await checkLayout(path.join(bundledRoot, "checkout"), "dist");
 	await checkLayout(path.join(bundledRoot, "consumer", "node_modules", "better-computer-use"), "packed");
 
@@ -97,11 +98,11 @@ try {
 	const [packCommand, packArgs] = npmInvocation(["pack", "--silent", "--ignore-scripts"]);
 	const { stdout: packed } = await execFile(packCommand, packArgs, { cwd: root });
 	const tarball = path.resolve(root, packed.trim());
-	const [installCommand, installArgs] = npmInvocation(["install", "--prefix", installRoot, "--ignore-scripts", tarball]);
+	const [installCommand, installArgs] = npmInvocation(["install", "--prefix", installRoot, tarball]);
 	await execFile(installCommand, installArgs, { cwd: root });
 	const packageRoot = path.join(installRoot, "node_modules", "better-computer-use");
 	await execFile(process.execPath, [path.join(packageRoot, "dist", "setup-helper.mjs"), "--postinstall"], { cwd: packageRoot, env: { ...process.env, BCU_HELPER_APP_PATH: path.join(installRoot, "bcu.app"), BCU_NO_SIGN: "1" } });
-	const { stdout: version } = await execFile(path.join(installRoot, "bin", "bcu"), ["--version"]);
+	const { stdout: version } = await execFile(path.join(installRoot, "node_modules", ".bin", "bcu"), ["--version"]);
 	assert.equal(version.trim(), "0.1.0", "installed bcu --version failed");
 	await fs.rm(tarball, { force: true });
 } finally {

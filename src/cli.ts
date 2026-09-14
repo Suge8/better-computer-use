@@ -461,6 +461,10 @@ function isCommandName(value: string): value is CliCommandName {
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
+	if (args.length === 1 && args[0] === "--version") {
+		process.stdout.write("0.1.0\n");
+		return;
+	}
 	if (process.platform !== "darwin") {
 		throw new BcuError("unsupported_platform", `bcu controls macOS apps and does not support platform '${process.platform}'.`);
 	}
