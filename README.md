@@ -23,10 +23,10 @@ npm install --global github:Suge8/better-computer-use
 
 首次运行任意命令时会自动安装或修复 helper；本地开发用 `npm install && npm link`。
 
-给 Pi 装同一份包里的 skill（不要用 `pi install git:`，Pi 以 `--omit=dev` 安装，`prepare` 打包会缺 esbuild）：
+包里的 `skills/better-computer-use` 是 agent skill，接进所有 agent 共用的目录：
 
 ```bash
-pi install "$(npm root -g)/better-computer-use"
+ln -s "$(npm root -g)/better-computer-use/skills/better-computer-use" ~/.agents/skills/operations/better-computer-use
 ```
 
 首次使用前运行：
