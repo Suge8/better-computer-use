@@ -30,6 +30,7 @@ for (const required of [
 	"dist/setup-helper.mjs",
 	"prebuilt/macos/arm64/bridge",
 	"prebuilt/macos/x64/bridge",
+	"skills/better-computer-use/SKILL.md",
 ]) {
 	assert(files.has(required), `npm tarball is missing ${required}`);
 }
