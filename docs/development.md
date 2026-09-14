@@ -23,7 +23,7 @@ change — in the second case update the gate in the same commit.
 `/Applications/bcu.app` targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:
 
 ```bash
-npm run build && node dist/setup-helper.mjs
+npm run build:native && npm run build && node dist/setup-helper.mjs
 ```
 
 `ensureInstalled()` installs or repairs the helper before the first command that uses it. `build:native` compiles `prebuilt/macos/<arch>/bridge`; `dist/setup-helper.mjs` installs that
