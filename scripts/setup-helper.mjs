@@ -28,7 +28,6 @@ const packageJsonPath = path.join(rootDir, "package.json");
 const localCodeSignCommonName = `bcu Local Signing (${HELPER_BUNDLE_ID})`;
 const localSigningLockPath = path.join(os.tmpdir(), `bcu-local-signing-${typeof process.getuid === "function" ? process.getuid() : "user"}.lock`);
 
-
 function normalizeArch(arch) {
 	if (arch === "arm64" || arch === "x64") return arch;
 	throw new Error(`Unsupported architecture '${arch}'. Supported: arm64, x64.`);

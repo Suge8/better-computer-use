@@ -26,8 +26,6 @@
 	"files": [
 		"dist",
 		"src",
-		"scripts/setup-helper.mjs",
-		"scripts/lib/helper-target.mjs",
 		"prebuilt/macos",
 		"assets/reference/img.jpg",
 		"README.md",
