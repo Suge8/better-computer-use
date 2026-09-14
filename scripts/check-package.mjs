@@ -101,7 +101,7 @@ try {
 	const [installCommand, installArgs] = npmInvocation(["install", "--prefix", installRoot, tarball]);
 	await execFile(installCommand, installArgs, { cwd: root });
 	const packageRoot = path.join(installRoot, "node_modules", "better-computer-use");
-	await execFile(process.execPath, [path.join(packageRoot, "dist", "setup-helper.mjs"), "--postinstall"], { cwd: packageRoot, env: { ...process.env, BCU_HELPER_APP_PATH: path.join(installRoot, "bcu.app"), BCU_NO_SIGN: "1" } });
+	assert.equal((await fs.stat(path.join(packageRoot, "dist", "setup-helper.mjs"))).isFile(), true, "installed setup-helper is missing");
 	const { stdout: version } = await execFile(path.join(installRoot, "node_modules", ".bin", "bcu"), ["--version"]);
 	assert.equal(version.trim(), "0.1.0", "installed bcu --version failed");
 	await fs.rm(tarball, { force: true });

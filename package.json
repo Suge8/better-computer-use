@@ -39,7 +39,6 @@
 	},
 	"scripts": {
 		"prepare": "npm run build",
-		"postinstall": "node dist/setup-helper.mjs --postinstall",
 		"build": "esbuild src/cli.ts --bundle --platform=node --format=esm --banner:js=\"#!/usr/bin/env node\" --outfile=dist/bcu.mjs && esbuild scripts/setup-helper.mjs --bundle --platform=node --format=esm --outfile=dist/setup-helper.mjs",
 		"build:native": "node scripts/build-native.mjs",
 		"typecheck": "tsc -p tsconfig.json",

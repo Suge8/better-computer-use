@@ -28,8 +28,6 @@ const packageJsonPath = path.join(rootDir, "package.json");
 const localCodeSignCommonName = `bcu Local Signing (${HELPER_BUNDLE_ID})`;
 const localSigningLockPath = path.join(os.tmpdir(), `bcu-local-signing-${typeof process.getuid === "function" ? process.getuid() : "user"}.lock`);
 
-// npm postinstall must never fail the install of the package it belongs to.
-const isPostinstall = process.argv.includes("--postinstall");
 
 function normalizeArch(arch) {
 	if (arch === "arm64" || arch === "x64") return arch;
@@ -390,12 +388,6 @@ const isMain = (() => {
 	}
 })();
 if (isMain) setup().catch((error) => {
-	const message = error instanceof Error ? error.message : String(error);
-	if (isPostinstall) {
-		console.warn(`[bcu] postinstall helper setup skipped: ${message}`);
-		process.exit(0);
-	}
-
-	console.error(message);
+	console.error(error instanceof Error ? error.message : String(error));
 	process.exit(1);
 });

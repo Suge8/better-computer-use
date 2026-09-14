@@ -26,7 +26,7 @@ change — in the second case update the gate in the same commit.
 npm run build:native && node dist/setup-helper.mjs
 ```
 
-`build:native` compiles `prebuilt/macos/<arch>/bridge`; `dist/setup-helper.mjs` installs that
+首次运行任意命令时，`ensureInstalled()` 会安装或修复 helper。`build:native` compiles `prebuilt/macos/<arch>/bridge`; `dist/setup-helper.mjs` installs that
 binary as the helper app and signs it with a locally generated certificate whose identity is
 stable across rebuilds on this machine, because macOS keys the Accessibility and Screen
 Recording grants to the code-signing identity. Replacing the binary also restarts the helper
