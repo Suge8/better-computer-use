@@ -17,16 +17,11 @@
 
 ## 安装
 
-当前仓库尚未发布 npm 包。克隆后执行：
-
 ```bash
-npm install
-npm run build
-npm link
-which bcu
+npm install --global github:Suge8/better-computer-use
 ```
 
-`which bcu` 应指向 npm link 创建的全局命令。
+`prepare` 会在安装时打包 CLI；本地开发用 `npm install && npm link`。
 
 首次使用前运行：
 
