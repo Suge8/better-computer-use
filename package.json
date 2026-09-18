@@ -57,7 +57,7 @@
 		"test": "npm run typecheck && npm run test:projection && npm run test:contract && npm run test:cli-errors && npm run test:runtime && npm run test:artifacts && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:helper-install && npm run test:package && npm run test:native"
 	},
 	"devDependencies": {
-		"@types/node": "^26.1.1",
+		"@types/node": "^26.5.1",
 		"esbuild": "^0.28.1",
 		"typescript": "^6.0.3"
 	}
