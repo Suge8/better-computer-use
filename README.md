@@ -92,4 +92,4 @@ bcu stop          # 停止 Broker；macOS helper 保留授权身份并继续按�
 
 ## License
 
-MIT
+MIT。macOS 引擎源自 [injaneity/pi-computer-use](https://github.com/injaneity/pi-computer-use)（MIT）。

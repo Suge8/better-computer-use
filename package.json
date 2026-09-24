@@ -14,12 +14,12 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/sugeh/better-computer-use.git"
+		"url": "git+https://github.com/Suge8/better-computer-use.git"
 	},
 	"bugs": {
-		"url": "https://github.com/sugeh/better-computer-use/issues"
+		"url": "https://github.com/Suge8/better-computer-use/issues"
 	},
-	"homepage": "https://github.com/sugeh/better-computer-use#readme",
+	"homepage": "https://github.com/Suge8/better-computer-use#readme",
 	"engines": {
 		"node": ">=20.6.0"
 	},
