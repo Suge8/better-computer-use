@@ -18,15 +18,16 @@
 ## 安装
 
 ```bash
-npm install --global github:Suge8/better-computer-use
+git clone https://github.com/Suge8/better-computer-use ~/Project/better-computer-use
+cd ~/Project/better-computer-use && npm install && npm link
 ```
 
-首次运行任意命令时会自动安装或修复 helper；本地开发用 `npm install && npm link`。
+`npm link` 把 `bcu` 命令接到全局；首次运行任意命令时会自动安装或修复 helper。更新时在仓库里 `git pull && npm install`。不用 `npm install --global github:…`：npm 全局安装 Git 包时，构建步骤拿不到 esbuild 等开发依赖，会失败。
 
-包里的 `skills/better-computer-use` 是 agent skill，接进所有 agent 共用的目录：
+仓库里的 `skills/better-computer-use` 是 agent skill，接进所有 agent 共用的目录：
 
 ```bash
-ln -s "$(npm root -g)/better-computer-use/skills/better-computer-use" ~/.agents/skills/operations/better-computer-use
+ln -s ~/Project/better-computer-use/skills/better-computer-use ~/.agents/skills/operations/better-computer-use
 ```
 
 首次使用前运行：
