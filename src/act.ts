@@ -32,6 +32,20 @@ const TEXT_DELIVERY_MS_PER_CHAR = 25;
 
 type NativePreparedAction = Exclude<PreparedAction, { action: "wait" }>;
 
+const PINNED_POLICIES = ["background", "foreground", "ax_only"] as const;
+
+/**
+ * BCU_DELIVERY_POLICY pins the ladder to one rung for diagnosis; `default` walks it.
+ * `headless` still wins: it never reaches the foreground.
+ */
+function configuredDeliveryPolicy(): DeliveryPolicy {
+	const value = (process.env.BCU_DELIVERY_POLICY ?? "default").trim().toLowerCase();
+	if (value === "default") return "default";
+	const pinned = PINNED_POLICIES.find((policy) => policy === value);
+	if (!pinned) throw new BcuError("invalid_arguments", `BCU_DELIVERY_POLICY '${value}' is not one of: default, ${PINNED_POLICIES.join(", ")}.`);
+	return pinned;
+}
+
 function nativeInputDelivery(policy: DeliveryPolicy): NativeInputDelivery {
 	return policy === "foreground" ? "hid" : "pid";
 }
@@ -91,25 +105,28 @@ async function helperAct(
 	signal?: AbortSignal,
 ): Promise<ExecutionTrace> {
 	const timeoutMs = actTimeoutMs(action);
-	if (action.usesCurrentFocus && !headless) {
+	const configured = configuredDeliveryPolicy();
+	if (!headless && (action.usesCurrentFocus || configured === "foreground")) {
 		const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 		return executionTraceFromAct(foreground, "foreground");
 	}
+	const initialPolicy = headless || configured === "ax_only" ? "ax_only" : "background";
+	// A pinned rung is the whole ladder: nothing escalates past it.
+	const pinned = headless || configured !== "default";
 	try {
-		const initialPolicy = headless ? "ax_only" : "background";
 		const result = checkedActResult(await macosBackend.act(helperActRequest(target, action, initialPolicy), { signal, timeoutMs }));
 		// The ladder rule of docs/architecture.md: `didnt` here, `foreground_required` below.
-		if (canRetryInForeground(result.outcome, headless)) {
+		if (canRetryInForeground(result.outcome, pinned)) {
 			const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 			const trace = executionTraceFromAct(foreground, "foreground");
 			trace.escalatedToForeground = true;
 			trace.escalationReason = "background_didnt";
 			return trace;
 		}
-		return executionTraceFromAct(result, "background");
+		return executionTraceFromAct(result, initialPolicy);
 	} catch (error) {
 		const code = (error as Error & { code?: string })?.code;
-		if (code !== "foreground_required" || headless) throw error;
+		if (code !== "foreground_required" || pinned) throw error;
 		const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 		const trace = executionTraceFromAct(foreground, "foreground");
 		trace.escalatedToForeground = true;
