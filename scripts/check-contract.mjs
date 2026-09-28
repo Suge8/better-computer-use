@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // End-to-end output contract: the real CLI and broker against a scripted helper,
-// so every public result shape is checked without a live desktop.
+// so every public result shape is checked without a live desktop. act-ui exits zero unless
+// an action provably failed: an outcome no evidence could judge is reported as unverified.
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import fs from "node:fs/promises";
@@ -45,9 +46,18 @@ const EMPTY_APP = { pid: 4343, appName: "Empty", bundleId: "com.example.empty", 
 const DESKTOP_APP = { pid: 4444, appName: "Desktop", bundleId: "com.example.desktop", isFrontmost: false };
 const ROWS_APP = { pid: 4545, appName: "Rows", bundleId: "com.example.rows", isFrontmost: false };
 const ROWS_WINDOW_ID = 9002;
+const WEB_APP = { pid: 4646, appName: "Web", bundleId: "com.example.web", isFrontmost: false };
+const WEB_WINDOW_ID = 9003;
+// An exact app name wins over the longer names that contain it.
+const TWIN_APP = { pid: 4747, appName: "Twin", bundleId: "com.example.twin", isFrontmost: false };
+const TWIN_TESTING_APP = { pid: 4848, appName: "Twin for Testing", bundleId: "com.example.twin.testing", isFrontmost: false };
+/** Keys the scripted helper answers with an outcome no evidence could judge, and with a proven no-op. */
+const UNJUDGED_KEY = "F19";
+const NO_OP_KEY = "F18";
 const WINDOW_ID = 9001;
 const fixture = JSON.parse(await fs.readFile(new URL("./fixtures/textedit-outline.json", import.meta.url), "utf8"));
 const rowFixture = JSON.parse(await fs.readFile(new URL("./fixtures/finder-outline.json", import.meta.url), "utf8"));
+const webFixture = JSON.parse(await fs.readFile(new URL("./fixtures/chrome-outline.json", import.meta.url), "utf8"));
 
 function toWireNode(node) {
 	return { ...node, ref: node.wireRef, wireRef: undefined, children: node.children.map(toWireNode) };
@@ -55,6 +65,7 @@ function toWireNode(node) {
 
 const outline = toWireNode(fixture.root);
 const rowOutline = toWireNode(rowFixture.root);
+const webOutline = toWireNode(webFixture.root);
 const values = new Map();
 const actRequests = [];
 
@@ -63,6 +74,40 @@ function withValues(node) {
 }
 
 let lookCounter = 0;
+
+function plainWindow(pid) {
+	const app = [WEB_APP, TWIN_APP, TWIN_TESTING_APP].find((candidate) => candidate.pid === pid);
+	return {
+		...ROOT_DEFAULTS,
+		kind: "window",
+		windowRef: `w${pid}`,
+		rootRef: `w${pid}`,
+		windowId: pid === WEB_APP.pid ? WEB_WINDOW_ID : pid,
+		pid,
+		appName: app.appName,
+		bundleId: app.bundleId,
+		title: `${app.appName} window`,
+		role: "AXWindow",
+		subrole: "AXStandardWindow",
+		framePoints: { x: 0, y: 0, w: 1200, h: 800 },
+		zOrder: 3,
+		isMain: true,
+		isFocused: false,
+		metadata: { pairing: { confidence: "exact", score: 110 } },
+	};
+}
+
+function actOutcome(request) {
+	const keys = request.action === "keypress" ? request.params.keys : [];
+	if (keys.includes(UNJUDGED_KEY)) return { outcome: "unknown", performed: { delivery: "ax" } };
+	if (keys.includes(NO_OP_KEY)) return { outcome: "didnt", performed: { delivery: request.policy === "foreground" ? "hid" : "pid" } };
+	return {
+		outcome: "worked",
+		performed: { delivery: "ax" },
+		verification: { source: "ax", field: "value", from: "0", to: "1" },
+		rootDelta: request.action === "press" ? [{ change: "appeared", ...MENU_ROOT }] : undefined,
+	};
+}
 
 function helperResult(request) {
 	switch (request.cmd) {
@@ -78,9 +123,9 @@ function helperResult(request) {
 			screenRecordingPreflight: true,
 			source: { attribution: "helper-app", pid: process.pid },
 		};
-		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP, ROWS_APP] };
+		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP, ROWS_APP, WEB_APP, TWIN_APP, TWIN_TESTING_APP] };
 		case "listRoots": return {
-			roots: request.pid === EMPTY_APP.pid ? [] : request.pid === ROWS_APP.pid ? [{
+			roots: request.pid === EMPTY_APP.pid ? [] : [WEB_APP, TWIN_APP, TWIN_TESTING_APP].some((app) => app.pid === request.pid) ? [plainWindow(request.pid)] : request.pid === ROWS_APP.pid ? [{
 				kind: "window",
 				windowRef: "w2",
 				rootRef: "w2",
@@ -155,18 +200,13 @@ function helperResult(request) {
 				metadata: { pairing: { confidence: "exact", score: 110 } },
 			},
 			image: request.includeImage === false ? undefined : { jpegBase64: Buffer.from("fixture-image").toString("base64"), mimeType: "image/jpeg", width: 586, height: 488 },
-			outline: request.windowId === ROWS_WINDOW_ID ? rowOutline : withValues(outline),
+			outline: request.windowId === ROWS_WINDOW_ID ? rowOutline : request.windowId === WEB_WINDOW_ID ? webOutline : withValues(outline),
 			timings: {},
 		};
 		case "act": {
 			actRequests.push(request);
 			if (request.action === "setText") values.set(request.target.ref, request.params.text);
-			return {
-				outcome: "worked",
-				performed: { delivery: "ax" },
-				verification: { source: "ax", field: "value", from: "0", to: "1" },
-				rootDelta: request.action === "press" ? [{ change: "appeared", ...MENU_ROOT }] : undefined,
-			};
+			return actOutcome(request);
 		}
 		case "axWaitFor": {
 			const wanted = request.value ?? request.text;
@@ -230,7 +270,7 @@ try {
 	assert.deepEqual([...await shotFiles()].filter((file) => !shotsBefore.has(file)), [], "observe-ui wrote a screenshot without being asked");
 
 	const text = await runCli(["observe-ui", "--app", "Fixture"], { env });
-	assert.match(text.stdout.split("\n")[0], /^@r\d+ Fixture — 未命名2 · state [0-9a-f-]{36} · 47 nodes, \d+ shown$/, `observe-ui header drifted: ${text.stdout.split("\n")[0]}`);
+	assert.match(text.stdout.split("\n")[0], /^@r\d+ Fixture — 未命名2 · state [0-9a-z]{8} · 47 nodes, \d+ shown$/, `observe-ui header drifted: ${text.stdout.split("\n")[0]}`);
 
 	const stateId = observed.stateId;
 	const searched = json(await runCli(["search-ui", "--state", stateId, "--role", "textarea", "--json"], { env }), "search-ui");
@@ -266,7 +306,8 @@ try {
 
 	const waited = json(await runCli(["wait-for", "--state", acted.stateId, "--text", "typed", "--timeout", "1000", "--json"], { env }), "wait-for");
 	assert.equal(waited.found, true, "wait-for did not report the satisfied condition");
-	assert.equal(waited.stateId.length, 36, "wait-for did not return a successor state");
+	assert.match(waited.stateId, /^[0-9a-z]{8}$/, "wait-for did not return a short successor stateId");
+	assert.notEqual(waited.stateId, acted.stateId, "wait-for did not return a successor state");
 
 	const timedOut = await runCli(["wait-for", "--state", acted.stateId, "--text", "__never__", "--timeout", "200", "--json"], { env });
 	assert.equal(timedOut.code, 8, `wait-for timeout exited ${timedOut.code}`);
@@ -294,6 +335,48 @@ try {
 	);
 	assert(actedText.stdout.includes(`+ root ${opened.roots[0].ref} menu "文件"`), `act-ui text view hides the new root: ${actedText.stdout}`);
 
+	// An action no evidence could judge is not a failure: it exits zero, says it is
+	// unverified, and hands over the successor state, naming the absence of any change.
+	const freshState = async () => json(await runCli(["observe-ui", "--app", "Fixture", "--json"], { env }), "observe-ui").stateId;
+	const unjudgedKey = [{ action: "keypress", ref: editorRef, keys: [UNJUDGED_KEY] }];
+	const unverifiedText = await runCli(["act-ui", "--state", await freshState(), "-"], { env, input: `${JSON.stringify(unjudgedKey)}\n` });
+	assert.equal(unverifiedText.code, 0, `an unjudged keypress exited ${unverifiedText.code}: ${unverifiedText.stderr}`);
+	const [unverifiedLine, unverifiedChanges] = unverifiedText.stdout.split("\n");
+	assert.match(unverifiedLine, /^state [0-9a-z]{8} ← [0-9a-z]{8} · unverified via ax$/, `an unjudged keypress does not say it is unverified: ${unverifiedLine}`);
+	assert.equal(unverifiedChanges, "(no element changes)", `an unjudged keypress does not say nothing changed: ${unverifiedText.stdout}`);
+	const unverifiedState = unverifiedLine.split(" ")[1];
+	const unverified = json(await runCli(["act-ui", "--state", unverifiedState, "--json", "-"], { env, input: `${JSON.stringify(unjudgedKey)}\n` }), "act-ui unjudged --json");
+	assert.equal(unverified.outcome, "unknown", `an unjudged keypress reported outcome ${unverified.outcome}`);
+	assert.deepEqual(unverified.changes, [], `an unjudged keypress reported changes: ${JSON.stringify(unverified.changes)}`);
+
+	// Steps of one array do not depend on each other's UI: an unjudged step does not stop the
+	// next, and a step that provably did nothing stops the array and fails it.
+	actRequests.length = 0;
+	const continued = json(await runCli(["act-ui", "--state", unverified.stateId, "--json", "-"], {
+		env,
+		input: `${JSON.stringify([...unjudgedKey, { action: "setText", ref: editorRef, text: "after unknown" }])}\n`,
+	}), "act-ui unjudged then setText");
+	assert(actRequests.some((request) => request.action === "setText"), "an unjudged step stopped the rest of the array");
+	assert.equal(continued.outcome, "unknown", `an array with an unjudged step reported outcome ${continued.outcome}`);
+	assert.deepEqual(continued.changes, [{ type: "updated", ref: editorRef, fields: { value: "after unknown" } }], `the array's successor lost the later step: ${JSON.stringify(continued.changes)}`);
+	actRequests.length = 0;
+	const stopped = await runCli(["act-ui", "--state", continued.stateId, "--json", "-"], {
+		env,
+		input: `${JSON.stringify([{ action: "keypress", ref: editorRef, keys: [NO_OP_KEY] }, { action: "setText", ref: editorRef, text: "never" }])}\n`,
+	});
+	assert.equal(stopped.code, 9, `a step that did nothing exited ${stopped.code}: ${stopped.stderr}`);
+	assert.equal(stopped.stdout, "", "a failed array wrote a result to stdout");
+	assert.match(stopped.stderr, /^error action_failed: /m, `a step that did nothing is not action_failed: ${stopped.stderr}`);
+	assert(!actRequests.some((request) => request.action === "setText"), "a step that did nothing did not stop the array");
+
+	// A satisfied postcondition is the evidence an unjudged action lacked.
+	const expected = json(await runCli(["act-ui", "--state", await freshState(), "--expect-value", "after unknown", "--scope", editorRef, "--timeout", "1000", "--json", "-"], {
+		env,
+		input: `${JSON.stringify(unjudgedKey)}\n`,
+	}), "act-ui unjudged with a satisfied postcondition");
+	assert.equal(expected.outcome, "worked", `a satisfied postcondition reported outcome ${expected.outcome}`);
+	assert.equal(expected.verification.status, "verified", "a satisfied postcondition was not reported as verified");
+
 	const menuBars = json(await runCli(["find-roots", "--app", "Fixture", "--kind", "menubar", "--json"], { env }), "find-roots --kind menubar");
 	assert.equal(menuBars.roots.length, 1, `find-roots did not expose the app's menu bar as a root: ${JSON.stringify(menuBars.roots)}`);
 	assert.equal(menuBars.roots[0].windowId, undefined, "a menu bar root claimed a window id it does not have");
@@ -304,6 +387,30 @@ try {
 		const listed = json(await runCli(args, { env }), `find-roots ${label}`);
 		assert(listed.roots.every((root) => root.kind !== "menubar"), `${label} find-roots listed menu bars nobody asked for: ${JSON.stringify(listed.roots)}`);
 	}
+
+	// Pairing confidence is how the helper matched an AX window to a window server window;
+	// it is not something an agent chooses a root by.
+	const listedText = await runCli(["find-roots", "--app", "Fixture"], { env });
+	assert.equal(listedText.code, 0, `find-roots exited ${listedText.code}: ${listedText.stderr}`);
+	assert(!/pairing/.test(listedText.stdout), `find-roots text still shows pairing: ${listedText.stdout}`);
+	assert(json(await runCli(["find-roots", "--app", "Fixture", "--json"], { env }), "find-roots --json").roots.every((root) => !("pairing" in root)), "find-roots JSON still carries pairing");
+
+	const twin = json(await runCli(["find-roots", "--app", "Twin", "--json"], { env }), "find-roots --app Twin");
+	assert.deepEqual(twin.roots.map((root) => root.app), ["Twin"], `--app Twin also matched the longer names containing it: ${JSON.stringify(twin.roots.map((root) => root.app))}`);
+	const twins = json(await runCli(["find-roots", "--app", "Twi", "--json"], { env }), "find-roots --app Twi");
+	assert.deepEqual(twins.roots.map((root) => root.app).sort(), ["Twin", "Twin for Testing"], `without an exact name --app stopped matching partially: ${JSON.stringify(twins.roots.map((root) => root.app))}`);
+
+	// search-ui --action finds what the view promises, not every raw action name that contains the word.
+	const web = json(await runCli(["observe-ui", "--app", "Web", "--json"], { env }), "observe-ui --app Web");
+	for (const capability of ["scroll", "menu"]) {
+		const found = json(await runCli(["search-ui", "--state", web.stateId, "--action", capability, "--limit", "50", "--json"], { env }), `search-ui --action ${capability}`);
+		assert(found.matches.every((match) => match.caps.includes(capability)), `search-ui --action ${capability} returned elements without that capability: ${found.matches.map((match) => `${match.ref} ${match.role} {${match.caps}}`).join(", ")}`);
+	}
+	assert.deepEqual(
+		json(await runCli(["search-ui", "--state", web.stateId, "--action", "scroll", "--json"], { env }), "search-ui --action scroll").matches.map((match) => match.name),
+		["Scroll area"],
+		"search-ui --action scroll did not find the web scroll area",
+	);
 
 	const noWindow = await runCli(["observe-ui", "--app", "Empty", "--json"], { env });
 	assert.equal(noWindow.code, 6, `running app without windows exited ${noWindow.code}: ${noWindow.stderr}`);

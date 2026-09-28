@@ -2,7 +2,9 @@
 // The full loop against a real TextEdit window: find, observe, search, reject invalid
 // payloads, wait, act with a verified postcondition, and fail honestly when it is not met.
 // It also holds bcu to its evidence rule: an action counts as worked only when the helper
-// can name the fact that moved.
+// can name the fact that moved. An action that leaves nothing to read — a key with no
+// visible effect, the Save menu command — still succeeds, reported as unverified; the
+// document file on disk shows that Save ran.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -28,6 +30,10 @@ const initialText = [
 	"\\f0\\fs24 \\cf0 bcu smoke fixture}",
 ].join("\n");
 const expectedText = `bcu smoke ${randomUUID()}`;
+/** The Save menu item across the system languages this gate runs under. */
+const SAVE_NAMES = ["保存", "存储", "Save"];
+/** A key TextEdit binds to nothing. */
+const INERT_KEY = "F8";
 let createdPid;
 let processMonitor;
 
@@ -37,6 +43,36 @@ async function expectCliFailure(stateId, action) {
 	assert.equal(result.stdout, "", `${action.action} invalid payload wrote stdout`);
 	assert.match(result.stderr, /^error invalid_arguments: .+/m);
 	assert.match(result.stderr, /^recovery: .+/m);
+}
+
+/** Runs one act-ui through the public CLI and requires the unverified success of an action nothing could judge. */
+async function expectUnverified(stateId, action, label) {
+	const result = await runCli(["act-ui", "--state", stateId, "-"], { input: `${JSON.stringify([action])}\n` });
+	assert.equal(result.code, 0, `${label} exited ${result.code}: ${result.stderr}`);
+	assert.match(result.stdout.split("\n")[0], / · unverified via \w+$/, `${label} is not reported as unverified: ${result.stdout}`);
+}
+
+/** Resolves once the file holds `text`; TextEdit writes it by replacing the file. */
+async function waitForFileText(filePath, text, timeoutMs) {
+	const holds = async () => (await fs.readFile(filePath, "utf8").catch(() => "")).includes(text);
+	const stop = new AbortController();
+	const timer = setTimeout(() => stop.abort(), timeoutMs);
+	try {
+		const events = fs.watch(path.dirname(filePath), { signal: stop.signal });
+		if (await holds()) return true;
+		for await (const _event of events) if (await holds()) return true;
+	} catch (error) {
+		if (error.name !== "AbortError") throw error;
+	} finally {
+		clearTimeout(timer);
+	}
+	return await holds();
+}
+
+async function cliJson(args) {
+	const result = await runCli([...args, "--json"]);
+	assert.equal(result.code, 0, `bcu ${args[0]} exited ${result.code}: ${result.stderr}`);
+	return JSON.parse(result.stdout);
 }
 
 async function expectBrokerFailure(command, args, code) {
@@ -111,6 +147,24 @@ try {
 		actions: [{ action: "wait", ms: 0 }],
 		expect: { text: "__BCU_NEVER_EXISTS__", timeoutMs: 100 },
 	}, "action_failed");
+	// Nothing an agent can read moves when TextEdit ignores a key or saves a document; both
+	// still exit zero, and the file on disk is the witness that Save ran.
+	const keyState = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
+	const keyTarget = (await brokerRequest("search-ui", { stateId: keyState.stateId, role: "textarea", limit: 1 })).matches[0];
+	assert(keyTarget, "the document exposed no text area to send a key to");
+	await expectUnverified(keyState.stateId, { action: "keypress", ref: keyTarget.ref, keys: [INERT_KEY] }, `keypress ${INERT_KEY}`);
+	assert(!(await fs.readFile(fixturePath, "utf8")).includes(expectedText), "the fixture file already holds the edit before Save");
+	const menuBar = (await cliJson(["find-roots", "--pid", String(createdPid), "--kind", "menubar"])).roots[0];
+	assert(menuBar, `TextEdit pid ${createdPid} exposed no menu bar root`);
+	const bar = await cliJson(["observe-ui", "--root", menuBar.ref]);
+	let saveItem;
+	for (const name of SAVE_NAMES) {
+		saveItem ??= (await cliJson(["search-ui", "--state", bar.stateId, "--text", name, "--role", "menuitem"])).matches.find((match) => match.name === name);
+	}
+	assert(saveItem, `the TextEdit menu bar has no item named ${SAVE_NAMES.join(" / ")}`);
+	await expectUnverified(bar.stateId, { action: "press", ref: saveItem.ref }, `pressing menu item '${saveItem.name}'`);
+	assert(await waitForFileText(fixturePath, expectedText, 10_000), `pressing '${saveItem.name}' did not write the edit to ${fixturePath}`);
+
 	// Evidence: a toggle proves itself by its own value, and a click that only places a
 	// caret proves itself by reaching the element that then holds focus.
 	const formatted = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
@@ -136,7 +190,7 @@ try {
 	assert.equal(secondClick.outcome, "worked", "a repeated click into the focused text area lost its evidence");
 	assert.equal(secondClick.verification.evidence?.source, "focus", `a caret-only click reported ${JSON.stringify(secondClick.verification.evidence)} instead of reaching the focused element`);
 
-	console.log(`PASS TextEdit stdin validation → wait errors → concurrent act → postcondition error → toggle and caret evidence in isolated pid ${createdPid}`);
+	console.log(`PASS TextEdit stdin validation → wait errors → concurrent act → postcondition error → unverified key and Save that wrote the file → toggle and caret evidence in isolated pid ${createdPid}`);
 } finally {
 	if (createdPid) await stopTextEdit(createdPid, processMonitor);
 	await fs.rm(fixtureDirectory, { recursive: true, force: true });

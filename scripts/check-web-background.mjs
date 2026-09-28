@@ -5,8 +5,8 @@
 // Each cell holds bcu to the background promise: the DOM changed, the user's app is still
 // in front and never lost its key window or activation, the real pointer did not move,
 // and the action was not delivered as foreground HID input.
-// Elements that show no trace of a press are pressed exactly once and reported as a
-// failure that tells the caller to look before retrying, never replayed on a higher rung.
+// Elements that show no trace of a press are pressed exactly once and reported as an
+// unverified success, never replayed on a higher rung.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback, spawn } from "node:child_process";
 import { once } from "node:events";
@@ -154,17 +154,15 @@ async function bcu(args, input) {
 	return JSON.parse(result.stdout);
 }
 
-/** A press with no observable trace must fail honestly and say the press may already have landed. */
+/** A press with no observable trace succeeds as unverified: it claims neither worked nor failed. */
 async function unprovenPress(stateId, ref) {
 	const result = await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "press", ref }])}\n`, env });
-	const recovery = result.stderr.match(/^recovery: (.+)$/m)?.[1] ?? "";
+	const outcome = result.code === 0 ? JSON.parse(result.stdout) : undefined;
 	const problems = [
-		result.code === 9 ? "" : `exit ${result.code}, want 9`,
-		result.stdout === "" ? "" : "wrote a success to stdout",
-		/^error action_failed: /m.test(result.stderr) ? "" : `stderr ${JSON.stringify(result.stderr)}`,
-		/may already have taken effect/i.test(recovery) && /observe/i.test(recovery) ? "" : `recovery ${JSON.stringify(recovery)} does not say the action may already have taken effect and to observe first`,
+		result.code === 0 ? "" : `exit ${result.code}, want 0: ${result.stderr.trim()}`,
+		outcome && outcome.outcome !== "unknown" ? `outcome ${outcome.outcome}, want unknown` : "",
 	].filter(Boolean);
-	return { delivery: undefined, problems };
+	return { delivery: outcome?.delivery, problems };
 }
 
 /** Chrome builds its accessibility tree once an assistive client asks, so wait for the named control. */

@@ -17,11 +17,25 @@ import { changesBetween, renderChanges, stabilizeRefs } from "../src/view.ts";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** Saves a value under a freshly minted id, the way an observation is saved. */
+function save(store, resourceKey, value) {
+	const record = { stateId: store.mintId(), resourceKey, epoch: 0, value };
+	store.set(record);
+	return record;
+}
+
 const states = new StateStore(2);
-const first = states.create("pid:1", 0, { label: "first" });
-states.create("pid:2", 0, { label: "second" });
-states.create("pid:3", 0, { label: "third" });
+const first = save(states, "pid:1", { label: "first" });
+save(states, "pid:2", { label: "second" });
+save(states, "pid:3", { label: "third" });
 assert.equal(states.get(first.stateId), undefined, "bounded state store did not evict oldest state");
+// Every command carries a stateId and every act-ui line prints two, so it stays short.
+assert.match(first.stateId, /^[0-9a-z]{8}$/, `stateId '${first.stateId}' is not a short id`);
+const drawn = ["aaaaaaaa", "aaaaaaaa", "bbbbbbbb"];
+const colliding = new StateStore({ randomId: () => drawn.shift() });
+const held = save(colliding, "pid:1", { label: "held" });
+assert.equal(colliding.mintId(), "bbbbbbbb", "a minted id collided with a state the store still holds");
+assert.deepEqual(colliding.get(held.stateId)?.value, { label: "held" }, "minting an id disturbed the state that already holds it");
 
 let storeTime = 1_000;
 const byteAndTtlBounded = new StateStore({
@@ -31,17 +45,17 @@ const byteAndTtlBounded = new StateStore({
 	ttlMs: 100,
 	now: () => storeTime,
 });
-const byteOldest = byteAndTtlBounded.create("pid:bytes", 0, { value: "a".repeat(900) });
-byteAndTtlBounded.create("pid:bytes", 0, { value: "b".repeat(900) });
+const byteOldest = save(byteAndTtlBounded, "pid:bytes", { value: "a".repeat(900) });
+save(byteAndTtlBounded, "pid:bytes", { value: "b".repeat(900) });
 assert.equal(byteAndTtlBounded.get(byteOldest.stateId), undefined, "byte capacity did not evict the oldest state");
 assert.throws(
-	() => byteAndTtlBounded.create("pid:bytes", 0, { value: "x".repeat(2_000) }),
+	() => save(byteAndTtlBounded, "pid:bytes", { value: "x".repeat(2_000) }),
 	(error) => error?.code === "state_too_large",
 	"single-state capacity did not reject an oversized state",
 );
-const expiring = byteAndTtlBounded.create("pid:ttl", 0, { value: "short" });
+const expiring = save(byteAndTtlBounded, "pid:ttl", { value: "short" });
 storeTime += 101;
-byteAndTtlBounded.create("pid:ttl", 0, { value: "new" });
+save(byteAndTtlBounded, "pid:ttl", { value: "new" });
 assert.equal(byteAndTtlBounded.get(expiring.stateId), undefined, "TTL cleanup did not run on write");
 
 const rawLook = (lookId, children, image) => parseLookResponse({

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // The projection is the agent's whole view of a window: short roles, a closed capability
-// vocabulary, folded entries, and a first view small enough to read.
+// vocabulary, folded entries, and a first view small enough to read. A capability is a
+// promise: web content and menu items do not advertise the context menu every node of
+// theirs answers, and a web scroller advertises the scroll that act-ui performs on it.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -70,6 +72,46 @@ const menu = project(restoreOutline({
 }), { maxDepth: 8 });
 assert.deepEqual(menu.nodes.map((node) => node.ref), ["@e1", "@e2", "@e4"], `menu separator survived projection: ${menu.nodes.map((node) => node.ref).join(",")}`);
 console.log("PASS menu separators are dropped from the view");
+
+// Every menu item and menu bar item answers AXPick and AXShowMenu; pressing it is all it offers.
+const menuBar = project(restoreOutline({
+	lookId: "menubar",
+	root: {
+		...menuNode("@e1", ""),
+		role: "AXMenuBar",
+		actions: [],
+		canPress: false,
+		children: [{ ...menuNode("@e2", "文件"), role: "AXMenuBarItem", actions: ["AXCancel", "AXPress", "AXPick", "AXShowMenu"], children: [menuNode("@e3", "保存")] }],
+	},
+}), { maxDepth: 8 });
+for (const ref of ["@e2", "@e3"]) {
+	const item = menuBar.nodes.find((node) => node.ref === ref);
+	assert.deepEqual(item?.caps, ["press"], `menu item ${ref} advertises ${JSON.stringify(item?.caps)} instead of press alone`);
+}
+console.log("PASS menu items and menu bar items advertise press alone");
+
+// A real Chrome window rendering the page of scripts/check-web-background.mjs. Chromium
+// answers AXShowMenu on every web node, and the page's scroll area exposes no scroll action.
+const chromeOutline = restoreOutline(JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "chrome-outline.json"), "utf8")));
+const chrome = project(chromeOutline, { maxDepth: 12, maxNodes: 1_000 });
+const inWebContent = (ref) => {
+	for (let node = chromeOutline.nodes.find((candidate) => candidate.ref === ref); node; node = node.parent) {
+		if (node.role === "AXWebArea") return true;
+	}
+	return false;
+};
+const webNodes = chrome.nodes.filter((node) => inWebContent(node.ref));
+assert(webNodes.length >= 8, `the Chrome fixture projected only ${webNodes.length} web nodes`);
+for (const node of webNodes) {
+	assert(!node.caps.includes("menu") && !node.owners?.menu, `web node ${node.ref} ${node.role} ${JSON.stringify(node.name)} advertises a context menu: {${node.caps}} ${JSON.stringify(node.owners ?? {})}`);
+}
+const browserButton = chrome.nodes.find((node) => node.name === "New Tab");
+assert.deepEqual(browserButton?.caps, ["press", "menu"], `the browser's own New Tab button lost its context menu: ${JSON.stringify(browserButton?.caps)}`);
+console.log("PASS web content drops the context menu Chromium offers everywhere; the browser's own controls keep it");
+
+const scrollers = webNodes.filter((node) => node.caps.includes("scroll"));
+assert.deepEqual(scrollers.map((node) => node.name), ["Scroll area"], `web scroll capability went to ${JSON.stringify(scrollers.map((node) => `${node.ref} ${node.role} ${node.name}`))} instead of the page's one scroll area`);
+console.log("PASS the web scroll area advertises scroll, and no other web node does");
 
 // AppKit hands out developer strings where a label belongs: private names, build-time
 // constants and Objective-C selectors. None of them is something an agent can read or say.

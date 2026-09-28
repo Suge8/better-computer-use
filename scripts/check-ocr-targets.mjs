@@ -4,7 +4,7 @@
 // Accessibility; a default observation must read them on screen as `ocr` nodes that can be
 // pressed. Pressing one lands exactly once in the background, even though the view
 // rejects a first click on an inactive window, and succeeds on the window's own pixels
-// changing. A press that changes nothing on screen fails honestly and is never replayed.
+// changing. A press that changes nothing on screen is reported as unverified and never replayed.
 // A plain click at a point over the window's one native toggle is pressed like its ref and
 // judged on the toggle's value. Throughout, a stand-in for the user's front app keeps the
 // front and its keyboard. A window that does expose accessibility content keeps the
@@ -155,16 +155,15 @@ try {
 	assert((result.changes ?? result.nodes ?? []).length > 0, "the successor view does not show what the press changed");
 	await sendUntouched("pressing 发送");
 
-	// A press that draws nothing has no evidence: it fails honestly and is not replayed.
+	// A press that draws nothing has no evidence: it succeeds as unverified and is not replayed.
 	const quiet = await bcu(["observe-ui", "--root", window.ref]);
 	const silent = quiet.nodes.find((node) => node.name === "静默");
 	assert(silent, `the observation after the press lost 静默: ${JSON.stringify(quiet.nodes.map((node) => node.name))}`);
 	const silentUntouched = await userInFront();
 	const unproven = await press(quiet.stateId, silent.ref);
 	assert.deepEqual(await pressedLabels(), ["发送", "静默"], "静默 was not pressed exactly once");
-	assert.equal(unproven.code, 9, `pressing 静默 exited ${unproven.code}: ${unproven.stdout}`);
-	assert.equal(unproven.stdout, "", "a press with no evidence wrote a success to stdout");
-	assert.match(unproven.stderr, /^recovery: .*may already have taken effect/m, "the failure does not warn that the press may have landed");
+	assert.equal(unproven.code, 0, `pressing 静默 exited ${unproven.code}: ${unproven.stderr}`);
+	assert.equal(JSON.parse(unproven.stdout).outcome, "unknown", `a press with no evidence claimed ${JSON.parse(unproven.stdout).outcome}`);
 	await silentUntouched("pressing 静默");
 
 	// A plain click at a point over a native control is pressed like its ref: in the
@@ -200,7 +199,7 @@ try {
 	walk(look.outline, (node) => { if (node.pictureOnly) pictureNodes += 1; });
 	assert.equal(pictureNodes, 0, "the default look of an accessible window grew OCR nodes");
 
-	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press failed honestly → click over a native toggle pressed it in the background → the user's front app kept the front and its keyboard throughout → accessible window stays capture-free (pid ${drawn.pid})`);
+	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press reported unverified → click over a native toggle pressed it in the background → the user's front app kept the front and its keyboard throughout → accessible window stays capture-free (pid ${drawn.pid})`);
 } finally {
 	if (drawn && killProcess(drawn.pid, "SIGTERM")) await withTimeout(drawn.exited, "the drawn fixture to exit", 5_000).catch(() => killProcess(drawn.pid));
 	if (holder && killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));
