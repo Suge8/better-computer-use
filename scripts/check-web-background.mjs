@@ -4,6 +4,8 @@
 // the page itself over the DevTools protocol whether the effect happened. Each cell holds
 // bcu to the background promise: the DOM changed, Finder is still frontmost, the real
 // pointer did not move, and the action was not delivered as foreground HID input.
+// Elements that show no trace of a press are pressed exactly once and reported as a
+// failure that tells the caller to look before retrying, never replayed on a higher rung.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback, spawn } from "node:child_process";
 import { once } from "node:events";
@@ -31,6 +33,9 @@ const FIXTURE_HTML = `<!doctype html>
 <p><input id="set" aria-label="Set field"></p>
 <p><input id="type" aria-label="Type field"></p>
 <p><input id="keys" aria-label="Key log" onkeydown="window.keydowns.push(event.key)"></p>
+<div id="down" role="button" aria-label="Down only" data-n="0" onmousedown="this.dataset.n = Number(this.dataset.n) + 1">Down only</div>
+<div id="clickonly" role="button" aria-label="Click only" data-n="0" onclick="this.dataset.n = Number(this.dataset.n) + 1">Click only</div>
+<div id="scroller" role="region" aria-label="Scroll area" style="height: 80px; overflow: auto"><div style="height: 2000px">Scroll content</div></div>
 <script>
 window.keydowns = [];
 document.title = "bcu web fixture " + new URLSearchParams(location.search).get("w");
@@ -144,7 +149,7 @@ async function pageSession(name) {
 /** The DOM's own account of the fixture, independent of anything bcu reads. */
 async function dom(session) {
 	const result = await session.send("Runtime.evaluate", {
-		expression: `({ count: Number(document.getElementById("count").dataset.n), set: document.getElementById("set").value, type: document.getElementById("type").value, keys: window.keydowns.slice(), ready: document.readyState })`,
+		expression: `({ count: Number(document.getElementById("count").dataset.n), down: Number(document.getElementById("down").dataset.n), clickOnly: Number(document.getElementById("clickonly").dataset.n), scrollTop: document.getElementById("scroller").scrollTop, set: document.getElementById("set").value, type: document.getElementById("type").value, keys: window.keydowns.slice(), ready: document.readyState })`,
 		returnByValue: true,
 	});
 	return result.result.value;
@@ -154,6 +159,19 @@ async function bcu(args, input) {
 	const result = await runCli([...args, "--json"], { input, env });
 	if (result.code !== 0) throw new Error(`bcu ${args[0]} exited ${result.code}: ${result.stderr.trim()}`);
 	return JSON.parse(result.stdout);
+}
+
+/** A press with no observable trace must fail honestly and say the press may already have landed. */
+async function unprovenPress(stateId, ref) {
+	const result = await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "press", ref }])}\n`, env });
+	const recovery = result.stderr.match(/^recovery: (.+)$/m)?.[1] ?? "";
+	const problems = [
+		result.code === 9 ? "" : `exit ${result.code}, want 9`,
+		result.stdout === "" ? "" : "wrote a success to stdout",
+		/^error action_failed: /m.test(result.stderr) ? "" : `stderr ${JSON.stringify(result.stderr)}`,
+		/may already have taken effect/i.test(recovery) && /observe/i.test(recovery) ? "" : `recovery ${JSON.stringify(recovery)} does not say the action may already have taken effect and to observe first`,
+	].filter(Boolean);
+	return { delivery: undefined, problems };
 }
 
 /** Chrome builds its accessibility tree once an assistive client asks, so wait for the named control. */
@@ -231,6 +249,33 @@ try {
 		const result = await act(state.stateId, [{ action: "keypress", ref: await refFor(state.stateId, "Key log", "textfield"), keys: ["Enter"] }]);
 		const now = await dom(pageA);
 		return { result, effect: { ok: now.keys.includes("Enter"), detail: `keydowns ${JSON.stringify(now.keys)}` } };
+	});
+
+	for (const [name, field] of [["Down only", "down"], ["Click only", "clickOnly"]]) {
+		await cell(`press a non-focusable element listening only to ${field === "down" ? "mousedown" : "click"}`, async () => {
+			const state = await observeWindow("A", name);
+			const result = await unprovenPress(state.stateId, await refFor(state.stateId, name, "button"));
+			const now = await dom(pageA);
+			const problems = [...result.problems, now[field] === 1 ? "" : `${field} fired ${now[field]} times, want exactly 1`].filter(Boolean);
+			return { result, effect: { ok: problems.length === 0, detail: problems.join("; ") } };
+		});
+	}
+	await cell("coordinate click on a web button", async () => {
+		const state = await bcu(["observe-ui", "--root", observed.root.ref, "--image", "always"]);
+		const { node } = await bcu(["inspect-ui", "--state", state.stateId, "--ref", await refFor(state.stateId, "Clicked", "button")]);
+		const before = await dom(pageA);
+		const result = await act(state.stateId, [{ action: "click", x: node.rect.x + node.rect.w / 2, y: node.rect.y + node.rect.h / 2 }]);
+		const now = await dom(pageA);
+		const ok = now.count === before.count + 1 && result.delivery === "pid";
+		return { result, effect: { ok, detail: `count ${before.count} → ${now.count}, want +1; delivery ${result.delivery}, want pid` } };
+	});
+	await cell("scroll a web scroll area", async () => {
+		const state = await observeWindow("A", "Scroll area");
+		const found = await bcu(["search-ui", "--state", state.stateId, "--text", "Scroll area", "--action", "scroll", "--limit", "1"]);
+		if (!found.matches[0]) throw new Error("the scroll area exposes no scroll capability");
+		const result = await act(state.stateId, [{ action: "scroll", ref: found.matches[0].ref, scrollY: 200 }]);
+		const now = await dom(pageA);
+		return { result, effect: { ok: now.scrollTop > 0, detail: `scrollTop ${now.scrollTop}` } };
 	});
 
 	// A second window of the same process becomes Chrome's key window; typing into the
