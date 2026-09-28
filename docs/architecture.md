@@ -167,14 +167,18 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 2. 后台原始输入（`pid`）——经 SkyLight 私有接口 `SLEventPostToPid` 把事件投递给目标进程（移植自 [trycua/cua](https://github.com/trycua/cua)，MIT），不抢前台、不动真实指针、不改窗口层叠；
 3. 前台原始输入（`hid`）——激活窗口后走系统事件流，只在前两级失败或动作本身需要真实焦点时使用。
 
-为输入而激活、置顶或切换 key window 是 bcu 自己做的，这些变化在投递前计入基线，不算动作的证据；窗口"持有焦点"也不算点击落点的证据。对于没有 AX 元素可读回的 OCR/坐标点击，投递后在最多 600 ms 内重新截图，排除标题栏后比较内容区：超过 0.5% 像素的通道变化（通道差超过 30）记为 `worked`，证据为 `source: screen`，CLI 写作 `screen changed`。截图不含真实鼠标和 agent 光标覆盖层。没有变化仍是 `unknown`，不会重放。屏幕证据可能被无关动画、通知或新消息误判，因此只用于没有 AX 读回的目标，且阈值和上限固定。
+为输入而激活、置顶或切换 key window 是 bcu 自己做的，这些变化在投递前计入基线，不算动作的证据；窗口"持有焦点"也不算点击落点的证据。
+
+坐标先落到元素上：命中点的元素沿父链最多上溯三层，取第一个可 AXPress 的控件作为动作的主体（最深的命中通常是控件里的文字标签）；系统级命中测试落在别的进程或只落在窗口上时，改在目标根里取包含该点的最小元素。在原生的离散控件（按钮、复选框、单选、弹出按钮、菜单项、展开三角）上的一次普通左键单击，与按它的 ref 走同一条梯子，从后台 AXPress 开始；网页内容保留指针，因为 Chromium 的指针路径精确，而它的 AXPress 分不出是否生效。
+
+证据按主体取，不按投递方式取。主体有按下会移动的 AX 事实（值、选中状态、文本选区）时，只用 AX 读回判定。主体没有这类事实时（OCR 节点、自绘区域、没有值的普通按钮），元素证据和根变化都没有结论后，才用屏幕证据：投递后在最多 600 ms 内每 80 ms 截一次图，排除标题栏后比较内容区，超过 0.5% 像素的某个通道变化超过 30，记为 `worked`，证据为 `source: screen`，CLI 写作 `screen changed`。截图不含真实鼠标和 agent 光标覆盖层；标题栏按窗口实际缩放比例排除。屏幕证据可能把焦点环、无关动画、通知或新消息误判为动作效果，这是它排在最后、且只用于没有 AX 读回的主体的原因。
 
 升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或 helper 明确要求 `foreground_required`，才交给下一级。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 以 `action_failed` 结束，recovery 提示动作可能已经生效、先重新观察再决定是否重试。这条规则在 helper 内部（ax → pid）和 Broker 里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。
 
 第二级为什么用私有接口：公开的 `CGEvent.postToPid` 不经过 WindowServer 的活动监视，Chromium 不把这类事件当真实输入。SkyLight 这一级做三件事：
 
 - 键盘事件在 macOS 15+ 附上 `SLSEventAuthenticationMessage`（Chromium 据此信任后台按键）；带 command 的组合键不附，否则会绕过菜单快捷键的派发路径；
-- 网页坐标点击走 SkyLight；原生自绘窗口先用 `SLPSPostEventRecordTo` 借用目标窗口的 AppKit 激活状态，再走 SkyLight 点击。实测即使 `acceptsFirstMouse` 为 false 的自绘夹具也能收到点击，且 Finder 仍保持 WindowServer 前台、窗口层叠不变。结果用上面的屏幕证据判定；无变化是 `unknown`，不再自动重放或升级到前台。私有接口不可用时仍返回 `foreground_required`。
+- 坐标指针事件走 SkyLight。原生窗口先用 `SLPSPostEventRecordTo` 只告诉目标进程它处于激活状态，再投递点击（yabai 与 cua 的做法会先让当前前台进程失焦，实测会让用户的前台应用交出 key window 与激活状态，用户接着打的字会丢，所以不发这一半）：`acceptsFirstMouse` 为 false 的视图因此也收得到后台窗口上的第一次点击，而 WindowServer 前台、用户前台应用的 key window 和窗口层叠都不变（真机门用一个记录自己失去 key 的前台应用验证）；
 - 网页里的滚动用滚轮：Chromium 不给可滚动元素暴露滚动动作，祖先的滚动动作滚的是整页，所以在元素上方发一次带窗口路由的滚轮事件。滚动的证据是元素内容相对元素的位置变化；Chromium 把直接子元素的 frame 裁剪到滚动区域，只有更深的后代会移动；
 - 点击按 Chromium 配方投递：先在目标点发 mouseMoved，再在屏外 (-1,-1) 按下抬起一次通过用户激活检查，最后在目标点按下抬起；每个事件写入目标 pid、窗口 id 与同一个点击组 id，窗口坐标相对窗口左上角；
 - 投递给进程的输入只到达它的 key window。目标窗口不是 key window 时，先向该进程发 yabai 的 focus-without-raise 事件记录（`SLPSPostEventRecordTo`），让它成为 key window 而不激活应用、不置顶窗口；这次切换计入动作前的基线，不会被当成动作本身的效果。

@@ -18,7 +18,6 @@ enum SkyLight {
 	private typealias WindowOwner = @convention(c) (UInt32, UInt32, UnsafeMutablePointer<UInt32>) -> Int32
 	private typealias ConnectionPSN = @convention(c) (UInt32, UnsafeMutablePointer<ProcessSerialNumber>) -> Int32
 	private typealias PostEventRecord = @convention(c) (UnsafePointer<ProcessSerialNumber>, UnsafePointer<UInt8>) -> Int32
-	private typealias GetFrontProcess = @convention(c) (UnsafeMutablePointer<ProcessSerialNumber>) -> Int32
 
 	private struct Symbols {
 		let postToPid: PostToPid
@@ -30,7 +29,6 @@ enum SkyLight {
 		let windowOwner: WindowOwner
 		let connectionPSN: ConnectionPSN
 		let postEventRecord: PostEventRecord
-		let getFrontProcess: GetFrontProcess
 	}
 
 	private static let symbols: Symbols? = {
@@ -47,10 +45,9 @@ enum SkyLight {
 			let mainConnection = resolve("CGSMainConnectionID", as: MainConnection.self),
 			let windowOwner = resolve("SLSGetWindowOwner", as: WindowOwner.self),
 			let connectionPSN = resolve("SLSGetConnectionPSN", as: ConnectionPSN.self),
-			let postEventRecord = resolve("SLPSPostEventRecordTo", as: PostEventRecord.self),
-			let getFrontProcess = resolve("_SLPSGetFrontProcess", as: GetFrontProcess.self)
+			let postEventRecord = resolve("SLPSPostEventRecordTo", as: PostEventRecord.self)
 		else { return nil }
-		return Symbols(postToPid: postToPid, setIntegerField: setIntegerField, setWindowLocation: setWindowLocation, setAuthenticationMessage: setAuthenticationMessage, messageSend: messageSend, mainConnection: mainConnection, windowOwner: windowOwner, connectionPSN: connectionPSN, postEventRecord: postEventRecord, getFrontProcess: getFrontProcess)
+		return Symbols(postToPid: postToPid, setIntegerField: setIntegerField, setWindowLocation: setWindowLocation, setAuthenticationMessage: setAuthenticationMessage, messageSend: messageSend, mainConnection: mainConnection, windowOwner: windowOwner, connectionPSN: connectionPSN, postEventRecord: postEventRecord)
 	}()
 
 	private static func require() throws -> Symbols {
@@ -177,67 +174,48 @@ enum SkyLight {
 		}
 	}
 
-	/// Makes `windowId` the key window of its own process without activating the process
-	/// or reordering any window: keyboard input posted to a pid goes to its key window.
-	/// This is yabai's focus-without-raise recipe minus its front-process switch: move the
-	/// process's focus from `currentKey` to the window, then send the make-key pair.
-	/// Loan AppKit activation to a background window without changing WindowServer's
-	/// front process. This is needed for views that reject the first mouse event while
-	/// inactive; the caller must still judge the result from an independent screen diff.
-	static func activateWithoutRaise(pid: pid_t, windowId: UInt32) throws {
-		let symbols = try require()
-		var targetConnection: UInt32 = 0
-		var targetPSN = ProcessSerialNumber()
-		guard symbols.windowOwner(symbols.mainConnection(), windowId, &targetConnection) == 0,
-			symbols.connectionPSN(targetConnection, &targetPSN) == 0
-		else { throw BridgeFailure(message: "Could not resolve the process of window \(windowId)", code: "foreground_required") }
-		var previousPSN = ProcessSerialNumber()
-		guard symbols.getFrontProcess(&previousPSN) == 0 else {
-			throw BridgeFailure(message: "Could not resolve the current front process", code: "foreground_required")
-		}
-		func post(_ psn: inout ProcessSerialNumber, window: UInt32, direction: UInt8) throws {
-			var record = [UInt8](repeating: 0, count: 0xF8)
-			record[0x04] = 0xF8
-			record[0x08] = 0x0D
-			record[0x3C..<0x40].withUnsafeMutableBytes { $0.copyBytes(from: withUnsafeBytes(of: window.littleEndian) { $0 }) }
-			record[0x8A] = direction
-			guard symbols.postEventRecord(&psn, record) == 0 else {
-				throw BridgeFailure(message: "WindowServer refused background activation", code: "foreground_required")
-			}
-		}
-		// The front process is not changed; this only changes the target AppKit key route.
-		try post(&previousPSN, window: 0, direction: 2)
-		try post(&targetPSN, window: windowId, direction: 1)
-	}
-
-	static func makeKeyWithoutRaise(windowId: UInt32, currentKey: UInt32?) throws {
-		let symbols = try require()
+	/// Posts one 248-byte Carbon event record to the process that owns `windowId`: size at
+	/// 0x04, kind at 0x08, window at 0x3c. yabai's focus-without-raise is built from these.
+	private static func postRecord(owning windowId: UInt32, about window: UInt32, kind: UInt8, symbols: Symbols, _ fill: (inout [UInt8]) -> Void) throws {
 		var owner: UInt32 = 0
 		var psn = ProcessSerialNumber()
 		guard symbols.windowOwner(symbols.mainConnection(), windowId, &owner) == 0,
 			symbols.connectionPSN(owner, &psn) == 0
-		else {
-			throw BridgeFailure(message: "Could not resolve the process of window \(windowId)", code: "foreground_required")
+		else { throw BridgeFailure(message: "Could not resolve the process of window \(windowId)", code: "foreground_required") }
+		var record = [UInt8](repeating: 0, count: 0xF8)
+		record[0x04] = 0xF8
+		record[0x08] = kind
+		withUnsafeBytes(of: window.littleEndian) { record.replaceSubrange(0x3C..<0x40, with: $0) }
+		fill(&record)
+		guard symbols.postEventRecord(&psn, record) == 0 else {
+			throw BridgeFailure(message: "WindowServer refused to focus window \(windowId)", code: "foreground_required")
 		}
-		// 248-byte Carbon event records: size at 0x04, kind at 0x08, window at 0x3c.
-		func post(window: UInt32, kind: UInt8, _ fill: (inout [UInt8]) -> Void) throws {
-			var record = [UInt8](repeating: 0, count: 0xF8)
-			record[0x04] = 0xF8
-			record[0x08] = kind
-			withUnsafeBytes(of: window.littleEndian) { record.replaceSubrange(0x3C..<0x40, with: $0) }
-			fill(&record)
-			guard symbols.postEventRecord(&psn, record) == 0 else {
-				throw BridgeFailure(message: "WindowServer refused to focus window \(windowId)", code: "foreground_required")
-			}
-		}
+	}
+
+	/// Tells the process that owns `windowId` it is active, without changing WindowServer's
+	/// front process or reordering windows, so a view that rejects the first mouse event of
+	/// an inactive app still takes a background click. yabai and cua also defocus the current
+	/// front process first; measured, that makes the user's front app resign its key window
+	/// and its activation, and the keystrokes the user types next are lost. So only the
+	/// target is told.
+	static func activateWithoutRaise(windowId: UInt32) throws {
+		try postRecord(owning: windowId, about: windowId, kind: 0x0D, symbols: try require()) { $0[0x8A] = 0x01 }
+	}
+
+	/// Makes `windowId` the key window of its own process without activating the process
+	/// or reordering any window: keyboard input posted to a pid goes to its key window.
+	/// This is yabai's focus-without-raise recipe minus its front-process switch: move the
+	/// process's focus from `currentKey` to the window, then send the make-key pair.
+	static func makeKeyWithoutRaise(windowId: UInt32, currentKey: UInt32?) throws {
+		let symbols = try require()
 		if let currentKey {
-			try post(window: currentKey, kind: 0x0D) { $0[0x8A] = 0x02 }
+			try postRecord(owning: windowId, about: currentKey, kind: 0x0D, symbols: symbols) { $0[0x8A] = 0x02 }
 			// Some apps drop the focus half when both arrive in the same instant.
 			usleep(10_000)
-			try post(window: windowId, kind: 0x0D) { $0[0x8A] = 0x01 }
+			try postRecord(owning: windowId, about: windowId, kind: 0x0D, symbols: symbols) { $0[0x8A] = 0x01 }
 		}
 		for kind: UInt8 in [0x01, 0x02] {
-			try post(window: windowId, kind: kind) { record in
+			try postRecord(owning: windowId, about: windowId, kind: kind, symbols: symbols) { record in
 				record[0x3A] = 0x10
 				record.replaceSubrange(0x20..<0x30, with: repeatElement(0xFF, count: 0x10))
 			}

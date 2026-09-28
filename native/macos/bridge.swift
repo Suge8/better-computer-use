@@ -2074,16 +2074,30 @@ final class Bridge {
 			guard record.hasImage else {
 				throw BridgeFailure(message: "Coordinate targeting is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
 			}
-			rawPoint = lookPoint(record: record, x: xNumber.doubleValue, y: yNumber.doubleValue)
+			let point = lookPoint(record: record, x: xNumber.doubleValue, y: yNumber.doubleValue)
+			rawPoint = point
+			// A plain click over a native discrete control takes the same ladder as its ref,
+			// starting from a background AXPress. Web content keeps the pointer: Chromium's own
+			// pointer path is exact, and its AXPress cannot be told apart from a no-op.
+			let plainClick = pressLike && (params["button"] as? String ?? "left") == "left" && ((params["clickCount"] as? NSNumber)?.intValue ?? 1) == 1
+			if plainClick, let control = coordinateSubject(at: point, pid: pid, windowId: record.windowId),
+				Self.discreteControlRoles.contains(stringAttribute(control, attribute: kAXRoleAttribute as CFString) ?? ""),
+				supportsAction(control, action: kAXPressAction as CFString),
+				!hasAncestorRole(control, role: "AXWebArea")
+			{
+				element = control
+				evidenceElement = control
+				beforeEvidence = evidenceSnapshot(control)
+			}
 		} else {
 			throw BridgeFailure(message: "act target must include ref or x/y", code: "invalid_args")
 		}
 
 		func coordinatePoint() throws -> CGPoint {
+			if let rawPoint { return rawPoint }
 			if let element, let frame = frameForElement(element) {
 				return CGPoint(x: frame.midX, y: frame.midY)
 			}
-			if let rawPoint { return rawPoint }
 			throw BridgeFailure(message: "No coordinate grounding is available", code: "coordinate_unavailable")
 		}
 
@@ -2149,11 +2163,22 @@ final class Bridge {
 			}
 			performed["grounding"] = "coordinates"
 			if delivery == "pid" { performed["verification"] = "caller_required" }
-			let webTarget = (element ?? hitTestElement(at: point)).map { hasAncestorRole($0, role: "AXWebArea") } ?? false
-			let screenTarget = pressLike && !webTarget && (element == nil || stringAttribute(element!, attribute: kAXRoleAttribute as CFString) == kAXWindowRole)
+			let subject = element ?? coordinateSubject(at: point, pid: pid, windowId: record.windowId)
+			let webTarget = subject.map { hasAncestorRole($0, role: "AXWebArea") } ?? false
+			let readable = subject.map(hasReadableEvidence) ?? false
+			// Screen evidence is reserved for a point whose resolved subject has no AX fact
+			// that a press would move; see docs/architecture.md.
+			let screenTarget = pressLike && !webTarget && !readable
+			if element == nil, pressLike, readable, let subject {
+				evidenceElement = subject
+				beforeEvidence = evidenceSnapshot(subject)
+				hitVerified = true
+			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == "pid", screenTarget {
-				try SkyLight.activateWithoutRaise(pid: pid, windowId: record.windowId)
+			if delivery == "pid", !webTarget {
+				// A stock NSView drops the first click on an inactive app; this makes the
+				// target app take the click without becoming the front app.
+				try SkyLight.activateWithoutRaise(windowId: record.windowId)
 				performed["backgroundActivation"] = true
 			} else {
 				focusTargetForPhysicalInput()
@@ -2161,21 +2186,6 @@ final class Bridge {
 			}
 			if screenTarget, let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
 			if delivery == "hid" { try preflight(point) }
-			// A bare coordinate still lands on an element; binding it now is what lets the
-			// outcome be judged on the thing that was actually hit.
-			if element == nil, pressLike, !screenTarget, let hit = hitTestElement(at: point) {
-				// The deepest hit is often the label inside a control; the control is what
-				// the press acts on and what changes.
-				var subject = hit
-				for _ in 0..<3 where !supportsAction(subject, action: kAXPressAction as CFString) {
-					guard let parent = parentElement(subject) else { break }
-					subject = parent
-				}
-				if !supportsAction(subject, action: kAXPressAction as CFString) { subject = hit }
-				evidenceElement = subject
-				beforeEvidence = evidenceSnapshot(subject)
-				hitVerified = true
-			}
 			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
 			switch action {
 			case "press", "click":
@@ -2219,10 +2229,6 @@ final class Bridge {
 			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
 			var outcome = "unknown"
 			var verification: [String: Any]?
-			if let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
-				outcome = "worked"
-				verification = ["source": "screen", "field": "changed"]
-			}
 			// The element that was acted on speaks first: its own value, selection or focus
 			// moving is proof no window-level summary can contradict.
 			if let subject = element ?? evidenceElement, let before = beforeEvidence {
@@ -2243,6 +2249,11 @@ final class Bridge {
 			if outcome == "unknown", windowChanged {
 				outcome = "worked"
 				verification = ["source": "root"]
+			}
+			// Weakest evidence, and the slowest to read: only for a subject with no AX fact.
+			if outcome == "unknown", let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
+				outcome = "worked"
+				verification = ["source": "screen", "field": "changed"]
 			}
 			var response: [String: Any] = ["outcome": outcome, "performed": performed]
 			if let verification { response["verification"] = verification }
@@ -2271,6 +2282,7 @@ final class Bridge {
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { activateForMenuBar(element) }
 				let cursorPoint = try? coordinatePoint()
+				if !inWebContent, !hasReadableEvidence(element), let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
 				if status != .success, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
 					status = AXUIElementPerformAction(refreshed, kAXPressAction as CFString)
@@ -2645,6 +2657,43 @@ final class Bridge {
 		guard status == .success, let hitElement else { return nil }
 		return hitElement
 	}
+
+	/// The element a coordinate lands on inside the target root, climbed at most three levels
+	/// to the control that owns it (the deepest hit is usually a label). System-wide hit
+	/// testing sees whatever is on top, so a hit outside the target, or on the window itself,
+	/// falls back to the smallest element of the root that contains the point.
+	private func coordinateSubject(at point: CGPoint, pid: Int32, windowId: UInt32) -> AXUIElement? {
+		func isWindowOrApp(_ element: AXUIElement) -> Bool {
+			[kAXWindowRole, kAXApplicationRole].contains(stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? "")
+		}
+		var hit = hitTestElement(at: point).flatMap { pidForElement($0) == pid && !isWindowOrApp($0) ? $0 : nil }
+		if hit == nil, let root = resolveRoot(pid: pid, windowId: windowId) {
+			hit = collectDescendants(startingAt: root, maxDepth: 20)
+				.filter { !isWindowOrApp($0) && (frameForElement($0)?.contains(point) ?? false) }
+				.min { (frameForElement($0).map { $0.width * $0.height } ?? .infinity) < (frameForElement($1).map { $0.width * $0.height } ?? .infinity) }
+		}
+		var candidate = hit
+		for _ in 0...3 {
+			guard let current = candidate, !isWindowOrApp(current) else { break }
+			if supportsAction(current, action: kAXPressAction as CFString) { return current }
+			candidate = parentElement(current)
+		}
+		return hit
+	}
+
+	/// Whether the element carries a fact a press would move: value, selection or
+	/// selected state. Focus alone is not one; bcu itself moves it to deliver input.
+	private func hasReadableEvidence(_ element: AXUIElement) -> Bool {
+		guard let facts = evidenceSnapshot(element) else { return false }
+		return facts.keys.contains { $0 != "focused" }
+	}
+
+	/// Controls whose press does not depend on where inside them it lands, so a plain
+	/// click at a point over one is the same action as pressing its ref.
+	private static let discreteControlRoles: Set<String> = [
+		kAXButtonRole, kAXCheckBoxRole, kAXRadioButtonRole, kAXPopUpButtonRole, kAXMenuButtonRole,
+		kAXMenuItemRole, kAXDisclosureTriangleRole,
+	]
 
 	private let axScrollDownAction = "AXScrollDown" as CFString
 	private let axScrollUpAction = "AXScrollUp" as CFString
@@ -3431,24 +3480,46 @@ final class Bridge {
 	}
 
 	/// Bounded content-area diff; captures omit the cursor and title bar.
-	private func screenChanged(before: CGImage, windowId: UInt32, timeout: TimeInterval = 0.6) -> Bool {
+	/// Screen evidence: how long to wait for the window to repaint, how far a channel must
+	/// move for a pixel to count, and the share of content pixels that must move. The title
+	/// bar is left out; its height is in points.
+	private static let screenEvidenceTimeout: TimeInterval = 0.6
+	private static let screenEvidencePollMicros: UInt32 = 80_000
+	private static let screenEvidenceChannelDelta = 30
+	private static let screenEvidenceChangedShare = 0.005
+	private static let screenEvidenceTitleBarPoints = 28.0
+
+	private func screenChanged(before: CGImage, windowId: UInt32, timeout: TimeInterval = Bridge.screenEvidenceTimeout) -> Bool {
 		func ratio(_ after: CGImage) -> Double {
 			let width = min(before.width, after.width), height = min(before.height, after.height)
-			guard width > 0, height > 36, let bd = before.dataProvider?.data, let ad = after.dataProvider?.data,
+			let scale = currentWindowBounds(windowId: windowId).map { $0.width > 0 ? Double(before.width) / Double($0.width) : 1 } ?? 1
+			let titleBarPixels = Int((Self.screenEvidenceTitleBarPoints * scale).rounded())
+			guard width > 0, height > titleBarPixels, let bd = before.dataProvider?.data, let ad = after.dataProvider?.data,
 				let bp = CFDataGetBytePtr(bd), let ap = CFDataGetBytePtr(ad) else { return 0 }
 			var changed = 0
-			for y in 36..<height { for x in 0..<width {
+			for y in titleBarPixels..<height { for x in 0..<width {
 				let bi = y * before.bytesPerRow + x * 4, ai = y * after.bytesPerRow + x * 4
-				if abs(Int(bp[bi]) - Int(ap[ai])) > 30 || abs(Int(bp[bi + 1]) - Int(ap[ai + 1])) > 30 || abs(Int(bp[bi + 2]) - Int(ap[ai + 2])) > 30 { changed += 1 }
+				if (0..<3).contains(where: { abs(Int(bp[bi + $0]) - Int(ap[ai + $0])) > Self.screenEvidenceChannelDelta }) { changed += 1 }
 			} }
-			return Double(changed) / Double(width * (height - 36))
+			return Double(changed) / Double(width * (height - titleBarPixels))
+		}
+		func captureAfter(_ deadline: Date) -> CGImage? {
+			let semaphore = DispatchSemaphore(value: 0)
+			let result = Box<CGImage?>(nil)
+			DispatchQueue.global().async {
+				result.value = try? self.captureWindow(windowId: windowId).image
+				semaphore.signal()
+			}
+			guard semaphore.wait(timeout: .now() + max(0, deadline.timeIntervalSinceNow)) == .success else { return nil }
+			return result.value
 		}
 		let deadline = Date().addingTimeInterval(timeout)
-		while true {
-			if let after = try? captureWindow(windowId: windowId), ratio(after.image) >= 0.005 { return true }
-			if Date() >= deadline { return false }
-			usleep(80_000)
+		while Date() < deadline {
+			guard let after = captureAfter(deadline) else { return false }
+			if ratio(after) >= Self.screenEvidenceChangedShare { return true }
+			usleep(min(Self.screenEvidencePollMicros, max(1, UInt32(max(0, deadline.timeIntervalSinceNow) * 1_000_000))))
 		}
+		return false
 	}
 
 	private func captureWindow(windowId: UInt32) throws -> CapturedWindowImage {
