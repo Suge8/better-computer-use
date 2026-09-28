@@ -169,7 +169,7 @@ assert.equal(preparedClick.establishesFocus, true, "editable semantic clicks sho
 assert.deepEqual(preparedClick.target, { ref: editor.wireRef }, "text-input clicks lost the element the outcome is judged on");
 const pictureTarget = { ...editor, ref: "@e-picture", wireRef: undefined, isTextInput: false, pictureOnly: true };
 const pictureClick = prepareAction({ action: "click", ref: pictureTarget.ref }, { currentFocus: false }, { ...actionEnv, node: () => pictureTarget });
-assert.equal(pictureClick.needsForeground, true, "picture-only clicks should use foreground pointer delivery");
+assert.deepEqual(pictureClick.target, { x: pictureTarget.rect?.x ?? 0, y: pictureTarget.rect?.y ?? 0 }, "picture-only clicks lost their point; the helper decides which rung can click it");
 const preparedType = prepareAction({ action: "typeText", text: "hello" }, { currentFocus: true }, actionEnv);
 assert.equal(preparedType.usesCurrentFocus, true, "focused typing did not preserve click-established focus");
 const preparedScroll = prepareAction({ action: "scroll", ref: editor.ref }, { currentFocus: false }, actionEnv);

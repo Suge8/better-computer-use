@@ -1234,9 +1234,8 @@ final class Bridge {
 			}
 			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries)
 			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)
-			let menuPairings = windowPairings(windows: menuElements, candidates: popupCandidates)
 			for candidate in popupCandidates {
-				let menuElement = menuElements.first { menuPairings[ObjectIdentifier($0)]?.candidate?.windowId == candidate.windowId }
+				let menuElement = menuElement(drawnBy: candidate, among: menuElements)
 				let menuRef = menuElement.map { refStore.storeWindow($0) } ?? "\(cgMenuRefPrefix)\(candidate.windowId)"
 				var menu: [String: Any] = [
 					"kind": "menu",
@@ -2112,6 +2111,13 @@ final class Bridge {
 			}
 			performed["grounding"] = "coordinates"
 			if delivery == "pid" { performed["verification"] = "caller_required" }
+			// A background click is proven only on web content; AppKit controls can ignore
+			// pid-routed mouse events, so anywhere else the click needs the foreground.
+			if delivery == "pid", pressLike {
+				guard let subject = element ?? hitTestElement(at: point), hasAncestorRole(subject, role: "AXWebArea") else {
+					throw BridgeFailure(message: "Background clicks are only proven on web content", code: "foreground_required")
+				}
+			}
 			acquirePhysicalInputIfNeeded()
 			focusTargetForPhysicalInput()
 			try focusTargetForBackgroundInput()
@@ -2119,20 +2125,29 @@ final class Bridge {
 			// A bare coordinate still lands on an element; binding it now is what lets the
 			// outcome be judged on the thing that was actually hit.
 			if element == nil, pressLike, let hit = hitTestElement(at: point) {
-				evidenceElement = hit
-				beforeEvidence = evidenceSnapshot(hit)
+				// The deepest hit is often the label inside a control; the control is what
+				// the press acts on and what changes.
+				var subject = hit
+				for _ in 0..<3 where !supportsAction(subject, action: kAXPressAction as CFString) {
+					guard let parent = parentElement(subject) else { break }
+					subject = parent
+				}
+				if !supportsAction(subject, action: kAXPressAction as CFString) { subject = hit }
+				evidenceElement = subject
+				beforeEvidence = evidenceSnapshot(subject)
 				hitVerified = true
 			}
+			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
 			switch action {
 			case "press", "click":
 				animateCursor(at: point)
-				try postMouseClick(at: point, pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin, button: mouseButton(params["button"] as? String ?? "left"), clickCount: max(1, min(3, (params["clickCount"] as? NSNumber)?.intValue ?? 1)), delivery: delivery)
+				try postMouseClick(at: point, pid: pid, route: route, button: mouseButton(params["button"] as? String ?? "left"), clickCount: max(1, min(3, (params["clickCount"] as? NSNumber)?.intValue ?? 1)), delivery: delivery)
 			case "moveMouse":
 				animateCursor(at: point)
 				try postMouseMove(to: point, pid: pid, delivery: delivery)
 			case "scroll":
 				animateCursor(at: point)
-				try postScrollWheel(at: point, deltaX: (params["scrollX"] as? NSNumber)?.intValue ?? 0, deltaY: (params["scrollY"] as? NSNumber)?.intValue ?? 0, pid: pid, delivery: delivery)
+				try postScrollWheel(at: point, deltaX: (params["scrollX"] as? NSNumber)?.intValue ?? 0, deltaY: (params["scrollY"] as? NSNumber)?.intValue ?? 0, pid: pid, route: route, delivery: delivery)
 			case "drag":
 				guard let rawPath = params["path"] as? [[String: Any]], rawPath.count >= 2 else {
 					throw BridgeFailure(message: "drag requires path", code: "invalid_args")
@@ -2221,9 +2236,10 @@ final class Bridge {
 					performed["grounding"] = "description"
 					performed["delivery"] = "ax"
 					if let cursorPoint { animateCursor(at: cursorPoint) }
-					// Only a press that provably changed nothing moves on to raw input. An
-					// unknown one stays put: Chromium's AXPress already dispatches mousedown,
-					// mouseup and click, so pressing again would apply the action twice.
+					// The ladder rule of docs/architecture.md: only a press that provably changed
+					// nothing (`didnt`) moves on to raw input. An unknown one stays put: Chromium's
+					// AXPress already dispatches mousedown, mouseup and click, so pressing again
+					// would apply the action twice.
 					let axVerdict = verdict()
 					if policy == "ax_only" || (axVerdict["outcome"] as? String) != "didnt" { return finish(axVerdict) }
 					performed["delivery"] = delivery
@@ -2308,16 +2324,25 @@ final class Bridge {
 		} else if let element, action == "scroll" {
 			let cursorPoint = try? coordinatePoint()
 			let before = scrollPositionSignature(element)
-			let result = performScrollActionOrAncestor(startingAt: element, targetPid: pid, scrollX: (params["scrollX"] as? NSNumber)?.intValue ?? 0, scrollY: (params["scrollY"] as? NSNumber)?.intValue ?? 0, steps: 1)
+			// Chromium exposes no scroll action on a scrollable element, and the actions of
+			// its ancestors scroll the page instead, so web content scrolls by a wheel turn
+			// over the element itself.
+			let scrollsByWheel = hasAncestorRole(element, role: "AXWebArea") && !supportsAnyScrollAction(element)
+			let result = scrollsByWheel ? [:] : performScrollActionOrAncestor(startingAt: element, targetPid: pid, scrollX: (params["scrollX"] as? NSNumber)?.intValue ?? 0, scrollY: (params["scrollY"] as? NSNumber)?.intValue ?? 0, steps: 1)
 			if (result["scrolled"] as? Bool) == true {
 				performed["grounding"] = "description"
 				performed["delivery"] = "ax"
 				if let cursorPoint { animateCursor(at: cursorPoint) }
-				let after = scrollPositionSignature(element)
-				guard before != after else { return finish(["outcome": "unknown", "performed": performed]) }
-				return finish(["outcome": "worked", "performed": performed, "verification": ["source": "ax", "field": "scroll"]])
+			} else {
+				try executeCoordinates(coordinatePoint())
 			}
-			try executeCoordinates(coordinatePoint())
+			// Web content reports the new offset a frame or two after the wheel turn.
+			let deadline = Date().addingTimeInterval(0.3)
+			while before == scrollPositionSignature(element) {
+				guard Date() < deadline else { return finish(["outcome": "unknown", "performed": performed]) }
+				usleep(20_000)
+			}
+			return finish(["outcome": "worked", "performed": performed, "verification": ["source": "ax", "field": "scroll"]])
 		} else {
 			try executeCoordinates(coordinatePoint())
 		}
@@ -2472,9 +2497,21 @@ final class Bridge {
 		return "\(role):\(title)"
 	}
 
+	/// Scroll bars where the element has them, plus where its content sits relative to it:
+	/// web scroll areas expose no scroll bar, and Chromium clips the frames of their direct
+	/// children to the area, so the first chain of descendants is followed to the leaf
+	/// that actually moves.
 	private func scrollPositionSignature(_ element: AXUIElement) -> String {
 		let names: [CFString] = ["AXVerticalScrollBar" as CFString, "AXHorizontalScrollBar" as CFString, kAXValueAttribute as CFString]
-		return names.map { String(describing: copyAttribute(element, attribute: $0) ?? "" as CFTypeRef) }.joined(separator: "|")
+		var parts = names.map { String(describing: copyAttribute(element, attribute: $0) ?? "" as CFTypeRef) }
+		guard let origin = frameForElement(element)?.origin else { return parts.joined(separator: "|") }
+		var content = axElementArray(element, attribute: kAXChildrenAttribute as CFString).first
+		for _ in 0..<4 {
+			guard let current = content else { break }
+			if let frame = frameForElement(current) { parts.append("\(frame.minX - origin.x),\(frame.minY - origin.y)") }
+			content = axElementArray(current, attribute: kAXChildrenAttribute as CFString).first
+		}
+		return parts.joined(separator: "|")
 	}
 
 	private func axWaitFor(_ request: [String: Any]) throws -> [String: Any] {
@@ -3201,6 +3238,18 @@ final class Bridge {
 		return frame.width > 1 && frame.height > 1
 	}
 
+	/// The open menu a popup window draws. The window is the menu plus its shadow margin
+	/// (75 pt on every side on macOS 27), so it is paired by containment and centre rather
+	/// than by equal geometry.
+	private func menuElement(drawnBy candidate: CGWindowCandidate, among menus: [AXUIElement]) -> AXUIElement? {
+		let centre = CGPoint(x: candidate.bounds.midX, y: candidate.bounds.midY)
+		return menus
+			.map { (menu: $0, frame: frameForWindow($0)) }
+			.filter { candidate.bounds.contains($0.frame) }
+			.min { hypot($0.frame.midX - centre.x, $0.frame.midY - centre.y) < hypot($1.frame.midX - centre.x, $1.frame.midY - centre.y) }?
+			.menu
+	}
+
 	/// An AXMenu carries no title of its own; the menu bar item that owns it does.
 	private func menuTitle(_ menu: AXUIElement) -> String? {
 		if let own = stringAttribute(menu, attribute: kAXTitleAttribute as CFString), !own.isEmpty { return own }
@@ -3608,9 +3657,9 @@ final class Bridge {
 		}
 	}
 
-	private func postMouseClick(at point: CGPoint, pid: Int32, windowId: UInt32, windowOrigin: CGPoint, button: CGMouseButton = .left, clickCount: Int = 1, delivery: String = "hid") throws {
+	private func postMouseClick(at point: CGPoint, pid: Int32, route: SkyLight.PointerRoute, button: CGMouseButton = .left, clickCount: Int = 1, delivery: String = "hid") throws {
 		if delivery == "pid" {
-			try SkyLight.click(at: point, pid: pid, windowId: windowId, windowOrigin: windowOrigin, button: button, clickCount: clickCount)
+			try SkyLight.click(at: point, along: route, button: button, clickCount: clickCount)
 			return
 		}
 		physicalInputLock.lock()
@@ -3662,9 +3711,13 @@ final class Bridge {
 		try postEvent(up, pid: pid, delivery: delivery)
 	}
 
-	private func postScrollWheel(at point: CGPoint, deltaX: Int, deltaY: Int, pid: Int32, delivery: String = "hid") throws {
-		if delivery == "hid" { physicalInputLock.lock() }
-		defer { if delivery == "hid" { physicalInputLock.unlock() } }
+	private func postScrollWheel(at point: CGPoint, deltaX: Int, deltaY: Int, pid: Int32, route: SkyLight.PointerRoute, delivery: String = "hid") throws {
+		if delivery == "pid" {
+			try SkyLight.scroll(at: point, along: route, deltaX: deltaX, deltaY: deltaY)
+			return
+		}
+		physicalInputLock.lock()
+		defer { physicalInputLock.unlock() }
 		try postMouseMove(to: point, pid: pid, delivery: delivery)
 		guard let event = CGEvent(
 			scrollWheelEvent2Source: nil,

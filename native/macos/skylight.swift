@@ -104,12 +104,29 @@ enum SkyLight {
 		return nil
 	}
 
+	/// Where a pointer event goes: WindowServer routes it to `windowId` of `pid` even when that
+	/// window is neither frontmost nor under the real pointer.
+	struct PointerRoute {
+		let pid: pid_t
+		let windowId: UInt32
+		/// Top-left of the window in screen points; the window location is relative to it.
+		let windowOrigin: CGPoint
+	}
+
+	private static func post(_ event: CGEvent, along route: PointerRoute, at location: CGPoint, fields: [(UInt32, Int64)], symbols: Symbols) {
+		let routing: [(UInt32, Int64)] = [
+			(Field.targetPid, Int64(route.pid)), (Field.windowNumber, Int64(route.windowId)),
+			(Field.windowUnderPointer, Int64(route.windowId)), (Field.windowThatCanHandle, Int64(route.windowId)),
+		]
+		for (field, value) in routing + fields { symbols.setIntegerField(event, field, value) }
+		symbols.setWindowLocation(event, location == offscreen ? offscreen : CGPoint(x: location.x - route.windowOrigin.x, y: location.y - route.windowOrigin.y))
+		symbols.postToPid(route.pid, event)
+	}
+
 	/// One Chromium-trusted click: a move to the target, a primer press outside every
 	/// window that satisfies the user-activation gate without touching the page, then the
-	/// real presses. Every event carries the target pid and window so WindowServer routes
-	/// it to a window that is neither frontmost nor under the real pointer; the window
-	/// location is relative to the window's top-left corner.
-	static func click(at point: CGPoint, pid: pid_t, windowId: UInt32, windowOrigin: CGPoint, button: CGMouseButton, clickCount: Int) throws {
+	/// real presses.
+	static func click(at point: CGPoint, along route: PointerRoute, button: CGMouseButton, clickCount: Int) throws {
 		let symbols = try require()
 		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)
 		let (down, up) = mouseTypes(button)
@@ -117,14 +134,10 @@ enum SkyLight {
 			guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: location, mouseButton: button) else {
 				throw BridgeFailure(message: "Failed to create mouse event", code: "input_failed")
 			}
-			let fields: [(UInt32, Int64)] = [
+			post(event, along: route, at: location, fields: [
 				(Field.phase, phase), (Field.clickState, clickState), (Field.buttonNumber, Int64(button.rawValue)),
-				(Field.subtype, touchSubtype), (Field.targetPid, Int64(pid)), (Field.windowNumber, Int64(windowId)),
-				(Field.windowUnderPointer, Int64(windowId)), (Field.windowThatCanHandle, Int64(windowId)), (Field.clickGroup, group),
-			]
-			for (field, value) in fields { symbols.setIntegerField(event, field, value) }
-			symbols.setWindowLocation(event, location == offscreen ? offscreen : CGPoint(x: location.x - windowOrigin.x, y: location.y - windowOrigin.y))
-			symbols.postToPid(pid, event)
+				(Field.subtype, touchSubtype), (Field.clickGroup, group),
+			], symbols: symbols)
 		}
 		try send(.mouseMoved, at: point, phase: 2, clickState: 0)
 		usleep(15_000)
@@ -138,6 +151,19 @@ enum SkyLight {
 			try send(up, at: point, phase: 3, clickState: Int64(index))
 			if index < clickCount { usleep(80_000) }
 		}
+	}
+
+	/// A wheel turn at `point`: the renderer scrolls whatever is scrollable under it, so a
+	/// move first primes the window's idea of where the pointer is.
+	static func scroll(at point: CGPoint, along route: PointerRoute, deltaX: Int, deltaY: Int) throws {
+		let symbols = try require()
+		guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left),
+			let wheel = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: Int32(-deltaY), wheel2: Int32(deltaX), wheel3: 0)
+		else { throw BridgeFailure(message: "Failed to create scroll event", code: "input_failed") }
+		wheel.location = point
+		post(move, along: route, at: point, fields: [], symbols: symbols)
+		usleep(15_000)
+		post(wheel, along: route, at: point, fields: [], symbols: symbols)
 	}
 
 	private static func mouseTypes(_ button: CGMouseButton) -> (CGEventType, CGEventType) {

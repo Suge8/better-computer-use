@@ -5,14 +5,14 @@ import type { OutlineNode } from "./outline.ts";
 export type ActionTarget = { ref: string } | { x: number; y: number } | { focus: { x: number; y: number } };
 
 export type PreparedAction =
-	| { action: "press" | "click"; target: ActionTarget; params: { button?: MouseButtonName; clickCount?: number }; establishesFocus: boolean; usesCurrentFocus: false; needsForeground: boolean }
-	| { action: "setText"; target: ActionTarget; params: { text: string }; establishesFocus: false; usesCurrentFocus: false; needsForeground: false }
-	| { action: "typeText"; target: ActionTarget; params: { text: string }; establishesFocus: false; usesCurrentFocus: boolean; needsForeground: false }
-	| { action: "keypress"; target: ActionTarget; params: { keys: string[] }; establishesFocus: false; usesCurrentFocus: boolean; needsForeground: false }
-	| { action: "scroll"; target: ActionTarget; params: { scrollX: number; scrollY: number }; establishesFocus: false; usesCurrentFocus: false; needsForeground: false }
-	| { action: "drag"; target: ActionTarget; params: { path: Array<{ x: number; y: number }> }; establishesFocus: false; usesCurrentFocus: false; needsForeground: false }
-	| { action: "moveMouse"; target: ActionTarget; params: Record<string, never>; establishesFocus: false; usesCurrentFocus: false; needsForeground: false }
-	| { action: "wait"; params: { ms: number }; establishesFocus: false; usesCurrentFocus: false; needsForeground: false };
+	| { action: "press" | "click"; target: ActionTarget; params: { button?: MouseButtonName; clickCount?: number }; establishesFocus: boolean; usesCurrentFocus: false }
+	| { action: "setText"; target: ActionTarget; params: { text: string }; establishesFocus: false; usesCurrentFocus: false }
+	| { action: "typeText"; target: ActionTarget; params: { text: string }; establishesFocus: false; usesCurrentFocus: boolean }
+	| { action: "keypress"; target: ActionTarget; params: { keys: string[] }; establishesFocus: false; usesCurrentFocus: boolean }
+	| { action: "scroll"; target: ActionTarget; params: { scrollX: number; scrollY: number }; establishesFocus: false; usesCurrentFocus: false }
+	| { action: "drag"; target: ActionTarget; params: { path: Array<{ x: number; y: number }> }; establishesFocus: false; usesCurrentFocus: false }
+	| { action: "moveMouse"; target: ActionTarget; params: Record<string, never>; establishesFocus: false; usesCurrentFocus: false }
+	| { action: "wait"; params: { ms: number }; establishesFocus: false; usesCurrentFocus: false };
 
 export interface ActionState {
 	currentFocus: boolean;
@@ -196,28 +196,28 @@ export function validateActions(actions: readonly unknown[]): asserts actions is
 
 export function prepareAction(action: UiAction, state: ActionState, env: ActionEnvironment): PreparedAction {
 	if (action.action === "wait") {
-		return { action: "wait", params: { ms: Math.round(action.ms ?? 1_000) }, establishesFocus: false, usesCurrentFocus: false, needsForeground: false };
+		return { action: "wait", params: { ms: Math.round(action.ms ?? 1_000) }, establishesFocus: false, usesCurrentFocus: false };
 	}
 	const operation = action.action === "doubleClick" ? "click" : action.action;
 	const usesCurrentFocus = !env.headless && state.currentFocus && !action.ref && (operation === "typeText" || operation === "keypress");
 	const target = usesCurrentFocus ? focusedTarget(env) : nativeTarget(action, operation, env);
 	const establishesFocus = !env.headless && Boolean(action.ref) && (operation === "click" || operation === "press") && containsEditable(env.node(action.ref!));
-	const needsForeground = !env.headless && (operation === "click" || operation === "press") && "x" in target;
 
 	switch (operation) {
 		case "press":
-		case "click": return { action: operation, target, params: { button: mouseButton(action.button), clickCount: action.action === "doubleClick" ? 2 : clickCount(action.clickCount) }, establishesFocus, usesCurrentFocus: false, needsForeground };
-		case "setText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false, usesCurrentFocus: false, needsForeground: false };
-		case "typeText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false, usesCurrentFocus, needsForeground: false };
-		case "keypress": return { action: operation, target, params: { keys: action.keys! }, establishesFocus: false, usesCurrentFocus, needsForeground: false };
-		case "scroll": return { action: operation, target, params: { scrollX: scrollDelta(action.scrollX), scrollY: scrollDelta(action.scrollY) }, establishesFocus: false, usesCurrentFocus: false, needsForeground: false };
-		case "drag": return { action: operation, target, params: { path: path(action.path, env) }, establishesFocus: false, usesCurrentFocus: false, needsForeground: false };
-		case "moveMouse": return { action: operation, target, params: {}, establishesFocus: false, usesCurrentFocus: false, needsForeground: false };
+		case "click": return { action: operation, target, params: { button: mouseButton(action.button), clickCount: action.action === "doubleClick" ? 2 : clickCount(action.clickCount) }, establishesFocus, usesCurrentFocus: false };
+		case "setText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false, usesCurrentFocus: false };
+		case "typeText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false, usesCurrentFocus };
+		case "keypress": return { action: operation, target, params: { keys: action.keys! }, establishesFocus: false, usesCurrentFocus };
+		case "scroll": return { action: operation, target, params: { scrollX: scrollDelta(action.scrollX), scrollY: scrollDelta(action.scrollY) }, establishesFocus: false, usesCurrentFocus: false };
+		case "drag": return { action: operation, target, params: { path: path(action.path, env) }, establishesFocus: false, usesCurrentFocus: false };
+		case "moveMouse": return { action: operation, target, params: {}, establishesFocus: false, usesCurrentFocus: false };
 	}
 }
 
 /**
- * A background rung that provably changed nothing hands the action to foreground input.
+ * The delivery ladder moves up only past a rung that provably changed nothing (`didnt`) or
+ * that the helper refuses with `foreground_required` (handled where it is thrown).
  * `unknown` stays put: the rung delivered, and repeating it could apply the action twice.
  */
 export function canRetryInForeground(outcome: "worked" | "didnt" | "unknown", headless: boolean): boolean {

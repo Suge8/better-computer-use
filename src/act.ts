@@ -100,13 +100,14 @@ async function helperAct(
 	signal?: AbortSignal,
 ): Promise<ExecutionTrace> {
 	const timeoutMs = actTimeoutMs(action);
-	if ((action.usesCurrentFocus || action.needsForeground) && !headless) {
+	if (action.usesCurrentFocus && !headless) {
 		const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 		return executionTraceFromAct(foreground, "foreground");
 	}
 	try {
 		const initialPolicy = headless ? "ax_only" : "background";
 		const result = checkedActResult(await macosBackend.act(helperActRequest(target, action, initialPolicy), { signal, timeoutMs }));
+		// The ladder rule of docs/architecture.md: `didnt` here, `foreground_required` below.
 		if (canRetryInForeground(result.outcome, headless)) {
 			const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 			const trace = executionTraceFromAct(foreground, "foreground");
