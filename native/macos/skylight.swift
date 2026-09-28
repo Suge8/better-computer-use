@@ -18,6 +18,7 @@ enum SkyLight {
 	private typealias WindowOwner = @convention(c) (UInt32, UInt32, UnsafeMutablePointer<UInt32>) -> Int32
 	private typealias ConnectionPSN = @convention(c) (UInt32, UnsafeMutablePointer<ProcessSerialNumber>) -> Int32
 	private typealias PostEventRecord = @convention(c) (UnsafePointer<ProcessSerialNumber>, UnsafePointer<UInt8>) -> Int32
+	private typealias GetFrontProcess = @convention(c) (UnsafeMutablePointer<ProcessSerialNumber>) -> Int32
 
 	private struct Symbols {
 		let postToPid: PostToPid
@@ -29,6 +30,7 @@ enum SkyLight {
 		let windowOwner: WindowOwner
 		let connectionPSN: ConnectionPSN
 		let postEventRecord: PostEventRecord
+		let getFrontProcess: GetFrontProcess
 	}
 
 	private static let symbols: Symbols? = {
@@ -45,9 +47,10 @@ enum SkyLight {
 			let mainConnection = resolve("CGSMainConnectionID", as: MainConnection.self),
 			let windowOwner = resolve("SLSGetWindowOwner", as: WindowOwner.self),
 			let connectionPSN = resolve("SLSGetConnectionPSN", as: ConnectionPSN.self),
-			let postEventRecord = resolve("SLPSPostEventRecordTo", as: PostEventRecord.self)
+			let postEventRecord = resolve("SLPSPostEventRecordTo", as: PostEventRecord.self),
+			let getFrontProcess = resolve("_SLPSGetFrontProcess", as: GetFrontProcess.self)
 		else { return nil }
-		return Symbols(postToPid: postToPid, setIntegerField: setIntegerField, setWindowLocation: setWindowLocation, setAuthenticationMessage: setAuthenticationMessage, messageSend: messageSend, mainConnection: mainConnection, windowOwner: windowOwner, connectionPSN: connectionPSN, postEventRecord: postEventRecord)
+		return Symbols(postToPid: postToPid, setIntegerField: setIntegerField, setWindowLocation: setWindowLocation, setAuthenticationMessage: setAuthenticationMessage, messageSend: messageSend, mainConnection: mainConnection, windowOwner: windowOwner, connectionPSN: connectionPSN, postEventRecord: postEventRecord, getFrontProcess: getFrontProcess)
 	}()
 
 	private static func require() throws -> Symbols {
@@ -178,6 +181,35 @@ enum SkyLight {
 	/// or reordering any window: keyboard input posted to a pid goes to its key window.
 	/// This is yabai's focus-without-raise recipe minus its front-process switch: move the
 	/// process's focus from `currentKey` to the window, then send the make-key pair.
+	/// Loan AppKit activation to a background window without changing WindowServer's
+	/// front process. This is needed for views that reject the first mouse event while
+	/// inactive; the caller must still judge the result from an independent screen diff.
+	static func activateWithoutRaise(pid: pid_t, windowId: UInt32) throws {
+		let symbols = try require()
+		var targetConnection: UInt32 = 0
+		var targetPSN = ProcessSerialNumber()
+		guard symbols.windowOwner(symbols.mainConnection(), windowId, &targetConnection) == 0,
+			symbols.connectionPSN(targetConnection, &targetPSN) == 0
+		else { throw BridgeFailure(message: "Could not resolve the process of window \(windowId)", code: "foreground_required") }
+		var previousPSN = ProcessSerialNumber()
+		guard symbols.getFrontProcess(&previousPSN) == 0 else {
+			throw BridgeFailure(message: "Could not resolve the current front process", code: "foreground_required")
+		}
+		func post(_ psn: inout ProcessSerialNumber, window: UInt32, direction: UInt8) throws {
+			var record = [UInt8](repeating: 0, count: 0xF8)
+			record[0x04] = 0xF8
+			record[0x08] = 0x0D
+			record[0x3C..<0x40].withUnsafeMutableBytes { $0.copyBytes(from: withUnsafeBytes(of: window.littleEndian) { $0 }) }
+			record[0x8A] = direction
+			guard symbols.postEventRecord(&psn, record) == 0 else {
+				throw BridgeFailure(message: "WindowServer refused background activation", code: "foreground_required")
+			}
+		}
+		// The front process is not changed; this only changes the target AppKit key route.
+		try post(&previousPSN, window: 0, direction: 2)
+		try post(&targetPSN, window: windowId, direction: 1)
+	}
+
 	static func makeKeyWithoutRaise(windowId: UInt32, currentKey: UInt32?) throws {
 		let symbols = try require()
 		var owner: UInt32 = 0

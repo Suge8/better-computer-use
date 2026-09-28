@@ -176,6 +176,7 @@ function successorLines(result: { changes?: Change[]; nodes?: ProjectedNode[] })
 /** The helper's reason for the outcome, as it reported it. */
 function evidenceWords(evidence: ActEvidence | undefined): string {
 	if (!evidence) return "";
+	if (evidence.source === "screen") return " · screen changed";
 	if (evidence.field && evidence.from !== undefined && evidence.to !== undefined) return ` · ${evidence.field} ${evidence.from}→${evidence.to}`;
 	return ` · ${evidence.field ?? evidence.source}`;
 }

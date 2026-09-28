@@ -2009,6 +2009,7 @@ final class Bridge {
 		var evidenceElement: AXUIElement?
 		var beforeEvidence: [String: String]?
 		var hitVerified = false
+		var screenBefore: CGImage?
 		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
 		var beforeFrontmostPid: pid_t?
 		var eventCursor: UInt64 = 0
@@ -2148,20 +2149,21 @@ final class Bridge {
 			}
 			performed["grounding"] = "coordinates"
 			if delivery == "pid" { performed["verification"] = "caller_required" }
-			// A background click is proven only on web content; AppKit controls can ignore
-			// pid-routed mouse events, so anywhere else the click needs the foreground.
-			if delivery == "pid", pressLike {
-				guard let subject = element ?? hitTestElement(at: point), hasAncestorRole(subject, role: "AXWebArea") else {
-					throw BridgeFailure(message: "Background clicks are only proven on web content", code: "foreground_required")
-				}
-			}
+			let webTarget = (element ?? hitTestElement(at: point)).map { hasAncestorRole($0, role: "AXWebArea") } ?? false
+			let screenTarget = pressLike && !webTarget && (element == nil || stringAttribute(element!, attribute: kAXRoleAttribute as CFString) == kAXWindowRole)
 			acquirePhysicalInputIfNeeded()
-			focusTargetForPhysicalInput()
-			try focusTargetForBackgroundInput()
+			if delivery == "pid", screenTarget {
+				try SkyLight.activateWithoutRaise(pid: pid, windowId: record.windowId)
+				performed["backgroundActivation"] = true
+			} else {
+				focusTargetForPhysicalInput()
+				try focusTargetForBackgroundInput()
+			}
+			if screenTarget, let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
 			if delivery == "hid" { try preflight(point) }
 			// A bare coordinate still lands on an element; binding it now is what lets the
 			// outcome be judged on the thing that was actually hit.
-			if element == nil, pressLike, let hit = hitTestElement(at: point) {
+			if element == nil, pressLike, !screenTarget, let hit = hitTestElement(at: point) {
 				// The deepest hit is often the label inside a control; the control is what
 				// the press acts on and what changes.
 				var subject = hit
@@ -2217,6 +2219,10 @@ final class Bridge {
 			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
 			var outcome = "unknown"
 			var verification: [String: Any]?
+			if let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
+				outcome = "worked"
+				verification = ["source": "screen", "field": "changed"]
+			}
 			// The element that was acted on speaks first: its own value, selection or focus
 			// moving is proof no window-level summary can contradict.
 			if let subject = element ?? evidenceElement, let before = beforeEvidence {
@@ -2224,7 +2230,7 @@ final class Bridge {
 				if let after, let difference = evidenceDifference(before: before, after: after) {
 					outcome = "worked"
 					verification = difference
-				} else if pressLike, hitVerified, after?["focused"] == "1", stringAttribute(subject, attribute: kAXRoleAttribute as CFString) != kAXWindowRole {
+				} else if pressLike, hitVerified, after?["focused"] == "1", !Set([kAXWindowRole, kAXApplicationRole]).contains(stringAttribute(subject, attribute: kAXRoleAttribute as CFString) ?? "") {
 					// The pointer provably reached this element and it now holds keyboard focus:
 					// a click that only places a caret leaves no other trace.
 					outcome = "worked"
@@ -3422,6 +3428,27 @@ final class Bridge {
 		guard width > 0 else { return 1.0 }
 		let scale = Double(mode.pixelWidth) / width
 		return scale > 0 ? scale : 1.0
+	}
+
+	/// Bounded content-area diff; captures omit the cursor and title bar.
+	private func screenChanged(before: CGImage, windowId: UInt32, timeout: TimeInterval = 0.6) -> Bool {
+		func ratio(_ after: CGImage) -> Double {
+			let width = min(before.width, after.width), height = min(before.height, after.height)
+			guard width > 0, height > 36, let bd = before.dataProvider?.data, let ad = after.dataProvider?.data,
+				let bp = CFDataGetBytePtr(bd), let ap = CFDataGetBytePtr(ad) else { return 0 }
+			var changed = 0
+			for y in 36..<height { for x in 0..<width {
+				let bi = y * before.bytesPerRow + x * 4, ai = y * after.bytesPerRow + x * 4
+				if abs(Int(bp[bi]) - Int(ap[ai])) > 30 || abs(Int(bp[bi + 1]) - Int(ap[ai + 1])) > 30 || abs(Int(bp[bi + 2]) - Int(ap[ai + 2])) > 30 { changed += 1 }
+			} }
+			return Double(changed) / Double(width * (height - 36))
+		}
+		let deadline = Date().addingTimeInterval(timeout)
+		while true {
+			if let after = try? captureWindow(windowId: windowId), ratio(after.image) >= 0.005 { return true }
+			if Date() >= deadline { return false }
+			usleep(80_000)
+		}
 	}
 
 	private func captureWindow(windowId: UInt32) throws -> CapturedWindowImage {

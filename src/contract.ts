@@ -88,8 +88,8 @@ export interface UiAction {
  * forest changing, or the pointer reaching an element that then held focus.
  */
 export interface ActEvidence {
-	source: "ax" | "root" | "focus";
-	field?: "value" | "selected" | "focused" | "selection" | "selectedText" | "scroll";
+	source: "ax" | "root" | "focus" | "screen";
+	field?: "value" | "selected" | "focused" | "selection" | "selectedText" | "scroll" | "changed";
 	from?: string;
 	to?: string;
 }
