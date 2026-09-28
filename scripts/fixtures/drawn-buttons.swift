@@ -1,9 +1,10 @@
-// A window that draws its own text buttons and exposes nothing to Accessibility, the way
-// WeChat, Qt and game windows look to bcu. Pressing a button appends its label to the log
-// file given as the first argument; the second argument is the window title. 发送 and 取消
-// draw what was pressed below the buttons; 静默 changes nothing on screen. Like a stock
-// NSView it does not accept the first click on an inactive window. It prints `ready` once
-// the window is on screen.
+// A window that draws its own text buttons and exposes nothing of them to Accessibility, the
+// way WeChat, Qt and game windows look to bcu. Pressing a button appends its label to the
+// log file given as the first argument; the second argument is the window title. 发送 and
+// 取消 draw what was pressed below the buttons; 静默 changes nothing on screen. Like a stock
+// NSView it does not accept the first click on an inactive window. One standard NSButton,
+// the toggle 原生, is the only Accessibility content; toggling it logs 原生 too. It prints
+// `ready` once the window is on screen.
 import AppKit
 
 final class ButtonsView: NSView {
@@ -15,11 +16,26 @@ final class ButtonsView: NSView {
 	init(log: URL) {
 		self.log = log
 		super.init(frame: NSRect(x: 0, y: 0, width: 440, height: 180))
+		let native = NSButton(title: "原生", target: nil, action: nil)
+		native.frame = NSRect(x: 165, y: 20, width: 100, height: 28)
+		native.setButtonType(.pushOnPushOff)
+		native.target = self
+		native.action = #selector(nativeClicked(_:))
+		addSubview(native)
 	}
 
 	required init?(coder: NSCoder) { fatalError("unused") }
 
 	func buttonRect(_ index: Int) -> NSRect { NSRect(x: 30 + CGFloat(index) * 140, y: 80, width: 110, height: 56) }
+
+	@objc func nativeClicked(_ sender: NSButton) { append("原生") }
+
+	func append(_ label: String) {
+		let handle = try! FileHandle(forWritingTo: log)
+		handle.seekToEndOfFile()
+		handle.write(Data((label + "\n").utf8))
+		try! handle.close()
+	}
 
 	override func draw(_ dirtyRect: NSRect) {
 		NSColor.white.setFill()
@@ -38,17 +54,12 @@ final class ButtonsView: NSView {
 	override func mouseDown(with event: NSEvent) {
 		let point = convert(event.locationInWindow, from: nil)
 		guard let index = Self.labels.indices.first(where: { buttonRect($0).contains(point) }) else { return }
-		let handle = try! FileHandle(forWritingTo: log)
-		handle.seekToEndOfFile()
-		handle.write(Data((Self.labels[index] + "\n").utf8))
-		try! handle.close()
+		append(Self.labels[index])
 		guard Self.labels[index] != Self.silent else { return }
 		status = "已按\(Self.labels[index])"
 		needsDisplay = true
 	}
 
-	override func isAccessibilityElement() -> Bool { false }
-	override func accessibilityChildren() -> [Any]? { [] }
 }
 
 let app = NSApplication.shared

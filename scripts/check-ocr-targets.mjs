@@ -5,7 +5,10 @@
 // pressed. Pressing one lands exactly once in the background, even though the view
 // rejects a first click on an inactive window, and succeeds on the window's own pixels
 // changing. A press that changes nothing on screen fails honestly and is never replayed.
-// A window that does expose accessibility content keeps the capture-free default look.
+// A plain click at a point over the window's one native toggle is pressed like its ref and
+// judged on the toggle's value. The user's front app keeps the front and its keyboard
+// through a background press. A window that does expose accessibility content keeps the
+// capture-free default look.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -19,6 +22,7 @@ import {
 	buildBundle,
 	killProcess,
 	launchDrawnButtons,
+	launchKeyHolder,
 	launchTextEdit,
 	makeTemporaryRoot,
 	monitorProcess,
@@ -39,6 +43,7 @@ const root = await makeTemporaryRoot("ocr-targets");
 const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
 const title = `bcu drawn ${randomUUID().slice(0, 8)}`;
 const logPath = path.join(root, "pressed.log");
+const holderLogPath = path.join(root, "holder.log");
 let drawn;
 let textEditPid;
 let textEditMonitor;
@@ -101,6 +106,10 @@ function walk(node, visit) {
 	for (const child of node.children ?? []) walk(child, visit);
 }
 
+async function actWithCoordinates(stateId, rect) {
+	return await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "click", x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 }])}\n`, env });
+}
+
 try {
 	await buildBundle();
 	drawn = await launchDrawnButtons(root, logPath, title);
@@ -150,6 +159,38 @@ try {
 	assert.equal(unproven.stdout, "", "a press with no evidence wrote a success to stdout");
 	assert.match(unproven.stderr, /^recovery: .*may already have taken effect/m, "the failure does not warn that the press may have landed");
 
+	// A plain click at a point over a native control is pressed like its ref: in the
+	// background, judged on the control's own value, never on the screen.
+	const axView = await bcu(["observe-ui", "--root", window.ref]);
+	const nativeToggle = axView.nodes.find((node) => node.name === "原生" && node.role !== "ocr");
+	assert(nativeToggle, `the fixture exposed no native 原生 toggle: ${JSON.stringify(axView.nodes.map((node) => [node.role, node.name]))}`);
+	const nativeRect = (await bcu(["inspect-ui", "--state", axView.stateId, "--ref", nativeToggle.ref])).node.rect;
+	const nativeBefore = await frontFinder();
+	const nativePressed = await actWithCoordinates(axView.stateId, nativeRect);
+	const nativeAfter = await desktop();
+	assert.deepEqual(await pressedLabels(), ["发送", "静默", "原生"], "the native toggle was not toggled exactly once");
+	assert.equal(nativePressed.code, 0, `clicking over 原生 exited ${nativePressed.code}: ${nativePressed.stderr}`);
+	const nativeResult = JSON.parse(nativePressed.stdout);
+	assert.deepEqual([nativeResult.delivery, nativeResult.verification.evidence?.source, nativeResult.verification.evidence?.field], ["ax", "ax", "value"], `clicking over 原生 was ${JSON.stringify([nativeResult.delivery, nativeResult.verification.evidence])}`);
+	assert.equal(nativeAfter.front, nativeBefore.front, "the click over 原生 changed the front app");
+	assert.deepEqual([nativeAfter.x, nativeAfter.y], [nativeBefore.x, nativeBefore.y], "the click over 原生 moved the real pointer");
+
+	// The user's own front app keeps both the front and its keyboard through a background
+	// press on screen evidence.
+	const holder = await launchKeyHolder(root, holderLogPath);
+	try {
+		const cancelView = await bcu(["observe-ui", "--root", window.ref]);
+		const cancel = cancelView.nodes.find((node) => node.name === "取消");
+		assert(cancel, `the observation lost 取消: ${JSON.stringify(cancelView.nodes.map((node) => node.name))}`);
+		const cancelled = await press(cancelView.stateId, cancel.ref);
+		assert.equal(cancelled.code, 0, `pressing 取消 exited ${cancelled.code}: ${cancelled.stderr}`);
+		assert.deepEqual(await pressedLabels(), ["发送", "静默", "原生", "取消"], "取消 was not pressed exactly once");
+		assert.equal((await desktop()).front, holder.pid, "the background press took the front from the user's app");
+		assert.deepEqual((await fs.readFile(holderLogPath, "utf8")).split("\n").filter(Boolean), [], "the user's front app lost its key window or activation");
+	} finally {
+		if (killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));
+	}
+
 	// A window with accessibility content keeps the capture-free default look.
 	const documentDirectory = path.join(root, "doc");
 	await fs.mkdir(documentDirectory);
@@ -169,7 +210,7 @@ try {
 	walk(look.outline, (node) => { if (node.pictureOnly) pictureNodes += 1; });
 	assert.equal(pictureNodes, 0, "the default look of an accessible window grew OCR nodes");
 
-	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press failed honestly → accessible window stays capture-free (pid ${drawn.pid})`);
+	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press failed honestly → click over a native toggle pressed it in the background → the user's front app kept the front and its keyboard → accessible window stays capture-free (pid ${drawn.pid})`);
 } finally {
 	if (drawn && killProcess(drawn.pid, "SIGTERM")) await withTimeout(drawn.exited, "the drawn fixture to exit", 5_000).catch(() => killProcess(drawn.pid));
 	if (textEditPid) await stopTextEdit(textEditPid, textEditMonitor);

@@ -130,22 +130,29 @@ export async function runSwiftReadyProbe(lines, args, description, { timeoutMs =
 	}
 }
 
-/**
- * Compiles and starts scripts/fixtures/drawn-buttons.swift: a window whose buttons are
- * drawn pixels with no accessibility elements. Pressed labels are appended to `logPath`.
- */
-export async function launchDrawnButtons(directory, logPath, title) {
-	const binary = path.join(directory, "drawn-buttons");
-	await execFile("xcrun", ["swiftc", path.join(repoRoot, "scripts", "fixtures", "drawn-buttons.swift"), "-o", binary], { timeout: 120_000 });
-	const child = spawn(binary, [logPath, title], { stdio: ["ignore", "pipe", "ignore"] });
+/** Compiles scripts/fixtures/<name>.swift and runs it until it prints `ready`. */
+async function launchSwiftFixture(directory, name, args, waiting) {
+	const binary = path.join(directory, name);
+	await execFile("xcrun", ["swiftc", path.join(repoRoot, "scripts", "fixtures", `${name}.swift`), "-o", binary], { timeout: 120_000 });
+	const child = spawn(binary, args, { stdio: ["ignore", "pipe", "ignore"] });
 	const exited = once(child, "exit");
 	let stdout = "";
 	child.stdout.setEncoding("utf8");
 	await withTimeout(Promise.race([
 		new Promise((resolve) => child.stdout.on("data", (chunk) => { stdout += chunk; if (stdout.includes("ready\n")) resolve(); })),
-		exited.then(([code, signal]) => { throw new Error(`the drawn fixture exited before its window appeared (${signal ?? code})`); }),
-	]), "the drawn fixture window", 15_000);
+		exited.then(([code, signal]) => { throw new Error(`the ${name} fixture exited before it was ready (${signal ?? code})`); }),
+	]), waiting, 15_000);
 	return { pid: child.pid, exited };
+}
+
+/** Starts scripts/fixtures/drawn-buttons.swift, a window with no accessible content. */
+export function launchDrawnButtons(directory, logPath, title) {
+	return launchSwiftFixture(directory, "drawn-buttons", [logPath, title], "the drawn fixture window");
+}
+
+/** Starts scripts/fixtures/key-holder.swift, which takes the front and logs losing it. */
+export function launchKeyHolder(directory, logPath) {
+	return launchSwiftFixture(directory, "key-holder", [logPath], "the key holder to take the front");
 }
 
 /** Opens a document in a dedicated TextEdit instance so live tests never touch the user's own windows. */
