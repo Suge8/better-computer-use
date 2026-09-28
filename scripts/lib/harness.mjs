@@ -130,6 +130,24 @@ export async function runSwiftReadyProbe(lines, args, description, { timeoutMs =
 	}
 }
 
+/**
+ * Compiles and starts scripts/fixtures/drawn-buttons.swift: a window whose buttons are
+ * drawn pixels with no accessibility elements. Pressed labels are appended to `logPath`.
+ */
+export async function launchDrawnButtons(directory, logPath, title) {
+	const binary = path.join(directory, "drawn-buttons");
+	await execFile("xcrun", ["swiftc", path.join(repoRoot, "scripts", "fixtures", "drawn-buttons.swift"), "-o", binary], { timeout: 120_000 });
+	const child = spawn(binary, [logPath, title], { stdio: ["ignore", "pipe", "ignore"] });
+	const exited = once(child, "exit");
+	let stdout = "";
+	child.stdout.setEncoding("utf8");
+	await withTimeout(Promise.race([
+		new Promise((resolve) => child.stdout.on("data", (chunk) => { stdout += chunk; if (stdout.includes("ready\n")) resolve(); })),
+		exited.then(([code, signal]) => { throw new Error(`the drawn fixture exited before its window appeared (${signal ?? code})`); }),
+	]), "the drawn fixture window", 15_000);
+	return { pid: child.pid, exited };
+}
+
 /** Opens a document in a dedicated TextEdit instance so live tests never touch the user's own windows. */
 export async function launchTextEdit(documentPath) {
 	const source = [

@@ -54,7 +54,8 @@
 		"test:native": "node scripts/check-native.mjs",
 		"test:helper-live": "node scripts/check-helper-live.mjs",
 		"test:web-background": "node scripts/check-web-background.mjs",
-		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-helper-live.mjs && node scripts/check-web-background.mjs",
+		"test:ocr-targets": "node scripts/check-ocr-targets.mjs",
+		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-helper-live.mjs && node scripts/check-web-background.mjs && node scripts/check-ocr-targets.mjs",
 		"test": "npm run typecheck && npm run test:projection && npm run test:contract && npm run test:cli-errors && npm run test:runtime && npm run test:artifacts && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:helper-install && npm run test:package && npm run test:native"
 	},
 	"devDependencies": {
