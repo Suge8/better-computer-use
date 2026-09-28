@@ -1,7 +1,7 @@
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction, validateActions, type ActionState, type PreparedAction } from "./actions.ts";
 import { getComputerUseConfig, isHeadlessMode } from "./config.ts";
 import type { ActParams, ActResult, UiAction, Verification } from "./contract.ts";
-import { BcuError } from "./errors.ts";
+import { BcuError, inFlightActionError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { ActOutcome, ActRequest, DeliveryPolicy, HelperActResult, HelperRoot, NativeInputDelivery } from "./macos/protocol.ts";
 import { nodeByRef, searchOutline, type LookResponse } from "./outline.ts";
@@ -291,7 +291,9 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 	const target = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
 	return await withWindowWriteLock(target, async () => {
 		const headless = params.headless ?? getComputerUseConfig().headless;
-		const execution = await dispatchUiTransaction(actions, target, look, headless, actionNodeResolver(baseNodes), signal);
+		const execution = await dispatchUiTransaction(actions, target, look, headless, actionNodeResolver(baseNodes), signal).catch((error: unknown) => {
+			throw inFlightActionError(error);
+		});
 		const executedActions = actions.slice(0, execution.actionCount ?? actions.length);
 		const verification: Verification = params.expect
 			? await verifyExpectation(params, target, look, scopeRef, execution, signal)

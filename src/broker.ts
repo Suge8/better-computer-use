@@ -119,7 +119,7 @@ async function dispatchCommand(request: BrokerRequest): Promise<unknown> {
 
 function brokerError(error: unknown): BrokerError {
 	const cliError = normalizeCliError(error);
-	return { message: cliError.message, code: cliError.code };
+	return { message: cliError.message, code: cliError.code, recovery: cliError.recovery };
 }
 
 function send(socket: net.Socket, response: BrokerResponse): void {

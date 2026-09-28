@@ -18,6 +18,8 @@ export interface BrokerRequest {
 export interface BrokerError {
 	message: string;
 	code?: string;
+	/** Set when the failure needs other guidance than its code's default. */
+	recovery?: string;
 }
 
 export type BrokerResponse =
@@ -49,6 +51,7 @@ export function parseBrokerResponse(value: unknown): BrokerResponse | undefined 
 		error: {
 			message: value.error.message,
 			code: typeof value.error.code === "string" ? value.error.code : undefined,
+			recovery: typeof value.error.recovery === "string" ? value.error.recovery : undefined,
 		},
 	};
 }

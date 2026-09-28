@@ -19,11 +19,13 @@ interface PendingResponse {
 
 export class BrokerCommandError extends Error {
 	readonly code?: string;
+	readonly recovery?: string;
 
-	constructor(message: string, code?: string) {
+	constructor(message: string, code?: string, recovery?: string) {
 		super(message);
 		this.name = "BrokerCommandError";
 		this.code = code;
+		this.recovery = recovery;
 	}
 }
 
@@ -135,7 +137,7 @@ class BrokerConnection {
 				reject(error);
 			});
 		});
-		if (!response.ok) throw new BrokerCommandError(response.error.message, response.error.code);
+		if (!response.ok) throw new BrokerCommandError(response.error.message, response.error.code, response.error.recovery);
 		return response.result;
 	}
 

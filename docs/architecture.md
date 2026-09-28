@@ -236,4 +236,4 @@ error <code>: <message>
 recovery: <next action>
 ```
 
-真实失败不会降级为成功。调用方根据错误码决定重新观察、重新授权、修复 helper 或停止任务。
+真实失败不会降级为成功。调用方根据错误码决定重新观察、重新授权、修复 helper 或停止任务。recovery 默认由错误码决定，经 Broker 原样传到 CLI；act-ui 投递途中 helper 失联时仍报 `helper_unavailable`，但 recovery 改为说明动作可能已经生效、修好 helper 后先重新观察再决定是否重试。

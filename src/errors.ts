@@ -21,11 +21,11 @@ export class BcuError extends Error {
 	readonly recovery: string;
 	readonly exitCode: number;
 
-	constructor(code: ErrorCode, message: string) {
+	constructor(code: ErrorCode, message: string, recovery: string = ERROR_DEFINITIONS[code].recovery) {
 		super(message);
 		this.name = "BcuError";
 		this.code = code;
-		this.recovery = ERROR_DEFINITIONS[code].recovery;
+		this.recovery = recovery;
 		this.exitCode = ERROR_DEFINITIONS[code].exitCode;
 	}
 }
@@ -90,7 +90,19 @@ function explicitCode(error: Error): ErrorCode | undefined {
 export function normalizeCliError(error: unknown): BcuError {
 	if (error instanceof BcuError) return error;
 	const normalized = error instanceof Error ? error : new Error(String(error));
-	return new BcuError(explicitCode(normalized) ?? "internal_error", normalized.message);
+	const recovery = "recovery" in normalized && typeof normalized.recovery === "string" ? normalized.recovery : undefined;
+	return new BcuError(explicitCode(normalized) ?? "internal_error", normalized.message, recovery);
+}
+
+const IN_FLIGHT_HELPER_RECOVERY = "The action may already have taken effect. Run 'bcu doctor' to repair the helper, then observe the current UI before deciding whether to retry it.";
+
+/**
+ * A failure while act-ui is delivering. Losing the helper then does not mean the action
+ * never landed, so the usual "repair and retry" would invite applying it twice.
+ */
+export function inFlightActionError(error: unknown): BcuError {
+	const normalized = normalizeCliError(error);
+	return normalized.code === "helper_unavailable" ? new BcuError(normalized.code, normalized.message, IN_FLIGHT_HELPER_RECOVERY) : normalized;
 }
 
 export function formatCliError(error: BcuError): string {
