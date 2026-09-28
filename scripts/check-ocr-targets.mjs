@@ -2,9 +2,10 @@
 // A window with no accessibility content is still operable through the same observe → act
 // loop. The subject draws its own Chinese text buttons and exposes nothing to
 // Accessibility; a default observation must read them on screen as `ocr` nodes that can be
-// pressed, and pressing one must land exactly once, on the rung the delivery ladder allows,
-// without claiming a success nothing observable proves. A window that does expose
-// accessibility content keeps the capture-free default observation.
+// pressed. Pressing one lands exactly once in the background, even though the view
+// rejects a first click on an inactive window, and succeeds on the window's own pixels
+// changing. A press that changes nothing on screen fails honestly and is never replayed.
+// A window that does expose accessibility content keeps the capture-free default look.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -48,16 +49,30 @@ async function bcu(args, input) {
 	return JSON.parse(result.stdout);
 }
 
-/** Front application, read by a process that is not bcu. */
-async function frontPid() {
-	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", "ObjC.import('AppKit'); $.NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier"]);
-	return Number(stdout.trim());
+/** Front application and real pointer, read by a process that is not bcu. */
+async function desktop() {
+	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", [
+		"ObjC.import('AppKit')",
+		"const m = $.NSEvent.mouseLocation",
+		"JSON.stringify({ front: $.NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier, x: m.x, y: m.y })",
+	].join(";")]);
+	return JSON.parse(stdout);
 }
 
 async function frontFinder() {
 	await execFile("osascript", ["-l", "JavaScript", "-e", "Application('Finder').activate()"]);
 	const { stdout } = await execFile("pgrep", ["-x", "Finder"]);
-	assert.equal(await frontPid(), Number(stdout.trim()), "Finder did not come to the front");
+	const now = await desktop();
+	assert.equal(now.front, Number(stdout.trim()), "Finder did not come to the front");
+	return now;
+}
+
+async function pressedLabels() {
+	return (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
+}
+
+async function press(stateId, ref) {
+	return await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "press", ref }])}\n`, env });
 }
 
 /** One raw helper request, to read what the look itself did rather than what the view shows. */
@@ -109,18 +124,31 @@ try {
 	const inspected = await bcu(["inspect-ui", "--state", observed.stateId, "--ref", send.ref]);
 	assert.equal(inspected.node.title, "发送", "inspect-ui disagrees with the view about 发送");
 
-	// Background clicks are proven on web content only, so a drawn button is pressed in
-	// the foreground. Nothing the helper can observe changes, so the press is reported as
-	// unknown: a failure that says it may already have landed, never replayed.
+	// The press lands in the background: Finder stays in front and the real pointer stays
+	// put. Nothing Accessibility can read changes, so the window's own pixels are the
+	// evidence, and the successor view already shows what the press drew.
+	const before = await frontFinder();
+	const pressed = await press(observed.stateId, send.ref);
+	const after = await desktop();
+	assert.deepEqual(await pressedLabels(), ["发送"], "the drawn app did not record exactly one 发送");
+	assert.equal(pressed.code, 0, `pressing 发送 exited ${pressed.code}: ${pressed.stderr}`);
+	const result = JSON.parse(pressed.stdout);
+	assert.equal(result.delivery, "pid", `pressing 发送 was delivered via ${result.delivery}`);
+	assert.equal(result.verification.evidence?.source, "screen", `pressing 发送 was judged on ${JSON.stringify(result.verification.evidence)}`);
+	assert((result.changes ?? result.nodes ?? []).length > 0, "the successor view does not show what the press changed");
+	assert.equal(after.front, before.front, "the background press changed the front app");
+	assert.deepEqual([after.x, after.y], [before.x, before.y], "the background press moved the real pointer");
+
+	// A press that draws nothing has no evidence: it fails honestly and is not replayed.
+	const quiet = await bcu(["observe-ui", "--root", window.ref]);
+	const silent = quiet.nodes.find((node) => node.name === "静默");
+	assert(silent, `the observation after the press lost 静默: ${JSON.stringify(quiet.nodes.map((node) => node.name))}`);
 	await frontFinder();
-	const pressed = await runCli(["act-ui", "--state", observed.stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "press", ref: send.ref }])}\n`, env });
-	const log = (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
-	assert.deepEqual(log, ["发送"], `the drawn app recorded ${JSON.stringify(log)} instead of exactly one 发送`);
-	assert.equal(pressed.code, 9, `pressing 发送 exited ${pressed.code}: ${pressed.stdout}${pressed.stderr}`);
-	assert.equal(pressed.stdout, "", "an unproven press wrote a success to stdout");
-	assert.match(pressed.stderr, /^error action_failed: .*\bhid\b/m, "the failure does not name the foreground rung it used");
-	assert.match(pressed.stderr, /^recovery: .*may already have taken effect/m, "the failure does not warn that the press may have landed");
-	assert.equal(await frontPid(), drawn.pid, "the foreground rung did not bring the drawn app forward");
+	const unproven = await press(quiet.stateId, silent.ref);
+	assert.deepEqual(await pressedLabels(), ["发送", "静默"], "静默 was not pressed exactly once");
+	assert.equal(unproven.code, 9, `pressing 静默 exited ${unproven.code}: ${unproven.stdout}`);
+	assert.equal(unproven.stdout, "", "a press with no evidence wrote a success to stdout");
+	assert.match(unproven.stderr, /^recovery: .*may already have taken effect/m, "the failure does not warn that the press may have landed");
 
 	// A window with accessibility content keeps the capture-free default look.
 	const documentDirectory = path.join(root, "doc");
@@ -141,7 +169,7 @@ try {
 	walk(look.outline, (node) => { if (node.pictureOnly) pictureNodes += 1; });
 	assert.equal(pictureNodes, 0, "the default look of an accessible window grew OCR nodes");
 
-	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → foreground press landed once and failed honestly → accessible window stays capture-free (pid ${drawn.pid})`);
+	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press failed honestly → accessible window stays capture-free (pid ${drawn.pid})`);
 } finally {
 	if (drawn && killProcess(drawn.pid, "SIGTERM")) await withTimeout(drawn.exited, "the drawn fixture to exit", 5_000).catch(() => killProcess(drawn.pid));
 	if (textEditPid) await stopTextEdit(textEditPid, textEditMonitor);
