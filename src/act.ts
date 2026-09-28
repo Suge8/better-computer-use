@@ -274,7 +274,8 @@ function actionFailure(execution: ExecutionTrace): BcuError {
 		?? (execution.outcome === "unknown"
 			? "The action outcome is unknown; bcu will not report it as success."
 			: `The action did not produce the requested result.${unchanged}`);
-	return new BcuError("action_failed", message);
+	const delivered = execution.delivery ? ` It was delivered via ${execution.delivery}.` : "";
+	return new BcuError("action_failed", `${message}${delivered}`);
 }
 
 async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActResult> {
@@ -301,7 +302,7 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 		if (!params.expect) await sleep(settleMsForExecution(execution), signal);
 		const capture = await captureCurrentTarget(
 			signal,
-			"never",
+			"auto",
 			imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION,
 			target,
 			imageMode === "always",

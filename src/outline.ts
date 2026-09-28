@@ -5,12 +5,6 @@ export interface OutlineRect {
 	h: number;
 }
 
-export interface OutlineText {
-	string: string;
-	confidence: number;
-	rect?: OutlineRect;
-}
-
 export interface OutlineScrollExtent {
 	seen: number;
 	total: number;
@@ -39,7 +33,6 @@ export interface OutlineNode {
 	pictureOnly: boolean;
 	truncated: boolean;
 	scrollExtent?: OutlineScrollExtent;
-	text: OutlineText[];
 	children: OutlineNode[];
 	parent?: OutlineNode;
 }
@@ -121,22 +114,6 @@ function parseRect(raw: unknown): OutlineRect {
 	};
 }
 
-function parseText(raw: unknown): OutlineText[] {
-	if (!Array.isArray(raw)) return [];
-	return raw
-		.map((item): OutlineText | undefined => {
-			if (!isRecord(item)) return undefined;
-			const string = toString(item.string);
-			if (!string) return undefined;
-			return {
-				string,
-				confidence: Math.max(0, Math.min(1, toNumber(item.confidence))),
-				rect: parseRect(item.rect),
-			};
-		})
-		.filter((item): item is OutlineText => Boolean(item));
-}
-
 function parseNode(raw: unknown, parent?: OutlineNode): OutlineNode {
 	const record = isRecord(raw) ? raw : {};
 	const wireRef = toString(record.ref) || undefined;
@@ -165,7 +142,6 @@ function parseNode(raw: unknown, parent?: OutlineNode): OutlineNode {
 		scrollExtent: isRecord(record.scrollExtent)
 			? { seen: Math.max(0, Math.trunc(toNumber(record.scrollExtent.seen))), total: Math.max(0, Math.trunc(toNumber(record.scrollExtent.total))) }
 			: undefined,
-		text: parseText(record.text),
 		children: [],
 		parent,
 	};
@@ -272,7 +248,7 @@ export function searchOutline(outline: Outline, text?: string, role?: string, ac
 		// outlineNodeLabel short-circuits (title || description || value), so
 		// list the fields individually too or a titled node's value/description
 		// can never match.
-		const haystack = [node.role, node.subrole, node.identifier, node.title, node.description, node.value, ...node.text.map((item) => item.string)].join(" ").toLowerCase();
+		const haystack = [node.role, node.subrole, node.identifier, node.title, node.description, node.value].join(" ").toLowerCase();
 		if (query && !haystack.includes(query)) continue;
 		if (roleQuery && normalizedSearchRole(node.role) !== roleQuery && normalizedSearchRole(node.subrole) !== roleQuery) continue;
 		if (actionQuery && !actionMatches(node, actionQuery)) continue;
@@ -319,7 +295,6 @@ function clearScopedRects(node: OutlineNode): void {
 	// Until helper-side act carries stable look geometry, grafted nodes are AX-only
 	// for ref actions; coordinate fallback must re-observe the full window.
 	node.rect = undefined;
-	for (const text of node.text) text.rect = undefined;
 	for (const child of node.children) clearScopedRects(child);
 }
 
@@ -362,7 +337,6 @@ function copyNodeFields(target: OutlineNode, source: OutlineNode, preserveWireRe
 	target.pictureOnly = source.pictureOnly;
 	target.truncated = false;
 	target.scrollExtent = source.scrollExtent ? { ...source.scrollExtent } : undefined;
-	target.text = source.text.map((text) => ({ ...text, rect: text.rect ? { ...text.rect } : undefined }));
 }
 
 function preserveUnreused(node: OutlineNode, parent: OutlineNode, used: Set<OutlineNode>): OutlineNode | undefined {
@@ -383,7 +357,6 @@ function cloneForGraft(source: OutlineNode, parent: OutlineNode, nextRef: () => 
 		ref: nextRef(),
 		children: [],
 		parent,
-		text: [],
 		actions: [],
 		scrollExtent: undefined,
 	};

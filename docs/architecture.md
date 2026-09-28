@@ -142,7 +142,9 @@ observation 包含：
 
 完整 outline 只存在 StateStore 里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 仍然查询完整缓存，因此被投影省略或折叠的节点照样可达。截断节点需要扩展时，Broker 在相同 epoch 上做 scoped look，不能把并发 mutation 后的数据 graft 到旧状态。
 
-`observe-ui` 默认 `--mode semantic`：不取图、不做 OCR。`--mode fused` 或 `--image always` 才产生截图文件。`act-ui` 的后继观察同样默认无图。
+`observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，helper 自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。`--mode fused` 或 `--image always` 才产生截图文件。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点。
+
+OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别拉丁文字，中文界面会是空的）。同一行文字已被无障碍说出（某个相交节点的标题、值或描述包含它）时丢弃；其余每行成为一个独立节点，挂在包含它中心点的最深节点下。实测（M 系列，热启动）：微信主窗口截图约 60 ms、OCR 约 190 ms，`observe-ui` 端到端约 0.4 s，得到 47 个 OCR 节点；IINA 窗口 OCR 约 80 ms。
 
 ## 投影
 
@@ -150,6 +152,7 @@ observation 包含：
 
 - role 用短词表，去掉 `AX` 前缀，subrole 更具体时优先（`AXWindow/AXStandardWindow` → `window`）；
 - caps 只能取固定词表（press、toggle、setText、typeText、menu、open、expand、scroll、increment、decrement、raise），其余 AX action 一律不外泄；
+- 从屏幕读出的文字 role 固定为 `ocr`，caps 只有 `press`：它没有无障碍元素，只能按坐标点击，不能 setText 或 typeText；`search-ui --role ocr` 与 `inspect-ui` 看到的是同一个节点；
 - name 取 title、description，其次是被包裹的文本，最后才是非内部标识的 identifier；
 - 没有名称、能力和状态的节点消失；结构性容器把子节点提升；只包裹文本的条目折成一行并合并能力；
 - 首屏按字节预算逐层展开：焦点所在的子树始终展开，其余用 `▸ N hidden: role×n` 概括，可用 `expand-ui` 继续打开；`--json` 的 `nodes` 与文本视图展示的是同一组节点，被折叠的后代只由 `hidden: {count, roles}` 概括。
@@ -164,12 +167,14 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 2. 后台原始输入（`pid`）——经 SkyLight 私有接口 `SLEventPostToPid` 把事件投递给目标进程（移植自 [trycua/cua](https://github.com/trycua/cua)，MIT），不抢前台、不动真实指针、不改窗口层叠；
 3. 前台原始输入（`hid`）——激活窗口后走系统事件流，只在前两级失败或动作本身需要真实焦点时使用。
 
+为输入而激活、置顶或切换 key window 是 bcu 自己做的，这些变化在投递前计入基线，不算动作的证据；窗口"持有焦点"也不算点击落点的证据。所以按下 OCR 节点这类无障碍看不到任何变化的动作，即使在前台生效了也是 `unknown`，以 `action_failed` 结束，错误信息写明投递用了哪一级。
+
 升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或 helper 明确要求 `foreground_required`，才交给下一级。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 以 `action_failed` 结束，recovery 提示动作可能已经生效、先重新观察再决定是否重试。这条规则在 helper 内部（ax → pid）和 Broker 里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。
 
 第二级为什么用私有接口：公开的 `CGEvent.postToPid` 不经过 WindowServer 的活动监视，Chromium 不把这类事件当真实输入。SkyLight 这一级做三件事：
 
 - 键盘事件在 macOS 15+ 附上 `SLSEventAuthenticationMessage`（Chromium 据此信任后台按键）；带 command 的组合键不附，否则会绕过菜单快捷键的派发路径；
-- 点击只对网页内容走这一级（元素或坐标命中点位于 AXWebArea 之内）；其余位置返回 `foreground_required`，因为 AppKit 控件可能忽略按进程投递的鼠标事件，而后台点击只在网页上验证过。坐标点击同样先试这一级；
+- 点击只对网页内容走这一级（元素或坐标命中点位于 AXWebArea 之内）；其余位置返回 `foreground_required`。实测 SkyLight 点击能送到原生 AppKit 视图，但默认不接受"首次点击"的视图（`acceptsFirstMouse` 为 false，自绘按钮夹具就是）把后台窗口上的第一次点击当成激活窗口吞掉，`mouseDown` 从不触发；bcu 从外面分辨不出一个视图接不接受，而后台点击没有证据时是 `unknown`、不能重放，所以非网页点击直接走前台。坐标点击和 OCR 节点同样先试这一级；
 - 网页里的滚动用滚轮：Chromium 不给可滚动元素暴露滚动动作，祖先的滚动动作滚的是整页，所以在元素上方发一次带窗口路由的滚轮事件。滚动的证据是元素内容相对元素的位置变化；Chromium 把直接子元素的 frame 裁剪到滚动区域，只有更深的后代会移动；
 - 点击按 Chromium 配方投递：先在目标点发 mouseMoved，再在屏外 (-1,-1) 按下抬起一次通过用户激活检查，最后在目标点按下抬起；每个事件写入目标 pid、窗口 id 与同一个点击组 id，窗口坐标相对窗口左上角；
 - 投递给进程的输入只到达它的 key window。目标窗口不是 key window 时，先向该进程发 yabai 的 focus-without-raise 事件记录（`SLPSPostEventRecordTo`），让它成为 key window 而不激活应用、不置顶窗口；这次切换计入动作前的基线，不会被当成动作本身的效果。

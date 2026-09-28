@@ -210,7 +210,7 @@ const COMMANDS: { [Name in CliCommandName]: CommandSpec<Name> } = {
 			"--root": { key: "root", kind: "string", doc: "@r ref from find-roots, or a numeric window id" },
 			"--mode": { key: "mode", kind: "string", values: ["semantic", "fused"], doc: "semantic: accessibility only (default); fused: also capture an image and OCR" },
 			"--image": IMAGE,
-			"--read-text": { key: "readText", kind: "string", values: ["auto", "always", "never"], doc: "OCR policy (default never in semantic, auto in fused)" },
+			"--read-text": { key: "readText", kind: "string", values: ["auto", "always", "never"], doc: "OCR policy; auto (default) reads the screen only when the root exposes almost no accessibility content" },
 		},
 		parse: (parsed) => {
 			noPositionals(parsed);

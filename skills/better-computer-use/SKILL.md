@@ -37,4 +37,5 @@ state e4441aa2-a994-40e9-93c4-a654c4599f43 ← 937572b9-… · worked via ax · 
 - 视图折叠掉的部分用 `search-ui` 找、`expand-ui` 展开、`inspect-ui` 看原始字段、`read-text` 读长文本；需要像素证据时 `--mode fused`。
 - 等待写进命令本身：`--expect-text` / `--expect-role` / `--expect-value` 加 `--scope @eN`，或独立用 `wait-for`；后一步不依赖中间 UI 时才把多个动作放进同一数组。
 - 退出码 0 才是成功，stderr 的 `recovery:` 就是下一步；权限相关只走交互式 `bcu setup`。`action_timeout` 只说明条件没出现，动作可能已经生效——先观察再决定是否重试。
+- 自绘窗口（微信、Qt、游戏）没有无障碍内容时，视图里是 `ocr "文字" {press}` 节点：它们来自屏幕识别，只能 press，按下后没有可观察的变化，结果常是 `action_failed`——按 recovery 重新观察确认，不要重按。
 - 浏览器窗口按普通窗口操作；页面内部的导航、DOM 和 console 交给 `better-browser-use`。

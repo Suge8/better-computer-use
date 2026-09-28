@@ -67,10 +67,12 @@ echo '[{"action":"press","ref":"@e12"}]' |
 默认不取图。需要截图时显式请求：
 
 ```bash
-bcu observe-ui --app TextEdit --image always   # 或 --mode fused，同时做 OCR
+bcu observe-ui --app TextEdit --image always   # 或 --mode fused
 ```
 
 截图写入 `~/Library/Caches/bcu/shots/`，stdout 只返回文件路径和尺寸，不输出 base64。
+
+窗口几乎没有无障碍内容时（微信、Qt、游戏这类自绘界面），`observe-ui` 自动识别屏幕文字（中英文），每行文字成为一个 `ocr` 节点，可以直接 press。
 
 ## 诊断与服务状态
 

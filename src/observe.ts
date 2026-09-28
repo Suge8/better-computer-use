@@ -145,7 +145,7 @@ async function performLook(
 /** Side effects: adopts the fresh look as the operation's current target, capture, look and outline. */
 export async function captureCurrentTarget(
 	signal?: AbortSignal,
-	readText: "auto" | "always" | "never" = "never",
+	readText: "auto" | "always" | "never" = "auto",
 	maxDimension = AUTO_IMAGE_MAX_DIMENSION,
 	targetOverride?: ResolvedTarget,
 	includeImage = false,
@@ -188,7 +188,7 @@ export function observeResult(result: CaptureResult, image?: ImageInfo): Observe
 async function performObserve(params: ObserveParams, signal?: AbortSignal): Promise<ObserveResult> {
 	const mode = params.mode ?? "semantic";
 	const imageMode = normalizeImageMode(params.image ?? (mode === "fused" ? "always" : "never"));
-	const readText = params.readText ?? (mode === "fused" ? "auto" : "never");
+	const readText = params.readText ?? "auto";
 	const selection = {
 		app: trimOrUndefined(params.app),
 		windowTitle: trimOrUndefined(params.windowTitle),

@@ -116,7 +116,7 @@ function windowLabel(window) {
 	return `${window.appName ?? window.app ?? "unknown app"} — ${window.title ?? window.windowTitle ?? "(untitled)"} (${window.windowId ?? "no windowId"})`;
 }
 
-/** Several lines of plain text, so the captured image has something for OCR to find. */
+/** Several lines of plain text the text area exposes, so OCR has lines it must not repeat. */
 const FIXTURE_TEXT = "bcu live helper fixture\nsecond line of fixture text\nthird line of fixture text\n";
 
 async function liveChecks() {
@@ -183,12 +183,14 @@ async function liveChecks() {
 				assert(rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= look.image.width + 0.01 && rect.y + rect.h <= look.image.height + 0.01, `rect out of bounds ${JSON.stringify(rect)}`);
 			});
 		});
-		check("text annotations", () => {
-			let found = false;
-			walk(look.outline, (node) => {
-				if (Array.isArray(node?.text) && node.text.length) found = true;
-			});
-			assert(found, "no text annotations");
+		check("OCR repeats nothing Accessibility already says", () => {
+			// OCR may change letter case, so lines compare the way the helper's dedupe does.
+			const plain = (text) => text.toLowerCase().replace(/\s+/g, "");
+			const read = [];
+			walk(look.outline, (node) => { if (node.pictureOnly) read.push(plain(node.title)); });
+			const repeated = FIXTURE_TEXT.split("\n").filter((line) => line && read.includes(plain(line)));
+			assert(look.readText?.executed, "the look did not read the screen");
+			assert(repeated.length === 0, `OCR repeated text the text area already exposes: ${JSON.stringify(repeated)}`);
 		});
 		check("window pairing", () => {
 			assert(look.window?.metadata?.pairing, "missing window.metadata.pairing");

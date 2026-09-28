@@ -186,7 +186,8 @@ function capabilitiesOf(node: OutlineNode, role: string): Capability[] {
 		const capability = ACTION_CAPABILITIES[action.trim().toLowerCase()];
 		if (capability) found.add(capability);
 	}
-	if (node.canPress) found.add("press");
+	// A line read from the screen is pressed at its coordinates; that is all it offers.
+	if (node.canPress || node.pictureOnly) found.add("press");
 	if (node.canScroll) found.add("scroll");
 	if (node.canIncrement) found.add("increment");
 	if (node.canDecrement) found.add("decrement");

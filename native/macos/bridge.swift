@@ -161,7 +161,6 @@ final class LookNode {
 	var pictureOnly: Bool
 	var truncated: Bool
 	var scrollExtent: [String: Int]?
-	var text: [[String: Any]]
 	var children: [LookNode]
 
 	init(element: AXUIElement?, ref: String, role: String, subrole: String, identifier: String, title: String, description: String, value: String, actions: [String], canPress: Bool, canFocus: Bool, canSetValue: Bool, canScroll: Bool, canIncrement: Bool, canDecrement: Bool, isTextInput: Bool, rect: CGRect, focused: Bool = false, offscreen: Bool = false, pictureOnly: Bool = false) {
@@ -186,7 +185,6 @@ final class LookNode {
 		self.offscreen = offscreen
 		self.pictureOnly = pictureOnly
 		self.truncated = false
-		self.text = []
 		self.children = []
 	}
 
@@ -215,7 +213,6 @@ final class LookNode {
 		if pictureOnly { output["pictureOnly"] = true }
 		if truncated { output["truncated"] = true }
 		if let scrollExtent { output["scrollExtent"] = scrollExtent }
-		if !text.isEmpty { output["text"] = text }
 		return output
 	}
 
@@ -369,7 +366,7 @@ final class InputSuppressionGuard {
 }
 
 final class Bridge {
-	private let protocolVersion = 9
+	private let protocolVersion = 10
 	private let cgMenuRefPrefix = "cgmenu:"
 	private let refStore = AXRefStore()
 	private let inputSuppressionGuard = InputSuppressionGuard()
@@ -1378,9 +1375,14 @@ final class Bridge {
 		let requestedRole = requestedRoot.flatMap { stringAttribute($0, attribute: kAXRoleAttribute as CFString) } ?? ""
 		let isMenuRoot = requestedRole == "AXMenu" || rootRef.hasPrefix(cgMenuRefPrefix)
 		let captureStart = Date()
-		let shouldCapture = !isMenuRoot && (includeImage || readText == "always")
-		let capture = try shouldCapture ? windowId.map { try captureWindow(windowId: $0) } : nil
-		let captureMs = capture.map { _ in elapsedMs(captureStart) } ?? 0
+		var captureMs = 0
+		func capturedWindow() throws -> CapturedWindowImage? {
+			guard !isMenuRoot, let windowId else { return nil }
+			let started = Date()
+			defer { captureMs = elapsedMs(started) }
+			return try captureWindow(windowId: windowId)
+		}
+		var capture = includeImage || readText == "always" ? try capturedWindow() : nil
 
 		guard let window = requestedRoot else {
 			guard let menuWindowId = cgMenuWindowId(rootRef), let menuPid = pidForWindowId(menuWindowId) else {
@@ -1394,7 +1396,8 @@ final class Bridge {
 		}
 		ensureEnhancedAccessibility(pid: pid)
 		let rootElement: AXUIElement
-		if let scopeRef = optionalStringArg(request, "scopeRef") {
+		let scopeRef = optionalStringArg(request, "scopeRef")
+		if let scopeRef {
 			guard let scoped = refStore.element(for: scopeRef), isElement(scoped, descendantOf: window) else {
 				throw BridgeFailure(message: "Scope ref is stale or outside the target root", code: "element_ref_invalid")
 			}
@@ -1404,36 +1407,44 @@ final class Bridge {
 		}
 
 		let rootFrame = frameForWindow(window)
-		let imageWidth: Int
-		let imageHeight: Int
-		let imagePayload: [String: Any]?
-		let transform: (CGRect) -> CGRect
-		if let capture {
-			let outputImage = downscaledImage(capture.image, maxDimension: maxDimension) ?? capture.image
-			imageWidth = outputImage.width
-			imageHeight = outputImage.height
-			transform = rectTransform(windowFrame: capture.frame, imageWidth: outputImage.width, imageHeight: outputImage.height)
-			if includeImage {
-				guard let jpeg = jpegData(image: outputImage, quality: 0.8) else {
-					throw BridgeFailure(message: "Failed to encode look image as JPEG", code: "encoding_failed")
-				}
-				imagePayload = ["jpegBase64": jpeg.base64EncodedString(), "width": outputImage.width, "height": outputImage.height]
-			} else {
-				imagePayload = nil
+		/// Outline coordinates follow the captured image when there is one, else the window in points.
+		func geometry() -> (width: Int, height: Int, image: CGImage?, transform: (CGRect) -> CGRect) {
+			guard let capture else {
+				let width = max(1, Int(rootFrame.width))
+				let height = max(1, Int(rootFrame.height))
+				return (width, height, nil, rectTransform(windowFrame: rootFrame, imageWidth: width, imageHeight: height))
 			}
-		} else {
-			imageWidth = max(1, Int(rootFrame.width))
-			imageHeight = max(1, Int(rootFrame.height))
-			imagePayload = nil
-			transform = rectTransform(windowFrame: rootFrame, imageWidth: imageWidth, imageHeight: imageHeight)
+			let image = downscaledImage(capture.image, maxDimension: maxDimension) ?? capture.image
+			return (image.width, image.height, image, rectTransform(windowFrame: capture.frame, imageWidth: image.width, imageHeight: image.height))
 		}
 		let describeStart = Date()
-		let outline = buildLookOutline(root: rootElement, transform: transform)
-		let describeMs = elapsedMs(describeStart)
+		var frame = geometry()
+		var outline = buildLookOutline(root: rootElement, transform: frame.transform)
+		// A window that says (almost) nothing through Accessibility is read from the screen,
+		// so the same observe → act loop still has something to act on.
+		let readsScreen = readText == "always" || (readText == "auto" && scopeRef == nil && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
+		var describeMs = elapsedMs(describeStart)
+		if readsScreen && capture == nil, let captured = try capturedWindow() {
+			capture = captured
+			frame = geometry()
+			let redescribeStart = Date()
+			outline = buildLookOutline(root: rootElement, transform: frame.transform)
+			describeMs += elapsedMs(redescribeStart)
+		}
+		let imageWidth = frame.width
+		let imageHeight = frame.height
+		var imagePayload: [String: Any]?
+		// OCR nodes are pressed by coordinates, and coordinates need the image they belong to.
+		if let image = frame.image, includeImage || readsScreen {
+			guard let jpeg = jpegData(image: image, quality: 0.8) else {
+				throw BridgeFailure(message: "Failed to encode look image as JPEG", code: "encoding_failed")
+			}
+			imagePayload = ["jpegBase64": jpeg.base64EncodedString(), "width": image.width, "height": image.height]
+		}
 
 		var readTextMs = 0
 		var readTextExecuted = false
-		if let capture, readText == "always" {
+		if let capture, readsScreen {
 			readTextExecuted = true
 			let textStart = Date()
 			let boxes = try recognizeText(in: capture.image, outputWidth: imageWidth, outputHeight: imageHeight)
@@ -1632,6 +1643,9 @@ final class Bridge {
 		return !visible.contains { sameElement($0, child) }
 	}
 
+	/// Without languages Vision reads Latin script only, and a Chinese interface comes back empty.
+	private static let ocrLanguages = ["zh-Hans", "zh-Hant", "en-US"]
+
 	private func recognizeText(in image: CGImage, outputWidth: Int, outputHeight: Int) throws -> [OCRBox] {
 		let semaphore = DispatchSemaphore(value: 0)
 		let recognized = Box<[OCRBox]>([])
@@ -1654,6 +1668,7 @@ final class Bridge {
 			}
 		}
 		request.recognitionLevel = .accurate
+		request.recognitionLanguages = Self.ocrLanguages
 		request.usesLanguageCorrection = false
 		try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
 		if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
@@ -1665,18 +1680,39 @@ final class Bridge {
 		return recognized.value
 	}
 
-	private func attachOCR(_ boxes: [OCRBox], to root: LookNode) {
-		var pictureOnlyIndex = 0
-		for box in boxes {
-			if ocrBoxDuplicatesAXLabel(box, in: root) { continue }
-			let center = CGPoint(x: box.rect.midX, y: box.rect.midY)
-			if let node = deepestNode(containing: center, in: root) {
-				node.text.append(["string": box.string, "confidence": box.confidence, "rect": ["x": box.rect.origin.x, "y": box.rect.origin.y, "w": box.rect.width, "h": box.rect.height]])
-			} else {
-				pictureOnlyIndex += 1
-				let parent = deepestContainer(containing: center, in: root) ?? root
-				parent.children.append(LookNode(element: nil, ref: "pic_\(pictureOnlyIndex)", role: "AXImage", subrole: "", identifier: "", title: box.string, description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: box.rect, pictureOnly: true))
+	/// Role of a node read from the screen. It is not an accessibility role, and the
+	/// projection shows it as `ocr`.
+	private static let ocrRole = "OCR"
+
+	/// Fewer accessible content nodes than this and the window is read from the screen.
+	/// Calibrated on macOS 27: WeChat, IINA and a drawn-button window expose 0 below their
+	/// window chrome, a Ghostty terminal 3, TextEdit about 40, a Chrome window 16 or more.
+	private static let sparseContentLimit = 2
+
+	/// Nodes below the window chrome that name something or can be acted on. The traffic
+	/// light buttons and the title bar's own icon and title text say nothing about content.
+	private func accessibleContentCount(_ root: LookNode, windowTitle: String) -> Int {
+		let chrome: Set<String> = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"]
+		var count = 0
+		func visit(_ node: LookNode) {
+			for child in node.children where count < Self.sparseContentLimit {
+				let label = [child.title, child.description, child.value].first { !$0.isEmpty } ?? ""
+				let titleBar = ["AXStaticText", "AXImage"].contains(child.role) && !label.isEmpty && windowTitle.contains(label)
+				let actionable = child.canPress || child.canSetValue || child.canScroll || child.isTextInput
+				if !chrome.contains(child.subrole), !titleBar, !label.isEmpty || actionable { count += 1 }
+				visit(child)
 			}
+		}
+		visit(root)
+		return count
+	}
+
+	/// Every line Accessibility does not already say becomes its own node, under the
+	/// deepest element that contains it; an agent presses it by its coordinates.
+	private func attachOCR(_ boxes: [OCRBox], to root: LookNode) {
+		for (index, box) in boxes.enumerated() where !ocrBoxDuplicatesAXLabel(box, in: root) {
+			let parent = deepestNode(containing: CGPoint(x: box.rect.midX, y: box.rect.midY), in: root) ?? root
+			parent.children.append(LookNode(element: nil, ref: "ocr_\(index + 1)", role: Self.ocrRole, subrole: "", identifier: "", title: box.string, description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: box.rect, pictureOnly: true))
 		}
 	}
 
@@ -1690,7 +1726,7 @@ final class Bridge {
 			index += 1
 			if !node.pictureOnly, node.rect.intersects(box.rect) {
 				let fields = [node.title, node.value, node.description]
-				if fields.contains(where: { normalizedLabel($0) == boxLabel }) { return true }
+				if fields.contains(where: { normalizedLabel($0).contains(boxLabel) }) { return true }
 			}
 			queue.append(contentsOf: node.children)
 		}
@@ -1701,14 +1737,6 @@ final class Bridge {
 		guard root.rect.contains(point), !root.pictureOnly else { return nil }
 		for child in root.children.reversed() {
 			if let match = deepestNode(containing: point, in: child) { return match }
-		}
-		return root
-	}
-
-	private func deepestContainer(containing point: CGPoint, in root: LookNode) -> LookNode? {
-		guard root.rect.contains(point) else { return nil }
-		for child in root.children.reversed() {
-			if let match = deepestContainer(containing: point, in: child) { return match }
 		}
 		return root
 	}
@@ -1982,19 +2010,24 @@ final class Bridge {
 		var beforeEvidence: [String: String]?
 		var hitVerified = false
 		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
-		let beforeFrontmostPid = deferRootDelta ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
+		var beforeFrontmostPid: pid_t?
 		var eventCursor: UInt64 = 0
 		var beforeRootSnapshot: [String: [String: Any]] = [:]
 		var beforeCgSignature: Set<UInt32> = []
 		var beforeSheetCount = 0
 		var beforeFocusedWindow = ""
-		/// The state the action's effect is measured against.
-		func takeBaseline() {
+		/// The state the action's effect is measured against. Focusing the target for input is
+		/// bcu's own doing, so it is taken into the baseline rather than counted as an effect.
+		func takeRootBaseline() {
+			beforeFrontmostPid = deferRootDelta ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
 			eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
 			beforeRootSnapshot = deferRootDelta ? [:] : rootMetadataSnapshot(pid: pid)
 			beforeCgSignature = deferRootDelta ? [] : cgRootSignature(pid: pid)
 			beforeSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
 			beforeFocusedWindow = focusedWindowSummary(pid: pid)
+		}
+		func takeBaseline() {
+			takeRootBaseline()
 			if let subject = element ?? evidenceElement { beforeEvidence = evidenceSnapshot(subject) }
 		}
 		takeBaseline()
@@ -2083,7 +2116,11 @@ final class Bridge {
 				_ = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
 				performed["raised"] = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
 			}
-			usleep(20_000)
+			// Activation lands asynchronously; the baseline waits for it so the switch is
+			// never read as the action's effect.
+			let deadline = Date().addingTimeInterval(0.5)
+			repeat { usleep(20_000) } while NSWorkspace.shared.frontmostApplication?.processIdentifier != pid && Date() < deadline
+			takeRootBaseline()
 		}
 
 		func preflight(_ point: CGPoint) throws {
@@ -2187,7 +2224,7 @@ final class Bridge {
 				if let after, let difference = evidenceDifference(before: before, after: after) {
 					outcome = "worked"
 					verification = difference
-				} else if pressLike, hitVerified, after?["focused"] == "1" {
+				} else if pressLike, hitVerified, after?["focused"] == "1", stringAttribute(subject, attribute: kAXRoleAttribute as CFString) != kAXWindowRole {
 					// The pointer provably reached this element and it now holds keyboard focus:
 					// a click that only places a caret leaves no other trace.
 					outcome = "worked"
