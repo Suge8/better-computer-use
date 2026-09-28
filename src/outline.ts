@@ -221,17 +221,6 @@ export function nodeByRef(outline: Outline, ref: string): OutlineNode | undefine
 
 
 
-function actionMatches(node: OutlineNode, action: string): boolean {
-	const query = action.toLowerCase();
-	if (query === "press" && node.canPress) return true;
-	if (query === "focus" && node.canFocus) return true;
-	if ((query === "setvalue" || query === "set_text" || query === "settext") && node.canSetValue) return true;
-	if (query === "scroll" && node.canScroll) return true;
-	if (query === "increment" && node.canIncrement) return true;
-	if (query === "decrement" && node.canDecrement) return true;
-	return node.actions.some((candidate) => candidate.toLowerCase().includes(query));
-}
-
 function normalizedSearchRole(value: string): string {
 	return value.trim().toLowerCase().replace(/^ax/, "").replace(/[ _-]+/g, "");
 }
@@ -239,10 +228,9 @@ function normalizedSearchRole(value: string): string {
 
 
 /** Matches anywhere in the cached outline; role accepts short words as well as AX names. */
-export function searchOutline(outline: Outline, text?: string, role?: string, action?: string): { matches: OutlineNode[]; total: number } {
+export function searchOutline(outline: Outline, text?: string, role?: string): { matches: OutlineNode[]; total: number } {
 	const query = text?.trim().toLowerCase();
 	const roleQuery = role ? normalizedSearchRole(role) : undefined;
-	const actionQuery = action?.trim();
 	const matches: OutlineNode[] = [];
 	for (const node of outline.nodes) {
 		// outlineNodeLabel short-circuits (title || description || value), so
@@ -251,7 +239,6 @@ export function searchOutline(outline: Outline, text?: string, role?: string, ac
 		const haystack = [node.role, node.subrole, node.identifier, node.title, node.description, node.value].join(" ").toLowerCase();
 		if (query && !haystack.includes(query)) continue;
 		if (roleQuery && normalizedSearchRole(node.role) !== roleQuery && normalizedSearchRole(node.subrole) !== roleQuery) continue;
-		if (actionQuery && !actionMatches(node, actionQuery)) continue;
 		matches.push(node);
 	}
 	return { matches, total: matches.length };

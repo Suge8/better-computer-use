@@ -6,7 +6,7 @@ export const ERROR_DEFINITIONS = {
 	window_stale: { exitCode: 6, recovery: "Run 'bcu find-roots', observe a current root, and retry." },
 	element_not_found: { exitCode: 7, recovery: "Run observe-ui again and use an @e ref from the returned state." },
 	action_timeout: { exitCode: 8, recovery: "Inspect the current UI, then retry with a valid condition or a longer --timeout." },
-	action_failed: { exitCode: 9, recovery: "The action may already have taken effect. Observe the current UI before deciding whether to retry it." },
+	action_failed: { exitCode: 9, recovery: "Observe the current UI before deciding whether the action is safe to retry." },
 	broker_unavailable: { exitCode: 10, recovery: "Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry." },
 	helper_unavailable: { exitCode: 11, recovery: "Run 'bcu doctor', repair the helper it reports, then retry." },
 	unsupported_platform: { exitCode: 12, recovery: "Run bcu in an interactive macOS desktop session." },

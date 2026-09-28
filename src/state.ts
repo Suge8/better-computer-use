@@ -52,6 +52,10 @@ export class SavedStates {
 		return state;
 	}
 
+	mintId(): string {
+		return this.store.mintId();
+	}
+
 	get(stateId: string): StoredState<UiObservation> | undefined {
 		return this.store.get(stateId);
 	}

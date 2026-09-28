@@ -36,7 +36,6 @@ interface RootDetail {
 	sheetCount?: number;
 	role?: string;
 	subrole?: string;
-	pairing?: { confidence: "exact" | "high" | "low"; score: number };
 	zOrder: number;
 	score: number;
 }
@@ -88,17 +87,17 @@ function appMatchesWindowQuery(app: HelperApp, query: FindParams): boolean {
 	return true;
 }
 
+/** An exact app name wins over the longer names that contain it ("Google Chrome" vs "Google Chrome for Testing"). */
+function appsMatchingQuery(apps: HelperApp[], query: FindParams): HelperApp[] {
+	const matching = apps.filter((app) => appMatchesWindowQuery(app, query));
+	const appQuery = trimOrUndefined(query.app);
+	const exact = appQuery ? matching.filter((app) => appMatchesName(app, appQuery, true)) : [];
+	return exact.length > 0 ? exact : matching;
+}
+
 function rootSheetCount(root: Pick<HelperRoot, "metadata">): number | undefined {
 	const value = root.metadata?.sheetCount;
 	return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : undefined;
-}
-
-function rootPairing(root: Pick<HelperRoot, "metadata">): { confidence: "exact" | "high" | "low"; score: number } | undefined {
-	const value = root.metadata?.pairing;
-	if (!value || typeof value !== "object") return undefined;
-	const pairing = value as { confidence?: unknown; score?: unknown };
-	if (pairing.confidence !== "exact" && pairing.confidence !== "high" && pairing.confidence !== "low") return undefined;
-	return { confidence: pairing.confidence, score: typeof pairing.score === "number" && Number.isFinite(pairing.score) ? pairing.score : Number.NEGATIVE_INFINITY };
 }
 
 function rootInfo(window: RootDetail): RootInfo {
@@ -121,7 +120,6 @@ function rootInfo(window: RootDetail): RootInfo {
 		onscreen: window.isOnscreen,
 		minimized: window.isMinimized,
 		modal: window.isModal,
-		pairing: window.pairing?.confidence,
 	};
 }
 
@@ -519,7 +517,6 @@ function rootDetail(app: HelperApp, window: HelperRoot): RootDetail {
 		sheetCount: rootSheetCount(window),
 		role: window.role,
 		subrole: window.subrole,
-		pairing: rootPairing(window),
 		zOrder: window.zOrder,
 		score: scoreWindow(window),
 	};
@@ -557,7 +554,7 @@ async function performFindRoots(params: FindParams, signal?: AbortSignal): Promi
 	const broad = !query.app && !query.bundleId && !Number.isFinite(query.pid);
 	const discovered = broad
 		? await collectBroadWindowDetails(signal)
-		: await collectWindowDetails((await listApps(signal)).filter((app) => appMatchesWindowQuery(app, query)), signal);
+		: await collectWindowDetails(appsMatchingQuery(await listApps(signal), query), signal);
 	// A menu bar only answers in the frontmost app, so an undirected listing would fill up
 	// with roots the agent cannot press. It appears when an app or the kind names it.
 	const wantsMenuBars = !broad || query.kind === "menubar";

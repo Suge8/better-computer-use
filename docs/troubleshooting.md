@@ -18,7 +18,7 @@ bcu setup
 
 ## 锁屏期间一切都找不到窗口
 
-屏幕锁定时 Accessibility 不再枚举任何应用的窗口：`find-roots` 的 pairing 全变 `low`，观察会退化。这不是 bcu 或 helper 的故障，解锁后立即恢复。
+屏幕锁定时 Accessibility 不再如实报告窗口：`find-roots` 找不到目标窗口，窗口标题退化成应用名，观察会退化。这不是 bcu 或 helper 的故障，解锁后立即恢复。
 
 ## 从源码修复 helper
 

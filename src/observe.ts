@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { saveScreenshot } from "./artifacts.ts";
 import { isHeadlessMode } from "./config.ts";
 import type { ActEvidence, Change, ExpandResult, ExpandUiParams, ImageInfo, ImageMode, InspectResult, InspectUiParams, ObserveParams, ObserveResult, ReadTextParams, ReadTextResult, RootSummary, SearchMatch, SearchResult, SearchUiParams, WaitForParams, WaitForResult } from "./contract.ts";
@@ -6,9 +5,9 @@ import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import { toFiniteNumber, type ActOutcome, type HelperActPerformed, type HelperActResult, type HelperRoot, type NativeInputDelivery } from "./macos/protocol.ts";
 import { graftScopedOutline, nodeByRef, searchOutline, serializeOutlineNode, type LookResponse, type Outline, type OutlineNode } from "./outline.ts";
-import { project, type ProjectedNode } from "./projection.ts";
+import { CAPABILITIES, project, type Capability, type ProjectedNode } from "./projection.ts";
 import { ensureTargetWindowId, nativeWindowRequest, matchesTargetSelection, normalizeWindowSelector, resolveCurrentTarget, resolveTargetByWindowSelector, resolveTargetForObserve, sameRootIdentity, setCurrentTarget, type ResolvedTarget } from "./roots.ts";
-import { COMMAND_TIMEOUT_MS, currentOutlineOrThrow, currentResourceOrThrow, desktopResourceKey, makeToolExecutor, operationState, persistOperation, resourceScheduler, validateStateId } from "./session.ts";
+import { COMMAND_TIMEOUT_MS, currentOutlineOrThrow, currentResourceOrThrow, desktopResourceKey, makeToolExecutor, operationState, persistOperation, resourceScheduler, savedStates, validateStateId } from "./session.ts";
 import type { CurrentCapture } from "./state.ts";
 import { trimOrUndefined } from "./text.ts";
 import { changesBetween, stabilizeRefs } from "./view.ts";
@@ -159,7 +158,7 @@ export async function captureCurrentTarget(
 	const outline = stabilizeRefs(baseTarget && sameRootIdentity(baseTarget, target) ? baseOutline : undefined, look.parsedOutline!);
 	look.parsedOutline = outline;
 	look.outline = outline.root;
-	const capture: CurrentCapture = { stateId: randomUUID(), timestamp: Date.now() };
+	const capture: CurrentCapture = { stateId: savedStates.mintId(), timestamp: Date.now() };
 
 	setCurrentTarget(target);
 	state.currentCapture = capture;
@@ -217,8 +216,15 @@ async function performObserve(params: ObserveParams, signal?: AbortSignal): Prom
 	return observeResult(captureResult, await imageInfo(captureResult, imageMode));
 }
 
+function capabilityQuery(action: string | undefined): Capability | undefined {
+	if (!action) return undefined;
+	const capability = CAPABILITIES.find((candidate) => candidate.toLowerCase() === action.toLowerCase());
+	if (!capability) throw new BcuError("invalid_arguments", `Unknown capability '${action}'. Use one of: ${CAPABILITIES.join(", ")}.`);
+	return capability;
+}
+
 /** Maps outline hits onto the nodes the agent actually sees, with their projected ancestry. */
-function projectedMatches(outline: Outline, hits: OutlineNode[]): SearchMatch[] {
+function projectedMatches(outline: Outline, hits: OutlineNode[], capability: Capability | undefined): SearchMatch[] {
 	const projection = project(outline, UNFOLDED);
 	const projected = new Map(projection.nodes.map((node) => [node.ref, node]));
 	const matches: SearchMatch[] = [];
@@ -227,7 +233,7 @@ function projectedMatches(outline: Outline, hits: OutlineNode[]): SearchMatch[] 
 		// A hit the projection dropped is noise the agent cannot act on; only a
 		// node that speaks for the hit may stand in for it.
 		const node = projected.get(projection.represents.get(hit.ref) ?? "");
-		if (!node || seen.has(node.ref)) continue;
+		if (!node || seen.has(node.ref) || (capability && !node.caps.includes(capability))) continue;
 		seen.add(node.ref);
 		const path: string[] = [];
 		for (let parent = node.parent; parent; parent = projected.get(parent)?.parent) path.unshift(parent);
@@ -242,9 +248,9 @@ async function performSearchUi(params: SearchUiParams, signal?: AbortSignal): Pr
 	let outline = currentOutlineOrThrow(params.stateId);
 	const text = trimOrUndefined(params.text);
 	const role = trimOrUndefined(params.role);
-	const action = trimOrUndefined(params.action);
+	const capability = capabilityQuery(trimOrUndefined(params.action));
 	const limit = Math.max(1, Math.min(50, Math.trunc(toFiniteNumber(params.limit, 12))));
-	let found = searchOutline(outline, text, role, action);
+	let found = searchOutline(outline, text, role);
 	const look = state.currentLook;
 	const shouldEscalate = found.matches.every((match) => !match.canPress && !match.canFocus && !match.canSetValue && match.actions.length === 0 && !match.pictureOnly);
 	if (shouldEscalate && look && look.readText?.requested !== "never" && !look.readText?.executed && state.lastSearchOcrEscalatedLookId !== look.lookId) {
@@ -257,9 +263,9 @@ async function performSearchUi(params: SearchUiParams, signal?: AbortSignal): Pr
 		const resource = currentResourceOrThrow();
 		const captureResult = (await resourceScheduler.readAt(resource.resourceKey, resource.epoch, async () => await captureCurrentTarget(signal, "always", AUTO_IMAGE_MAX_DIMENSION, currentTarget, true))).value;
 		outline = captureResult.outline;
-		found = searchOutline(outline, text, role, action);
+		found = searchOutline(outline, text, role);
 	}
-	const matches = projectedMatches(outline, found.matches);
+	const matches = projectedMatches(outline, found.matches, capability);
 	return { stateId: state.currentCapture!.stateId, matches: matches.slice(0, limit), total: matches.length };
 }
 

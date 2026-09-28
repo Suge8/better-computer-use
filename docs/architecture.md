@@ -23,7 +23,7 @@
 Broker 内的工具运行时按职责分块：
 
 - `src/session.ts`：operation state、资源调度、保存状态的读写与工具执行入口；
-- `src/roots.ts` 与 `src/root-refs.ts`：根发现、目标选择、pairing 与稳定 `@r` 身份；
+- `src/roots.ts` 与 `src/root-refs.ts`：根发现、目标选择与稳定 `@r` 身份；
 - `src/observe.ts`：observation 采集、结果组装与全部缓存查询；
 - `src/projection.ts`：唯一的 agent 视图——把 outline 投影为 `ProjectedNode[]`，并渲染文本行；
 - `src/act.ts`：动作事务、投递升级、后置条件校验与后继观察。
@@ -87,7 +87,7 @@ Broker 退出时关闭状态与调度器。helper 继续由系统管理，以保
 find-roots → observe-ui → cached query → act-ui → successor state
 ```
 
-`find-roots` 返回 `@r`。`observe-ui` 生成不可变 `stateId` 和属于该状态的 `@e`。每个请求从 `stateId` hydrate 一份 request-local operation state，不存在跨请求共享的“当前窗口”。
+`find-roots` 返回 `@r`；`--app` 有精确名称匹配的应用时只取它们（`Google Chrome` 不带上 `Google Chrome for Testing`），否则按包含匹配。`observe-ui` 生成不可变 `stateId` 和属于该状态的 `@e`。`stateId` 是 8 位十六进制随机 id：每条命令都带它，所以要短；StateStore 铸造时避开仍保存着的 id，32 位随机数也让 Broker 重启前的旧 id 几乎不可能撞上新状态。每个请求从 `stateId` hydrate 一份 request-local operation state，不存在跨请求共享的“当前窗口”。
 
 根的身份由 helper 的 root reference 承载，`look` 只按它定位。窗口 id 是窗口的一个属性，仅用于截图；菜单栏、菜单、sheet 和 popover 往往没有窗口 id，只能通过 root reference 观察。root reference 失效时 helper 直接返回 `root_not_found`，不会退回到应用的其他窗口。
 
@@ -152,12 +152,14 @@ OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别�
 
 - role 用短词表，去掉 `AX` 前缀，subrole 更具体时优先（`AXWindow/AXStandardWindow` → `window`）；
 - caps 只能取固定词表（press、toggle、setText、typeText、menu、open、expand、scroll、increment、decrement、raise），其余 AX action 一律不外泄；
+- 网页内容（AXWebArea 及其后代）和菜单项、菜单栏项不带 `menu`：Chromium 给每个网页节点都挂 AXShowMenu，每个菜单项都答 AXPick，它们不打开 agent 会选的东西；
+- 网页里的滚动容器带 `scroll`：Chromium 不给它暴露滚动动作，但把不含可聚焦内容的滚动容器设为可聚焦，所以网页里可聚焦、不能按、不收文本的节点（webarea 本身除外）就是它，`act-ui` 在它上方发一次滚轮。含可聚焦子元素的滚动容器在无障碍树里认不出来，不带 `scroll`，对它 scroll 照样能滚；
 - 从屏幕读出的文字 role 固定为 `ocr`，caps 只有 `press`：它没有无障碍元素，只能按坐标点击，不能 setText 或 typeText；`search-ui --role ocr` 与 `inspect-ui` 看到的是同一个节点；
 - name 取 title、description，其次是被包裹的文本，最后才是非内部标识的 identifier；
 - 没有名称、能力和状态的节点消失；结构性容器把子节点提升；只包裹文本的条目折成一行并合并能力；
 - 首屏按字节预算逐层展开：焦点所在的子树始终展开，其余用 `▸ N hidden: role×n` 概括，可用 `expand-ui` 继续打开；`--json` 的 `nodes` 与文本视图展示的是同一组节点，被折叠的后代只由 `hidden: {count, roles}` 概括。
 
-caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外层 ref 上，这时投影同时记录 `owners`（capability → 真正执行它的 ref）。`act-ui` 收到语义动作时按 `owners` 解析到拥有者再投递，坐标类动作仍用渲染 ref 的几何；`inspect-ui` 输出同一份 `owners` 映射。
+caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外层 ref 上，这时投影同时记录 `owners`（capability → 真正执行它的 ref）。`act-ui` 收到语义动作时按 `owners` 解析到拥有者再投递，坐标类动作仍用渲染 ref 的几何；`inspect-ui` 输出同一份 `owners` 映射。`search-ui --action` 按同一份 caps 过滤，只收词表里的能力词。
 
 ## 投递梯子
 
@@ -173,7 +175,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 证据按主体取，不按投递方式取。主体有按下会移动的 AX 事实（值、选中状态、文本选区）时，只用 AX 读回判定。主体没有这类事实时（OCR 节点、自绘区域、没有值的普通按钮），元素证据和根变化都没有结论后，才用屏幕证据：投递后在最多 600 ms 内每 80 ms 截一次图，排除标题栏后比较内容区，超过 0.5% 像素的某个通道变化超过 30，记为 `worked`，证据为 `source: screen`，CLI 写作 `screen changed`。截图不含真实鼠标和 agent 光标覆盖层；标题栏按窗口实际缩放比例排除。屏幕证据可能把焦点环、无关动画、通知或新消息误判为动作效果，这是它排在最后、且只用于没有 AX 读回的主体的原因。
 
-升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或 helper 明确要求 `foreground_required`，才交给下一级。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 以 `action_failed` 结束，recovery 提示动作可能已经生效、先重新观察再决定是否重试。这条规则在 helper 内部（ax → pid）和 Broker 里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。
+升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或 helper 明确要求 `foreground_required`，才交给下一级。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 也不算失败，结果写作 unverified（见下节）。这条规则在 helper 内部（ax → pid）和 Broker 里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。
 
 第二级为什么用私有接口：公开的 `CGEvent.postToPid` 不经过 WindowServer 的活动监视，Chromium 不把这类事件当真实输入。SkyLight 这一级做三件事：
 
@@ -187,7 +189,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 ## Action transaction
 
-`act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
+`act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。数组只放互不依赖中间 UI 的动作：某步 `unknown` 时继续下一步，某步 `didnt` 时中止。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
 
 helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证据强弱排序：
 
@@ -195,11 +197,11 @@ helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证�
 2. 指针确实落在该元素上（命中测试通过）且动作后它持有键盘焦点——`worked`；只移动插入点的点击没有别的痕迹；
 3. 根森林发生变化（菜单打开、sheet 出现、窗口易主）——`worked`；
 4. 元素是有值的切换类控件（checkbox、radio、segment、switch、disclosure）而值没动——`didnt`，错误信息带上停在哪个值；
-5. 其余——`unknown`，不伪装成成功。
+5. 其余——`unknown`：已经投递，但没有证据判定，既不伪装成成功，也不当成失败。
 
 投影里带 `toggle` 能力的元素就是 helper 按第 4 条判定的那一类，两侧取同一组 role 与 subrole。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
 
-只有 `worked` 能作为 CLI 成功结果；`didnt`、`unknown` 和后置条件失败在 `src/act.ts` 内直接抛出 `action_failed`，stdout 为空，调用方必须重新观察。`--scope @eN` 把后置条件限定在一个子树内。变化行必须说出变了什么：值和名字按原格式，状态写成它变成了什么（`~ @e51 onscreen`、`~ @e51 focused`）。只是 offscreen↔onscreen 翻转、而该节点本来就不在首屏视图里的变化不输出。
+只有被证明无效的动作才失败：`didnt` 和后置条件未满足在 `src/act.ts` 内抛出 `action_failed`，退出码 9，stdout 为空。`unknown` 退出 0，结果行写作 `unverified via ax`，照常返回后继状态和变化，没有变化时写出 `(no element changes)`；`--json` 的 `outcome` 仍是 `"unknown"`。菜单命令、没有可读效果的快捷键、自绘窗口里的按下都落在这里，它们大多已经生效，逼 agent 为每一个再观察一轮得不偿失。带 `--expect-*` 且条件满足时结果是 `worked`：后置条件就是那份缺失的证据。`--scope @eN` 把后置条件限定在一个子树内。变化行必须说出变了什么：值和名字按原格式，状态写成它变成了什么（`~ @e51 onscreen`、`~ @e51 focused`）。只是 offscreen↔onscreen 翻转、而该节点本来就不在首屏视图里的变化不输出。
 
 可信的小变更返回 successor diff（`changes`）；根替换、身份置信度不足或变更过大时返回完整折叠视图（`nodes`）。
 
@@ -209,8 +211,8 @@ helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证�
 
 ## 已知局限
 
-- 网页内容里判定只看无障碍证据。可聚焦的元素按下后获得焦点，这就是按下的证据；不可聚焦、按下后自身无变化的元素结果是 `unknown`，调用方用 `--expect-*` 表达完成条件或重新观察。
-- 第二级依赖未公开的 SkyLight 接口，macOS 升级可能改变它们的行为；`BCU_LIVE=1 node scripts/check-web-background.mjs` 在真实 Chrome 上逐格验证按钮、输入框、打字、按键、坐标点击、滚动、多窗口打字都在后台完成，无证据的按下恰好生效一次并如实失败。
+- 网页内容里判定只看无障碍证据。可聚焦的元素按下后获得焦点，这就是按下的证据；不可聚焦、按下后自身无变化的元素结果是 unverified，需要确认时用 `--expect-*` 表达完成条件。
+- 第二级依赖未公开的 SkyLight 接口，macOS 升级可能改变它们的行为；`BCU_LIVE=1 node scripts/check-web-background.mjs` 在真实 Chrome 上逐格验证按钮、输入框、打字、按键、坐标点击、滚动、多窗口打字都在后台完成，无证据的按下恰好生效一次并报告 unverified。
 
 ## 测量
 

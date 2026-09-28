@@ -164,7 +164,7 @@ function rootLine(root: RootInfo): string {
 		root.minimized ? "minimized" : undefined,
 	].filter(Boolean).join(" ");
 	const id = root.windowId ? `id ${root.windowId}` : "no window id";
-	return `${root.ref} ${root.kind} ${root.app} ${JSON.stringify(root.title)} · pid ${root.pid} · ${id} · ${root.frame.x},${root.frame.y} ${root.frame.w}x${root.frame.h} · ${flags}${root.pairing ? ` · pairing ${root.pairing}` : ""}`;
+	return `${root.ref} ${root.kind} ${root.app} ${JSON.stringify(root.title)} · pid ${root.pid} · ${id} · ${root.frame.x},${root.frame.y} ${root.frame.w}x${root.frame.h} · ${flags}`;
 }
 
 function successorLines(result: { changes?: Change[]; nodes?: ProjectedNode[] }): string {
@@ -190,7 +190,7 @@ const COMMANDS: { [Name in CliCommandName]: CommandSpec<Name> } = {
 		summary: "List controllable roots: windows, sheets, dialogs and open menus.",
 		options: {
 			"--query": { key: "query", kind: "string", doc: "match app name or window title" },
-			"--app": { key: "app", kind: "string", doc: "restrict to one app name or bundle id" },
+			"--app": { key: "app", kind: "string", doc: "restrict to one app name or bundle id; an exact name excludes longer names containing it" },
 			"--bundle-id": { key: "bundleId", kind: "string", doc: "restrict to one exact bundle id" },
 			"--pid": { key: "pid", kind: "number", doc: "restrict to one process id" },
 			"--kind": { key: "kind", kind: "string", values: ["window", "menubar", "menu", "sheet", "popover", "dialog"], doc: "restrict to one root kind; menubar roots are listed only when this or an app names them" },
@@ -309,7 +309,7 @@ const COMMANDS: { [Name in CliCommandName]: CommandSpec<Name> } = {
 				? ` · verified${result.verification.preexisting ? " (preexisting)" : ""}`
 				: "";
 			return [
-				`state ${result.stateId} ← ${result.baseStateId} · ${result.outcome} via ${result.delivery}${evidenceWords(result.verification.evidence)}${verified}`,
+				`state ${result.stateId} ← ${result.baseStateId} · ${result.outcome === "unknown" ? "unverified" : result.outcome} via ${result.delivery}${evidenceWords(result.verification.evidence)}${verified}`,
 				...(result.roots ?? []).map((root) => `+ root ${root.ref} ${root.kind} ${JSON.stringify(root.title)}`),
 				successorLines(result),
 				imageLine(result.image),

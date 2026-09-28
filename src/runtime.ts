@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { BcuError } from "./errors.ts";
 
 export interface StoredState<T> {
@@ -30,12 +30,21 @@ export interface StateStoreOptions {
 	maxRecordBytes?: number;
 	ttlMs?: number;
 	now?: () => number;
+	randomId?: () => string;
 }
 
 interface StateStoreRecord<T> {
 	record: StoredState<T>;
 	bytes: number;
 	storedAt: number;
+}
+
+/**
+ * 32 random bits: a clash with a live state is redrawn by mintId, and an id an agent still
+ * holds from before a broker restart matches a new state with odds of one in 2^32.
+ */
+function randomStateId(): string {
+	return randomBytes(4).toString("hex");
 }
 
 /** Count-, byte-, record-, and TTL-bounded store for immutable observations. */
@@ -46,6 +55,7 @@ export class StateStore<T> {
 	private readonly maxRecordBytes: number;
 	private readonly ttlMs: number;
 	private readonly now: () => number;
+	private readonly randomId: () => string;
 	private totalBytes = 0;
 
 	constructor(options: number | StateStoreOptions = {}) {
@@ -55,12 +65,15 @@ export class StateStore<T> {
 		this.maxRecordBytes = resolved.maxRecordBytes ?? 4 * 1024 * 1024;
 		this.ttlMs = resolved.ttlMs ?? 10 * 60 * 1_000;
 		this.now = resolved.now ?? Date.now;
+		this.randomId = resolved.randomId ?? randomStateId;
 	}
 
-	create(resourceKey: string, epoch: number, value: T): StoredState<T> {
-		const record = { stateId: randomUUID(), resourceKey, epoch, value };
-		this.set(record);
-		return record;
+	/** A short id no state in the store holds; agents carry it on every command. */
+	mintId(): string {
+		for (;;) {
+			const stateId = this.randomId();
+			if (!this.records.has(stateId)) return stateId;
+		}
 	}
 
 	set(record: StoredState<T>): void {

@@ -13,6 +13,6 @@
 
 `cursor_overlay`（默认 `true`）在指针动作时画一个不接收输入的 agent 光标。它不移动系统指针，也不延迟动作；`headless` 会关掉它。
 
-环境变量：`BCU_HEADLESS`、`BCU_CURSOR_OVERLAY` 接受 `1/0`、`true/false`、`yes/no`、`on/off`、`enabled/disabled`。`BCU_DELIVERY_POLICY`（`default` / `background` / `foreground` / `ax_only`）只用于诊断投递梯子，日常调用用 `headless`。
+环境变量：`BCU_HEADLESS`、`BCU_CURSOR_OVERLAY` 接受 `1/0`、`true/false`、`yes/no`、`on/off`、`enabled/disabled`。
 
 运行时路径：Broker socket `~/Library/Caches/bcu/broker.sock`，截图 `~/Library/Caches/bcu/shots/`，helper `/Applications/bcu.app`。Broker 按需启动，空闲 10 分钟退出。

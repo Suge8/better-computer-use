@@ -140,7 +140,6 @@ export interface RootInfo {
 	onscreen: boolean;
 	minimized: boolean;
 	modal: boolean;
-	pairing?: "exact" | "high" | "low";
 }
 
 export interface FindRootsResult {
@@ -239,7 +238,8 @@ export interface Verification {
 export interface ActResult {
 	stateId: string;
 	baseStateId: string;
-	outcome: "worked";
+	/** `unknown`: delivered, but no evidence could judge it; rendered as `unverified`. */
+	outcome: "worked" | "unknown";
 	verification: Verification;
 	delivery: string;
 	/** Roots the transaction opened: menus, sheets, dialogs and new windows. */

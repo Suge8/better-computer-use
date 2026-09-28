@@ -60,7 +60,7 @@ echo '[{"action":"press","ref":"@e12"}]' |
   bcu act-ui --state <stateId> --expect-text Saved --timeout 3000 -
 ```
 
-`act-ui` 返回的新 `stateId` 是下一次操作的输入，并只列出相对上一状态的变化。状态过期时重新执行 `observe-ui`。
+`act-ui` 返回的新 `stateId` 是下一次操作的输入，并只列出相对上一状态的变化。结果行的 `worked` 表示有证据证明动作生效；`unverified` 表示动作已投递但没有可读的证据（菜单命令、快捷键常见），退出码仍为 0，需要确认时加 `--expect-*`。只有被证明无效或后置条件未满足时才以 `action_failed` 失败。状态过期时重新执行 `observe-ui`。
 
 每条命令的完整参数用 `bcu <命令> --help` 查看，`--json` 返回同一份结果的结构化形式。
 

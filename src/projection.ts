@@ -180,7 +180,14 @@ function identifierName(node: OutlineNode): string {
 	return text && !isInternalIdentifier(text) ? text : "";
 }
 
-function capabilitiesOf(node: OutlineNode, role: string): Capability[] {
+function insideWebArea(node: OutlineNode | undefined): boolean {
+	for (let current = node; current; current = current.parent) {
+		if (current.role === "AXWebArea") return true;
+	}
+	return false;
+}
+
+function capabilitiesOf(node: OutlineNode, role: string, web: boolean): Capability[] {
 	const found = new Set<Capability>();
 	for (const action of node.actions) {
 		const capability = ACTION_CAPABILITIES[action.trim().toLowerCase()];
@@ -196,6 +203,12 @@ function capabilitiesOf(node: OutlineNode, role: string): Capability[] {
 		if (node.isTextInput) found.add("typeText");
 	}
 	if (TOGGLE_ROLES.has(role) && (found.delete("press") || node.canSetValue)) found.add("toggle");
+	// Chromium answers AXShowMenu on every web node and every menu item answers AXPick;
+	// neither opens anything an agent would choose.
+	if (web || role === "menuitem") found.delete("menu");
+	// Chromium exposes no scroll action on a web scroller, but makes one focusable when it
+	// holds nothing focusable itself; act-ui scrolls it with a wheel turn over it.
+	if (web && node.role !== "AXWebArea" && node.canFocus && !node.canPress && !node.canSetValue && !node.isTextInput) found.add("scroll");
 	return CAPABILITIES.filter((capability) => found.has(capability));
 }
 
@@ -229,11 +242,12 @@ function isTextLeaf(tree: ProjectedTree): boolean {
 	return tree.children.length === 0 && (tree.role === "text" || tree.role === "image");
 }
 
-function buildTrees(node: OutlineNode): ProjectedTree[] {
+function buildTrees(node: OutlineNode, insideWeb: boolean): ProjectedTree[] {
 	const role = roleWord(node);
 	if (DROPPED_ROLES.has(role)) return [];
-	const children = node.children.flatMap(buildTrees);
-	const caps = capabilitiesOf(node, role);
+	const web = insideWeb || node.role === "AXWebArea";
+	const children = node.children.flatMap((child) => buildTrees(child, web));
+	const caps = capabilitiesOf(node, role, web);
 	const state = stateOf(node);
 	const value = clean(node.value, MAX_VALUE_CHARS);
 	let name = nameOf(node) || (role === "text" ? value : "");
@@ -353,7 +367,7 @@ function subtreeSize(node: OutlineNode): number {
 
 export function project(outline: Outline, options: ProjectOptions = {}): Projection {
 	const start = options.from ?? outline.root;
-	const trees = buildTrees(start);
+	const trees = buildTrees(start, insideWebArea(start.parent));
 	const total = start === outline.root ? outline.nodes.length : subtreeSize(start);
 	const maxNodes = options.maxNodes ?? MAX_NODES;
 	const unfolded = defaultUnfolded(outline, options.unfold ?? []);

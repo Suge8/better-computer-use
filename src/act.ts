@@ -1,5 +1,5 @@
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction, validateActions, type ActionState, type PreparedAction } from "./actions.ts";
-import { getComputerUseConfig, isHeadlessMode } from "./config.ts";
+import { getComputerUseConfig } from "./config.ts";
 import type { ActParams, ActResult, UiAction, Verification } from "./contract.ts";
 import { BcuError, inFlightActionError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
@@ -32,16 +32,7 @@ const TEXT_DELIVERY_MS_PER_CHAR = 25;
 
 type NativePreparedAction = Exclude<PreparedAction, { action: "wait" }>;
 
-function currentDeliveryPolicy(): DeliveryPolicy {
-	if (isHeadlessMode()) return "background";
-	const value = (process.env.BCU_DELIVERY_POLICY ?? process.env.BCU_EVENT_DELIVERY ?? "default").toLowerCase();
-	return value === "background" || value === "pid" ? "background"
-		: value === "foreground" || value === "hid" ? "foreground"
-		: value === "ax_only" || value === "ax-only" ? "ax_only"
-		: "default";
-}
-
-function nativeInputDelivery(policy = currentDeliveryPolicy()): NativeInputDelivery {
+function nativeInputDelivery(policy: DeliveryPolicy): NativeInputDelivery {
 	return policy === "foreground" ? "hid" : "pid";
 }
 
@@ -52,7 +43,7 @@ function settleMsForExecution(execution: ExecutionTrace): number {
 	return execution.variant === "stealth" ? 120 : ACTION_SETTLE_MS;
 }
 
-function executionTraceFromAct(result: HelperActResult, policy = currentDeliveryPolicy()): ExecutionTrace {
+function executionTraceFromAct(result: HelperActResult, policy: DeliveryPolicy): ExecutionTrace {
 	return executionTrace("act", result.performed?.delivery === "ax" ? "stealth" : "default", {
 		outcome: result.outcome,
 		performed: result.performed,
@@ -65,7 +56,7 @@ function executionTraceFromAct(result: HelperActResult, policy = currentDelivery
 	});
 }
 
-function helperActRequest(target: ResolvedTarget, action: NativePreparedAction, policy = currentDeliveryPolicy()): ActRequest {
+function helperActRequest(target: ResolvedTarget, action: NativePreparedAction, policy: DeliveryPolicy): ActRequest {
 	const look = currentLookOrThrow();
 	const delivery = nativeInputDelivery(policy);
 	const base = { lookId: look.lookId, pid: target.pid, target: action.target, policy };
@@ -267,13 +258,11 @@ function descendants(node: ReturnType<typeof outlineNodeByRef>): ReturnType<type
 	return [node, ...node.children.flatMap(descendants)];
 }
 
+/** Only a proven no-op fails the transaction; an outcome nothing could judge is returned as unknown. */
 function actionFailure(execution: ExecutionTrace): BcuError {
 	const evidence = execution.evidence;
 	const unchanged = evidence?.field && evidence.from === evidence.to ? ` Its ${evidence.field} stayed ${JSON.stringify(evidence.from)}.` : "";
-	const message = execution.error?.message
-		?? (execution.outcome === "unknown"
-			? "The action outcome is unknown; bcu will not report it as success."
-			: `The action did not produce the requested result.${unchanged}`);
+	const message = execution.error?.message ?? `The action did not produce the requested result.${unchanged}`;
 	const delivered = execution.delivery ? ` It was delivered via ${execution.delivery}.` : "";
 	return new BcuError("action_failed", `${message}${delivered}`);
 }
@@ -307,12 +296,12 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 			target,
 			imageMode === "always",
 		);
-		execution.outcome = outcomeAfterObservedValues(execution.outcome ?? "unknown", executedActions, (ref) => nodeByRef(capture.outline, ref)?.value);
-		if (execution.outcome !== "worked") throw actionFailure(execution);
+		const outcome = outcomeAfterObservedValues(execution.outcome ?? "unknown", executedActions, (ref) => nodeByRef(capture.outline, ref)?.value);
+		if (outcome === "didnt") throw actionFailure(execution);
 		return {
 			stateId: capture.capture.stateId,
 			baseStateId,
-			outcome: "worked",
+			outcome,
 			verification,
 			delivery: execution.performed?.delivery ?? execution.delivery ?? "ax",
 			roots: execution.roots?.flatMap((root) => rootAppearance(root) ?? []),
