@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // The CLI failure surface: every helper error code has a public mapping, an unclassified
 // error stays internal_error, exit codes are contiguous, every command documents itself,
-// and invalid action payloads are rejected before anything is delivered.
+// and invalid action payloads are rejected before anything is delivered. A helper that
+// fails while act-ui is delivering tells the caller the action may already have landed.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -11,7 +12,9 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { validateActions } from "../src/actions.ts";
-import { ERROR_CODE_ALIASES, ERROR_DEFINITIONS, normalizeCliError } from "../src/errors.ts";
+import { BrokerCommandError } from "../src/client.ts";
+import { ERROR_CODE_ALIASES, ERROR_DEFINITIONS, inFlightActionError, normalizeCliError } from "../src/errors.ts";
+import { parseBrokerResponse } from "../src/ipc.ts";
 import { npmInvocation } from "./npm-invocation.mjs";
 
 const execFile = promisify(execFileCallback);
@@ -139,8 +142,22 @@ function assertFailure(result, code) {
 	assert.match(lines[1] ?? "", /^recovery: .+/, `${code} omitted recovery guidance`);
 }
 
+/** The act-ui guidance survives the broker hop, and no other command or code is affected. */
+function checkInFlightActionErrors() {
+	const lost = inFlightActionError(coded("helper_unavailable", "Daemon command 'act' timed out after 12000ms."));
+	assert.equal(lost.code, "helper_unavailable", "a helper lost mid-action changed its public code");
+	assert.match(lost.recovery, /may already have taken effect/i, "a helper lost mid-action does not warn that the action may have landed");
+	assert.match(lost.recovery, /observe/i, "a helper lost mid-action does not ask for a fresh observation");
+	assert.equal(inFlightActionError(coded("stale_ref")).recovery, ERROR_DEFINITIONS.element_not_found.recovery, "act-ui guidance leaked into another error code");
+	assert.equal(normalizeCliError(coded("helper_unavailable")).recovery, ERROR_DEFINITIONS.helper_unavailable.recovery, "act-ui guidance leaked into other commands");
+	const wire = parseBrokerResponse(JSON.parse(JSON.stringify({ id: "1", ok: false, error: { message: lost.message, code: lost.code, recovery: lost.recovery } })));
+	const received = normalizeCliError(new BrokerCommandError(wire.error.message, wire.error.code, wire.error.recovery));
+	assert.equal(received.recovery, lost.recovery, "the act-ui guidance was lost between broker and CLI");
+}
+
 checkErrorCodes();
 checkActionValidation();
+checkInFlightActionErrors();
 
 try {
 	const help = await run(["--help"]);
