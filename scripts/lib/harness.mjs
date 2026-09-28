@@ -1,5 +1,6 @@
 import { execFile as execFileCallback, spawn } from "node:child_process";
 import { once } from "node:events";
+import { createInterface } from "node:readline";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -130,29 +131,54 @@ export async function runSwiftReadyProbe(lines, args, description, { timeoutMs =
 	}
 }
 
-/** Compiles scripts/fixtures/<name>.swift and runs it until it prints `ready`. */
+/**
+ * Compiles scripts/fixtures/<name>.swift and runs it until it prints `ready`. `nextReady`
+ * resolves on the following `ready`, for fixtures that announce it more than once.
+ */
 async function launchSwiftFixture(directory, name, args, waiting) {
 	const binary = path.join(directory, name);
 	await execFile("xcrun", ["swiftc", path.join(repoRoot, "scripts", "fixtures", `${name}.swift`), "-o", binary], { timeout: 120_000 });
 	const child = spawn(binary, args, { stdio: ["ignore", "pipe", "ignore"] });
 	const exited = once(child, "exit");
-	let stdout = "";
-	child.stdout.setEncoding("utf8");
-	await withTimeout(Promise.race([
-		new Promise((resolve) => child.stdout.on("data", (chunk) => { stdout += chunk; if (stdout.includes("ready\n")) resolve(); })),
-		exited.then(([code, signal]) => { throw new Error(`the ${name} fixture exited before it was ready (${signal ?? code})`); }),
-	]), waiting, 15_000);
-	return { pid: child.pid, exited };
+	const lines = createInterface({ input: child.stdout });
+	const nextReady = (description) => withTimeout(Promise.race([
+		new Promise((resolve) => lines.on("line", function onLine(line) {
+			if (line !== "ready") return;
+			lines.off("line", onLine);
+			resolve();
+		})),
+		exited.then(([code, signal]) => { throw new Error(`the ${name} fixture exited (${signal ?? code})`); }),
+	]), description, 15_000);
+	await nextReady(waiting);
+	return { pid: child.pid, exited, nextReady };
 }
 
 /** Starts scripts/fixtures/drawn-buttons.swift, a window with no accessible content. */
-export function launchDrawnButtons(directory, logPath, title) {
-	return launchSwiftFixture(directory, "drawn-buttons", [logPath, title], "the drawn fixture window");
+export async function launchDrawnButtons(directory, logPath, title) {
+	const { pid, exited } = await launchSwiftFixture(directory, "drawn-buttons", [logPath, title], "the drawn fixture window");
+	return { pid, exited };
 }
 
-/** Starts scripts/fixtures/key-holder.swift, which takes the front and logs losing it. */
-export function launchKeyHolder(directory, logPath) {
-	return launchSwiftFixture(directory, "key-holder", [logPath], "the key holder to take the front");
+/**
+ * Starts scripts/fixtures/key-holder.swift, a stand-in for the user's front app that logs
+ * every loss of its key window or activation. `takeFront` hands it the front again and
+ * returns the lines it has logged so far.
+ */
+export async function launchKeyHolder(directory) {
+	const logPath = path.join(directory, "key-holder.log");
+	const holder = await launchSwiftFixture(directory, "key-holder", [logPath], "the key holder to take the front");
+	const logged = async () => (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
+	return {
+		pid: holder.pid,
+		exited: holder.exited,
+		logged,
+		async takeFront() {
+			const ready = holder.nextReady("the key holder to take the front back");
+			process.kill(holder.pid, "SIGUSR1");
+			await ready;
+			return await logged();
+		},
+	};
 }
 
 /** Opens a document in a dedicated TextEdit instance so live tests never touch the user's own windows. */

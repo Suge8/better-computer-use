@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Web content is driven in the background. A dedicated Google Chrome renders a local page;
-// every cell hands the foreground to Finder, runs one public `bcu act-ui`, and then asks
-// the page itself over the DevTools protocol whether the effect happened. Each cell holds
-// bcu to the background promise: the DOM changed, Finder is still frontmost, the real
-// pointer did not move, and the action was not delivered as foreground HID input.
+// every cell hands the front to a stand-in for the user's app, runs one public `bcu act-ui`,
+// and then asks the page itself over the DevTools protocol whether the effect happened.
+// Each cell holds bcu to the background promise: the DOM changed, the user's app is still
+// in front and never lost its key window or activation, the real pointer did not move,
+// and the action was not delivered as foreground HID input.
 // Elements that show no trace of a press are pressed exactly once and reported as a
 // failure that tells the caller to look before retrying, never replayed on a higher rung.
 import assert from "node:assert/strict";
@@ -12,7 +13,7 @@ import { once } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import { brokerEnvironment, buildBundle, killProcess, makeTemporaryRoot, runCli, withTimeout } from "./lib/harness.mjs";
+import { brokerEnvironment, buildBundle, killProcess, launchKeyHolder, makeTemporaryRoot, runCli, withTimeout } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP web background matrix (set BCU_LIVE=1)");
@@ -45,6 +46,7 @@ document.title = "bcu web fixture " + new URLSearchParams(location.search).get("
 const root = await makeTemporaryRoot("web-background");
 const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
 let chrome;
+let holder;
 
 /** Front application and real pointer, read by a process that is not bcu. */
 async function desktop() {
@@ -54,15 +56,6 @@ async function desktop() {
 		"JSON.stringify({ front: $.NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier, x: m.x, y: m.y })",
 	].join(";")]);
 	return JSON.parse(stdout);
-}
-
-async function frontFinder() {
-	await execFile("osascript", ["-l", "JavaScript", "-e", "Application('Finder').activate()"]);
-	const { stdout } = await execFile("pgrep", ["-x", "Finder"]);
-	const finder = Number(stdout.trim());
-	const now = await desktop();
-	assert.equal(now.front, finder, "Finder did not come to the front before the cell");
-	return now;
 }
 
 /** Sets `chrome` as soon as the process exists, so cleanup reaches a launch that fails halfway. */
@@ -196,11 +189,15 @@ const cells = [];
 async function cell(name, run) {
 	const failures = [];
 	try {
-		const before = await frontFinder();
+		const logged = (await holder.takeFront()).length;
+		const before = await desktop();
+		assert.equal(before.front, holder.pid, "the key holder did not take the front before the cell");
 		const { result, effect } = await run();
 		const after = await desktop();
 		if (!effect.ok) failures.push(`DOM effect missing: ${effect.detail}`);
 		if (after.front !== before.front) failures.push(`front app changed ${before.front} → ${after.front}`);
+		const lost = (await holder.logged()).slice(logged);
+		if (lost.length) failures.push(`the user's front app lost its key window or activation: ${lost.join(", ")}`);
 		if (after.x !== before.x || after.y !== before.y) failures.push(`real pointer moved (${before.x},${before.y}) → (${after.x},${after.y})`);
 		if (result.delivery === "hid") failures.push("delivered as foreground HID input");
 	} catch (error) {
@@ -216,6 +213,7 @@ async function act(stateId, actions) {
 
 try {
 	await buildBundle();
+	holder = await launchKeyHolder(root);
 	await fs.writeFile(path.join(root, "fixture.html"), FIXTURE_HTML);
 	await launchChrome(path.join(root, "profile"));
 	const pageA = await pageSession("A");
@@ -297,6 +295,7 @@ try {
 	pageB.close();
 } finally {
 	await stopChrome();
+	if (holder && killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });
 }
