@@ -107,11 +107,11 @@ async function helperAct(
 	try {
 		const initialPolicy = headless ? "ax_only" : "background";
 		const result = checkedActResult(await macosBackend.act(helperActRequest(target, action, initialPolicy), { signal, timeoutMs }));
-		if (canRetryInForeground(action, result.outcome, headless)) {
+		if (canRetryInForeground(result.outcome, headless)) {
 			const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
 			const trace = executionTraceFromAct(foreground, "foreground");
 			trace.escalatedToForeground = true;
-			trace.escalationReason = "side_effect_free_didnt";
+			trace.escalationReason = "background_didnt";
 			return trace;
 		}
 		return executionTraceFromAct(result, "background");

@@ -176,8 +176,10 @@ const preparedScroll = prepareAction({ action: "scroll", ref: editor.ref }, { cu
 assert.deepEqual(preparedScroll.params, { scrollX: 0, scrollY: 0 }, "omitted scroll deltas did not default to zero");
 const preparedWait = prepareAction({ action: "wait" }, { currentFocus: false }, actionEnv);
 assert.deepEqual(preparedWait.params, { ms: 1_000 }, "omitted wait.ms did not default to 1000ms");
-assert.equal(canRetryInForeground(preparedType, "didnt", false), true, "side-effect-free failed typing should retry in the foreground");
-assert.equal(canRetryInForeground(preparedClick, "unknown", false), false, "ambiguous pointer actions must not be replayed");
+// The ladder moves up only past a rung that provably changed nothing.
+assert.equal(canRetryInForeground("didnt", false), true, "a background rung that changed nothing did not hand over to the foreground");
+assert.equal(canRetryInForeground("unknown", false), false, "a delivered action of unknown effect must not be replayed");
+assert.equal(canRetryInForeground("didnt", true), false, "headless actions must never reach the foreground");
 assert.equal(outcomeAfterCheck("unknown", "verified"), "worked", "newly verified evidence did not prove the request worked");
 assert.equal(outcomeAfterCheck("unknown", "preexisting"), "unknown", "preexisting evidence incorrectly proved the request worked");
 assert.equal(outcomeAfterCheck("worked", "failed"), "didnt", "failed verification did not override delivery success");

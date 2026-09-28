@@ -216,8 +216,12 @@ export function prepareAction(action: UiAction, state: ActionState, env: ActionE
 	}
 }
 
-export function canRetryInForeground(action: PreparedAction, outcome: "worked" | "didnt" | "unknown", headless: boolean): boolean {
-	return !headless && outcome === "didnt" && (action.action === "typeText" || action.action === "keypress");
+/**
+ * A background rung that provably changed nothing hands the action to foreground input.
+ * `unknown` stays put: the rung delivered, and repeating it could apply the action twice.
+ */
+export function canRetryInForeground(outcome: "worked" | "didnt" | "unknown", headless: boolean): boolean {
+	return !headless && outcome === "didnt";
 }
 
 export function outcomeAfterCheck(current: "worked" | "didnt" | "unknown", check: "verified" | "preexisting" | "failed"): "worked" | "didnt" | "unknown" {

@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { HELPER_FRAMEWORKS, helperTargetTriple } from "./lib/helper-target.mjs";
+import { HELPER_FRAMEWORKS, HELPER_SOURCE_FILES, helperTargetTriple } from "./lib/helper-target.mjs";
 
 if (process.platform !== "darwin") {
 	console.log("SKIP native checks (macOS only)");
@@ -21,9 +21,7 @@ execFileSync("xcrun", [
 	"-module-cache-path", path.join(os.tmpdir(), `bcu-swift-typecheck-${process.arch}`),
 	...HELPER_FRAMEWORKS.flatMap((framework) => ["-framework", framework]),
 	"-typecheck",
-	"native/macos/agent_cursor.swift",
-	"native/macos/agent_cursor_motion.swift",
-	"native/macos/bridge.swift",
+	...HELPER_SOURCE_FILES.map((file) => `native/macos/${file}`),
 ], { cwd: root, stdio: "pipe" });
 
 const binary = path.join(os.tmpdir(), `bcu-cursor-tests-${process.pid}`);

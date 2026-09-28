@@ -369,7 +369,7 @@ final class InputSuppressionGuard {
 }
 
 final class Bridge {
-	private let protocolVersion = 8
+	private let protocolVersion = 9
 	private let cgMenuRefPrefix = "cgmenu:"
 	private let refStore = AXRefStore()
 	private let inputSuppressionGuard = InputSuppressionGuard()
@@ -1983,15 +1983,34 @@ final class Bridge {
 		var beforeEvidence: [String: String]?
 		var hitVerified = false
 		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
-		let eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
-		let beforeRootSnapshot = deferRootDelta ? [:] : rootMetadataSnapshot(pid: pid)
-		let beforeCgSignature = deferRootDelta ? [] : cgRootSignature(pid: pid)
 		let beforeFrontmostPid = deferRootDelta ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
-		let beforeSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
-		let beforeFocusedWindow = focusedWindowSummary(pid: pid)
+		var eventCursor: UInt64 = 0
+		var beforeRootSnapshot: [String: [String: Any]] = [:]
+		var beforeCgSignature: Set<UInt32> = []
+		var beforeSheetCount = 0
+		var beforeFocusedWindow = ""
+		/// The state the action's effect is measured against.
+		func takeBaseline() {
+			eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
+			beforeRootSnapshot = deferRootDelta ? [:] : rootMetadataSnapshot(pid: pid)
+			beforeCgSignature = deferRootDelta ? [] : cgRootSignature(pid: pid)
+			beforeSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
+			beforeFocusedWindow = focusedWindowSummary(pid: pid)
+			if let subject = element ?? evidenceElement { beforeEvidence = evidenceSnapshot(subject) }
+		}
+		takeBaseline()
 		func finish(_ response: [String: Any]) -> [String: Any] {
 			if deferRootDelta { return response }
 			return attachRootDelta(to: response, before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+		}
+		/// Input posted to a pid reaches only its key window. The handoff is taken into the
+		/// baseline, so it is never mistaken for the action's own effect.
+		func focusTargetForBackgroundInput() throws {
+			guard delivery == "pid", policy != "ax_only", !(params["preserveFocus"] as? Bool ?? false),
+				try focusWindowWithoutRaise(pid: pid, windowId: record.windowId)
+			else { return }
+			performed["focusedWindow"] = true
+			takeBaseline()
 		}
 
 		if let ref = target["ref"] as? String {
@@ -2095,6 +2114,7 @@ final class Bridge {
 			if delivery == "pid" { performed["verification"] = "caller_required" }
 			acquirePhysicalInputIfNeeded()
 			focusTargetForPhysicalInput()
+			try focusTargetForBackgroundInput()
 			if delivery == "hid" { try preflight(point) }
 			// A bare coordinate still lands on an element; binding it now is what lets the
 			// outcome be judged on the thing that was actually hit.
@@ -2106,7 +2126,7 @@ final class Bridge {
 			switch action {
 			case "press", "click":
 				animateCursor(at: point)
-				try postMouseClick(at: point, pid: pid, button: mouseButton(params["button"] as? String ?? "left"), clickCount: max(1, min(3, (params["clickCount"] as? NSNumber)?.intValue ?? 1)), delivery: delivery)
+				try postMouseClick(at: point, pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin, button: mouseButton(params["button"] as? String ?? "left"), clickCount: max(1, min(3, (params["clickCount"] as? NSNumber)?.intValue ?? 1)), delivery: delivery)
 			case "moveMouse":
 				animateCursor(at: point)
 				try postMouseMove(to: point, pid: pid, delivery: delivery)
@@ -2139,10 +2159,45 @@ final class Bridge {
 			return refreshed
 		}
 
+		/// Judges the outcome on the evidence rules; see docs/architecture.md.
+		func verdict() -> [String: Any] {
+			let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
+			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
+			var outcome = "unknown"
+			var verification: [String: Any]?
+			// The element that was acted on speaks first: its own value, selection or focus
+			// moving is proof no window-level summary can contradict.
+			if let subject = element ?? evidenceElement, let before = beforeEvidence {
+				let after = evidenceAfterAction(subject, before: before, timeout: 0.25)
+				if let after, let difference = evidenceDifference(before: before, after: after) {
+					outcome = "worked"
+					verification = difference
+				} else if pressLike, hitVerified, after?["focused"] == "1" {
+					// The pointer provably reached this element and it now holds keyboard focus:
+					// a click that only places a caret leaves no other trace.
+					outcome = "worked"
+					verification = ["source": "focus", "field": "focused"]
+				} else if pressLike, after != nil, before["value"] != nil, isToggleLike(subject) {
+					outcome = "didnt"
+					verification = ["source": "ax", "field": "value", "from": evidenceExcerpt(before["value"] ?? ""), "to": evidenceExcerpt(before["value"] ?? "")]
+				}
+			}
+			if outcome == "unknown", windowChanged {
+				outcome = "worked"
+				verification = ["source": "root"]
+			}
+			var response: [String: Any] = ["outcome": outcome, "performed": performed]
+			if let verification { response["verification"] = verification }
+			return response
+		}
+
 		if let element, pressLike {
 			let elementRole = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 			let textRoles: Set<String> = ["AXTextField", "AXTextArea", "AXTextView", "AXSearchField", "AXComboBox", "AXEditableText", "AXSecureTextField"]
-			let requiresPointerFocus = hasAncestorRole(element, role: "AXWebArea") || textRoles.contains(elementRole)
+			let inWebContent = hasAncestorRole(element, role: "AXWebArea")
+			// Native text views place the caret only under a real pointer; Chromium's
+			// AXPress focuses a web text field by itself.
+			let requiresPointerFocus = textRoles.contains(elementRole) && !inWebContent
 			// Only the frontmost app owns the menu bar. A background app accepts the press and
 			// does nothing with it, so activation is a precondition, not a fallback.
 			let requiresFrontmost = elementRole == "AXMenuBarItem" && !(NSRunningApplication(processIdentifier: pid)?.isActive ?? false)
@@ -2153,7 +2208,7 @@ final class Bridge {
 				if policy == "foreground" {
 					try executeCoordinates(coordinatePoint())
 				} else {
-					throw BridgeFailure(message: "Web content requires pointer input", code: "foreground_required")
+					throw BridgeFailure(message: "Text input needs the real pointer to place its caret", code: "foreground_required")
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { activateForMenuBar(element) }
@@ -2166,6 +2221,13 @@ final class Bridge {
 					performed["grounding"] = "description"
 					performed["delivery"] = "ax"
 					if let cursorPoint { animateCursor(at: cursorPoint) }
+					// Only a press that provably changed nothing moves on to raw input. An
+					// unknown one stays put: Chromium's AXPress already dispatches mousedown,
+					// mouseup and click, so pressing again would apply the action twice.
+					let axVerdict = verdict()
+					if policy == "ax_only" || (axVerdict["outcome"] as? String) != "didnt" { return finish(axVerdict) }
+					performed["delivery"] = delivery
+					try executeCoordinates(coordinatePoint())
 				} else {
 					try executeCoordinates(coordinatePoint())
 				}
@@ -2174,32 +2236,6 @@ final class Bridge {
 			}
 		} else if let element, action == "setText" {
 			let text = params["text"] as? String ?? ""
-			if hasAncestorRole(element, role: "AXWebArea") {
-				acquirePhysicalInputIfNeeded()
-				focusTargetForPhysicalInput()
-				_ = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-				let currentValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
-				var range = CFRange(location: 0, length: (currentValue as NSString).length)
-				let selected = AXValueCreate(.cfRange, &range).map {
-					AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, $0) == .success
-				} ?? false
-				if !selected {
-					try postKeyPress(keys: ["cmd", "a"], pid: pid, delivery: delivery)
-					usleep(20_000)
-				}
-				try postAtomicUnicodeText(text, pid: pid, delivery: delivery)
-				usleep(40_000)
-				let verificationElement = refreshElement() ?? element
-				let value = stringAttribute(verificationElement, attribute: kAXValueAttribute as CFString) ?? ""
-				performed["grounding"] = "keyboard-events"
-				performed["delivery"] = delivery
-				performed["selectionGrounding"] = selected ? "ax" : "keyboard"
-				return finish([
-					"outcome": value == text ? "worked" : "didnt",
-					"performed": performed,
-					"verification": ["source": "ax", "field": "value", "from": evidenceExcerpt(currentValue), "to": evidenceExcerpt(value)],
-				])
-			}
 			var targetElement = element
 			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
 			if status != .success, let refreshed = refreshElement() {
@@ -2222,6 +2258,7 @@ final class Bridge {
 			try executeCoordinates(coordinatePoint())
 		} else if action == "typeText" {
 			let preserveFocus = params["preserveFocus"] as? Bool ?? false
+			try focusTargetForBackgroundInput()
 			if let element {
 				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
 				if focused == .success { performed["focused"] = true }
@@ -2246,6 +2283,7 @@ final class Bridge {
 			guard let keys = params["keys"] as? [String], !keys.isEmpty else {
 				throw BridgeFailure(message: "keypress requires keys", code: "invalid_args")
 			}
+			try focusTargetForBackgroundInput()
 			if let element {
 				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
 				if focused == .success { performed["focused"] = true }
@@ -2284,34 +2322,7 @@ final class Bridge {
 			try executeCoordinates(coordinatePoint())
 		}
 
-		let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
-		let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
-		var outcome = "unknown"
-		var verification: [String: Any]?
-		// The element that was acted on speaks first: its own value, selection or focus
-		// moving is proof no window-level summary can contradict.
-		if let subject = element ?? evidenceElement, let before = beforeEvidence {
-			let after = evidenceAfterAction(subject, before: before, timeout: 0.25)
-			if let after, let difference = evidenceDifference(before: before, after: after) {
-				outcome = "worked"
-				verification = difference
-			} else if pressLike, hitVerified, after?["focused"] == "1" {
-				// The pointer provably reached this element and it now holds keyboard focus:
-				// a click that only places a caret leaves no other trace.
-				outcome = "worked"
-				verification = ["source": "focus", "field": "focused"]
-			} else if pressLike, after != nil, before["value"] != nil, isToggleLike(subject) {
-				outcome = "didnt"
-				verification = ["source": "ax", "field": "value", "from": evidenceExcerpt(before["value"] ?? ""), "to": evidenceExcerpt(before["value"] ?? "")]
-			}
-		}
-		if outcome == "unknown", windowChanged {
-			outcome = "worked"
-			verification = ["source": "root"]
-		}
-		var response: [String: Any] = ["outcome": outcome, "performed": performed]
-		if let verification { response["verification"] = verification }
-		return finish(response)
+		return finish(verdict())
 	}
 
 	private func actBatch(_ request: [String: Any]) throws -> [String: Any] {
@@ -3509,25 +3520,36 @@ final class Bridge {
 		return output.value
 	}
 
-	private func eventDelivery(_ request: [String: Any]) -> String {
-		optionalStringArg(request, "delivery") == "pid" ? "pid" : "hid"
+	/// Input posted to a pid lands in its key window. Returns whether a handoff was needed;
+	/// throws when the window did not become key, because the input would land elsewhere.
+	private func focusWindowWithoutRaise(pid: Int32, windowId: UInt32) throws -> Bool {
+		guard windowId != 0, let window = resolveRoot(pid: pid, windowId: windowId) else { return false }
+		let app = AXUIElementCreateApplication(pid)
+		func keyWindow() -> AXUIElement? { copyAttribute(app, attribute: kAXFocusedWindowAttribute as CFString).flatMap(asAXElement) }
+		func isKey() -> Bool { keyWindow().map { sameElement($0, window) } ?? false }
+		let current = keyWindow()
+		if isKey() { return false }
+		try SkyLight.makeKeyWithoutRaise(windowId: windowId, currentKey: current.flatMap { pairingForWindow($0, pid: pid).candidate?.windowId })
+		let deadline = Date().addingTimeInterval(0.5)
+		while !isKey() {
+			guard Date() < deadline else {
+				throw BridgeFailure(message: "Window \(windowId) did not become the key window of its app", code: "foreground_required")
+			}
+			usleep(20_000)
+		}
+		return true
 	}
 
-	private func postEvent(_ event: CGEvent, pid: Int32, delivery: String = "hid") {
+	private func postEvent(_ event: CGEvent, pid: Int32, delivery: String = "hid") throws {
 		if delivery == "pid" {
-			event.postToPid(pid)
+			try SkyLight.post(event, to: pid)
 			return
 		}
 		// Post as a real foreground HID event. AppKit views with mouseDown handlers
-		// can ignore pid-targeted CGEvents even though postToPid reports success.
-		// Keep the target app frontmost so the HID event is delivered to the intended
-		// window, then post at the session event tap.
+		// can ignore pid-targeted CGEvents, so keep the target app frontmost and post
+		// at the session event tap.
 		if let app = NSRunningApplication(processIdentifier: pid), !app.isActive {
-			if #available(macOS 14.0, *) {
-				_ = app.activate()
-			} else {
-				_ = app.activate(options: [.activateIgnoringOtherApps])
-			}
+			_ = app.activate()
 			usleep(20_000)
 		}
 		event.post(tap: .cghidEventTap)
@@ -3539,7 +3561,7 @@ final class Bridge {
 		guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else {
 			throw BridgeFailure(message: "Failed to create mouse move event", code: "input_failed")
 		}
-		postEvent(move, pid: pid, delivery: delivery)
+		try postEvent(move, pid: pid, delivery: delivery)
 	}
 
 	private func mouseButton(_ name: String) -> CGMouseButton {
@@ -3586,9 +3608,13 @@ final class Bridge {
 		}
 	}
 
-	private func postMouseClick(at point: CGPoint, pid: Int32, button: CGMouseButton = .left, clickCount: Int = 1, delivery: String = "hid") throws {
-		if delivery == "hid" { physicalInputLock.lock() }
-		defer { if delivery == "hid" { physicalInputLock.unlock() } }
+	private func postMouseClick(at point: CGPoint, pid: Int32, windowId: UInt32, windowOrigin: CGPoint, button: CGMouseButton = .left, clickCount: Int = 1, delivery: String = "hid") throws {
+		if delivery == "pid" {
+			try SkyLight.click(at: point, pid: pid, windowId: windowId, windowOrigin: windowOrigin, button: button, clickCount: clickCount)
+			return
+		}
+		physicalInputLock.lock()
+		defer { physicalInputLock.unlock() }
 		try postMouseMove(to: point, pid: pid, delivery: delivery)
 		for index in 1...max(1, clickCount) {
 			guard let down = CGEvent(mouseEventSource: nil, mouseType: mouseDownType(for: button), mouseCursorPosition: point, mouseButton: button),
@@ -3598,9 +3624,9 @@ final class Bridge {
 			}
 			down.setIntegerValueField(.mouseEventClickState, value: Int64(index))
 			up.setIntegerValueField(.mouseEventClickState, value: Int64(index))
-			postEvent(down, pid: pid, delivery: delivery)
+			try postEvent(down, pid: pid, delivery: delivery)
 			usleep(12_000)
-			postEvent(up, pid: pid, delivery: delivery)
+			try postEvent(up, pid: pid, delivery: delivery)
 			if index < clickCount {
 				usleep(70_000)
 			}
@@ -3617,14 +3643,14 @@ final class Bridge {
 		guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: first, mouseButton: .left) else {
 			throw BridgeFailure(message: "Failed to create mouse down event", code: "input_failed")
 		}
-		postEvent(down, pid: pid, delivery: delivery)
+		try postEvent(down, pid: pid, delivery: delivery)
 		usleep(12_000)
 
 		for point in points.dropFirst() {
 			guard let drag = CGEvent(mouseEventSource: nil, mouseType: mouseDraggedType(for: .left), mouseCursorPosition: point, mouseButton: .left) else {
 				throw BridgeFailure(message: "Failed to create mouse drag event", code: "input_failed")
 			}
-			postEvent(drag, pid: pid, delivery: delivery)
+			try postEvent(drag, pid: pid, delivery: delivery)
 			usleep(8_000)
 		}
 
@@ -3633,7 +3659,7 @@ final class Bridge {
 		else {
 			throw BridgeFailure(message: "Failed to create mouse up event", code: "input_failed")
 		}
-		postEvent(up, pid: pid, delivery: delivery)
+		try postEvent(up, pid: pid, delivery: delivery)
 	}
 
 	private func postScrollWheel(at point: CGPoint, deltaX: Int, deltaY: Int, pid: Int32, delivery: String = "hid") throws {
@@ -3651,7 +3677,7 @@ final class Bridge {
 			throw BridgeFailure(message: "Failed to create scroll event", code: "input_failed")
 		}
 		event.location = point
-		postEvent(event, pid: pid, delivery: delivery)
+		try postEvent(event, pid: pid, delivery: delivery)
 	}
 
 	private func modifierFlag(_ key: String) -> CGEventFlags? {
@@ -3741,8 +3767,8 @@ final class Bridge {
 		}
 		down.flags = flags
 		up.flags = flags
-		postEvent(down, pid: pid, delivery: delivery)
-		postEvent(up, pid: pid, delivery: delivery)
+		try postEvent(down, pid: pid, delivery: delivery)
+		try postEvent(up, pid: pid, delivery: delivery)
 		usleep(8_000)
 	}
 
@@ -3762,23 +3788,10 @@ final class Bridge {
 			}
 			setUnicodeString(event: down, text: char)
 			setUnicodeString(event: up, text: char)
-			postEvent(down, pid: pid, delivery: delivery)
-			postEvent(up, pid: pid, delivery: delivery)
+			try postEvent(down, pid: pid, delivery: delivery)
+			try postEvent(up, pid: pid, delivery: delivery)
 			usleep(8_000)
 		}
-	}
-
-	private func postAtomicUnicodeText(_ text: String, pid: Int32, delivery: String = "hid") throws {
-		if delivery == "hid" { physicalInputLock.lock() }
-		defer { if delivery == "hid" { physicalInputLock.unlock() } }
-		guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
-			let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
-		else { throw BridgeFailure(message: "Failed to create unicode text event", code: "input_failed") }
-		setUnicodeString(event: down, text: text)
-		setUnicodeString(event: up, text: text)
-		postEvent(down, pid: pid, delivery: delivery)
-		usleep(8_000)
-		postEvent(up, pid: pid, delivery: delivery)
 	}
 
 	/// Prefer physical key codes for characters represented by the US layout.

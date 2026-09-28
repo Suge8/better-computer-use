@@ -10,6 +10,6 @@
 - `src/act.ts`：动作事务、投递梯子、后置条件校验与后继状态。
 - `src/actions.ts`、`src/view.ts`、`src/state.ts`、`src/runtime.ts`：动作校验与准备、状态间差异、保存状态与资源调度。
 - `src/macos/`：macOS helper 客户端、backend 与 helper 线协议。
-- `native/macos/`：Swift helper（Accessibility、ScreenCaptureKit、输入投递、agent 光标）。
+- `native/macos/`：Swift helper（Accessibility、ScreenCaptureKit、输入投递、agent 光标）；`skylight.swift` 是后台原始输入所用的 SkyLight 私有接口。
 - `skills/better-computer-use/SKILL.md`：Agent Skill 源文件，`~/.agents/skills/operations/better-computer-use` 软链到它。
 - `scripts/`：构建、打包与行为门；每个 `check-*.mjs` 文件头写明它保护什么，共享脚手架在 `scripts/lib/`，真机 outline fixture 在 `scripts/fixtures/`。

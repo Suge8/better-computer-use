@@ -1,0 +1,188 @@
+import AppKit
+import CoreGraphics
+import Darwin
+
+/// Background input through private SkyLight entry points, ported from trycua/cua (MIT).
+///
+/// The public `CGEvent.postToPid` skips WindowServer's activity-monitor tickle, so
+/// Chromium does not treat those events as live input. `SLEventPostToPid` takes the
+/// same route a real device does, and on macOS 14+ keyboard events additionally need an
+/// `SLSEventAuthenticationMessage` before Chromium accepts them.
+enum SkyLight {
+	private typealias PostToPid = @convention(c) (pid_t, CGEvent) -> Void
+	private typealias SetIntegerField = @convention(c) (CGEvent, UInt32, Int64) -> Void
+	private typealias SetWindowLocation = @convention(c) (CGEvent, CGPoint) -> Void
+	private typealias SetAuthenticationMessage = @convention(c) (CGEvent, AnyObject) -> Void
+	private typealias AuthenticationFactory = @convention(c) (AnyClass, Selector, UnsafeMutableRawPointer, Int32, UInt32) -> Unmanaged<AnyObject>?
+	private typealias MainConnection = @convention(c) () -> UInt32
+	private typealias WindowOwner = @convention(c) (UInt32, UInt32, UnsafeMutablePointer<UInt32>) -> Int32
+	private typealias ConnectionPSN = @convention(c) (UInt32, UnsafeMutablePointer<ProcessSerialNumber>) -> Int32
+	private typealias PostEventRecord = @convention(c) (UnsafePointer<ProcessSerialNumber>, UnsafePointer<UInt8>) -> Int32
+
+	private struct Symbols {
+		let postToPid: PostToPid
+		let setIntegerField: SetIntegerField
+		let setWindowLocation: SetWindowLocation
+		let setAuthenticationMessage: SetAuthenticationMessage
+		let messageSend: AuthenticationFactory
+		let mainConnection: MainConnection
+		let windowOwner: WindowOwner
+		let connectionPSN: ConnectionPSN
+		let postEventRecord: PostEventRecord
+	}
+
+	private static let symbols: Symbols? = {
+		_ = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY | RTLD_GLOBAL)
+		func resolve<T>(_ name: String, as _: T.Type) -> T? {
+			guard let pointer = dlsym(UnsafeMutableRawPointer(bitPattern: -2), name) else { return nil }
+			return unsafeBitCast(pointer, to: T.self)
+		}
+		guard let postToPid = resolve("SLEventPostToPid", as: PostToPid.self),
+			let setIntegerField = resolve("SLEventSetIntegerValueField", as: SetIntegerField.self),
+			let setWindowLocation = resolve("CGEventSetWindowLocation", as: SetWindowLocation.self),
+			let setAuthenticationMessage = resolve("SLEventSetAuthenticationMessage", as: SetAuthenticationMessage.self),
+			let messageSend = resolve("objc_msgSend", as: AuthenticationFactory.self),
+			let mainConnection = resolve("CGSMainConnectionID", as: MainConnection.self),
+			let windowOwner = resolve("SLSGetWindowOwner", as: WindowOwner.self),
+			let connectionPSN = resolve("SLSGetConnectionPSN", as: ConnectionPSN.self),
+			let postEventRecord = resolve("SLPSPostEventRecordTo", as: PostEventRecord.self)
+		else { return nil }
+		return Symbols(postToPid: postToPid, setIntegerField: setIntegerField, setWindowLocation: setWindowLocation, setAuthenticationMessage: setAuthenticationMessage, messageSend: messageSend, mainConnection: mainConnection, windowOwner: windowOwner, connectionPSN: connectionPSN, postEventRecord: postEventRecord)
+	}()
+
+	private static func require() throws -> Symbols {
+		guard let symbols else {
+			throw BridgeFailure(message: "Background input is unavailable: SkyLight entry points did not resolve on this macOS", code: "foreground_required")
+		}
+		return symbols
+	}
+
+	/// Raw SkyLight mouse fields Chromium reads to route and trust a pid-posted gesture.
+	private enum Field {
+		static let phase: UInt32 = 0
+		static let clickState: UInt32 = 1
+		static let buttonNumber: UInt32 = 3
+		static let subtype: UInt32 = 7
+		static let targetPid: UInt32 = 40
+		static let windowNumber: UInt32 = 51
+		static let clickGroup: UInt32 = 58
+		static let windowUnderPointer: UInt32 = 91
+		static let windowThatCanHandle: UInt32 = 92
+	}
+	private static let touchSubtype: Int64 = 3
+	/// Where the activation primer lands: outside every window, so it hits no DOM element.
+	private static let offscreen = CGPoint(x: -1, y: -1)
+
+	static func post(_ event: CGEvent, to pid: pid_t) throws {
+		let symbols = try require()
+		if [.keyDown, .keyUp, .flagsChanged].contains(event.type), !event.flags.contains(.maskCommand) {
+			authenticate(event, pid: pid, symbols: symbols)
+		}
+		symbols.postToPid(pid, event)
+	}
+
+	/// Menu key equivalents only fire through the unauthenticated route, which is why
+	/// command chords skip the envelope. `messageWithEventRecord:pid:version:` exists from
+	/// macOS 15; without it the event still posts, unauthenticated.
+	private static func authenticate(_ event: CGEvent, pid: pid_t, symbols: Symbols) {
+		let selector = NSSelectorFromString("messageWithEventRecord:pid:version:")
+		guard let factory = NSClassFromString("SLSEventAuthenticationMessage"),
+			class_respondsToSelector(object_getClass(factory), selector),
+			let record = eventRecord(event),
+			let message = symbols.messageSend(factory, selector, record, pid, 0)?.takeUnretainedValue()
+		else { return }
+		symbols.setAuthenticationMessage(event, message)
+	}
+
+	/// `__CGEvent` is `{CFRuntimeBase, uint32_t, SLSEventRecord *}`; the record pointer
+	/// moved between releases, so the known offsets are probed in order.
+	private static func eventRecord(_ event: CGEvent) -> UnsafeMutableRawPointer? {
+		let base = Unmanaged.passUnretained(event).toOpaque()
+		for offset in [24, 32, 16] {
+			if let record = base.load(fromByteOffset: offset, as: UnsafeMutableRawPointer?.self) { return record }
+		}
+		return nil
+	}
+
+	/// One Chromium-trusted click: a move to the target, a primer press outside every
+	/// window that satisfies the user-activation gate without touching the page, then the
+	/// real presses. Every event carries the target pid and window so WindowServer routes
+	/// it to a window that is neither frontmost nor under the real pointer; the window
+	/// location is relative to the window's top-left corner.
+	static func click(at point: CGPoint, pid: pid_t, windowId: UInt32, windowOrigin: CGPoint, button: CGMouseButton, clickCount: Int) throws {
+		let symbols = try require()
+		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)
+		let (down, up) = mouseTypes(button)
+		func send(_ type: CGEventType, at location: CGPoint, phase: Int64, clickState: Int64) throws {
+			guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: location, mouseButton: button) else {
+				throw BridgeFailure(message: "Failed to create mouse event", code: "input_failed")
+			}
+			let fields: [(UInt32, Int64)] = [
+				(Field.phase, phase), (Field.clickState, clickState), (Field.buttonNumber, Int64(button.rawValue)),
+				(Field.subtype, touchSubtype), (Field.targetPid, Int64(pid)), (Field.windowNumber, Int64(windowId)),
+				(Field.windowUnderPointer, Int64(windowId)), (Field.windowThatCanHandle, Int64(windowId)), (Field.clickGroup, group),
+			]
+			for (field, value) in fields { symbols.setIntegerField(event, field, value) }
+			symbols.setWindowLocation(event, location == offscreen ? offscreen : CGPoint(x: location.x - windowOrigin.x, y: location.y - windowOrigin.y))
+			symbols.postToPid(pid, event)
+		}
+		try send(.mouseMoved, at: point, phase: 2, clickState: 0)
+		usleep(15_000)
+		try send(down, at: offscreen, phase: 1, clickState: 1)
+		usleep(1_000)
+		try send(up, at: offscreen, phase: 2, clickState: 1)
+		usleep(100_000)
+		for index in 1...max(1, clickCount) {
+			try send(down, at: point, phase: 3, clickState: Int64(index))
+			usleep(1_000)
+			try send(up, at: point, phase: 3, clickState: Int64(index))
+			if index < clickCount { usleep(80_000) }
+		}
+	}
+
+	private static func mouseTypes(_ button: CGMouseButton) -> (CGEventType, CGEventType) {
+		switch button {
+		case .right: return (.rightMouseDown, .rightMouseUp)
+		case .center: return (.otherMouseDown, .otherMouseUp)
+		default: return (.leftMouseDown, .leftMouseUp)
+		}
+	}
+
+	/// Makes `windowId` the key window of its own process without activating the process
+	/// or reordering any window: keyboard input posted to a pid goes to its key window.
+	/// This is yabai's focus-without-raise recipe minus its front-process switch: move the
+	/// process's focus from `currentKey` to the window, then send the make-key pair.
+	static func makeKeyWithoutRaise(windowId: UInt32, currentKey: UInt32?) throws {
+		let symbols = try require()
+		var owner: UInt32 = 0
+		var psn = ProcessSerialNumber()
+		guard symbols.windowOwner(symbols.mainConnection(), windowId, &owner) == 0,
+			symbols.connectionPSN(owner, &psn) == 0
+		else {
+			throw BridgeFailure(message: "Could not resolve the process of window \(windowId)", code: "foreground_required")
+		}
+		// 248-byte Carbon event records: size at 0x04, kind at 0x08, window at 0x3c.
+		func post(window: UInt32, kind: UInt8, _ fill: (inout [UInt8]) -> Void) throws {
+			var record = [UInt8](repeating: 0, count: 0xF8)
+			record[0x04] = 0xF8
+			record[0x08] = kind
+			withUnsafeBytes(of: window.littleEndian) { record.replaceSubrange(0x3C..<0x40, with: $0) }
+			fill(&record)
+			guard symbols.postEventRecord(&psn, record) == 0 else {
+				throw BridgeFailure(message: "WindowServer refused to focus window \(windowId)", code: "foreground_required")
+			}
+		}
+		if let currentKey {
+			try post(window: currentKey, kind: 0x0D) { $0[0x8A] = 0x02 }
+			// Some apps drop the focus half when both arrive in the same instant.
+			usleep(10_000)
+			try post(window: windowId, kind: 0x0D) { $0[0x8A] = 0x01 }
+		}
+		for kind: UInt8 in [0x01, 0x02] {
+			try post(window: windowId, kind: kind) { record in
+				record[0x3A] = 0x10
+				record.replaceSubrange(0x20..<0x30, with: repeatElement(0xFF, count: 0x10))
+			}
+		}
+	}
+}

@@ -160,11 +160,19 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 同一个动作按代价从低到高投递，越靠前越不打扰用户：
 
-1. 后台无障碍语义（`ax_only`）——直接对元素执行 AX 动作，不激活窗口、不动指针；文本输入等需要真实指针焦点的角色由 helper 判定并要求升级，元素身份始终跟着动作走，动作结果才有证据可依；
-2. 后台原始输入（`pid`）——把事件投递给目标进程，仍不抢前台；
+1. 后台无障碍语义（`ax_only`）——直接对元素执行 AX 动作，不激活窗口、不动指针；原生文本视图等需要真实指针放置插入点的角色由 helper 判定并要求升级，元素身份始终跟着动作走，动作结果才有证据可依；
+2. 后台原始输入（`pid`）——经 SkyLight 私有接口 `SLEventPostToPid` 把事件投递给目标进程（移植自 [trycua/cua](https://github.com/trycua/cua)，MIT），不抢前台、不动真实指针、不改窗口层叠；
 3. 前台原始输入（`hid`）——激活窗口后走系统事件流，只在前两级失败或动作本身需要真实焦点时使用。
 
-升级只在安全时发生：`didnt` 且动作无副作用（打字、按键），或 helper 明确要求 `foreground_required`。`headless` 把梯子钉死在第一级。
+升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或 helper 明确要求 `foreground_required`，才交给下一级。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次。`headless` 把梯子钉死在第一级。
+
+第二级为什么用私有接口：公开的 `CGEvent.postToPid` 不经过 WindowServer 的活动监视，Chromium 不把这类事件当真实输入。SkyLight 这一级做三件事：
+
+- 键盘事件在 macOS 15+ 附上 `SLSEventAuthenticationMessage`（Chromium 据此信任后台按键）；带 command 的组合键不附，否则会绕过菜单快捷键的派发路径；
+- 点击按 Chromium 配方投递：先在目标点发 mouseMoved，再在屏外 (-1,-1) 按下抬起一次通过用户激活检查，最后在目标点按下抬起；每个事件写入目标 pid、窗口 id 与同一个点击组 id，窗口坐标相对窗口左上角；
+- 投递给进程的输入只到达它的 key window。目标窗口不是 key window 时，先向该进程发 yabai 的 focus-without-raise 事件记录（`SLPSPostEventRecordTo`），让它成为 key window 而不激活应用、不置顶窗口；这次切换计入动作前的基线，不会被当成动作本身的效果。
+
+任一私有符号解析失败时，第二级直接返回 `foreground_required`，没有公开接口的回退路径。
 
 ## Action transaction
 
@@ -190,7 +198,8 @@ helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证�
 
 ## 已知局限
 
-- Electron/Chromium 窗口常常拒收后台原始输入，动作会回落到前台投递。若同类应用反复回落，考虑用 SkyLight 的 `SLEventPostToPid` 直接投递到进程，再评估是否值得引入私有 API。
+- 网页内容里判定只看无障碍证据。Chromium 的 AXPress 会派发 mousedown、mouseup 与 click，可聚焦的元素随之获得焦点，这就是按下的证据；不可聚焦、按下后自身无变化的元素结果是 `unknown`，调用方用 `--expect-*` 表达完成条件或重新观察。
+- 第二级依赖未公开的 SkyLight 接口，macOS 升级可能改变它们的行为；`BCU_LIVE=1 node scripts/check-web-background.mjs` 在真实 Chrome 上逐格验证按钮、输入框、打字、按键和多窗口打字都在后台完成。
 
 ## 测量
 
@@ -210,7 +219,7 @@ time bcu observe-ui --app TextEdit
 
 ## 浏览器窗口
 
-浏览器窗口是普通的 AX 窗口，没有专用代码路径。页面级自动化由 `better-browser-use` 负责。
+浏览器窗口是普通的 AX 窗口，没有专用代码路径：网页里的按钮、输入框、打字和按键走同一条投递梯子，在后台完成。页面级自动化（DOM、网络、脚本）由 `better-browser-use` 负责。
 
 ## 结果契约
 
