@@ -92,6 +92,7 @@ bcu stop          # 停止 Broker；macOS helper 保留授权身份并继续按�
 - [架构](./docs/architecture.md)
 - [开发](./docs/development.md)
 - [ADR：把上游 macOS engine 当引擎参考](./docs/adr/0001-upstream-tracking-fork.md)
+- [ADR：运行时收口为一个 Swift 进程](./docs/adr/0002-single-swift-process.md)
 
 ## License
 
