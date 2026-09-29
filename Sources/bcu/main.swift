@@ -1,2 +1,6 @@
 // `bcu <command>` is the client; `bcu serve` is the resident process inside bcu.app.
-// Filled by the executable work of ADR 0002 step 2.
+import Foundation
+
+let arguments = Array(CommandLine.arguments.dropFirst())
+if arguments == ["serve"] { serve() }
+exit(runClient(arguments))
