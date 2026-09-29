@@ -31,6 +31,8 @@ public struct ProjectedNode: Codable, Sendable, Equatable {
 	public var depth: Int
 	public var parent: String?
 	public var hidden: HiddenSummary?
+	/// Text lines a text input folds away: its value already says them, read-text reads them in full.
+	public var lines: Int?
 }
 
 public struct Projection: Sendable {
@@ -148,6 +150,7 @@ private struct Tree {
 	var owners = OrderedMap<String>()
 	/// Outline refs this node speaks for: itself plus everything merged into it.
 	var refs: [String]
+	var lines: Int?
 
 	var isTextLeaf: Bool { children.isEmpty && (role == "text" || role == "image") }
 }
@@ -270,6 +273,37 @@ private func delegate(_ target: Tree, _ sources: [Tree]) -> OrderedMap<String> {
 	return owners
 }
 
+/// A subtree that says nothing but text: the lines and paragraphs of an editor.
+private func isTextOnly(_ tree: Tree) -> Bool {
+	tree.role == "text" || (structuralRoles.contains(tree.role) && tree.children.allSatisfy(isTextOnly))
+}
+
+private func subtreeRefs(_ tree: Tree) -> [String] {
+	tree.refs + tree.children.flatMap(subtreeRefs)
+}
+
+/// A text input already says its text in its value, so the lines under it fold into a count
+/// the input speaks for. Structure around them dissolves; links, buttons and other non-text
+/// descendants stay.
+private func foldTextLines(_ children: [Tree]) -> (children: [Tree], lines: Int, refs: [String]) {
+	var folded: (children: [Tree], lines: Int, refs: [String]) = ([], 0, [])
+	for child in children {
+		if isTextOnly(child) {
+			folded.lines += 1
+			folded.refs += subtreeRefs(child)
+		} else if structuralRoles.contains(child.role) {
+			let inner = foldTextLines(child.children)
+			if !child.name.isEmpty { folded.lines += 1 }
+			folded.refs += child.refs + inner.refs
+			folded.children += inner.children
+			folded.lines += inner.lines
+		} else {
+			folded.children.append(child)
+		}
+	}
+	return folded
+}
+
 private func buildTrees(_ node: OutlineNode, insideWeb: Bool) -> [Tree] {
 	let role = roleWord(node)
 	if droppedRoles.contains(role) { return [] }
@@ -293,6 +327,14 @@ private func buildTrees(_ node: OutlineNode, insideWeb: Bool) -> [Tree] {
 	)
 	if name.isEmpty, absorbingRoles.contains(role) { tree = absorb(tree) }
 	if tree.name.isEmpty { tree.name = identifierName(node) }
+	if node.isTextInput || textRoles.contains(role) {
+		let folded = foldTextLines(tree.children)
+		if folded.lines > 0 {
+			tree.children = folded.children
+			tree.refs += folded.refs
+			tree.lines = folded.lines
+		}
+	}
 	return [tree]
 }
 
@@ -393,7 +435,8 @@ private func fold(_ trees: [Tree], maxDepth: Int, maxNodes: Int, unfolded: Set<S
 		let hide = !tree.children.isEmpty && depth >= maxDepth && !unfolded.contains(tree.ref)
 		folded.nodes.append(ProjectedNode(
 			ref: tree.ref, role: tree.role, name: tree.name, value: tree.value, caps: tree.caps, state: tree.state,
-			owners: tree.owners.isEmpty ? nil : tree.owners, depth: depth, parent: parent, hidden: hide ? descendantRoles(tree) : nil
+			owners: tree.owners.isEmpty ? nil : tree.owners, depth: depth, parent: parent, hidden: hide ? descendantRoles(tree) : nil,
+			lines: tree.lines
 		))
 		if hide { return }
 		for child in tree.children { emit(child, depth: depth + 1, parent: tree.ref) }
@@ -451,12 +494,17 @@ private func hiddenSummary(_ hidden: HiddenSummary?) -> String {
 	return " ▸ \(hidden.count) hidden: \(roles)"
 }
 
+private func linesSummary(_ node: ProjectedNode) -> String {
+	guard let lines = node.lines, lines > 0 else { return "" }
+	return " ▸ \(lines) line\(lines == 1 ? "" : "s"), read-text \(node.ref)"
+}
+
 /// One node without its indent or ref, for diff lines.
 public func renderNodeBody(_ node: ProjectedNode) -> String {
 	let name = node.name.isEmpty ? "" : " " + Text.quote(node.name)
 	let value = node.value.map { " =" + Text.quote($0) } ?? ""
 	let caps = node.caps.isEmpty ? "" : " {" + node.caps.map(\.rawValue).joined(separator: ",") + "}"
-	return node.role + name + value + caps + stateWords(node.state) + hiddenSummary(node.hidden)
+	return node.role + name + value + caps + stateWords(node.state) + hiddenSummary(node.hidden) + linesSummary(node)
 }
 
 public func renderNode(_ node: ProjectedNode) -> String {
