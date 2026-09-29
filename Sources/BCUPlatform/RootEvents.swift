@@ -64,12 +64,28 @@ final class AppNotifications: Sendable {
 final class RootObservers: Sendable {
 	private static let limit = 4
 	private let apps = OSAllocatedUnfairLock(initialState: [Int32: AppNotifications]())
+	private let starting = NSLock()
 
 	subscript(pid: Int32) -> AppNotifications? {
 		apps.withLock { $0[pid] }
 	}
 
-	func insert(_ app: AppNotifications) {
+	/// The app's notifications, starting an observer for it first when there is none; nil
+	/// when the app accepts no observer. Starts are serialized, so an app never gets two.
+	func ensure(_ pid: Int32, start: (AppNotifications) -> Bool) -> AppNotifications? {
+		starting.withLock {
+			if let existing = self[pid] {
+				existing.touch()
+				return existing
+			}
+			let app = AppNotifications(pid: pid)
+			guard start(app) else { return nil }
+			insert(app)
+			return app
+		}
+	}
+
+	private func insert(_ app: AppNotifications) {
 		apps.withLock { apps in
 			if apps.count >= Self.limit, let evict = apps.values.min(by: { $0.lastUsed < $1.lastUsed })?.pid {
 				apps.removeValue(forKey: evict)
@@ -96,11 +112,11 @@ extension Platform {
 	/// Starts observing the app's root changes unless it already is; false when the app
 	/// accepts no observer.
 	func ensureRootObserver(pid: Int32) -> Bool {
-		if let existing = rootObservers[pid] {
-			existing.touch()
-			return true
-		}
-		let app = AppNotifications(pid: pid)
+		rootObservers.ensure(pid, start: startObserver) != nil
+	}
+
+	/// Runs an observer for the app on a thread of its own; false when it could not register.
+	private func startObserver(for app: AppNotifications) -> Bool {
 		let started = DispatchSemaphore(value: 0)
 		let observing = Box(false)
 		// Each observer lives on its own thread and run loop, so its callbacks never compete
@@ -117,9 +133,7 @@ extension Platform {
 			withExtendedLifetime((observer, app)) { CFRunLoopRun() }
 		}
 		started.wait()
-		guard observing.value else { return false }
-		rootObservers.insert(app)
-		return true
+		return observing.value
 	}
 
 	private func makeObserver(for app: AppNotifications) -> AXObserver? {
