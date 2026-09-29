@@ -3,12 +3,14 @@
 // vocabulary, folded entries, and a first view small enough to read. A capability is a
 // promise: web content and menu items do not advertise the context menu every node of
 // theirs answers, and a web scroller advertises the scroll that act-ui performs on it.
+// A text input already says its text in its value: the lines an editor also exposes as
+// children fold into one summary, while links and buttons inside it stay in the view.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { restoreOutline } from "../src/outline.ts";
-import { CAPABILITIES, project, renderObservation } from "../src/projection.ts";
+import { CAPABILITIES, project, renderNodes, renderObservation } from "../src/projection.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const capabilities = new Set(CAPABILITIES);
@@ -135,3 +137,30 @@ for (const name of internalNames) {
 }
 assert(internals.nodes.some((node) => node.name === "新建") && internals.nodes.some((node) => node.name === "File:"), "the internal-name filter swallowed a real label");
 console.log("PASS developer strings never stand in for a name");
+
+// A Chrome window with a contenteditable editor: two stray newlines and ten paragraphs, one
+// of them holding a link. Each paragraph and newline is one folded line; the link is not text.
+const editorOutline = restoreOutline(JSON.parse(fs.readFileSync(path.join(root, "scripts", "fixtures", "editor-outline.json"), "utf8")));
+const editorView = project(editorOutline, { maxDepth: 12, maxNodes: 1_000 });
+const editorBox = editorView.nodes.find((node) => node.role === "textarea" && node.name === "Editor");
+assert(editorBox, "the editor was not projected");
+const editorLines = editorOutline.nodes.filter((node) => node.role === "AXStaticText" && node.parent?.role !== "AXLink" && [...pathTo(node)].some((ancestor) => ancestor.ref === editorBox.ref));
+function* pathTo(node) {
+	for (let current = node.parent; current; current = current.parent) yield current;
+}
+const underEditor = (ref) => {
+	for (let parent = editorView.nodes.find((node) => node.ref === ref)?.parent; parent; parent = editorView.nodes.find((node) => node.ref === parent)?.parent) {
+		if (parent === editorBox.ref) return true;
+	}
+	return false;
+};
+const shownUnderEditor = editorView.nodes.filter((node) => underEditor(node.ref));
+assert(!shownUnderEditor.some((node) => /line/.test(node.name)), `editor lines are still listed one by one: ${shownUnderEditor.map((node) => `${node.ref} ${node.role} ${JSON.stringify(node.name)}`).join(", ")}`);
+assert(shownUnderEditor.some((node) => node.role === "link" && node.name === "linked note"), "the link inside the editor disappeared with the text");
+assert.equal(editorBox.lines, 12, `the editor does not count the lines it folded: ${JSON.stringify(editorBox)}`);
+const editorText = renderNodes(editorView.nodes);
+assert(editorText.split("\n").some((line) => line.trimStart().startsWith(`${editorBox.ref} textarea "Editor"`) && line.endsWith(`▸ 12 lines, read-text ${editorBox.ref}`)), `the editor line does not point to read-text:\n${editorText}`);
+for (const line of editorLines) {
+	assert.equal(editorView.represents.get(line.ref), editorBox.ref, `the folded line ${line.ref} ${JSON.stringify(line.value)} is not represented by the editor, so search-ui cannot find it`);
+}
+console.log("PASS text input lines fold into one summary; links inside stay; search still reaches the lines");

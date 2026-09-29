@@ -4,6 +4,8 @@
 // an action provably failed: an outcome no evidence could judge is reported as unverified,
 // and an action that closes its own root is proof in itself and hands over the app's next root.
 // Offscreen elements outside the view come and go as one summary line, not a line each.
+// A window read from the screen hands over the screenshot bcu took for it, so the agent can
+// see what OCR could not read; search-ui still finds the lines a text input folds away.
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import fs from "node:fs/promises";
@@ -53,6 +55,16 @@ const WEB_WINDOW_ID = 9003;
 // An exact app name wins over the longer names that contain it.
 const TWIN_APP = { pid: 4747, appName: "Twin", bundleId: "com.example.twin", isFrontmost: false };
 const TWIN_TESTING_APP = { pid: 4848, appName: "Twin for Testing", bundleId: "com.example.twin.testing", isFrontmost: false };
+const EDITOR_APP = { pid: 4949, appName: "Editor", bundleId: "com.example.editor", isFrontmost: false };
+/** Says almost nothing through Accessibility, so the helper captures and reads it on its own. */
+const DRAWN_APP = { pid: 5050, appName: "Drawn", bundleId: "com.example.drawn", isFrontmost: false };
+const DRAWN_OUTLINE = {
+	ref: "drawn",
+	role: "AXWindow",
+	title: "Drawn",
+	rect: { x: 0, y: 0, w: 400, h: 300 },
+	children: [{ ref: "drawn-ocr", role: "OCR", title: "发送", rect: { x: 300, y: 250, w: 60, h: 20 }, pictureOnly: true, children: [] }],
+};
 /** Keys the scripted helper answers with an outcome no evidence could judge, and with a proven no-op. */
 const UNJUDGED_KEY = "F19";
 const NO_OP_KEY = "F18";
@@ -82,6 +94,7 @@ const WINDOW_ID = 9001;
 const fixture = JSON.parse(await fs.readFile(new URL("./fixtures/textedit-outline.json", import.meta.url), "utf8"));
 const rowFixture = JSON.parse(await fs.readFile(new URL("./fixtures/finder-outline.json", import.meta.url), "utf8"));
 const webFixture = JSON.parse(await fs.readFile(new URL("./fixtures/chrome-outline.json", import.meta.url), "utf8"));
+const editorFixture = JSON.parse(await fs.readFile(new URL("./fixtures/editor-outline.json", import.meta.url), "utf8"));
 
 function toWireNode(node) {
 	return { ...node, ref: node.wireRef, wireRef: undefined, children: node.children.map(toWireNode) };
@@ -90,6 +103,7 @@ function toWireNode(node) {
 const outline = toWireNode(fixture.root);
 const rowOutline = toWireNode(rowFixture.root);
 const webOutline = toWireNode(webFixture.root);
+const editorOutline = toWireNode(editorFixture.root);
 const values = new Map();
 const actRequests = [];
 
@@ -121,8 +135,21 @@ function sheetLook(request) {
 
 let lookCounter = 0;
 
+/** The helper captured and read this window itself: the image comes back although nobody asked for it. */
+function drawnLook(request) {
+	return {
+		lookId: `look-${++lookCounter}`,
+		capturedAt: Date.now() / 1000,
+		window: { windowId: request.windowId, rootRef: `w${DRAWN_APP.pid}`, kind: "window", framePoints: { x: 0, y: 0, w: 400, h: 300 }, scaleFactor: 2, isModal: false, role: "AXWindow", subrole: "AXStandardWindow" },
+		image: { jpegBase64: Buffer.from("drawn-image").toString("base64"), mimeType: "image/jpeg", width: 400, height: 300 },
+		outline: DRAWN_OUTLINE,
+		timings: {},
+		readText: { requested: "auto", executed: true },
+	};
+}
+
 function plainWindow(pid) {
-	const app = [WEB_APP, TWIN_APP, TWIN_TESTING_APP].find((candidate) => candidate.pid === pid);
+	const app = [WEB_APP, TWIN_APP, TWIN_TESTING_APP, EDITOR_APP, DRAWN_APP].find((candidate) => candidate.pid === pid);
 	return {
 		...ROOT_DEFAULTS,
 		kind: "window",
@@ -178,9 +205,9 @@ function helperResult(request) {
 			screenRecordingPreflight: true,
 			source: { attribution: "helper-app", pid: process.pid },
 		};
-		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP, ROWS_APP, WEB_APP, TWIN_APP, TWIN_TESTING_APP] };
+		case "listApps": return { apps: [APP, EMPTY_APP, DESKTOP_APP, ROWS_APP, WEB_APP, TWIN_APP, TWIN_TESTING_APP, EDITOR_APP, DRAWN_APP] };
 		case "listRoots": return {
-			roots: request.pid === EMPTY_APP.pid ? [] : [WEB_APP, TWIN_APP, TWIN_TESTING_APP].some((app) => app.pid === request.pid) ? [plainWindow(request.pid)] : request.pid === ROWS_APP.pid ? [{
+			roots: request.pid === EMPTY_APP.pid ? [] : [WEB_APP, TWIN_APP, TWIN_TESTING_APP, EDITOR_APP, DRAWN_APP].some((app) => app.pid === request.pid) ? [plainWindow(request.pid)] : request.pid === ROWS_APP.pid ? [{
 				kind: "window",
 				windowRef: "w2",
 				rootRef: "w2",
@@ -240,7 +267,7 @@ function helperResult(request) {
 			}, MENU_BAR_ROOT, ...(sheetOpen ? [SHEET_ROOT] : [])],
 		};
 		case "getFrontmost": return { ...APP, windowId: WINDOW_ID, windowTitle: "未命名2" };
-		case "look": if (request.windowId === SHEET_ROOT.windowId) return sheetLook(request); return {
+		case "look": if (request.windowId === SHEET_ROOT.windowId) return sheetLook(request); if (request.windowId === DRAWN_APP.pid) return drawnLook(request); return {
 			lookId: `look-${++lookCounter}`,
 			capturedAt: Date.now() / 1000,
 			window: {
@@ -255,7 +282,7 @@ function helperResult(request) {
 				metadata: { pairing: { confidence: "exact", score: 110 } },
 			},
 			image: request.includeImage === false ? undefined : { jpegBase64: Buffer.from("fixture-image").toString("base64"), mimeType: "image/jpeg", width: 586, height: 488 },
-			outline: request.windowId === ROWS_WINDOW_ID ? rowOutline : request.windowId === WEB_WINDOW_ID ? webOutline : withValues(outline),
+			outline: request.windowId === ROWS_WINDOW_ID ? rowOutline : request.windowId === WEB_WINDOW_ID ? webOutline : request.windowId === EDITOR_APP.pid ? editorOutline : withValues(outline),
 			timings: {},
 		};
 		case "act": {
@@ -549,6 +576,22 @@ try {
 	const desktopOnly = await runCli(["observe-ui", "--app", "Desktop", "--json"], { env });
 	assert.equal(desktopOnly.code, 6, `app with only a desktop root exited ${desktopOnly.code}: ${desktopOnly.stderr}`);
 	assert.match(desktopOnly.stderr, /^error window_stale: /m, "a desktop-only app is not reported as window_stale");
+
+	// A line folded into a text input is still found; the input speaks for it.
+	const editor = json(await runCli(["observe-ui", "--app", "Editor", "--json"], { env }), "observe-ui --app Editor");
+	const foldedLine = json(await runCli(["search-ui", "--state", editor.stateId, "--text", "Fifth line", "--json"], { env }), "search-ui folded line").matches;
+	assert.deepEqual(foldedLine.map((match) => `${match.role} ${match.name}`), ["textarea Editor"], `search-ui did not reach the folded line through its editor: ${JSON.stringify(foldedLine)}`);
+
+	// The screenshot the helper took to read a window is part of the result, in the text view and the JSON.
+	const drawn = json(await runCli(["observe-ui", "--app", "Drawn", "--json"], { env }), "observe-ui --app Drawn");
+	assert.deepEqual({ mime: drawn.image?.mime, width: drawn.image?.width, height: drawn.image?.height }, { mime: "image/jpeg", width: 400, height: 300 }, `observe-ui dropped the screenshot it read: ${JSON.stringify(drawn.image)}`);
+	assert((await fs.stat(drawn.image.path)).size > 0, "the screenshot the helper read was not written");
+	const drawnText = await runCli(["observe-ui", "--app", "Drawn"], { env });
+	const drawnImageLine = drawnText.stdout.trim().split("\n").at(-1);
+	assert.match(drawnImageLine, /^image \S+\.jpg \(400x300\)$/, `the text view does not name the screenshot: ${drawnText.stdout}`);
+	const drawnAct = json(await runCli(["act-ui", "--state", drawn.stateId, "--json", "-"], { env, input: `${JSON.stringify([{ action: "keypress", keys: [UNJUDGED_KEY], x: 330, y: 260 }])}\n` }), "act-ui on Drawn");
+	assert.equal(drawnAct.image?.mime, "image/jpeg", `the successor of a read window dropped its screenshot: ${JSON.stringify(drawnAct.image)}`);
+	for (const file of [drawn.image.path, drawnImageLine.slice("image ".length, drawnImageLine.lastIndexOf(" (")), drawnAct.image.path]) await fs.rm(file, { force: true });
 
 	const fused = json(await runCli(["observe-ui", "--app", "Fixture", "--mode", "fused", "--json"], { env }), "observe-ui --mode fused");
 	assert.equal(fused.image.mime, "image/jpeg", "fused observation returned no image reference");

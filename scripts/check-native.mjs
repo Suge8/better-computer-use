@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The Swift helper compiles against the frameworks it uses, and the agent cursor's
-// animation lifecycle behaves as its own unit tests describe.
+// animation lifecycle and the OCR line attachment behave as their unit tests describe.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -24,21 +24,24 @@ execFileSync("xcrun", [
 	...HELPER_SOURCE_FILES.map((file) => `native/macos/${file}`),
 ], { cwd: root, stdio: "pipe" });
 
-const binary = path.join(os.tmpdir(), `bcu-cursor-tests-${process.pid}`);
-try {
-	execFileSync("xcrun", [
-		"swiftc", "-target", triple, "-parse-as-library",
-		"-module-cache-path", path.join(os.tmpdir(), `bcu-cursor-test-cache-${process.arch}`),
-		"-framework", "AppKit",
-		"-framework", "SwiftUI",
-		"native/macos/agent_cursor.swift",
-		"native/macos/agent_cursor_motion.swift",
-		"native/macos/agent_cursor_tests.swift",
-		"-o", binary,
-	], { cwd: root, stdio: "pipe" });
-	execFileSync(binary, [], { cwd: root, stdio: "pipe" });
-} finally {
-	fs.rmSync(binary, { force: true });
+/** Compiles one unit-test executable from helper sources and runs it; it exits non-zero on failure. */
+function runUnitTests(name, frameworks, sources) {
+	const binary = path.join(os.tmpdir(), `bcu-${name}-tests-${process.pid}`);
+	try {
+		execFileSync("xcrun", [
+			"swiftc", "-target", triple, "-parse-as-library",
+			"-module-cache-path", path.join(os.tmpdir(), `bcu-${name}-test-cache-${process.arch}`),
+			...frameworks.flatMap((framework) => ["-framework", framework]),
+			...sources.map((file) => `native/macos/${file}`),
+			"-o", binary,
+		], { cwd: root, stdio: "pipe" });
+		execFileSync(binary, [], { cwd: root, stdio: "pipe" });
+	} finally {
+		fs.rmSync(binary, { force: true });
+	}
 }
 
-console.log("PASS native helper typecheck and agent cursor lifecycle");
+runUnitTests("cursor", ["AppKit", "SwiftUI"], ["agent_cursor.swift", "agent_cursor_motion.swift", "agent_cursor_tests.swift"]);
+runUnitTests("look-outline", ["ApplicationServices"], ["look_outline.swift", "look_outline_tests.swift"]);
+
+console.log("PASS native helper typecheck, agent cursor lifecycle and OCR attachment");
