@@ -2,12 +2,14 @@
 // Roots without a window id — the menu bar, open menus and sheets — are reachable only
 // through the helper's root reference. This gate drives one real chain end to end: list the
 // menu bar, press a menu bar item, follow the menu root the action reports, press an item in
-// it, and observe the sheet that the document work then raises.
+// it, and observe the sheet that the document work then raises. Pressing the sheet's Cancel
+// closes the sheet: that is the proof the press landed, and the result names the root to
+// observe next instead of failing on the root that is gone.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { brokerRequest, buildBundle, launchTextEdit, makeTemporaryRoot, monitorProcess, runSwiftReadyProbe, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
+import { brokerRequest, buildBundle, launchTextEdit, makeTemporaryRoot, monitorProcess, runCli, runSwiftReadyProbe, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP transient roots (set BCU_LIVE=1)");
@@ -17,6 +19,8 @@ if (process.platform !== "darwin") throw new Error("The transient root test requ
 
 /** Apple, application, File — pressing by index keeps probes independent of the system language. */
 const FILE_MENU_BAR_INDEX = 2;
+/** The save panel's Cancel button across the system languages this gate runs under. */
+const CANCEL_NAMES = ["取消", "Cancel"];
 const fixtureDirectory = await makeTemporaryRoot("transient-roots");
 const fixturePath = path.join(fixtureDirectory, `bcu-transient-${randomUUID()}.txt`);
 const fixtureTitle = path.basename(fixturePath, ".txt");
@@ -207,7 +211,20 @@ try {
 	await assertReadableActions(sheetObserved.stateId, sheetButtons.slice(0, 3).map((node) => node.ref));
 	assert(!windowRefs.has(sheets[0].ref), "the sheet root is not distinguished from the window behind it");
 
-	console.log(`PASS menu bar root → press '${fileItem.name}' → menu root from the action → press '${newDocumentItem.name}' → sheet root in isolated pid ${createdPid}`);
+	const cancel = sheetButtons.find((node) => CANCEL_NAMES.includes(node.name));
+	assert(cancel, `the save sheet has no button named ${CANCEL_NAMES.join(" / ")}: ${sheetButtons.map((node) => node.name).join(", ")}`);
+	const cancelled = await runCli(["act-ui", "--state", sheetObserved.stateId, "--json", "-"], { input: `${JSON.stringify([{ action: "press", ref: cancel.ref }])}\n` });
+	assert.equal(cancelled.code, 0, `pressing '${cancel.name}' on the sheet exited ${cancelled.code}: ${cancelled.stderr}`);
+	const closing = JSON.parse(cancelled.stdout);
+	assert.equal(closing.outcome, "worked", `pressing '${cancel.name}' reported ${closing.outcome}`);
+	assert.deepEqual(closing.verification.evidence, { source: "root", field: "closed" }, `pressing '${cancel.name}' was judged on ${JSON.stringify(closing.verification.evidence)}`);
+	assert.equal(closing.closed?.root?.ref, sheets[0].ref, `the result does not name the closed sheet: ${JSON.stringify(closing.closed)}`);
+	assert.equal(closing.next?.kind, "window", `the result names no window to observe next: ${JSON.stringify(closing.next)}`);
+	assert.deepEqual(await rootsOfKind(createdPid, "sheet"), [], "the sheet is still listed after its Cancel was pressed");
+	const nextObserved = await brokerRequest("observe-ui", { root: closing.next.ref, mode: "semantic" });
+	assert.equal(nextObserved.root.pid, createdPid, "the next root belongs to another app");
+
+	console.log(`PASS menu bar root → press '${fileItem.name}' → menu root from the action → press '${newDocumentItem.name}' → sheet root → Cancel closes it and names the next root in isolated pid ${createdPid}`);
 } finally {
 	if (createdPid) {
 		await dismissSheets(createdPid).catch(() => undefined);

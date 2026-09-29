@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // End-to-end output contract: the real CLI and broker against a scripted helper,
 // so every public result shape is checked without a live desktop. act-ui exits zero unless
-// an action provably failed: an outcome no evidence could judge is reported as unverified.
+// an action provably failed: an outcome no evidence could judge is reported as unverified,
+// and an action that closes its own root is proof in itself and hands over the app's next root.
+// Offscreen elements outside the view come and go as one summary line, not a line each.
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import fs from "node:fs/promises";
@@ -54,6 +56,28 @@ const TWIN_TESTING_APP = { pid: 4848, appName: "Twin for Testing", bundleId: "co
 /** Keys the scripted helper answers with an outcome no evidence could judge, and with a proven no-op. */
 const UNJUDGED_KEY = "F19";
 const NO_OP_KEY = "F18";
+/** A key after which the scripted app grows, then drops, a batch of offscreen menu items. */
+const NOISE_KEY = "F17";
+const NOISE_ITEMS = 30;
+const SHEET_ROOT = {
+	...ROOT_DEFAULTS,
+	kind: "sheet",
+	rootRef: "sheet1",
+	windowId: 9101,
+	pid: 4242,
+	appName: "Fixture",
+	bundleId: "com.example.fixture",
+	title: "警告",
+	role: "AXSheet",
+	subrole: "",
+	framePoints: { x: 40, y: 40, w: 420, h: 160 },
+	zOrder: 0,
+	isFocused: true,
+};
+const SHEET_BUTTONS = [["sheet-save", "仍要保存"], ["sheet-cancel", "取消"]];
+let sheetOpen = false;
+/** Where the noise items hang, and whether they are there. */
+const noise = { parentWire: undefined, present: false };
 const WINDOW_ID = 9001;
 const fixture = JSON.parse(await fs.readFile(new URL("./fixtures/textedit-outline.json", import.meta.url), "utf8"));
 const rowFixture = JSON.parse(await fs.readFile(new URL("./fixtures/finder-outline.json", import.meta.url), "utf8"));
@@ -69,8 +93,30 @@ const webOutline = toWireNode(webFixture.root);
 const values = new Map();
 const actRequests = [];
 
+function noiseItem(index) {
+	return { ref: `noise-${index}`, role: "AXMenuItem", title: `菜单项 ${index}`, actions: ["AXPress"], canPress: true, offscreen: true, children: [] };
+}
+
 function withValues(node) {
-	return { ...node, value: values.get(node.ref) ?? node.value, children: node.children.map(withValues) };
+	const extra = noise.present && node.ref === noise.parentWire ? Array.from({ length: NOISE_ITEMS }, (_, index) => noiseItem(index)) : [];
+	return { ...node, value: values.get(node.ref) ?? node.value, children: [...node.children.map(withValues), ...extra] };
+}
+
+const SHEET_OUTLINE = {
+	ref: "sheet",
+	role: "AXSheet",
+	children: SHEET_BUTTONS.map(([ref, title]) => ({ ref, role: "AXButton", title, actions: ["AXPress"], canPress: true, children: [] })),
+};
+
+function sheetLook(request) {
+	if (!sheetOpen) throw Object.assign(new Error(`Window ${request.windowId} is not available for capture`), { code: "window_not_found" });
+	return {
+		lookId: `look-${++lookCounter}`,
+		capturedAt: Date.now() / 1000,
+		window: { windowId: SHEET_ROOT.windowId, rootRef: SHEET_ROOT.rootRef, kind: "sheet", framePoints: SHEET_ROOT.framePoints, scaleFactor: 2, isModal: false, role: "AXSheet", subrole: "" },
+		outline: SHEET_OUTLINE,
+		timings: {},
+	};
 }
 
 let lookCounter = 0;
@@ -98,7 +144,16 @@ function plainWindow(pid) {
 }
 
 function actOutcome(request) {
+	if (SHEET_BUTTONS.some(([ref]) => ref === request.target.ref)) {
+		sheetOpen = false;
+		return { outcome: "unknown", performed: { delivery: "ax" }, rootDelta: [{ change: "closed", ...SHEET_ROOT }] };
+	}
 	const keys = request.action === "keypress" ? request.params.keys : [];
+	if (keys.includes(NOISE_KEY)) {
+		noise.present = !noise.present;
+		values.set(request.target.ref, noise.present ? "noise on" : "noise off");
+		return { outcome: "worked", performed: { delivery: "ax" }, verification: { source: "ax", field: "value" } };
+	}
 	if (keys.includes(UNJUDGED_KEY)) return { outcome: "unknown", performed: { delivery: "ax" } };
 	if (keys.includes(NO_OP_KEY)) return { outcome: "didnt", performed: { delivery: request.policy === "foreground" ? "hid" : "pid" } };
 	return {
@@ -182,10 +237,10 @@ function helperResult(request) {
 				isFocused: true,
 				isModal: false,
 				metadata: { pairing: { confidence: "exact", score: 110 } },
-			}, MENU_BAR_ROOT],
+			}, MENU_BAR_ROOT, ...(sheetOpen ? [SHEET_ROOT] : [])],
 		};
 		case "getFrontmost": return { ...APP, windowId: WINDOW_ID, windowTitle: "未命名2" };
-		case "look": return {
+		case "look": if (request.windowId === SHEET_ROOT.windowId) return sheetLook(request); return {
 			lookId: `look-${++lookCounter}`,
 			capturedAt: Date.now() / 1000,
 			window: {
@@ -232,7 +287,11 @@ const helper = net.createServer((socket) => {
 			if (newline < 0) return;
 			const request = JSON.parse(buffer.slice(0, newline));
 			buffer = buffer.slice(newline + 1);
-			socket.write(`${JSON.stringify({ id: request.id, ok: true, result: helperResult(request) })}\n`);
+			try {
+				socket.write(`${JSON.stringify({ id: request.id, ok: true, result: helperResult(request) })}\n`);
+			} catch (error) {
+				socket.write(`${JSON.stringify({ id: request.id, ok: false, error: { code: error.code, message: error.message } })}\n`);
+			}
 		}
 	});
 });
@@ -376,6 +435,60 @@ try {
 	}), "act-ui unjudged with a satisfied postcondition");
 	assert.equal(expected.outcome, "worked", `a satisfied postcondition reported outcome ${expected.outcome}`);
 	assert.equal(expected.verification.status, "verified", "a satisfied postcondition was not reported as verified");
+
+	// Offscreen elements outside the view — menu items a menu grows and drops — are one
+	// summary line; the change the view shows still has its own line.
+	const noiseView = json(await runCli(["observe-ui", "--app", "Fixture", "--json"], { env }), "observe-ui for noise");
+	const folded = noiseView.nodes.find((node) => node.hidden);
+	assert(folded, "the fixture view folds nothing to hang offscreen items under");
+	noise.parentWire = json(await runCli(["inspect-ui", "--state", noiseView.stateId, "--ref", folded.ref, "--json"], { env }), "inspect-ui folded").node.wireRef;
+	const noiseKey = `${JSON.stringify([{ action: "keypress", ref: editorRef, keys: [NOISE_KEY] }])}\n`;
+	const grown = await runCli(["act-ui", "--state", noiseView.stateId, "-"], { env, input: noiseKey });
+	assert.equal(grown.code, 0, `the noise keypress exited ${grown.code}: ${grown.stderr}`);
+	assert.equal(grown.stdout.split("\n").filter((line) => /^[+-] @e/.test(line)).length, 0, `offscreen items outside the view were listed one by one:\n${grown.stdout}`);
+	assert.match(grown.stdout, new RegExp(`^~ ${editorRef} ="noise on"$`, "m"), `the visible change lost its line:\n${grown.stdout}`);
+	assert.match(grown.stdout, new RegExp(`^… offscreen elements outside the view: ${NOISE_ITEMS} added$`, "m"), `the offscreen additions are not summarized:\n${grown.stdout}`);
+	const dropped = await runCli(["act-ui", "--state", grown.stdout.split(" ")[1], "--json", "-"], { env, input: noiseKey });
+	assert.equal(dropped.code, 0, `the second noise keypress exited ${dropped.code}: ${dropped.stderr}`);
+	const droppedResult = JSON.parse(dropped.stdout);
+	assert.deepEqual(droppedResult.changes, [{ type: "updated", ref: editorRef, fields: { value: "noise off" } }], `offscreen removals leaked into changes: ${JSON.stringify(droppedResult.changes)}`);
+	assert.deepEqual(droppedResult.offscreen, { added: 0, removed: NOISE_ITEMS }, `the offscreen removals are not counted: ${JSON.stringify(droppedResult.offscreen)}`);
+
+	// Pressing a button that closes its own sheet is proof the press landed. The result names
+	// the closed root, hands over the app's next root with a view of it, and later steps of
+	// the array are not sent to a root that no longer exists.
+	const openSheet = async () => {
+		sheetOpen = true;
+		const sheet = json(await runCli(["find-roots", "--app", "Fixture", "--kind", "sheet", "--json"], { env }), "find-roots --kind sheet").roots[0];
+		assert(sheet, "the scripted sheet is not listed");
+		const view = json(await runCli(["observe-ui", "--root", sheet.ref, "--json"], { env }), "observe-ui sheet");
+		const button = (name) => view.nodes.find((node) => node.name === name)?.ref;
+		return { sheet, view, save: button("仍要保存"), cancel: button("取消") };
+	};
+	let sheet = await openSheet();
+	const closedJson = json(await runCli(["act-ui", "--state", sheet.view.stateId, "--json", "-"], { env, input: `${JSON.stringify([{ action: "press", ref: sheet.save }])}\n` }), "act-ui closing its sheet");
+	assert.equal(closedJson.outcome, "worked", `closing the sheet reported ${closedJson.outcome}`);
+	assert.deepEqual(closedJson.verification.evidence, { source: "root", field: "closed" }, `closing the sheet was judged on ${JSON.stringify(closedJson.verification.evidence)}`);
+	assert.deepEqual(closedJson.closed?.root, { ref: sheet.sheet.ref, kind: "sheet", app: "Fixture", title: "警告" }, `the closed root is not named: ${JSON.stringify(closedJson.closed)}`);
+	assert.deepEqual({ kind: closedJson.next?.kind, title: closedJson.next?.title }, { kind: "window", title: "未命名2" }, `the next root is not the sheet's window: ${JSON.stringify(closedJson.next)}`);
+	assert.match(closedJson.stateId, /^[0-9a-z]{8}$/, "closing the sheet returned no successor state");
+	assert(closedJson.nodes?.length > 0, "closing the sheet returned no view of the next root");
+	const nextView = json(await runCli(["observe-ui", "--root", closedJson.next.ref, "--json"], { env }), "observe-ui next root");
+	assert.equal(nextView.root.title, "未命名2", "the next root ref does not observe the sheet's window");
+
+	sheet = await openSheet();
+	actRequests.length = 0;
+	const closedText = await runCli(["act-ui", "--state", sheet.view.stateId, "-"], {
+		env,
+		input: `${JSON.stringify([{ action: "press", ref: sheet.save }, { action: "press", ref: sheet.cancel }])}\n`,
+	});
+	assert.equal(closedText.code, 0, `closing the sheet from an array exited ${closedText.code}: ${closedText.stderr}`);
+	assert.deepEqual(actRequests.map((request) => request.target.ref), ["sheet-save"], `a step was sent to the closed sheet: ${JSON.stringify(actRequests.map((request) => request.target))}`);
+	const closedLines = closedText.stdout.split("\n");
+	assert.match(closedLines[0], new RegExp(`^state [0-9a-z]{8} ← ${sheet.view.stateId} · worked via ax · root closed$`), `the result line does not say the root closed: ${closedLines[0]}`);
+	assert.equal(closedLines[1], `- root ${sheet.sheet.ref} sheet "警告"`, `the closed root is not the line after the result: ${closedText.stdout}`);
+	assert(closedLines.includes("skipped 1 later step: its root closed"), `the skipped step is not reported: ${closedText.stdout}`);
+	assert(closedLines.some((line) => /^next root @r\d+ window "未命名2"$/.test(line)), `the next root is not named: ${closedText.stdout}`);
 
 	const menuBars = json(await runCli(["find-roots", "--app", "Fixture", "--kind", "menubar", "--json"], { env }), "find-roots --kind menubar");
 	assert.equal(menuBars.roots.length, 1, `find-roots did not expose the app's menu bar as a root: ${JSON.stringify(menuBars.roots)}`);

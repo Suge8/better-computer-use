@@ -4,7 +4,8 @@
 // It also holds bcu to its evidence rule: an action counts as worked only when the helper
 // can name the fact that moved. A key with no visible effect still succeeds, reported as
 // unverified. Pressing Save straight from the menu bar root succeeds and the document
-// file on disk shows that it saved; whether bcu could read evidence for it is not the contract.
+// file on disk shows that it saved; whether bcu could read evidence for it is not the contract,
+// and the menu items bcu's own menu opening moved are not listed as changes.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -45,11 +46,11 @@ async function expectCliFailure(stateId, action) {
 	assert.match(result.stderr, /^recovery: .+/m);
 }
 
-/** Runs one act-ui through the public CLI, requires it to succeed, and returns its result line. */
+/** Runs one act-ui through the public CLI, requires it to succeed, and returns its text view. */
 async function expectSuccess(stateId, action, label) {
 	const result = await runCli(["act-ui", "--state", stateId, "-"], { input: `${JSON.stringify([action])}\n` });
 	assert.equal(result.code, 0, `${label} exited ${result.code}: ${result.stderr}`);
-	return result.stdout.split("\n")[0];
+	return result.stdout;
 }
 
 /** Resolves once the file holds `text`; TextEdit writes it by replacing the file. */
@@ -152,7 +153,7 @@ try {
 	const keyState = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
 	const keyTarget = (await brokerRequest("search-ui", { stateId: keyState.stateId, role: "textarea", limit: 1 })).matches[0];
 	assert(keyTarget, "the document exposed no text area to send a key to");
-	const keyLine = await expectSuccess(keyState.stateId, { action: "keypress", ref: keyTarget.ref, keys: [INERT_KEY] }, `keypress ${INERT_KEY}`);
+	const keyLine = (await expectSuccess(keyState.stateId, { action: "keypress", ref: keyTarget.ref, keys: [INERT_KEY] }, `keypress ${INERT_KEY}`)).split("\n")[0];
 	assert.match(keyLine, / · unverified via \w+$/, `keypress ${INERT_KEY} is not reported as unverified: ${keyLine}`);
 	assert(!(await fs.readFile(fixturePath, "utf8")).includes(expectedText), "the fixture file already holds the edit before Save");
 	const menuBar = (await cliJson(["find-roots", "--pid", String(createdPid), "--kind", "menubar"])).roots[0];
@@ -163,7 +164,10 @@ try {
 		saveItem ??= (await cliJson(["search-ui", "--state", bar.stateId, "--text", name, "--role", "menuitem"])).matches.find((match) => match.name === name);
 	}
 	assert(saveItem, `the TextEdit menu bar has no item named ${SAVE_NAMES.join(" / ")}`);
-	await expectSuccess(bar.stateId, { action: "press", ref: saveItem.ref }, `pressing menu item '${saveItem.name}'`);
+	const saved = await expectSuccess(bar.stateId, { action: "press", ref: saveItem.ref }, `pressing menu item '${saveItem.name}'`);
+	// bcu opens and closes the menu to press the item; the menu items that come and go with
+	// it are offscreen and outside the view, so they get no line of their own.
+	assert(!/^- @e\d+/m.test(saved) && !/^\+ @e\d+ (in @e\d+ )?menu(item)?\b/m.test(saved), `pressing '${saveItem.name}' listed the menu items it moved:\n${saved}`);
 	assert(await waitForFileText(fixturePath, expectedText, 10_000), `pressing '${saveItem.name}' did not write the edit to ${fixturePath}`);
 
 	// Evidence: a toggle proves itself by its own value, and a click that only places a
