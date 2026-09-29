@@ -54,6 +54,11 @@ swift test --filter projection   # one golden file: outline, projection, view, a
 from the retired TS implementation and are now the contract itself: a behaviour change
 edits the affected cases by hand and commits them on their own, before the code.
 
+`BCUPlatform` holds every desktop call behind the in-process `Platform` API, and
+`BCUDaemon` runs the resident commands on it; `Tests/BCUDaemonTests` checks the command
+results against a fake desktop. The platform target stays in the Swift 5 language mode (see
+`Package.swift`).
+
 ## Upstream engine
 
 The macOS engine tracks `injaneity/pi-computer-use` by hand-porting diffs. See

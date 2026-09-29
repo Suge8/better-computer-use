@@ -1,28 +1,20 @@
 import AppKit
 import BCUCore
 
-struct LookRecord {
-	let lookId: String
-	let windowId: UInt32
-	let windowFrame: CGRect
-	let imageWidth: Int
-	let imageHeight: Int
-	let hasImage: Bool
-}
+/// Names the picture-only root of a popup menu Accessibility never exposed.
+let popupMenuName = "cgmenu:"
 
 extension Platform {
 	/// A popup menu Accessibility never exposed still has screen geometry, so callers get a
 	/// picture-only root rather than a failure they cannot act on.
-	func cgMenuLook(rootRef: String, windowId: UInt32, capturedAt: Date) -> LookResult {
+	func popupMenuLook(windowId: UInt32, capturedAt: Date) -> LookResult {
 		let frame = windowInfo(windowId: windowId)?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
-		let lookId = freshLookId()
-		storeLookRecord(LookRecord(lookId: lookId, windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false))
-		let outline = LookNode(element: nil, ref: rootRef, role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: max(1, frame.width), height: max(1, frame.height)), pictureOnly: true)
+		let outline = LookNode(handle: nil, name: "\(popupMenuName)\(windowId)", role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: max(1, frame.width), height: max(1, frame.height)), pictureOnly: true)
 		return LookResult(
-			lookId: lookId,
 			capturedAt: capturedAt,
-			window: LookWindow(windowId: windowId, rootRef: rootRef, kind: .menu, framePoints: frame, scaleFactor: displayScaleFactor(for: frame), isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .low, score: 0), sheetCount: 0), role: "AXMenu", subrole: ""),
+			window: LookWindow(windowId: windowId, kind: .menu, framePoints: frame, scaleFactor: displayScaleFactor(for: frame), isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .low, score: 0), sheetCount: 0), role: "AXMenu", subrole: ""),
 			outline: outline,
+			geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false),
 			timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
 			readText: nil,
 			image: nil
@@ -30,18 +22,22 @@ extension Platform {
 	}
 
 	/// Observes one root: its accessibility outline, and its picture and the text read from
-	/// it when asked or when Accessibility says too little. The look is remembered so later
-	/// actions can address its refs and coordinates.
+	/// it when asked or when Accessibility says too little.
 	public func look(_ request: LookRequest) throws -> LookResult {
 		let windowId = request.windowId
-		let rootRef = request.rootRef
 		let maxDimension = request.maxDimension.map { max(1, $0) }
 		let readText = request.readText
 		let includeImage = request.includeImage
 
-		let requestedRoot = refStore.window(for: rootRef)
+		let requestedRoot: AXUIElement?
+		let popupMenuWindowId: UInt32?
+		switch request.root.rootObject {
+		case .element(let element): (requestedRoot, popupMenuWindowId) = (element.element, nil)
+		case .popupMenu(let windowId): (requestedRoot, popupMenuWindowId) = (nil, windowId)
+		case nil: (requestedRoot, popupMenuWindowId) = (nil, nil)
+		}
 		let requestedRole = requestedRoot.flatMap { stringAttribute($0, attribute: kAXRoleAttribute as CFString) } ?? ""
-		let isMenuRoot = requestedRole == "AXMenu" || rootRef.hasPrefix(cgMenuRefPrefix)
+		let isMenuRoot = requestedRole == "AXMenu" || popupMenuWindowId != nil
 		let captureStart = Date()
 		var captureMs = 0
 		func capturedWindow() throws -> CapturedWindowImage? {
@@ -53,21 +49,21 @@ extension Platform {
 		var capture = includeImage || readText == .always ? try capturedWindow() : nil
 
 		guard let window = requestedRoot else {
-			guard let menuWindowId = cgMenuWindowId(rootRef), let menuPid = pidForWindowId(menuWindowId) else {
-				throw PlatformError(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
+			guard let menuWindowId = popupMenuWindowId, let menuPid = pidForWindowId(menuWindowId) else {
+				throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 			}
 			ensureEnhancedAccessibility(pid: menuPid)
-			return cgMenuLook(rootRef: rootRef, windowId: menuWindowId, capturedAt: captureStart)
+			return popupMenuLook(windowId: menuWindowId, capturedAt: captureStart)
 		}
 		guard let pid = pidForElement(window) else {
-			throw PlatformError(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
+			throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 		}
 		ensureEnhancedAccessibility(pid: pid)
 		let rootElement: AXUIElement
-		let scopeRef = request.scopeRef
-		if let scopeRef {
-			guard let scoped = refStore.element(for: scopeRef), isElement(scoped, descendantOf: window) else {
-				throw PlatformError(message: "Scope ref is stale or outside the target root", code: "element_ref_invalid")
+		let scope = request.scope
+		if let scope {
+			guard let scoped = scope.elementRecord?.element.element, isElement(scoped, descendantOf: window) else {
+				throw BCUError(.elementNotFound, "Scope ref is stale or outside the target root")
 			}
 			rootElement = scoped
 		} else {
@@ -90,7 +86,7 @@ extension Platform {
 		var outline = buildLookOutline(root: rootElement, transform: frame.transform)
 		// A window that says (almost) nothing through Accessibility is read from the screen,
 		// so the same observe → act loop still has something to act on.
-		let readsScreen = readText == .always || (readText == .auto && scopeRef == nil && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
+		let readsScreen = readText == .always || (readText == .auto && scope == nil && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
 		var describeMs = elapsedMs(describeStart)
 		if readsScreen && capture == nil, let captured = try capturedWindow() {
 			capture = captured
@@ -105,7 +101,7 @@ extension Platform {
 		// OCR nodes are pressed by coordinates, and coordinates need the image they belong to.
 		if let picture = frame.image, includeImage || readsScreen {
 			guard let jpeg = jpegData(image: picture, quality: 0.8) else {
-				throw PlatformError(message: "Failed to encode look image as JPEG", code: "encoding_failed")
+				throw BCUError(.internalError, "Failed to encode look image as JPEG")
 			}
 			image = LookImage(jpeg: jpeg, width: picture.width, height: picture.height)
 		}
@@ -120,27 +116,23 @@ extension Platform {
 			readTextMs = elapsedMs(textStart)
 		}
 
-		let lookId = freshLookId()
-		let baseRecord = request.baseLookId.flatMap { lookRecord(for: $0) }
-		storeLookRecord(LookRecord(
-			lookId: lookId,
-			windowId: windowId ?? baseRecord?.windowId ?? 0,
-			windowFrame: baseRecord?.windowFrame ?? capture?.frame ?? rootFrame,
-			imageWidth: baseRecord?.imageWidth ?? imageWidth,
-			imageHeight: baseRecord?.imageHeight ?? imageHeight,
-			hasImage: baseRecord?.hasImage ?? (capture != nil)
-		))
+		let base = request.baseGeometry
+		let geometry = LookGeometry(
+			windowId: windowId ?? base?.windowId ?? 0,
+			windowFrame: base?.windowFrame ?? capture?.frame ?? rootFrame,
+			imageWidth: base?.imageWidth ?? imageWidth,
+			imageHeight: base?.imageHeight ?? imageHeight,
+			hasImage: base?.hasImage ?? (capture != nil)
+		)
 		let scale = (capture?.frame.width ?? rootFrame.width) > 0 ? Double(imageWidth) / (capture?.frame.width ?? rootFrame.width) : displayScaleFactor(for: rootFrame)
 		let pairing = pairingForWindow(window, pid: pid)
 		let role = stringAttribute(window, attribute: kAXRoleAttribute as CFString) ?? ""
 		let subrole = stringAttribute(window, attribute: kAXSubroleAttribute as CFString) ?? ""
 		let sheetCount = sheetElements(of: window).count
 		return LookResult(
-			lookId: lookId,
 			capturedAt: captureStart,
 			window: LookWindow(
 				windowId: windowId ?? 0,
-				rootRef: rootRef,
 				kind: rootKind(role: role, subrole: subrole),
 				framePoints: capture?.frame ?? rootFrame,
 				scaleFactor: scale,
@@ -150,34 +142,11 @@ extension Platform {
 				subrole: subrole
 			),
 			outline: outline,
+			geometry: geometry,
 			timings: LookTimings(captureMs: captureMs, describeMs: describeMs, readTextMs: readTextMs),
 			readText: (readText, readTextExecuted),
 			image: image
 		)
-	}
-
-	func storeLookRecord(_ record: LookRecord) {
-		lookRecordLock.lock()
-		defer { lookRecordLock.unlock() }
-		lookRecords[record.lookId] = record
-		lookRecordOrder.append(record.lookId)
-		while lookRecordOrder.count > 8 {
-			let oldest = lookRecordOrder.removeFirst()
-			lookRecords.removeValue(forKey: oldest)
-		}
-	}
-
-	func freshLookId() -> String {
-		lookRecordLock.lock()
-		defer { lookRecordLock.unlock() }
-		nextLookId += 1
-		return "look_\(nextLookId)"
-	}
-
-	func lookRecord(for lookId: String) -> LookRecord? {
-		lookRecordLock.lock()
-		defer { lookRecordLock.unlock() }
-		return lookRecords[lookId]
 	}
 
 	func rectTransform(windowFrame: CGRect, imageWidth: Int, imageHeight: Int) -> (CGRect) -> CGRect {
@@ -255,17 +224,18 @@ extension Platform {
 		let description = stringAttribute(element, attribute: kAXDescriptionAttribute as CFString) ?? ""
 		let value = displayValue(element, role: role, subrole: subrole)
 		let screenRect = frameForElement(element) ?? .zero
+		let identifier = stringAttribute(element, attribute: "AXIdentifier" as CFString) ?? ""
 		let node = LookNode(
-			element: element,
-			ref: refStore.storeElement(element, snapshot: AXRefStore.Snapshot(
+			handle: .element(element, snapshot: ElementSnapshot(
 				role: role,
-				identifier: stringAttribute(element, attribute: "AXIdentifier" as CFString) ?? "",
+				identifier: identifier,
 				label: normalizedLabel([title, description, value].joined(separator: " ")),
 				rect: screenRect
 			)),
+			name: "",
 			role: role,
 			subrole: subrole,
-			identifier: stringAttribute(element, attribute: "AXIdentifier" as CFString) ?? "",
+			identifier: identifier,
 			title: title,
 			description: description,
 			value: value,
@@ -328,24 +298,9 @@ extension Platform {
 		return count
 	}
 
-	func lookPoint(record: LookRecord, x: Double, y: Double) -> CGPoint {
-		let relX = min(max(x / max(1.0, Double(record.imageWidth)), 0), 1)
-		let relY = min(max(y / max(1.0, Double(record.imageHeight)), 0), 1)
-		return CGPoint(x: record.windowFrame.origin.x + record.windowFrame.width * relX, y: record.windowFrame.origin.y + record.windowFrame.height * relY)
-	}
-
-	func describedNode(_ element: AXUIElement) -> LookNode {
-		lookNode(element: element, transform: { $0 }, offscreen: false)
-	}
-
-	/// The element at a point of a look's image, described without children.
-	public func hitTest(lookId: String, x: Double, y: Double) throws -> LookNode {
-		guard let record = lookRecord(for: lookId) else {
-			throw PlatformError(message: "Look id '\(lookId)' is no longer available", code: "stale_look")
-		}
-		guard let element = hitTestElement(at: lookPoint(record: record, x: x, y: y)) else {
-			throw PlatformError(message: "No element at point", code: "hit_test_failed")
-		}
-		return describedNode(element)
+	func lookPoint(_ geometry: LookGeometry, x: Double, y: Double) -> CGPoint {
+		let relX = min(max(x / max(1.0, Double(geometry.imageWidth)), 0), 1)
+		let relY = min(max(y / max(1.0, Double(geometry.imageHeight)), 0), 1)
+		return CGPoint(x: geometry.windowFrame.origin.x + geometry.windowFrame.width * relX, y: geometry.windowFrame.origin.y + geometry.windowFrame.height * relY)
 	}
 }

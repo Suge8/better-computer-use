@@ -164,6 +164,13 @@ public struct Frame: Codable, Sendable, Equatable {
 	public var y: Double
 	public var w: Double
 	public var h: Double
+
+	public init(x: Double, y: Double, w: Double, h: Double) {
+		self.x = x
+		self.y = y
+		self.w = w
+		self.h = h
+	}
 }
 
 public struct ImageInfo: Codable, Sendable, Equatable {
@@ -171,6 +178,13 @@ public struct ImageInfo: Codable, Sendable, Equatable {
 	public var mime: String
 	public var width: Int
 	public var height: Int
+
+	public init(path: String, mime: String, width: Int, height: Int) {
+		self.path = path
+		self.mime = mime
+		self.width = width
+		self.height = height
+	}
 }
 
 public struct RootInfo: Codable, Sendable, Equatable {
@@ -187,10 +201,30 @@ public struct RootInfo: Codable, Sendable, Equatable {
 	public var onscreen: Bool
 	public var minimized: Bool
 	public var modal: Bool
+
+	public init(ref: String, app: String, bundleId: String? = nil, pid: Int, title: String, windowId: Int? = nil, kind: RootKind, frame: Frame, focused: Bool, main: Bool, onscreen: Bool, minimized: Bool, modal: Bool) {
+		self.ref = ref
+		self.app = app
+		self.bundleId = bundleId
+		self.pid = pid
+		self.title = title
+		self.windowId = windowId
+		self.kind = kind
+		self.frame = frame
+		self.focused = focused
+		self.main = main
+		self.onscreen = onscreen
+		self.minimized = minimized
+		self.modal = modal
+	}
 }
 
 public struct FindRootsResult: Codable, Sendable, Equatable {
 	public var roots: [RootInfo]
+
+	public init(roots: [RootInfo]) {
+		self.roots = roots
+	}
 }
 
 /// A root an action brought into existence, ready to observe by `ref`.
@@ -199,6 +233,13 @@ public struct RootAppearance: Codable, Sendable, Equatable {
 	public var kind: RootKind
 	public var app: String
 	public var title: String
+
+	public init(ref: String, kind: RootKind, app: String, title: String) {
+		self.ref = ref
+		self.kind = kind
+		self.app = app
+		self.title = title
+	}
 }
 
 public struct RootSummary: Codable, Sendable, Equatable {
@@ -209,6 +250,16 @@ public struct RootSummary: Codable, Sendable, Equatable {
 	public var windowId: Int?
 	public var frame: Frame
 	public var scale: Double
+
+	public init(ref: String? = nil, app: String, pid: Int, title: String, windowId: Int? = nil, frame: Frame, scale: Double) {
+		self.ref = ref
+		self.app = app
+		self.pid = pid
+		self.title = title
+		self.windowId = windowId
+		self.frame = frame
+		self.scale = scale
+	}
 }
 
 public struct ObserveResult: Codable, Sendable, Equatable {
@@ -270,6 +321,15 @@ public struct ReadTextResult: Codable, Sendable, Equatable {
 	public var limit: Int
 	public var total: Int
 	public var text: String
+
+	public init(stateId: String, ref: String, offset: Int, limit: Int, total: Int, text: String) {
+		self.stateId = stateId
+		self.ref = ref
+		self.offset = offset
+		self.limit = limit
+		self.total = total
+		self.text = text
+	}
 }
 
 public struct WaitForResult: Codable, Sendable, Equatable {
@@ -281,6 +341,17 @@ public struct WaitForResult: Codable, Sendable, Equatable {
 	public var nodes: [ProjectedNode]?
 	public var shown: Int?
 	public var total: Int?
+
+	public init(stateId: String, found: Bool, gone: Bool? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil) {
+		self.stateId = stateId
+		self.found = found
+		self.gone = gone
+		self.changes = changes
+		self.offscreen = offscreen
+		self.nodes = nodes
+		self.shown = shown
+		self.total = total
+	}
 }
 
 public enum ActOutcome: String, Codable, Sendable {
@@ -299,6 +370,13 @@ public struct ActEvidence: Codable, Sendable, Equatable {
 	public var field: Field?
 	public var from: String?
 	public var to: String?
+
+	public init(source: Source, field: Field? = nil, from: String? = nil, to: String? = nil) {
+		self.source = source
+		self.field = field
+		self.from = from
+		self.to = to
+	}
 }
 
 public struct Verification: Codable, Sendable, Equatable {
@@ -315,12 +393,29 @@ public struct Verification: Codable, Sendable, Equatable {
 	public var timeoutMs: Int?
 	/// True when the expectation already held before the transaction ran.
 	public var preexisting: Bool?
+
+	public init(status: Status, evidence: ActEvidence? = nil, text: String? = nil, role: String? = nil, value: String? = nil, scope: String? = nil, gone: Bool? = nil, timeoutMs: Int? = nil, preexisting: Bool? = nil) {
+		self.status = status
+		self.evidence = evidence
+		self.text = text
+		self.role = role
+		self.value = value
+		self.scope = scope
+		self.gone = gone
+		self.timeoutMs = timeoutMs
+		self.preexisting = preexisting
+	}
 }
 
 /// The root the actions ran in closed; `skipped` later steps were not sent to it.
 public struct ClosedRoot: Codable, Sendable, Equatable {
 	public var root: RootAppearance
 	public var skipped: Int?
+
+	public init(root: RootAppearance, skipped: Int? = nil) {
+		self.root = root
+		self.skipped = skipped
+	}
 }
 
 public struct ActResult: Codable, Sendable, Equatable {
@@ -342,6 +437,23 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var shown: Int?
 	public var total: Int?
 	public var image: ImageInfo?
+
+	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, roots: [RootAppearance]? = nil, closed: ClosedRoot? = nil, next: RootAppearance? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
+		self.stateId = stateId
+		self.baseStateId = baseStateId
+		self.outcome = outcome
+		self.verification = verification
+		self.delivery = delivery
+		self.roots = roots
+		self.closed = closed
+		self.next = next
+		self.changes = changes
+		self.offscreen = offscreen
+		self.nodes = nodes
+		self.shown = shown
+		self.total = total
+		self.image = image
+	}
 }
 
 // MARK: - commands

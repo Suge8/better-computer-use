@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	public func listApps() -> [RunningApp] {
@@ -39,7 +40,7 @@ extension Platform {
 
 	public func frontmost() throws -> Frontmost {
 		guard let app = NSWorkspace.shared.frontmostApplication else {
-			throw PlatformError(message: "No frontmost app available", code: "frontmost_unavailable")
+			throw BCUError(.windowStale, "No frontmost app available")
 		}
 		let pid = app.processIdentifier
 		let appName = app.localizedName ?? "Unknown App"
@@ -55,32 +56,6 @@ extension Platform {
 		if window.isOnscreen { score += 20 }
 		if window.windowId != nil { score += 10 }
 		return score
-	}
-
-	public func focusWindow(_ target: RootTarget) -> FocusWindowResult {
-		guard let window = resolveRoot(pid: target.pid, windowId: target.windowId, rootRef: target.rootRef) else {
-			return FocusWindowResult(focused: false, alreadyFocused: false, setMain: nil, setFocused: nil, raised: nil, reason: "window_not_found")
-		}
-
-		let appElement = AXUIElementCreateApplication(target.pid)
-		if let focusedWindow = copyAttribute(appElement, attribute: kAXFocusedWindowAttribute as CFString).flatMap(asAXElement),
-			sameElement(focusedWindow, window)
-		{
-			return FocusWindowResult(focused: true, alreadyFocused: true, setMain: nil, setFocused: nil, raised: nil, reason: nil)
-		}
-
-		let setMain = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
-		let setFocused = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success
-		let raised = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
-		let focused = setMain || setFocused || raised
-		return FocusWindowResult(focused: focused, alreadyFocused: false, setMain: setMain, setFocused: setFocused, raised: raised, reason: focused ? nil : "focus_failed")
-	}
-
-	/// A popup menu that Accessibility never exposed as an element is still a real root on
-	/// screen; its Quartz window id is the only identity it has.
-	func cgMenuWindowId(_ rootRef: String) -> UInt32? {
-		guard rootRef.hasPrefix(cgMenuRefPrefix) else { return nil }
-		return UInt32(rootRef.dropFirst(cgMenuRefPrefix.count))
 	}
 
 	func rootKind(role: String, subrole: String) -> RootKind {
@@ -112,7 +87,7 @@ extension Platform {
 		guard frame.width > 1, frame.height > 1 else { return nil }
 		return Root(
 			kind: .menubar,
-			rootRef: refStore.storeWindow(bar),
+			handle: .root(bar),
 			windowId: nil,
 			// Behind every window, and never the root an unqualified query should land on.
 			zOrder: Int.max,
@@ -180,7 +155,7 @@ extension Platform {
 				let menuElement = menuElement(drawnBy: candidate, among: menuElements)
 				roots.append(Root(
 					kind: .menu,
-					rootRef: menuElement.map { refStore.storeWindow($0) } ?? "\(cgMenuRefPrefix)\(candidate.windowId)",
+					handle: menuElement.map { .root($0) } ?? .popupMenu(windowId: candidate.windowId),
 					windowId: candidate.windowId,
 					zOrder: candidate.zOrder,
 					title: menuElement.flatMap { menuTitle($0) } ?? candidate.title,
@@ -205,11 +180,6 @@ extension Platform {
 		return roots
 	}
 
-	/// One app's windows and their sheets, without its menus and menu bar.
-	public func listWindows(pid: Int32) -> [Root] {
-		listWindows(pid: pid, appName: processName(pid: pid) ?? "Unknown App", bundleId: nil)
-	}
-
 	/// The app's windows and their sheets, in the app's own window order.
 	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = 1.0) -> [Root] {
 		ensureEnhancedAccessibility(pid: pid)
@@ -232,7 +202,6 @@ extension Platform {
 			if effectiveFrame.width < 100 || effectiveFrame.height < 80 { continue }
 			let hasUsableAXFrame = axFrame.width > 1 && axFrame.height > 1
 			let title = hasUsableAXFrame && !axTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? axTitle : (candidate?.title.isEmpty == false ? candidate!.title : axTitle)
-			let rootRef = refStore.storeWindow(window)
 			let isMinimized = boolAttribute(window, attribute: kAXMinimizedAttribute as CFString) ?? false
 			let isMain = boolAttribute(window, attribute: kAXMainAttribute as CFString) ?? false
 			let isFocused = boolAttribute(window, attribute: kAXFocusedAttribute as CFString) ?? false
@@ -241,7 +210,7 @@ extension Platform {
 
 			output.append(Root(
 				kind: rootKind(role: axRole, subrole: axSubrole),
-				rootRef: rootRef,
+				handle: .root(window),
 				windowId: candidate?.windowId,
 				zOrder: candidate?.zOrder ?? zIndex,
 				title: title,
@@ -261,12 +230,11 @@ extension Platform {
 			))
 
 			for sheet in sheetElements(of: window) {
-				let sheetRef = refStore.storeWindow(sheet)
 				let sheetFrame = frameForWindow(sheet)
 				let sheetCandidate = bestCandidate(for: sheet, candidates: candidates)
 				output.append(Root(
 					kind: .sheet,
-					rootRef: sheetRef,
+					handle: .root(sheet),
 					windowId: sheetCandidate?.windowId,
 					zOrder: sheetCandidate?.zOrder ?? candidate?.zOrder ?? zIndex,
 					title: stringAttribute(sheet, attribute: kAXTitleAttribute as CFString) ?? title,
@@ -289,11 +257,12 @@ extension Platform {
 		return output
 	}
 
-	/// A supplied root ref is authoritative: menus, sheets and popovers have no window id,
-	/// so a ref that no longer resolves must fail instead of silently selecting another root.
-	func resolveRoot(pid: Int32, windowId: UInt32?, rootRef: String? = nil) -> AXUIElement? {
-		if let rootRef {
-			guard let stored = refStore.window(for: rootRef) else { return nil }
+	/// A supplied root handle is authoritative: menus, sheets and popovers have no window id,
+	/// so a root that no longer resolves must fail instead of silently selecting another root.
+	func resolveRoot(pid: Int32, windowId: UInt32?, root: Handle? = nil) -> AXUIElement? {
+		if let root {
+			guard case .element(let element) = root.rootObject else { return nil }
+			let stored = element.element
 			AXUIElementSetMessagingTimeout(stored, 1.0)
 			var ownerPid: pid_t = 0
 			guard AXUIElementGetPid(stored, &ownerPid) == .success, ownerPid == pid else { return nil }

@@ -52,10 +52,10 @@ extension Platform {
 	/// grants to the *responsible process* (the LaunchServices launching
 	/// app), so:
 	///   - "helper-app": running from the installed bundle, launched via
-	///     LaunchServices — grants belong to the canonical helper identity.
+	///     LaunchServices — grants belong to the installed bcu.app.
 	///   - "caller": anything else (dev binary under a terminal, etc.) —
 	///     the booleans reflect whatever app spawned us, NOT the canonical
-	///     helper. The Broker surfaces this instead of guessing.
+	///     app. Callers surface this instead of guessing.
 	func permissionSource() -> PermissionSource {
 		let parentPid = Int32(getppid())
 		let executable = CommandLine.arguments.first ?? ""
@@ -93,7 +93,7 @@ extension Platform {
 		// A successful TCC grant is process-stable in practice. Cache only the
 		// positive result so missing grants are always rechecked after the user
 		// enables them, while fresh agent processes avoid repeating a multi-second
-		// ScreenCaptureKit probe against the same long-lived helper daemon.
+		// ScreenCaptureKit probe against the same long-lived resident process.
 		if accessibility && capturable {
 			permissionCacheLock.lock()
 			grantedPermissionStatus = result
@@ -115,13 +115,3 @@ extension Platform {
 	}
 }
 
-extension Platform {
-	/// Opens the privacy pane in System Settings where the user grants `pane`.
-	public func openPermissionPane(_ pane: PermissionPane) -> Bool {
-		let url = switch pane {
-		case .accessibility: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-		case .screenRecording: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-		}
-		return NSWorkspace.shared.open(url)
-	}
-}

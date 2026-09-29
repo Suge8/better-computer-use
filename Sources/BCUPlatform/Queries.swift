@@ -1,10 +1,11 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	/// Waits until an element matching role, text or value appears in the root (or, with
 	/// `gone`, until none does), re-reading the tree whenever the app reports a change.
-	public func waitFor(_ request: WaitForRequest) throws -> WaitForResult {
-		let pid = request.target.pid
+	public func waitFor(_ request: WaitForRequest) throws -> WaitOutcome {
+		let pid = request.pid
 		ensureEnhancedAccessibility(pid: pid)
 		let role = request.role?.trimmingCharacters(in: .whitespacesAndNewlines)
 		let text = request.text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -12,15 +13,15 @@ extension Platform {
 		let timeoutMs = max(100, min(60_000, request.timeoutMs ?? 10_000))
 		let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1000.0)
 		guard role?.isEmpty == false || text?.isEmpty == false || expectedValue?.isEmpty == false else {
-			throw PlatformError(message: "axWaitFor requires role, text, or value", code: "invalid_args")
+			throw BCUError(.invalidArguments, "A wait needs a role, text, or value.")
 		}
-		guard let window = resolveRoot(pid: pid, windowId: request.target.windowId, rootRef: request.target.rootRef) else {
+		guard let window = resolveRoot(pid: pid, windowId: nil, root: request.root) else {
 			return .rootNotFound
 		}
 		let rootElement: AXUIElement
-		if let scopeRef = request.scopeRef {
-			guard let scoped = refStore.element(for: scopeRef), isElement(scoped, descendantOf: window) else {
-				throw PlatformError(message: "Condition scope ref is stale or outside the target root", code: "element_ref_invalid")
+		if let scope = request.scope {
+			guard let scoped = scope.elementRecord?.element.element, isElement(scoped, descendantOf: window) else {
+				throw BCUError(.elementNotFound, "Condition scope ref is stale or outside the target root")
 			}
 			rootElement = scoped
 		} else {
@@ -47,84 +48,35 @@ extension Platform {
 			return true
 		}
 
-		var lastCount = 0
 		repeat {
 			let changeGeneration = rootChangeGeneration(pid: pid)
-			let collected = collectDescendantsWithContext(startingAt: rootElement, maxDepth: 12, maxNodes: 2000)
-			let descendants = request.scopeExact ? Array(collected.prefix(1)) : collected
-			lastCount = descendants.count
-			if let match = descendants.first(where: { matches($0.element) }) {
-				if request.gone {
-					waitForRootChange(pid: pid, since: changeGeneration, until: deadline)
-					continue
-				}
-				let candidateRole = stringAttribute(match.element, attribute: kAXRoleAttribute as CFString) ?? ""
-				let containsWebArea = descendants.contains { stringAttribute($0.element, attribute: kAXRoleAttribute as CFString) == "AXWebArea" }
-				let source = axSource(role: candidateRole, insideWebArea: match.insideWebArea, isBrowser: isBrowser(pid: pid), containsWebArea: containsWebArea)
-				return .found(elementMatch(match.element, source: source), nodeCount: lastCount)
-			}
-			if request.gone {
-				return .gone(nodeCount: lastCount)
-			}
+			let present = collectDescendants(startingAt: rootElement, maxDepth: 12, maxNodes: 2000).contains(where: matches)
+			if present != request.gone { return request.gone ? .gone : .found }
 			waitForRootChange(pid: pid, since: changeGeneration, until: deadline)
 		} while Date() < deadline
-
-		return .timedOut(nodeCount: lastCount)
-	}
-
-	func elementMatch(_ element: AXUIElement, source: ElementSource) -> ElementMatch {
-		let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
-		let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
-		var valueSettable = DarwinBoolean(false)
-		let valueStatus = AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &valueSettable)
-		var focusedSettable = DarwinBoolean(false)
-		let focusedStatus = AXUIElementIsAttributeSettable(element, kAXFocusedAttribute as CFString, &focusedSettable)
-		let actions = actionNames(element)
-		let textRoles: Set<String> = [
-			"AXTextField", "AXTextArea", "AXTextView", "AXSearchField", "AXComboBox", "AXEditableText", "AXSecureTextField",
-		]
-		return ElementMatch(
-			elementRef: refStore.storeElement(element),
-			role: role,
-			subrole: subrole,
-			title: stringAttribute(element, attribute: kAXTitleAttribute as CFString) ?? "",
-			description: stringAttribute(element, attribute: kAXDescriptionAttribute as CFString) ?? "",
-			identifier: stringAttribute(element, attribute: "AXIdentifier" as CFString) ?? "",
-			value: displayValue(element, role: role, subrole: subrole),
-			actions: actions,
-			isTextInput: textRoles.contains(role),
-			canSetValue: valueStatus == .success && valueSettable.boolValue,
-			canFocus: focusedStatus == .success && focusedSettable.boolValue,
-			canPress: actions.contains(kAXPressAction as String),
-			canScroll: supportsAnyScrollAction(element),
-			canIncrement: actions.contains(kAXIncrementAction as String),
-			canDecrement: actions.contains(kAXDecrementAction as String),
-			frame: frameForElement(element),
-			parentFrame: copyAttribute(element, attribute: kAXParentAttribute as CFString).flatMap(asAXElement).flatMap(frameForElement),
-			source: source
-		)
+		return .timedOut
 	}
 
 	/// A page of an element's text value, counted in characters. Secure fields are refused.
-	public func readText(_ request: ReadTextRequest) throws -> ReadTextResult {
-		let offset = max(0, request.offset)
-		let limit = max(1, min(100_000, request.limit))
-		guard let element = refStore.element(for: request.elementRef) else {
-			throw PlatformError(message: "Element reference is no longer valid", code: "element_ref_invalid")
+	public func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage {
+		let offset = max(0, offset)
+		let limit = max(1, min(100_000, limit))
+		guard let element = handle.elementRecord?.element.element else {
+			throw BCUError(.elementNotFound, "Element reference is no longer valid")
 		}
 		let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 		let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
 		guard !isSecureTextElement(role: role, subrole: subrole) else {
-			throw PlatformError(message: "Refers to a secure text field; refusing to read its value", code: "secure_text_unreadable")
+			throw BCUError(.actionFailed, "Refers to a secure text field; refusing to read its value")
 		}
 		guard let value = stringAttribute(element, attribute: kAXValueAttribute as CFString) else {
-			throw PlatformError(message: "Element has no readable AXValue. Call snapshot/screenshot and choose a text-bearing ref.", code: "text_unavailable")
+			throw BCUError(.actionFailed, "Element has no readable AXValue. Call snapshot/screenshot and choose a text-bearing ref.")
 		}
 		let characters = Array(value)
 		if offset >= characters.count {
-			return ReadTextResult(text: "", offset: offset, limit: limit, totalChars: characters.count, hasMore: false)
+			return TextPage(text: "", offset: offset, limit: limit, totalChars: characters.count, hasMore: false)
 		}
 		let end = min(characters.count, offset + limit)
-		return ReadTextResult(text: String(characters[offset..<end]), offset: offset, limit: limit, totalChars: characters.count, hasMore: end < characters.count)
+		return TextPage(text: String(characters[offset..<end]), offset: offset, limit: limit, totalChars: characters.count, hasMore: end < characters.count)
 	}
 }

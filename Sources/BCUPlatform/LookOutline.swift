@@ -11,13 +11,16 @@ struct OCRBox {
 	let rect: CGRect
 }
 
-public final class LookNode {
+/// A look's outline is built once and handed to the caller, which owns it from then on.
+public final class LookNode: @unchecked Sendable {
 	/// Role of a line read from the screen; it has no accessibility element.
 	public static let ocrRole = "OCR"
 
-	/// Nil for nodes read from the screen and for picture-only roots.
-	let element: AXUIElement?
-	public let ref: String
+	/// The element behind the node; nil for lines read from the screen and picture-only roots.
+	public let handle: Handle?
+	/// What names a node without an element: `ocr_<n>` for the n-th line read from the screen,
+	/// `cgmenu:<windowId>` for a popup menu root. Empty for element nodes.
+	public let name: String
 	public let role: String
 	public let subrole: String
 	public let identifier: String
@@ -40,9 +43,9 @@ public final class LookNode {
 	public internal(set) var scrollExtent: ScrollExtent?
 	public internal(set) var children: [LookNode]
 
-	init(element: AXUIElement?, ref: String, role: String, subrole: String, identifier: String, title: String, description: String, value: String, actions: [String], canPress: Bool, canFocus: Bool, canSetValue: Bool, canScroll: Bool, canIncrement: Bool, canDecrement: Bool, isTextInput: Bool, rect: CGRect, focused: Bool = false, offscreen: Bool = false, pictureOnly: Bool = false) {
-		self.element = element
-		self.ref = ref
+	init(handle: Handle?, name: String, role: String, subrole: String, identifier: String, title: String, description: String, value: String, actions: [String], canPress: Bool, canFocus: Bool, canSetValue: Bool, canScroll: Bool, canIncrement: Bool, canDecrement: Bool, isTextInput: Bool, rect: CGRect, focused: Bool = false, offscreen: Bool = false, pictureOnly: Bool = false) {
+		self.handle = handle
+		self.name = name
 		self.role = role
 		self.subrole = subrole
 		self.identifier = identifier
@@ -71,7 +74,7 @@ public final class LookNode {
 func attachOCR(_ boxes: [OCRBox], to root: LookNode) {
 	for (index, box) in boxes.enumerated() where !ocrBoxDuplicatesAXLabel(box, in: root) {
 		let parent = deepestNode(containing: CGPoint(x: box.rect.midX, y: box.rect.midY), in: root) ?? root
-		parent.children.append(LookNode(element: nil, ref: "ocr_\(index + 1)", role: LookNode.ocrRole, subrole: "", identifier: "", title: box.string, description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: box.rect, pictureOnly: true))
+		parent.children.append(LookNode(handle: nil, name: "ocr_\(index + 1)", role: LookNode.ocrRole, subrole: "", identifier: "", title: box.string, description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: box.rect, pictureOnly: true))
 	}
 }
 

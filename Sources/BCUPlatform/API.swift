@@ -1,22 +1,18 @@
 import AppKit
+import BCUCore
 
-// Request and result types of the Platform API. The helper wire protocol is one encoding
-// of them (WireProtocol.swift); an in-process caller uses them directly.
+// Request and result types of the Platform API. Elements and roots travel as `Handle`s the
+// caller keeps with its observation; failures are thrown as `BCUError` with their public code.
 
-public struct PlatformError: Error {
+/// The action needs the real pointer or the frontmost app, which the requested policy does
+/// not allow; the caller may retry it in the foreground.
+public struct ForegroundRequired: Error, Sendable {
 	public let message: String
-	/// Stable failure code; the Broker maps it to a public CLI error code.
-	public let code: String
-
-	public init(message: String, code: String) {
-		self.message = message
-		self.code = code
-	}
 }
 
 // MARK: Diagnostics and permissions
 
-public struct Diagnostics {
+public struct Diagnostics: Sendable {
 	public let accessibility: Bool
 	public let screenRecording: Bool
 	public let pid: Int32
@@ -30,14 +26,14 @@ public struct Diagnostics {
 }
 
 /// Which TCC identity the permission booleans reflect.
-public enum PermissionAttribution: String {
+public enum PermissionAttribution: String, Sendable {
 	/// The installed bundle launched through LaunchServices: grants belong to bcu.app.
 	case helperApp = "helper-app"
 	/// Anything else: the booleans reflect whatever app spawned this process.
 	case caller
 }
 
-public struct PermissionSource {
+public struct PermissionSource: Sendable {
 	public let pid: Int32
 	public let parentPid: Int32
 	public let parentPath: String?
@@ -47,7 +43,7 @@ public struct PermissionSource {
 	public let attribution: PermissionAttribution
 }
 
-public struct PermissionStatus {
+public struct PermissionStatus: Sendable {
 	public let accessibility: Bool
 	/// The live ScreenCaptureKit probe; the authoritative Screen Recording answer.
 	public let screenRecording: Bool
@@ -56,44 +52,39 @@ public struct PermissionStatus {
 	public let source: PermissionSource
 }
 
-public struct PermissionRegistration {
+public struct PermissionRegistration: Sendable {
 	public let accessibility: Bool
 	public let screenRecording: Bool
 }
 
 // MARK: Apps and roots
 
-public struct RunningApp {
+public struct RunningApp: Sendable {
 	public let appName: String
 	public let pid: Int32
 	public let bundleId: String?
 	public let isFrontmost: Bool
 }
 
-public enum RootKind: String {
-	case window, sheet, dialog, popover, menu, menubar
-}
-
-public enum PairingConfidence: String {
+public enum PairingConfidence: String, Sendable {
 	case exact, high, low
 }
 
 /// How surely an accessibility root was matched to a window-server window.
-public struct RootPairing {
+public struct RootPairing: Sendable {
 	public let confidence: PairingConfidence
 	public let score: Double
 }
 
-public struct RootMetadata {
+public struct RootMetadata: Sendable {
 	public let pairing: RootPairing
 	public let sheetCount: Int
 }
 
-public struct Root {
+public struct Root: Sendable {
 	public let kind: RootKind
-	/// Stable handle for the root in this process; `cgmenu:<windowId>` for a popup menu that
-	/// Accessibility never exposed.
-	public let rootRef: String
+	/// The root's identity: equal handles name the same root, whatever its title or frame.
+	public let handle: Handle
 	/// Quartz window id, absent for roots the window server does not expose separately.
 	public let windowId: UInt32?
 	public let zOrder: Int
@@ -114,21 +105,7 @@ public struct Root {
 	public let bundleId: String?
 }
 
-/// A root that a single call addresses: `rootRef` wins over `windowId`, and neither picks
-/// the app's first window.
-public struct RootTarget {
-	public let pid: Int32
-	public let windowId: UInt32?
-	public let rootRef: String?
-
-	public init(pid: Int32, windowId: UInt32? = nil, rootRef: String? = nil) {
-		self.pid = pid
-		self.windowId = windowId
-		self.rootRef = rootRef
-	}
-}
-
-public struct Frontmost {
+public struct Frontmost: Sendable {
 	public let appName: String
 	public let pid: Int32
 	public let bundleId: String?
@@ -136,47 +113,42 @@ public struct Frontmost {
 	public let window: Root?
 }
 
-public struct FocusWindowResult {
-	public let focused: Bool
-	public let alreadyFocused: Bool
-	/// Which AX writes succeeded; nil when the window was already focused or not found.
-	public let setMain: Bool?
-	public let setFocused: Bool?
-	public let raised: Bool?
-	/// `window_not_found` or `focus_failed`.
-	public let reason: String?
-}
-
 // MARK: Look
 
-public enum ReadTextMode: String {
-	case auto, always, never
+/// Where a look's outline coordinates come from: its image when it has one, else the
+/// root's frame in points. Actions at coordinates of that look are placed through it.
+public struct LookGeometry: Sendable {
+	public let windowId: UInt32
+	public let windowFrame: CGRect
+	public let imageWidth: Int
+	public let imageHeight: Int
+	public let hasImage: Bool
 }
 
-public struct LookRequest {
-	public let rootRef: String
+public struct LookRequest: Sendable {
+	public let root: Handle
 	public let windowId: UInt32?
 	public let maxDimension: Int?
 	public let readText: ReadTextMode
-	/// The look this one refreshes; its geometry keeps coordinates stable across the pair.
-	public let baseLookId: String?
+	/// The geometry of the look this one refines; a scoped look keeps it so coordinates stay valid.
+	public let baseGeometry: LookGeometry?
 	public let includeImage: Bool
-	public let scopeRef: String?
+	/// An element of the root to describe instead of the whole root.
+	public let scope: Handle?
 
-	public init(rootRef: String, windowId: UInt32? = nil, maxDimension: Int? = nil, readText: ReadTextMode = .auto, baseLookId: String? = nil, includeImage: Bool = true, scopeRef: String? = nil) {
-		self.rootRef = rootRef
+	public init(root: Handle, windowId: UInt32? = nil, maxDimension: Int? = nil, readText: ReadTextMode = .auto, baseGeometry: LookGeometry? = nil, includeImage: Bool = true, scope: Handle? = nil) {
+		self.root = root
 		self.windowId = windowId
 		self.maxDimension = maxDimension
 		self.readText = readText
-		self.baseLookId = baseLookId
+		self.baseGeometry = baseGeometry
 		self.includeImage = includeImage
-		self.scopeRef = scopeRef
+		self.scope = scope
 	}
 }
 
-public struct LookWindow {
+public struct LookWindow: Sendable {
 	public let windowId: UInt32
-	public let rootRef: String
 	public let kind: RootKind
 	public let framePoints: CGRect
 	public let scaleFactor: Double
@@ -186,23 +158,23 @@ public struct LookWindow {
 	public let subrole: String
 }
 
-public struct LookTimings {
+public struct LookTimings: Sendable {
 	public let captureMs: Int
 	public let describeMs: Int
 	public let readTextMs: Int
 }
 
-public struct LookImage {
+public struct LookImage: Sendable {
 	public let jpeg: Data
 	public let width: Int
 	public let height: Int
 }
 
-public struct LookResult {
-	public let lookId: String
+public struct LookResult: Sendable {
 	public let capturedAt: Date
 	public let window: LookWindow
 	public let outline: LookNode
+	public let geometry: LookGeometry
 	public let timings: LookTimings
 	/// Whether the screen was read; nil for a picture-only popup menu.
 	public let readText: (requested: ReadTextMode, executed: Bool)?
@@ -211,24 +183,24 @@ public struct LookResult {
 
 // MARK: Act
 
-public enum ActAction: String {
+public enum ActAction: String, Sendable {
 	case press, click, moveMouse, scroll, drag, setText, typeText, keypress
 }
 
-public enum ActTarget {
-	/// An element ref of the look.
-	case ref(String)
+public enum ActTarget: Sendable {
+	/// An element handle from the look.
+	case element(Handle)
 	/// A point in the look's image coordinates.
 	case point(x: Double, y: Double)
 }
 
 /// The rung of the delivery ladder a call may start from; see docs/architecture.md.
-public enum ActPolicy: String {
+public enum ActPolicy: String, Sendable {
 	case `default`, background, foreground
 	case axOnly = "ax_only"
 }
 
-public struct ActParams {
+public struct ActionInput: Sendable {
 	public let button: CGMouseButton
 	public let clickCount: Int
 	public let scrollX: Int
@@ -255,18 +227,19 @@ public struct ActParams {
 	}
 }
 
-public struct ActRequest {
-	public let lookId: String
+public struct ActRequest: Sendable {
+	/// The look the target was taken from.
+	public let geometry: LookGeometry
 	public let pid: Int32
 	public let action: ActAction
 	public let target: ActTarget
-	public let params: ActParams
+	public let params: ActionInput
 	public let policy: ActPolicy
 	/// Animate the agent cursor over pointer actions delivered in the background.
 	public let cursorOverlay: Bool
 
-	public init(lookId: String, pid: Int32, action: ActAction, target: ActTarget, params: ActParams = ActParams(), policy: ActPolicy = .default, cursorOverlay: Bool = true) {
-		self.lookId = lookId
+	public init(geometry: LookGeometry, pid: Int32, action: ActAction, target: ActTarget, params: ActionInput = ActionInput(), policy: ActPolicy = .default, cursorOverlay: Bool = true) {
+		self.geometry = geometry
 		self.pid = pid
 		self.action = action
 		self.target = target
@@ -276,29 +249,25 @@ public struct ActRequest {
 	}
 }
 
-public enum ActOutcome: String {
-	case worked, didnt, unknown
-}
-
-public enum Delivery: String {
+public enum Delivery: String, Sendable {
 	case ax, pid, hid
 }
 
-public enum Grounding: String {
+public enum Grounding: String, Sendable {
 	case description, coordinates
 }
 
 /// Where the root change of an action was first noticed.
-public enum DeltaSource: String {
+public enum DeltaSource: String, Sendable {
 	case snapshot, events
 	case cgPoll = "cg-poll"
 }
 
-/// What the helper did to deliver an action, beyond the action itself.
-public struct ActPerformed {
+/// What the platform did to deliver an action, beyond the action itself.
+public struct ActPerformed: Sendable {
 	public internal(set) var delivery: Delivery
 	public internal(set) var grounding: Grounding?
-	/// The ref was stale and the element was found again by its identity.
+	/// The element's accessibility object was replaced and it was found again.
 	public internal(set) var refound = false
 	/// The target window was made key without raising it.
 	public internal(set) var focusedWindow = false
@@ -323,37 +292,17 @@ public struct ActPerformed {
 	}
 }
 
-public enum EvidenceSource: String {
-	case ax, focus, root, screen
-}
-
-/// Why an outcome was judged as it was.
-public struct ActEvidence {
-	public let source: EvidenceSource
-	/// The fact that moved: an AX field (`value`, `selected`, …), `scroll`, `focused` or `changed`.
-	public let field: String?
-	public let from: String?
-	public let to: String?
-
-	init(source: EvidenceSource, field: String? = nil, from: String? = nil, to: String? = nil) {
-		self.source = source
-		self.field = field
-		self.from = from
-		self.to = to
-	}
-}
-
-public enum RootChangeKind: String {
+public enum RootChangeKind: String, Sendable {
 	case appeared, closed, focused
 }
 
-public enum RootChange {
+public enum RootChange: Sendable {
 	case root(RootChangeKind, Root)
 	/// Another app took the front.
 	case frontApp(title: String, pid: Int32)
 }
 
-public struct ActResult {
+public struct ActionReport: Sendable {
 	public internal(set) var outcome: ActOutcome
 	public internal(set) var performed: ActPerformed
 	public internal(set) var verification: ActEvidence?
@@ -366,9 +315,9 @@ public struct ActResult {
 	}
 }
 
-public enum ActStep {
-	case completed(ActResult)
-	case failed(PlatformError)
+public enum ActStep: Sendable {
+	case completed(ActionReport)
+	case failed(message: String)
 
 	public var outcome: ActOutcome {
 		if case .completed(let result) = self { return result.outcome }
@@ -376,7 +325,7 @@ public enum ActStep {
 	}
 }
 
-public struct ActBatchResult {
+public struct BatchReport: Sendable {
 	public internal(set) var outcome: ActOutcome
 	public let steps: [ActStep]
 	/// Index of the step that stopped the batch.
@@ -388,146 +337,40 @@ public struct ActBatchResult {
 
 // MARK: Queries
 
-public struct WaitForRequest {
-	public let target: RootTarget
+public struct WaitForRequest: Sendable {
+	public let pid: Int32
+	public let root: Handle
 	public let role: String?
 	public let text: String?
 	public let value: String?
 	/// Wait for the match to disappear instead of appear.
 	public let gone: Bool
-	public let scopeRef: String?
-	/// Match only the scope element itself.
-	public let scopeExact: Bool
+	public let scope: Handle?
 	public let timeoutMs: Int?
 
-	public init(target: RootTarget, role: String? = nil, text: String? = nil, value: String? = nil, gone: Bool = false, scopeRef: String? = nil, scopeExact: Bool = false, timeoutMs: Int? = nil) {
-		self.target = target
+	public init(pid: Int32, root: Handle, role: String? = nil, text: String? = nil, value: String? = nil, gone: Bool = false, scope: Handle? = nil, timeoutMs: Int? = nil) {
+		self.pid = pid
+		self.root = root
 		self.role = role
 		self.text = text
 		self.value = value
 		self.gone = gone
-		self.scopeRef = scopeRef
-		self.scopeExact = scopeExact
+		self.scope = scope
 		self.timeoutMs = timeoutMs
 	}
 }
 
-public enum ElementSource: String {
-	case webContent = "web_content_ax"
-	case browserChrome = "browser_chrome_ax"
-	case desktop = "desktop_ax"
-}
-
-/// An element found by a wait, described the way the wire always has.
-public struct ElementMatch {
-	public let elementRef: String
-	public let role: String
-	public let subrole: String
-	public let title: String
-	public let description: String
-	public let identifier: String
-	public let value: String
-	public let actions: [String]
-	public let isTextInput: Bool
-	public let canSetValue: Bool
-	public let canFocus: Bool
-	public let canPress: Bool
-	public let canScroll: Bool
-	public let canIncrement: Bool
-	public let canDecrement: Bool
-	/// Screen points; the centre is (0, 0) when the element reports no frame.
-	public let frame: CGRect?
-	public let parentFrame: CGRect?
-	public let source: ElementSource
-}
-
-public enum WaitForResult {
-	case found(ElementMatch, nodeCount: Int)
-	case gone(nodeCount: Int)
-	case timedOut(nodeCount: Int)
+public enum WaitOutcome: Sendable {
+	case found
+	case gone
+	case timedOut
 	case rootNotFound
 }
 
-public struct ReadTextRequest {
-	public let elementRef: String
-	public let offset: Int
-	public let limit: Int
-
-	public init(elementRef: String, offset: Int = 0, limit: Int = 4_000) {
-		self.elementRef = elementRef
-		self.offset = offset
-		self.limit = limit
-	}
-}
-
-public struct ReadTextResult {
+public struct TextPage: Sendable {
 	public let text: String
 	public let offset: Int
 	public let limit: Int
 	public let totalChars: Int
 	public let hasMore: Bool
-}
-
-// MARK: Window and focus control
-
-public struct UserContext {
-	public struct Window {
-		public let title: String
-		public let role: String
-		public let subrole: String
-	}
-
-	public struct Element {
-		public let role: String
-		public let subrole: String
-		public let title: String
-		public let description: String
-		public let value: String
-	}
-
-	public let appName: String
-	public let pid: Int32
-	public let bundleId: String?
-	public let window: Window?
-	public let focusedElement: Element?
-}
-
-public struct RestoredFocus {
-	public let appRestored: Bool
-	public let windowRestored: Bool
-	public let appName: String
-	/// The title of the window brought forward, empty when none was.
-	public let windowTitle: String
-
-	public var restored: Bool { appRestored || windowRestored }
-}
-
-public struct WindowFrameResult {
-	public let positionStatus: AXError
-	public let sizeStatus: AXError
-	/// The frame the window reports after the writes.
-	public let framePoints: CGRect
-
-	public var ok: Bool { positionStatus == .success || sizeStatus == .success }
-}
-
-public struct FocusedElement {
-	public let elementRef: String
-	public let role: String
-	public let subrole: String
-	public let isTextInput: Bool
-	public let isSecure: Bool
-	public let canSetValue: Bool
-}
-
-public enum FocusedElementResult {
-	case element(FocusedElement)
-	/// The app reports no focused element.
-	case none
-	case rootNotFound
-	case outsideRoot
-}
-
-public enum PermissionPane: String {
-	case accessibility, screenRecording
 }

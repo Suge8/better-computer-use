@@ -6,10 +6,9 @@ let axScrollLeftAction = "AXScrollLeft" as CFString
 let axScrollRightAction = "AXScrollRight" as CFString
 
 extension Platform {
-	func refindElement(ref: String, pid: Int32, windowId: UInt32) -> AXUIElement? {
-		guard let snapshot = refStore.snapshot(for: ref),
-			let window = resolveRoot(pid: pid, windowId: windowId)
-		else { return nil }
+	/// Finds an element again from what it looked like, when its accessibility object was replaced.
+	func refindElement(_ snapshot: ElementSnapshot, pid: Int32, windowId: UInt32) -> AXUIElement? {
+		guard let window = resolveRoot(pid: pid, windowId: windowId) else { return nil }
 		let targetCenter = CGPoint(x: snapshot.rect.midX, y: snapshot.rect.midY)
 		let candidates = collectDescendants(startingAt: window, maxDepth: 8).filter { candidate in
 			let role = stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) ?? ""

@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	/// Input posted to a pid lands in its key window. Returns whether a handoff was needed;
@@ -14,7 +15,7 @@ extension Platform {
 		let deadline = Date().addingTimeInterval(0.5)
 		while !isKey() {
 			guard Date() < deadline else {
-				throw PlatformError(message: "Window \(windowId) did not become the key window of its app", code: "foreground_required")
+				throw ForegroundRequired(message: "Window \(windowId) did not become the key window of its app")
 			}
 			usleep(20_000)
 		}
@@ -40,7 +41,7 @@ extension Platform {
 		if delivery == .hid { physicalInputLock.lock() }
 		defer { if delivery == .hid { physicalInputLock.unlock() } }
 		guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else {
-			throw PlatformError(message: "Failed to create mouse move event", code: "input_failed")
+			throw BCUError(.actionFailed, "Failed to create mouse move event")
 		}
 		try postEvent(move, pid: pid, delivery: delivery)
 	}
@@ -90,7 +91,7 @@ extension Platform {
 			guard let down = CGEvent(mouseEventSource: nil, mouseType: mouseDownType(for: button), mouseCursorPosition: point, mouseButton: button),
 				let up = CGEvent(mouseEventSource: nil, mouseType: mouseUpType(for: button), mouseCursorPosition: point, mouseButton: button)
 			else {
-				throw PlatformError(message: "Failed to create mouse click event", code: "input_failed")
+				throw BCUError(.actionFailed, "Failed to create mouse click event")
 			}
 			down.setIntegerValueField(.mouseEventClickState, value: Int64(index))
 			up.setIntegerValueField(.mouseEventClickState, value: Int64(index))
@@ -107,18 +108,18 @@ extension Platform {
 		if delivery == .hid { physicalInputLock.lock() }
 		defer { if delivery == .hid { physicalInputLock.unlock() } }
 		guard points.count >= 2, let first = points.first else {
-			throw PlatformError(message: "Drag requires at least two points", code: "invalid_args")
+			throw BCUError(.invalidArguments, "Drag requires at least two points")
 		}
 		try postMouseMove(to: first, pid: pid, delivery: delivery)
 		guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: first, mouseButton: .left) else {
-			throw PlatformError(message: "Failed to create mouse down event", code: "input_failed")
+			throw BCUError(.actionFailed, "Failed to create mouse down event")
 		}
 		try postEvent(down, pid: pid, delivery: delivery)
 		usleep(12_000)
 
 		for point in points.dropFirst() {
 			guard let drag = CGEvent(mouseEventSource: nil, mouseType: mouseDraggedType(for: .left), mouseCursorPosition: point, mouseButton: .left) else {
-				throw PlatformError(message: "Failed to create mouse drag event", code: "input_failed")
+				throw BCUError(.actionFailed, "Failed to create mouse drag event")
 			}
 			try postEvent(drag, pid: pid, delivery: delivery)
 			usleep(8_000)
@@ -127,7 +128,7 @@ extension Platform {
 		guard let last = points.last,
 			let up = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: last, mouseButton: .left)
 		else {
-			throw PlatformError(message: "Failed to create mouse up event", code: "input_failed")
+			throw BCUError(.actionFailed, "Failed to create mouse up event")
 		}
 		try postEvent(up, pid: pid, delivery: delivery)
 	}
@@ -148,7 +149,7 @@ extension Platform {
 			wheel2: Int32(deltaX),
 			wheel3: 0
 		) else {
-			throw PlatformError(message: "Failed to create scroll event", code: "input_failed")
+			throw BCUError(.actionFailed, "Failed to create scroll event")
 		}
 		event.location = point
 		try postEvent(event, pid: pid, delivery: delivery)

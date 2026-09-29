@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	/// The facts an element tells about itself, in the order they are reported.
@@ -35,12 +36,12 @@ extension Platform {
 			let from = before[entry.field] ?? ""
 			let to = after[entry.field] ?? ""
 			guard from != to else { continue }
-			return ActEvidence(source: .ax, field: entry.field, from: evidenceExcerpt(from), to: evidenceExcerpt(to))
+			return ActEvidence(source: .ax, field: ActEvidence.Field(rawValue: entry.field), from: evidenceExcerpt(from), to: evidenceExcerpt(to))
 		}
 		return nil
 	}
 
-	/// Accessibility facts settle a run loop turn after delivery, so the helper waits for
+	/// Accessibility facts settle a run loop turn after delivery, so the platform waits for
 	/// the change instead of guessing a sleep. A dead element yields no evidence at all.
 	func evidenceAfterAction(_ element: AXUIElement, before: [String: String], timeout: TimeInterval) -> [String: String]? {
 		let deadline = Date().addingTimeInterval(timeout)
@@ -51,7 +52,7 @@ extension Platform {
 		}
 	}
 
-	/// Elements whose press flips a value. `src/projection.ts` promises these the `toggle`
+	/// Elements whose press flips a value. The projection (BCUCore) promises these the `toggle`
 	/// capability from the same role and subrole families.
 	func isToggleLike(_ element: AXUIElement) -> Bool {
 		let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
