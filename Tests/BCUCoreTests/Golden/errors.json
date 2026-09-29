@@ -109,30 +109,6 @@
 			}
 		},
 		{
-			"name": "helper_unavailable",
-			"op": "error",
-			"input": {
-				"code": "helper_unavailable",
-				"message": "A helper_unavailable failure."
-			},
-			"output": {
-				"stderr": "error helper_unavailable: A helper_unavailable failure.\nrecovery: Run 'bcu doctor', repair the helper it reports, then retry.\n",
-				"exitCode": 11
-			}
-		},
-		{
-			"name": "unsupported_platform",
-			"op": "error",
-			"input": {
-				"code": "unsupported_platform",
-				"message": "A unsupported_platform failure."
-			},
-			"output": {
-				"stderr": "error unsupported_platform: A unsupported_platform failure.\nrecovery: Run bcu in an interactive macOS desktop session.\n",
-				"exitCode": 12
-			}
-		},
-		{
 			"name": "state_too_large",
 			"op": "error",
 			"input": {
@@ -184,13 +160,13 @@
 			"name": "custom recovery",
 			"op": "error",
 			"input": {
-				"code": "helper_unavailable",
-				"message": "Daemon lost.",
+				"code": "internal_error",
+				"message": "Delivery was interrupted.",
 				"recovery": "The action may already have taken effect."
 			},
 			"output": {
-				"stderr": "error helper_unavailable: Daemon lost.\nrecovery: The action may already have taken effect.\n",
-				"exitCode": 11
+				"stderr": "error internal_error: Delivery was interrupted.\nrecovery: The action may already have taken effect.\n",
+				"exitCode": 1
 			}
 		}
 	]
