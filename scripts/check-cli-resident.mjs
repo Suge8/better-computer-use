@@ -24,8 +24,11 @@ const env = { ...process.env, HOME: home, BCU_SOCKET_PATH: socketPath, BCU_APP_P
 
 const ACT_RESULT = { stateId: "bbbbbbbb", baseStateId: "abcd1234", outcome: "worked", verification: { status: "none" }, delivery: "ax", changes: [] };
 
+/** The wire protocol this bcu speaks (`wireProtocolVersion` in Sources/BCURuntime/Wire.swift). */
+const PROTOCOL = 2;
+
 /** A resident that speaks the wire protocol from a script and records what it was asked. */
-async function scriptedResident(protocolVersion = 1) {
+async function scriptedResident(protocolVersion = PROTOCOL) {
 	const requests = [];
 	const server = net.createServer((socket) => {
 		let buffer = "";
@@ -80,9 +83,9 @@ async function headlessSent(extraEnv) {
 
 async function scriptedChecks() {
 	const resident = await scriptedResident();
-	assert.equal(await text(["status"]), `resident running · pid ${process.pid} · protocol 1\n`);
-	assert.deepEqual(await json(["status"]), { running: true, pid: process.pid, protocolVersion: 1 });
-	assert.equal(await text(["doctor"]), `resident ok · pid ${process.pid} · protocol 1\npermissions: accessibility=true screenRecording=false\n`);
+	assert.equal(await text(["status"]), `resident running · pid ${process.pid} · protocol ${PROTOCOL}\n`);
+	assert.deepEqual(await json(["status"]), { running: true, pid: process.pid, protocolVersion: PROTOCOL });
+	assert.equal(await text(["doctor"]), `resident ok · pid ${process.pid} · protocol ${PROTOCOL}\npermissions: accessibility=true screenRecording=false\n`);
 	const doctor = await json(["doctor"]);
 	assert.deepEqual(doctor.permissions, { accessibility: true, screenRecording: false }, "doctor --json lost the resident's permissions");
 	assert.deepEqual(doctor.config.config, { headless: false, cursor_overlay: true }, "doctor --json does not report the default config");
@@ -97,11 +100,11 @@ async function scriptedChecks() {
 	assert.equal(await headlessSent({ BCU_HEADLESS: "0" }), false, "BCU_HEADLESS=0 did not override the config file");
 	await fs.rm(path.join(home, ".config"), { recursive: true });
 
-	const foreign = await scriptedResident(2);
+	const foreign = await scriptedResident(PROTOCOL + 1);
 	try {
 		const refused = await runCli(["find-roots"], { env });
-		assert.equal(refused.code, 10, `a resident of protocol 2 was not refused: ${refused.stderr}`);
-		assert.match(refused.stderr, /^error resident_unavailable: .*protocol 2/m);
+		assert.equal(refused.code, 10, `a resident of protocol ${PROTOCOL + 1} was not refused: ${refused.stderr}`);
+		assert.match(refused.stderr, new RegExp(`^error resident_unavailable: .*protocol ${PROTOCOL + 1}`, "m"));
 	} finally {
 		foreign.close();
 		await foreign.closed;
