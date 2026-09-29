@@ -31,6 +31,10 @@ export interface ExecutionTrace {
 	performed?: HelperActPerformed;
 	evidence?: ActEvidence;
 	roots?: HelperRoot[];
+	closedRoots?: HelperRoot[];
+	/** The root the transaction ran in closed; `skipped` later actions were not sent. */
+	rootClosed?: boolean;
+	skipped?: number;
 	error?: HelperActResult["error"];
 	steps?: ExecutionTrace[];
 	actionCount?: number;
@@ -338,12 +342,30 @@ async function performReadText(params: ReadTextParams, signal?: AbortSignal): Pr
 	};
 }
 
-/** Successor view of a state transition: a diff when identity holds, the full view otherwise. */
-export function successorView(base: ProjectedNode[], next: Outline): { changes?: Change[]; nodes?: ProjectedNode[]; shown?: number; total?: number } {
-	const folded = project(next);
-	const transition = changesBetween(base, project(next, UNFOLDED).nodes, new Set(folded.nodes.map((node) => node.ref)));
-	if (!transition.useFullView) return { changes: transition.changes };
+export interface SuccessorView {
+	changes?: Change[];
+	offscreen?: { added: number; removed: number };
+	nodes?: ProjectedNode[];
+	shown?: number;
+	total?: number;
+}
+
+function viewRefs(outline: Outline): Set<string> {
+	return new Set(project(outline).nodes.map((node) => node.ref));
+}
+
+/** The whole folded view of a root, for a successor that is not a diff of its base. */
+export function fullView(outline: Outline): SuccessorView {
+	const folded = project(outline);
 	return { nodes: folded.nodes, shown: folded.shown, total: folded.total };
+}
+
+/** Successor view of a state transition: a diff when identity holds, the full view otherwise. */
+export function successorView(base: Outline, next: Outline): SuccessorView {
+	const transition = changesBetween(project(base, UNFOLDED).nodes, project(next, UNFOLDED).nodes, viewRefs(next), viewRefs(base));
+	if (transition.useFullView) return fullView(next);
+	const quiet = transition.offscreen.added + transition.offscreen.removed > 0;
+	return { changes: transition.changes, offscreen: quiet ? transition.offscreen : undefined };
 }
 
 async function performWaitFor(params: WaitForParams, signal?: AbortSignal): Promise<WaitForResult> {
@@ -354,7 +376,7 @@ async function performWaitFor(params: WaitForParams, signal?: AbortSignal): Prom
 
 	const state = operationState();
 	validateStateId(params.stateId);
-	const baseNodes = project(state.currentOutline!, UNFOLDED).nodes;
+	const baseOutline = state.currentOutline!;
 	const scopeRef = scopeWireRef(params.scope);
 	const target = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
 	const raw = await macosBackend.waitFor({
@@ -377,7 +399,7 @@ async function performWaitFor(params: WaitForParams, signal?: AbortSignal): Prom
 		stateId: refreshed.capture.stateId,
 		found: true,
 		gone: raw.gone || undefined,
-		...successorView(baseNodes, refreshed.outline),
+		...successorView(baseOutline, refreshed.outline),
 	};
 }
 

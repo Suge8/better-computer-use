@@ -74,6 +74,8 @@ export function stabilizeRefs(base: Outline | undefined, next: Outline): Outline
 
 export interface Transition {
 	changes: Change[];
+	/** Offscreen elements outside the view that came and went; they get no line of their own. */
+	offscreen: { added: number; removed: number };
 	/** True when the successor is too different to describe as a diff. */
 	useFullView: boolean;
 }
@@ -116,28 +118,49 @@ function isInvisibleVisibilityFlip(fields: ChangedFields, ref: string, visible?:
 	return keys.length === 1 && keys[0] === "state" && fields.state!.every((word) => word === "onscreen" || word === "offscreen");
 }
 
-/** Compares two unfolded projections of the same root; `visible` is what the view will show. */
-export function changesBetween(base: ProjectedNode[], next: ProjectedNode[], visible?: Set<string>): Transition {
+/** Refs that are offscreen themselves or sit under an offscreen node, such as a closed menu's items. */
+function offscreenRefs(nodes: ProjectedNode[]): Set<string> {
+	const offscreen = new Set<string>();
+	for (const node of nodes) {
+		if (node.state?.offscreen || (node.parent && offscreen.has(node.parent))) offscreen.add(node.ref);
+	}
+	return offscreen;
+}
+
+/**
+ * Compares two unfolded projections of the same root. `visible` is what the successor view
+ * will show and `baseVisible` what the base view showed; an offscreen node outside them is
+ * counted, not listed.
+ */
+export function changesBetween(base: ProjectedNode[], next: ProjectedNode[], visible?: Set<string>, baseVisible?: Set<string>): Transition {
 	const before = new Map(base.map((node) => [node.ref, node]));
 	const after = new Map(next.map((node) => [node.ref, node]));
+	const offscreenAfter = offscreenRefs(next);
+	const offscreenBefore = offscreenRefs(base);
 	const changes: Change[] = [];
+	const offscreen = { added: 0, removed: 0 };
 	for (const node of next) {
 		const previous = before.get(node.ref);
 		if (!previous) {
-			changes.push({ type: "added", ref: node.ref, parent: node.parent, node });
+			if (visible && !visible.has(node.ref) && offscreenAfter.has(node.ref)) offscreen.added += 1;
+			else changes.push({ type: "added", ref: node.ref, parent: node.parent, node });
 			continue;
 		}
 		const fields = changedFields(previous, node);
 		if (Object.keys(fields).length === 0 || isInvisibleVisibilityFlip(fields, node.ref, visible)) continue;
 		changes.push({ type: "updated", ref: node.ref, fields });
 	}
-	for (const node of base) if (!after.has(node.ref)) changes.push({ type: "removed", ref: node.ref, parent: node.parent });
+	for (const node of base) {
+		if (after.has(node.ref)) continue;
+		if (baseVisible && !baseVisible.has(node.ref) && offscreenBefore.has(node.ref)) offscreen.removed += 1;
+		else changes.push({ type: "removed", ref: node.ref, parent: node.parent });
+	}
 
 	const rootReplaced = base[0]?.ref !== next[0]?.ref || base[0]?.role !== next[0]?.role;
 	const kept = next.filter((node) => before.has(node.ref)).length;
 	const identityLow = next.length > 8 && kept / next.length < 0.4;
 	const overBudget = changes.length > 40 || (changes.length > 20 && changes.length / Math.max(1, Math.max(base.length, next.length)) > 0.65);
-	return { changes, useFullView: rootReplaced || identityLow || overBudget };
+	return { changes, offscreen, useFullView: rootReplaced || identityLow || overBudget };
 }
 
 function renderFields(fields: ChangedFields): string {
@@ -149,6 +172,12 @@ function renderFields(fields: ChangedFields): string {
 		fields.state?.join(" "),
 	].filter(Boolean);
 	return parts.join(" ") || "changed";
+}
+
+export function renderOffscreen(offscreen: { added: number; removed: number } | undefined): string {
+	if (!offscreen) return "";
+	const counts = [offscreen.added ? `${offscreen.added} added` : "", offscreen.removed ? `${offscreen.removed} removed` : ""].filter(Boolean);
+	return counts.length ? `… offscreen elements outside the view: ${counts.join(", ")}` : "";
 }
 
 export function renderChanges(changes: Change[]): string {

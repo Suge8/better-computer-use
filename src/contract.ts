@@ -89,7 +89,8 @@ export interface UiAction {
  */
 export interface ActEvidence {
 	source: "ax" | "root" | "focus" | "screen";
-	field?: "value" | "selected" | "focused" | "selection" | "selectedText" | "scroll" | "changed";
+	/** `closed` with source `root`: the root the action ran in is gone. */
+	field?: "value" | "selected" | "focused" | "selection" | "selectedText" | "scroll" | "changed" | "closed";
 	from?: string;
 	to?: string;
 }
@@ -213,11 +214,18 @@ export type Change =
 	| { type: "updated"; ref: string; fields: ChangedFields }
 	| { type: "removed"; ref: string; parent?: string };
 
+/** Offscreen elements outside the view that came and went; they get no change of their own. */
+export interface OffscreenChanges {
+	added: number;
+	removed: number;
+}
+
 export interface WaitForResult {
 	stateId: string;
 	found: boolean;
 	gone?: boolean;
 	changes?: Change[];
+	offscreen?: OffscreenChanges;
 	nodes?: ProjectedNode[];
 }
 
@@ -236,7 +244,8 @@ export interface Verification {
 }
 
 export interface ActResult {
-	stateId: string;
+	/** Absent only when the action closed the app's last root and there is nothing to observe. */
+	stateId?: string;
 	baseStateId: string;
 	/** `unknown`: delivered, but no evidence could judge it; rendered as `unverified`. */
 	outcome: "worked" | "unknown";
@@ -244,7 +253,12 @@ export interface ActResult {
 	delivery: string;
 	/** Roots the transaction opened: menus, sheets, dialogs and new windows. */
 	roots?: RootAppearance[];
+	/** The root the actions ran in closed; `skipped` later steps were not sent to it. */
+	closed?: { root: RootAppearance; skipped?: number };
+	/** After a closed root: the app's root the successor state observes. */
+	next?: RootAppearance;
 	changes?: Change[];
+	offscreen?: OffscreenChanges;
 	nodes?: ProjectedNode[];
 	shown?: number;
 	total?: number;

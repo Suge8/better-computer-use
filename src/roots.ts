@@ -1,7 +1,7 @@
 import type { FindParams, FindRootsResult, RootAppearance, RootInfo, RootSelector } from "./contract.ts";
 import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
-import type { FramePoints, FrontmostResult, HelperApp, HelperRoot, HelperTarget } from "./macos/protocol.ts";
+import type { FramePoints, FrontmostResult, HelperApp, HelperRoot, HelperTarget, RootKind } from "./macos/protocol.ts";
 import { rootRefRecord, storeRootRef } from "./root-refs.ts";
 import { scoreWindow, shouldPreferForegroundModalWindow } from "./root-selection.ts";
 import { CURRENT_TARGET_GONE_ERROR, currentTargetOrThrow, makeToolExecutor, operationState } from "./session.ts";
@@ -9,6 +9,7 @@ import type { CurrentTarget } from "./state.ts";
 import { normalizeText, trimOrUndefined } from "./text.ts";
 
 export interface ResolvedTarget extends CurrentTarget {
+	kind: RootKind;
 	framePoints: FramePoints;
 	scaleFactor: number;
 	isMinimized: boolean;
@@ -160,6 +161,7 @@ function toResolvedTarget(app: HelperApp, window: HelperRoot): ResolvedTarget {
 		windowTitle: window.title || "(untitled)",
 		windowId: typeof window.windowId === "number" ? window.windowId : 0,
 		nativeWindowRef: window.rootRef,
+		kind: window.kind,
 		framePoints: window.framePoints,
 		scaleFactor: window.scaleFactor,
 		isMinimized: window.isMinimized,
@@ -487,6 +489,24 @@ export async function resolveTargetForObserve(selection: TargetSelection, signal
 	}
 
 	return await resolveTargetByTitleAcrossApps(windowTitleQuery!, signal);
+}
+
+/** Whether `root` is the helper root `target` names. */
+export function isSameRoot(target: Pick<ResolvedTarget, "nativeWindowRef" | "windowId">, root: Pick<HelperRoot, "rootRef" | "windowId">): boolean {
+	if (target.nativeWindowRef && root.rootRef === target.nativeWindowRef) return true;
+	return target.windowId > 0 && root.windowId === target.windowId;
+}
+
+export async function rootIsLive(target: ResolvedTarget, signal?: AbortSignal): Promise<boolean> {
+	return (await listWindows(target.pid, signal)).some((root) => isSameRoot(target, root));
+}
+
+/** The root bcu would pick in the app of the closed `target` now, if the app still shows one. */
+export async function preferredRootOf(target: ResolvedTarget, signal?: AbortSignal): Promise<ResolvedTarget | undefined> {
+	// Accessibility can still list a root whose window is already gone while it animates away.
+	const selectable = (await listWindows(target.pid, signal)).filter((root) => isSelectableRoot(root) && !isSameRoot(target, root));
+	if (selectable.length === 0) return undefined;
+	return toResolvedTarget({ appName: target.appName, bundleId: target.bundleId, pid: target.pid }, choosePreferredWindow(selectable, target.appName));
 }
 
 export async function ensureTargetWindowId(target: ResolvedTarget, signal?: AbortSignal): Promise<ResolvedTarget> {

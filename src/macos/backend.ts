@@ -64,12 +64,15 @@ function parseRoots(result: unknown): HelperRoot[] {
 	});
 }
 
-/** Only roots that appeared are actionable news; closures and focus moves are already in the outcome. */
+/** Roots that appeared are the agent's next targets; a closed root may be the one acted on. */
 function parseActResult(raw: unknown): HelperActResult {
 	const result = raw as HelperActResult & { rootDelta?: unknown };
-	const delta = Array.isArray(result?.rootDelta) ? result.rootDelta.filter((entry: any) => entry?.change === "appeared") : [];
-	const appearedRoots = parseRoots(delta);
-	return { ...result, appearedRoots: appearedRoots.length > 0 ? appearedRoots : undefined };
+	const delta = Array.isArray(result?.rootDelta) ? result.rootDelta : [];
+	const rootsWith = (change: string) => {
+		const roots = parseRoots(delta.filter((entry: any) => entry?.change === change));
+		return roots.length > 0 ? roots : undefined;
+	};
+	return { ...result, appearedRoots: rootsWith("appeared"), closedRoots: rootsWith("closed") };
 }
 
 function helperAction(request: ActRequest): Record<string, unknown> {

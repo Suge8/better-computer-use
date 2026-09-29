@@ -1,6 +1,6 @@
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction, validateActions, type ActionState, type PreparedAction } from "./actions.ts";
 import { getComputerUseConfig } from "./config.ts";
-import type { ActParams, ActResult, UiAction, Verification } from "./contract.ts";
+import type { ActEvidence, ActParams, ActResult, RootAppearance, UiAction, Verification } from "./contract.ts";
 import { BcuError, inFlightActionError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { ActOutcome, ActRequest, DeliveryPolicy, HelperActResult, HelperRoot, NativeInputDelivery } from "./macos/protocol.ts";
@@ -20,9 +20,11 @@ import {
 	AUTO_IMAGE_MAX_DIMENSION,
 	EXPLICIT_IMAGE_MAX_DIMENSION,
 	UNFOLDED,
+	fullView,
+	type CaptureResult,
 	type ExecutionTrace,
 } from "./observe.ts";
-import { ensureTargetWindowId, nativeWindowRequest, resolveCurrentTarget, rootAppearance, type ResolvedTarget } from "./roots.ts";
+import { ensureTargetWindowId, isSameRoot, nativeWindowRequest, preferredRootOf, resolveCurrentTarget, rootAppearance, rootIsLive, type ResolvedTarget } from "./roots.ts";
 import { COMMAND_TIMEOUT_MS, currentLookOrThrow, makeToolExecutor, operationState, sleep, validateStateId, withWindowWriteLock } from "./session.ts";
 import { normalizeText, trimOrUndefined } from "./text.ts";
 
@@ -49,6 +51,7 @@ function executionTraceFromAct(result: HelperActResult, policy: DeliveryPolicy):
 		performed: result.performed,
 		evidence: result.verification,
 		roots: result.appearedRoots,
+		closedRoots: result.closedRoots,
 		error: result.error,
 		stoppedAt: result.stoppedAt,
 		delivery: result.performed?.delivery,
@@ -201,16 +204,42 @@ async function dispatchUiTransaction(actions: UiAction[], target: ResolvedTarget
 		execution.evidence = result.verification ?? execution.evidence;
 		execution.roots = result.appearedRoots ?? execution.roots;
 		execution.stoppedAt = result.stoppedAt;
+		if (result.closedRoots?.some((root) => isSameRoot(target, root))) {
+			// The step that failed on the closed root was never delivered to it.
+			const failed = result.stoppedAt !== undefined && result.steps[result.stoppedAt]?.error;
+			execution.rootClosed = true;
+			execution.skipped = actions.length - (failed ? result.stoppedAt! : result.steps.length);
+		}
 		return execution;
 	}
 	const steps: ExecutionTrace[] = [];
 	const actionState: ActionState = { currentFocus: false };
-	for (const action of actions) {
-		const step = await dispatchUiAction(action, target, look, headless, actionState, resolve, signal);
+	let rootClosed = false;
+	for (const [index, action] of actions.entries()) {
+		let step: ExecutionTrace;
+		try {
+			step = await dispatchUiAction(action, target, look, headless, actionState, resolve, signal);
+		} catch (error) {
+			// The helper saw no closure, but an earlier step may still have closed the root.
+			if (index > 0 && !(await rootIsLive(target, signal))) {
+				rootClosed = true;
+				break;
+			}
+			throw error;
+		}
 		steps.push(step);
 		if (step.outcome === "didnt") break;
+		if (step.closedRoots?.some((root) => isSameRoot(target, root))) {
+			rootClosed = true;
+			break;
+		}
 	}
-	return aggregateExecutions(steps);
+	const execution = aggregateExecutions(steps);
+	if (rootClosed) {
+		execution.rootClosed = true;
+		execution.skipped = actions.length - steps.length;
+	}
+	return execution;
 }
 
 /** Runs the requested postcondition; a failed check fails the whole transaction. */
@@ -267,6 +296,46 @@ function actionFailure(execution: ExecutionTrace): BcuError {
 	return new BcuError("action_failed", `${message}${delivered}`);
 }
 
+const ROOT_CLOSED: ActEvidence = { source: "root", field: "closed" };
+/** Helper codes that say the root itself no longer exists. */
+const ROOT_GONE_CODES = new Set(["window_not_found", "root_not_found"]);
+
+function appearanceOf(target: ResolvedTarget): RootAppearance {
+	return { ref: target.windowRef!, kind: target.kind, app: target.appName, title: target.windowTitle };
+}
+
+/** A closed root satisfies a `--expect-gone`; anything else it can no longer be checked in. */
+function postconditionAfterClose(params: ActParams, execution: ExecutionTrace): Verification {
+	if (!params.expect) return { status: "none", evidence: ROOT_CLOSED };
+	if (params.expect.gone) return { status: "verified", evidence: ROOT_CLOSED, gone: true, scope: trimOrUndefined(params.expect.scope) };
+	const delivered = execution.delivery ? ` It was delivered via ${execution.delivery}.` : "";
+	throw new BcuError("action_failed", `The root the action ran in closed, so its postcondition could not be checked.${delivered}`);
+}
+
+/**
+ * The actions closed the root they ran in — a sheet's button, a dialog's OK. That is the
+ * proof they landed, and the successor observes the root the app now shows instead.
+ */
+async function closedRootResult(params: ActParams, target: ResolvedTarget, execution: ExecutionTrace, baseStateId: string, imageMode: "never" | "always", signal?: AbortSignal): Promise<ActResult> {
+	const verification = postconditionAfterClose(params, execution);
+	const next = await preferredRootOf(target, signal);
+	const capture = next
+		? await captureCurrentTarget(signal, "auto", imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION, next, imageMode === "always")
+		: undefined;
+	return {
+		stateId: capture?.capture.stateId,
+		baseStateId,
+		outcome: "worked",
+		verification,
+		delivery: execution.performed?.delivery ?? execution.delivery ?? "ax",
+		roots: execution.roots?.flatMap((root) => rootAppearance(root) ?? []),
+		closed: { root: appearanceOf(target), skipped: execution.skipped || undefined },
+		next: capture ? appearanceOf(capture.target) : undefined,
+		...(capture ? fullView(capture.outline) : {}),
+		image: capture ? await imageInfo(capture, imageMode) : undefined,
+	};
+}
+
 async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActResult> {
 	const actions = Array.isArray(params.actions) ? params.actions : [];
 	validateActions(actions);
@@ -275,7 +344,8 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 	validateStateId(params.stateId);
 	const look = currentLookOrThrow();
 	const baseStateId = state.currentCapture!.stateId;
-	const baseNodes = project(state.currentOutline!, UNFOLDED).nodes;
+	const baseOutline = state.currentOutline!;
+	const baseNodes = project(baseOutline, UNFOLDED).nodes;
 	// Scope refs belong to the base state, so resolve them before the UI moves.
 	const scopeRef = scopeWireRef(params.expect?.scope);
 	const target = await ensureTargetWindowId(await resolveCurrentTarget(signal), signal);
@@ -284,18 +354,41 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 		const execution = await dispatchUiTransaction(actions, target, look, headless, actionNodeResolver(baseNodes), signal).catch((error: unknown) => {
 			throw inFlightActionError(error);
 		});
+		/**
+		 * A failure while reading the root back is the root closing when the root is gone. The
+		 * helper's own "gone" codes are authoritative: Accessibility can still list a root whose
+		 * window the window server has already dropped.
+		 */
+		const rethrowUnlessClosed = async (error: unknown): Promise<void> => {
+			const code = (error as { code?: unknown })?.code;
+			if (!ROOT_GONE_CODES.has(String(code)) && await rootIsLive(target, signal)) throw error;
+			execution.rootClosed = true;
+		};
+		if (execution.rootClosed) return await closedRootResult(params, target, execution, baseStateId, imageMode, signal);
 		const executedActions = actions.slice(0, execution.actionCount ?? actions.length);
-		const verification: Verification = params.expect
-			? await verifyExpectation(params, target, look, scopeRef, execution, signal)
-			: { status: "none", evidence: execution.evidence };
-		if (!params.expect) await sleep(settleMsForExecution(execution), signal);
-		const capture = await captureCurrentTarget(
-			signal,
-			"auto",
-			imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION,
-			target,
-			imageMode === "always",
-		);
+		let verification: Verification = { status: "none", evidence: execution.evidence };
+		if (params.expect) {
+			verification = await verifyExpectation(params, target, look, scopeRef, execution, signal).catch(async (error: unknown) => {
+				await rethrowUnlessClosed(error);
+				return verification;
+			});
+		} else {
+			await sleep(settleMsForExecution(execution), signal);
+		}
+		let capture: CaptureResult | undefined;
+		if (!execution.rootClosed) {
+			capture = await captureCurrentTarget(
+				signal,
+				"auto",
+				imageMode === "always" ? EXPLICIT_IMAGE_MAX_DIMENSION : AUTO_IMAGE_MAX_DIMENSION,
+				target,
+				imageMode === "always",
+			).catch(async (error: unknown) => {
+				await rethrowUnlessClosed(error);
+				return undefined;
+			});
+		}
+		if (!capture) return await closedRootResult(params, target, execution, baseStateId, imageMode, signal);
 		const outcome = outcomeAfterObservedValues(execution.outcome ?? "unknown", executedActions, (ref) => nodeByRef(capture.outline, ref)?.value);
 		if (outcome === "didnt") throw actionFailure(execution);
 		return {
@@ -305,7 +398,7 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 			verification,
 			delivery: execution.performed?.delivery ?? execution.delivery ?? "ax",
 			roots: execution.roots?.flatMap((root) => rootAppearance(root) ?? []),
-			...successorView(baseNodes, capture.outline),
+			...successorView(baseOutline, capture.outline),
 			image: await imageInfo(capture, imageMode),
 		};
 	});

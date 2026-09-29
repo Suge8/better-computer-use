@@ -31,7 +31,7 @@ state e4441aa2 ← 937572b9 · worked via ax · value →hello · verified
 ~ @e9 ="hello"
 ```
 
-- **投递梯子**：语义后台优先、失败自动升级前台、坐标兜底，由 bcu 自己走完；你只给 ref 和动作。结果行的 `· value 0→1` 是判定生效的依据，`+ root @rN` 是动作刚打开的根，直接 `observe-ui --root @rN`。
+- **投递梯子**：语义后台优先、失败自动升级前台、坐标兜底，由 bcu 自己走完；你只给 ref 和动作。结果行的 `· value 0→1` 是判定生效的依据，`+ root @rN` 是动作刚打开的根，直接 `observe-ui --root @rN`；`- root @rN … · root closed` 表示动作关掉了它所在的 sheet/对话框，下面的 `next root @rM` 及其视图就是接下来要操作的根。
 - `worked` 有证据；`unverified` 是已投递但没有可读证据（菜单命令、快捷键、自绘窗口常见），多半已经生效，照常继续，不要重做；后续步骤依赖它时用 `--expect-*` 确认。
 - 菜单从 `find-roots --app X --kind menubar` 的根进入：observe 它之后 search 到目标菜单项就能直接 press，不用先打开父菜单。
 - `@e` ref 属于生成它的 `stateId`。act-ui 返回新 `stateId`，下一步用它；`stale_state`、`window_stale`、`element_not_found` 都表示重新 `observe-ui` 取新状态。

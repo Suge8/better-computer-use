@@ -20,8 +20,10 @@ import {
 	type InspectUiParams,
 	type ObserveParams,
 	type ObserveResult,
+	type OffscreenChanges,
 	type ReadTextParams,
 	type ReadTextResult,
+	type RootAppearance,
 	type RootInfo,
 	type SearchResult,
 	type SearchUiParams,
@@ -31,7 +33,7 @@ import {
 } from "./contract.ts";
 import { BcuError, formatCliError, normalizeCliError } from "./errors.ts";
 import { renderNode, renderNodes, renderObservation, type ProjectedNode } from "./projection.ts";
-import { renderChanges } from "./view.ts";
+import { renderChanges, renderOffscreen } from "./view.ts";
 
 function executor<Name extends CliCommandName>(name: Name): CliCommandExecutor<Name> {
 	return async (params, signal) => await requestBroker<CliCommandResults[Name]>(name, params, signal);
@@ -167,16 +169,34 @@ function rootLine(root: RootInfo): string {
 	return `${root.ref} ${root.kind} ${root.app} ${JSON.stringify(root.title)} · pid ${root.pid} · ${id} · ${root.frame.x},${root.frame.y} ${root.frame.w}x${root.frame.h} · ${flags}`;
 }
 
-function successorLines(result: { changes?: Change[]; nodes?: ProjectedNode[] }): string {
+function successorLines(result: { changes?: Change[]; offscreen?: OffscreenChanges; nodes?: ProjectedNode[] }): string {
 	if (result.nodes) return renderNodes(result.nodes);
 	if (!result.changes) return "";
-	return renderChanges(result.changes) || "(no element changes)";
+	return [renderChanges(result.changes), renderOffscreen(result.offscreen)].filter(Boolean).join("\n") || "(no element changes)";
+}
+
+function rootWords(root: RootAppearance): string {
+	return `${root.ref} ${root.kind} ${JSON.stringify(root.title)}`;
+}
+
+/** A closed root leads, since the refs of the base state went with it; then where to go next. */
+function closedRootLines(result: ActResult): { lead: string[]; next: string[] } {
+	if (!result.closed) return { lead: [], next: [] };
+	const skipped = result.closed.skipped ?? 0;
+	return {
+		lead: [`- root ${rootWords(result.closed.root)}`],
+		next: [
+			...(skipped > 0 ? [`skipped ${skipped} later step${skipped === 1 ? "" : "s"}: its root closed`] : []),
+			result.next ? `next root ${rootWords(result.next)}` : `no root of ${result.closed.root.app} remains; run find-roots`,
+		],
+	};
 }
 
 /** The helper's reason for the outcome, as it reported it. */
 function evidenceWords(evidence: ActEvidence | undefined): string {
 	if (!evidence) return "";
 	if (evidence.source === "screen") return " · screen changed";
+	if (evidence.source === "root" && evidence.field === "closed") return " · root closed";
 	if (evidence.field && evidence.from !== undefined && evidence.to !== undefined) return ` · ${evidence.field} ${evidence.from}→${evidence.to}`;
 	return ` · ${evidence.field ?? evidence.source}`;
 }
@@ -308,9 +328,12 @@ const COMMANDS: { [Name in CliCommandName]: CommandSpec<Name> } = {
 			const verified = result.verification.status === "verified"
 				? ` · verified${result.verification.preexisting ? " (preexisting)" : ""}`
 				: "";
+			const closed = closedRootLines(result);
 			return [
-				`state ${result.stateId} ← ${result.baseStateId} · ${result.outcome === "unknown" ? "unverified" : result.outcome} via ${result.delivery}${evidenceWords(result.verification.evidence)}${verified}`,
-				...(result.roots ?? []).map((root) => `+ root ${root.ref} ${root.kind} ${JSON.stringify(root.title)}`),
+				`state ${result.stateId ?? "none"} ← ${result.baseStateId} · ${result.outcome === "unknown" ? "unverified" : result.outcome} via ${result.delivery}${evidenceWords(result.verification.evidence)}${verified}`,
+				...closed.lead,
+				...(result.roots ?? []).map((root) => `+ root ${rootWords(root)}`),
+				...closed.next,
 				successorLines(result),
 				imageLine(result.image),
 			].filter(Boolean).join("\n");

@@ -126,6 +126,8 @@ export interface HelperActResult {
 	verification?: ActEvidence;
 	/** Roots that appeared while the action ran; the helper already waited for them. */
 	appearedRoots?: HelperRoot[];
+	/** Roots that closed while the action ran. */
+	closedRoots?: HelperRoot[];
 	error?: { code?: string; message?: string; whatIsThere?: unknown };
 	steps?: HelperActResult[];
 	stoppedAt?: number;
