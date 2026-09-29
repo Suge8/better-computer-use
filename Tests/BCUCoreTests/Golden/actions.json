@@ -11268,6 +11268,92 @@
 			"output": {
 				"request": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":100,\"y\":200}}"
 			}
+		},
+		{
+			"name": "Editor deliver click @e21",
+			"op": "deliver",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "fresh"
+				},
+				"image": {
+					"width": 1172,
+					"height": 976
+				},
+				"action": {
+					"action": "click",
+					"ref": "@e21"
+				}
+			},
+			"output": {
+				"request": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"e26\"}}"
+			}
+		},
+		{
+			"name": "Editor deliver click @e22",
+			"op": "deliver",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "fresh"
+				},
+				"image": {
+					"width": 1172,
+					"height": 976
+				},
+				"action": {
+					"action": "click",
+					"ref": "@e22"
+				}
+			},
+			"output": {
+				"request": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"e27\"}}"
+			}
+		},
+		{
+			"name": "Editor deliver click unknown ref",
+			"op": "deliver",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "fresh"
+				},
+				"image": {
+					"width": 1172,
+					"height": 976
+				},
+				"action": {
+					"action": "click",
+					"ref": "@e999"
+				}
+			},
+			"output": {
+				"stderr": "error element_not_found: Ref '@e999' does not belong to the current state. Observe the root again and use a ref from the new state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Editor deliver click a point",
+			"op": "deliver",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "fresh"
+				},
+				"image": {
+					"width": 1172,
+					"height": 976
+				},
+				"action": {
+					"action": "click",
+					"x": 100,
+					"y": 200
+				}
+			},
+			"output": {
+				"request": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":100,\"y\":200}}"
+			}
 		}
 	]
 }

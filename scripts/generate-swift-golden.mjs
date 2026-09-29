@@ -24,7 +24,7 @@ import { changesBetween, renderChanges, renderOffscreen, stabilizeRefs } from ".
 import { brokerEnvironment, buildBundle, makeTemporaryRoot, repoRoot, runCli, spawnBroker, withTimeout } from "./lib/harness.mjs";
 
 const GOLDEN = path.join(repoRoot, "Tests", "BCUCoreTests", "Golden");
-const FIXTURE_NAMES = ["textedit-outline.json", "finder-outline.json", "chrome-outline.json"];
+const FIXTURE_NAMES = ["textedit-outline.json", "finder-outline.json", "chrome-outline.json", "editor-outline.json"];
 const fixtures = Object.fromEntries(FIXTURE_NAMES.map((name) => [name, JSON.parse(fs.readFileSync(path.join(repoRoot, "scripts", "fixtures", name), "utf8"))]));
 
 /** Inputs pass through JSON first, so TS and Swift start from the same bytes. */
@@ -152,6 +152,7 @@ const HEADERS = {
 	"textedit-outline.json": { app: "文本编辑", title: "未命名2" },
 	"finder-outline.json": { app: "访达", title: "MacBook Pro" },
 	"chrome-outline.json": { app: "Google Chrome", title: "bcu web background" },
+	"editor-outline.json": { app: "Google Chrome", title: "bcu editor fixture - Google Chrome" },
 };
 
 function projectionCase(name, input, options = {}, header) {
@@ -647,6 +648,7 @@ const APPS = [
 	{ pid: 101, appName: "TextEdit", bundleId: "com.apple.TextEdit", fixture: "textedit-outline.json", title: "未命名2" },
 	{ pid: 102, appName: "Finder", bundleId: "com.apple.finder", fixture: "finder-outline.json", title: "MacBook Pro" },
 	{ pid: 103, appName: "Chrome", bundleId: "com.google.Chrome", fixture: "chrome-outline.json", title: "bcu web background" },
+	{ pid: 104, appName: "Editor", bundleId: "com.example.editor", fixture: "editor-outline.json", title: "bcu editor fixture" },
 ];
 const LOOK_IMAGE = { width: 1172, height: 976 };
 const appByWindow = (windowId) => APPS.find((app) => app.pid * 10 === windowId);
@@ -707,7 +709,7 @@ await withServer(helperSocket, (request) => ({ ok: true, result: helperResult(re
 			await query("search setText", ["search-ui", ...state, "--action", "setText"]);
 			await query("search scroll", ["search-ui", ...state, "--action", "SCROLL", "--limit", "50"]);
 			await query("search menu", ["search-ui", ...state, "--action", "menu", "--limit", "50"]);
-			await query("search text", ["search-ui", ...state, "--text", app.appName === "Finder" ? "下载" : "  NEW  "]);
+			await query("search text", ["search-ui", ...state, "--text", { Finder: "下载", Editor: "Fifth line" }[app.appName] ?? "  NEW  "]);
 			await query("search limit clamps", ["search-ui", ...state, "--text", "a", "--limit", "0"]);
 			await query("search limit above 50", ["search-ui", ...state, "--limit", "500"]);
 			await query("search no match", ["search-ui", ...state, "--text", "__nothing__"]);

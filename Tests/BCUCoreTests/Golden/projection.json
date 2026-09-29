@@ -193,6 +193,70 @@
 			}
 		},
 		{
+			"name": "editor-outline.json saved first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "saved"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "Google Chrome",
+						"title": "bcu editor fixture - Google Chrome"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu editor fixture - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu editor fixture - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e14\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e35\",\"role\":\"webarea\",\"name\":\"bcu editor fixture\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e38\",\"role\":\"button\",\"name\":\"Bold\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e35\"},{\"ref\":\"@e39\",\"role\":\"textarea\",\"name\":\"Editor\",\"value\":\"First line of the draft. Second line with a linked note inside it. Third line keeps going. Fourth line is plain text. Fifth line is plain text. Sixth line is pl…\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e35\",\"hidden\":{\"count\":2,\"roles\":{\"link\":1,\"text\":1}},\"lines\":12},{\"ref\":\"@e40\",\"role\":\"textarea\",\"name\":\"Notes\",\"value\":\"Alpha Beta Gamma Delta\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e35\"},{\"ref\":\"@e29\",\"role\":\"popup\",\"name\":\"Tab search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e30\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e19\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":14,\"total\":66,\"truncated\":false}",
+				"text": "@r1 Google Chrome — bcu editor fixture - Google Chrome · state 1a2b3c4d · 66 nodes, 14 shown\n@e1 window \"bcu editor fixture - Google Chrome\" {raise}\n  @e2 group \"bcu editor fixture - Google Chrome\"\n    @e6 group {menu}\n      @e14 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n      @e35 webarea \"bcu editor fixture\" focused\n        @e38 button \"Bold\" {press}\n        @e39 textarea \"Editor\" =\"First line of the draft. Second line with a linked note inside it. Third line keeps going. Fourth line is plain text. Fifth line is plain text. Sixth line is pl…\" {press,setText,typeText} ▸ 2 hidden: link×1 text×1 ▸ 12 lines, read-text @e39\n        @e40 textarea \"Notes\" =\"Alpha Beta Gamma Delta\" {press,setText,typeText}\n      @e29 popup \"Tab search\" {press,menu}\n      @e30 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n      @e19 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
+			"name": "editor-outline.json fresh first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "fresh"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "Google Chrome",
+						"title": "bcu editor fixture - Google Chrome"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu editor fixture - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu editor fixture - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e14\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e35\",\"role\":\"webarea\",\"name\":\"bcu editor fixture\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e38\",\"role\":\"button\",\"name\":\"Bold\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e35\"},{\"ref\":\"@e39\",\"role\":\"textarea\",\"name\":\"Editor\",\"value\":\"First line of the draft. Second line with a linked note inside it. Third line keeps going. Fourth line is plain text. Fifth line is plain text. Sixth line is pl…\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e35\",\"hidden\":{\"count\":2,\"roles\":{\"link\":1,\"text\":1}},\"lines\":12},{\"ref\":\"@e40\",\"role\":\"textarea\",\"name\":\"Notes\",\"value\":\"Alpha Beta Gamma Delta\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e35\"},{\"ref\":\"@e29\",\"role\":\"popup\",\"name\":\"Tab search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e30\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e19\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":14,\"total\":66,\"truncated\":false}",
+				"text": "@r1 Google Chrome — bcu editor fixture - Google Chrome · state 1a2b3c4d · 66 nodes, 14 shown\n@e1 window \"bcu editor fixture - Google Chrome\" {raise}\n  @e2 group \"bcu editor fixture - Google Chrome\"\n    @e6 group {menu}\n      @e14 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n      @e35 webarea \"bcu editor fixture\" focused\n        @e38 button \"Bold\" {press}\n        @e39 textarea \"Editor\" =\"First line of the draft. Second line with a linked note inside it. Third line keeps going. Fourth line is plain text. Fifth line is plain text. Sixth line is pl…\" {press,setText,typeText} ▸ 2 hidden: link×1 text×1 ▸ 12 lines, read-text @e39\n        @e40 textarea \"Notes\" =\"Alpha Beta Gamma Delta\" {press,setText,typeText}\n      @e29 popup \"Tab search\" {press,menu}\n      @e30 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n      @e19 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
+			"name": "editor-outline.json unfolded",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "editor-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 9007199254740991,
+					"maxNodes": 9007199254740991
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu editor fixture - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu editor fixture - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e14\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e21\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e14\"},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e14\"},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e14\"},{\"ref\":\"@e24\",\"role\":\"applicationgroup\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":4,\"parent\":\"@e14\"},{\"ref\":\"@e32\",\"role\":\"popup\",\"name\":\"File\",\"caps\":[\"press\",\"menu\"],\"depth\":5,\"parent\":\"@e24\"},{\"ref\":\"@e33\",\"role\":\"textfield\",\"name\":\"Address and search bar\",\"value\":\"editor.html\",\"caps\":[\"press\",\"setText\",\"typeText\",\"menu\"],\"depth\":5,\"parent\":\"@e24\"},{\"ref\":\"@e37\",\"role\":\"button\",\"name\":\"Bookmark this tab\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e24\"},{\"ref\":\"@e25\",\"role\":\"button\",\"name\":\"You\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e14\"},{\"ref\":\"@e26\",\"role\":\"popup\",\"name\":\"Chrome\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e14\"},{\"ref\":\"@e35\",\"role\":\"webarea\",\"name\":\"bcu editor fixture\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e38\",\"role\":\"button\",\"name\":\"Bold\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e35\"},{\"ref\":\"@e39\",\"role\":\"textarea\",\"name\":\"Editor\",\"value\":\"First line of the draft. Second line with a linked note inside it. Third line keeps going. Fourth line is plain text. Fifth line is plain text. Sixth line is pl…\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e35\",\"lines\":12},{\"ref\":\"@e56\",\"role\":\"link\",\"name\":\"linked note\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e39\"},{\"ref\":\"@e66\",\"role\":\"text\",\"name\":\"linked note\",\"caps\":[\"press\"],\"depth\":6,\"parent\":\"@e56\"},{\"ref\":\"@e40\",\"role\":\"textarea\",\"name\":\"Notes\",\"value\":\"Alpha Beta Gamma Delta\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e35\"},{\"ref\":\"@e29\",\"role\":\"popup\",\"name\":\"Tab search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e30\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"tabbutton\",\"name\":\"bcu editor fixture - Memory usage - 30.1 MB\",\"value\":\"1\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e30\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Close\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e36\"},{\"ref\":\"@e19\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":27,\"total\":66,\"truncated\":false}",
+				"text": "@e1 window \"bcu editor fixture - Google Chrome\" {raise}\n  @e2 group \"bcu editor fixture - Google Chrome\"\n    @e6 group {menu}\n      @e14 toolbar\n        @e21 button \"Back\" {press,menu}\n        @e22 button \"Forward\" {press,menu}\n        @e23 button \"Reload\" {press,menu}\n        @e24 applicationgroup {menu}\n          @e32 popup \"File\" {press,menu}\n          @e33 textfield \"Address and search bar\" =\"editor.html\" {press,setText,typeText,menu}\n          @e37 button \"Bookmark this tab\" {press}\n        @e25 button \"You\" {press,menu}\n        @e26 popup \"Chrome\" {press,menu}\n      @e35 webarea \"bcu editor fixture\" focused\n        @e38 button \"Bold\" {press}\n        @e39 textarea \"Editor\" =\"First line of the draft. Second line with a linked note inside it. Third line keeps going. Fourth line is plain text. Fifth line is plain text. Sixth line is pl…\" {press,setText,typeText} ▸ 12 lines, read-text @e39\n          @e56 link \"linked note\" {press}\n            @e66 text \"linked note\" {press}\n        @e40 textarea \"Notes\" =\"Alpha Beta Gamma Delta\" {press,setText,typeText}\n      @e29 popup \"Tab search\" {press,menu}\n      @e30 tabgroup\n        @e36 tabbutton \"bcu editor fixture - Memory usage - 30.1 MB\" =\"1\" {press,menu}\n          @e41 button \"Close\" {press}\n      @e19 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
 			"name": "finder depth 8",
 			"op": "project",
 			"input": {
