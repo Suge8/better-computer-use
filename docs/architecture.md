@@ -48,7 +48,7 @@
 - 截图文件生命周期；
 - 权限诊断与 setup。
 
-它必须作为 `bcu.app` 经 LaunchServices 启动。TCC 授权绑定 bundle id 和代码签名身份，并归属于经 LaunchServices 启动的 app；从终端直接运行的进程，授权会归到终端。AppKit 占用主线程的运行循环，agent 光标画在那里。平台调用是阻塞的，每个处理器把它们放到独立线程执行，不占用 Swift 并发线程池。
+它必须作为 `bcu.app` 经 LaunchServices 启动。TCC 授权绑定 bundle id 和代码签名身份，并归属于经 LaunchServices 启动的 app；从终端直接运行的进程，授权会归到终端。除 `bcu setup` 外，任何路径都不触发系统授权弹窗：每条命令前的权限检查和 `doctor` 只读 `AXIsProcessTrusted` 与 `CGPreflightScreenCaptureAccess`；后者答的是本进程缓存的结果，常驻进程运行期间改过的授权要重启它（`bcu stop`）才看得到。只有 `setup` 发起请求，并做一次 ScreenCaptureKit 取数，让 bcu 出现在屏幕录制的列表里。AppKit 占用主线程的运行循环，agent 光标画在那里。平台调用是阻塞的，每个处理器把它们放到独立线程执行，不占用 Swift 并发线程池。
 
 IPC 使用 Unix domain socket（默认 `~/Library/Caches/bcu/resident.sock`），目录权限为 `0700`，socket 权限为 `0600`。连接先交换一次 hello，协议版本不一致时客户端直接报 `resident_unavailable`；`stop` 不受版本限制，版本不符的常驻进程也能停掉。常驻进程空闲 10 分钟后退出。
 

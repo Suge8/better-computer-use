@@ -23,8 +23,6 @@ public final class Platform: Sendable {
 	/// Apps already told to build their full accessibility tree.
 	let enhancedAccessibilityPids = OSAllocatedUnfairLock(initialState: Set<Int32>())
 	let rootObservers = RootObservers()
-	/// Granted permissions, kept once both are in place; missing ones are asked again each time.
-	let grantedPermissionStatus = OSAllocatedUnfairLock<PermissionStatus?>(initialState: nil)
 	let grants: any PrivacyGrants
 
 	public convenience init(showsAgentCursor: Bool) {

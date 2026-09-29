@@ -6,9 +6,6 @@ import ScreenCaptureKit
 protocol PrivacyGrants: Sendable {
 	var accessibility: Bool { get }
 	var screenRecording: Bool { get }
-	/// Whether a ScreenCaptureKit fetch succeeds; for a process without the grant this shows
-	/// the system prompt.
-	func probeScreenCapture() -> Bool
 	func request() -> PermissionRegistration
 }
 
@@ -17,7 +14,9 @@ struct SystemGrants: PrivacyGrants {
 	var accessibility: Bool { AXIsProcessTrusted() }
 	var screenRecording: Bool { CGPreflightScreenCaptureAccess() }
 
-	func probeScreenCapture() -> Bool {
+	/// Whether a ScreenCaptureKit fetch succeeds; for a process without the grant this shows
+	/// the system prompt, and lists the app under Screen Recording.
+	private func probeScreenCapture() -> Bool {
 		let probe = blocking(timeout: captureTimeout) {
 			!(try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)).displays.isEmpty
 		}
@@ -91,25 +90,11 @@ extension Platform {
 		)
 	}
 
+	/// The grants the system holds for this process, read without asking for them. The Screen
+	/// Recording answer comes from the process's own cache of it, so a grant changed in System
+	/// Settings or reset with `tccutil` shows only in a new resident process.
 	public func checkPermissions() -> PermissionStatus {
-		if let cached = grantedPermissionStatus.withLock({ $0 }) { return cached }
-		let accessibility = grants.accessibility
-		let screenRecordingPreflight = grants.screenRecording
-		let capturable = grants.probeScreenCapture()
-		let result = PermissionStatus(
-			accessibility: accessibility,
-			screenRecording: capturable,
-			screenRecordingPreflight: screenRecordingPreflight,
-			source: permissionSource()
-		)
-		// A successful TCC grant is process-stable in practice. Cache only the
-		// positive result so missing grants are always rechecked after the user
-		// enables them, while fresh agent processes avoid repeating a multi-second
-		// ScreenCaptureKit probe against the same long-lived resident process.
-		if accessibility && capturable {
-			grantedPermissionStatus.withLock { $0 = result }
-		}
-		return result
+		PermissionStatus(accessibility: grants.accessibility, screenRecording: grants.screenRecording, source: permissionSource())
 	}
 
 	/// The system's prompts for both grants; `bcu setup` is the only caller.

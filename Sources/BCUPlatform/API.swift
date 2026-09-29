@@ -45,10 +45,8 @@ public struct PermissionSource: Sendable {
 
 public struct PermissionStatus: Sendable {
 	public let accessibility: Bool
-	/// The live ScreenCaptureKit probe; the authoritative Screen Recording answer.
+	/// The system's answer as this process first cached it; see `Platform.checkPermissions`.
 	public let screenRecording: Bool
-	/// The per-process preflight cache, kept to diagnose a stale or foreign grant.
-	public let screenRecordingPreflight: Bool
 	public let source: PermissionSource
 }
 
