@@ -48,10 +48,6 @@ private func loadOutline(_ input: JSONValue) throws -> Outline {
 	return Outline(root: OutlineNode(serialized.root))
 }
 
-private func json<T: Encodable>(_ value: T) throws -> JSONValue {
-	try JSONCoding.encode(value)
-}
-
 private struct Grafted: Encodable {
 	let ref: String
 	let outline: SerializedOutline
