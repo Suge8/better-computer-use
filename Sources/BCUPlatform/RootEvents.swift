@@ -101,11 +101,18 @@ final class RunLoopThread: Sendable {
 	}
 }
 
-/// The apps whose notifications are observed; the least recently used is dropped past the limit.
+/// The apps whose notifications are observed. The least recently used is dropped past the
+/// limit, and an app that quits is dropped; a dropped app's observer thread is stopped.
 final class RootObservers: Sendable {
 	private struct Observed: Sendable {
 		let app: AppNotifications
 		let thread: RunLoopThread
+		let exit: any DispatchSourceProcess
+
+		func stop() {
+			exit.cancel()
+			thread.stop()
+		}
 	}
 
 	private static let limit = 4
@@ -126,18 +133,34 @@ final class RootObservers: Sendable {
 			}
 			let app = AppNotifications(pid: pid)
 			guard let thread = start(app) else { return nil }
-			insert(Observed(app: app, thread: thread))
+			let exit = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: .global())
+			exit.setEventHandler { [weak self] in self?.drop(app) }
+			insert(Observed(app: app, thread: thread, exit: exit))
+			exit.resume()
 			return app
 		}
 	}
 
 	private func insert(_ observed: Observed) {
-		apps.withLock { apps in
-			if apps.count >= Self.limit, let evict = apps.values.min(by: { $0.app.lastUsed < $1.app.lastUsed })?.app.pid {
-				apps.removeValue(forKey: evict)
+		let evicted = apps.withLock { apps -> Observed? in
+			var evicted: Observed?
+			if apps.count >= Self.limit, let pid = apps.values.min(by: { $0.app.lastUsed < $1.app.lastUsed })?.app.pid {
+				evicted = apps.removeValue(forKey: pid)
 			}
 			apps[observed.app.pid] = observed
+			return evicted
 		}
+		evicted?.stop()
+	}
+
+	/// Drops the app if it is still the one observed under its pid; a pid reused by a later
+	/// app keeps that app's observer.
+	private func drop(_ app: AppNotifications) {
+		let dropped = apps.withLock { apps -> Observed? in
+			guard apps[app.pid]?.app === app else { return nil }
+			return apps.removeValue(forKey: app.pid)
+		}
+		dropped?.stop()
 	}
 }
 
