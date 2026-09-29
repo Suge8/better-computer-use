@@ -6,8 +6,10 @@
 // rejects a first click on an inactive window, and succeeds on the window's own pixels
 // changing. A press that changes nothing on screen is reported as unverified and never replayed.
 // A plain click at a point over the window's one native toggle is pressed like its ref and
-// judged on the toggle's value. Throughout, a stand-in for the user's front app keeps the
-// front and its keyboard. A self-drawn input that shows its search results only while its app is active
+// judged on the toggle's value. A wheel turn over the drawn list, given in notches the way
+// an agent asks for 5, scrolls it by whole rows in the background and succeeds on the
+// window's own pixels changing. Throughout, a stand-in for the user's front app keeps the front and its
+// keyboard. A self-drawn input that shows its search results only while its app is active
 // shows them after a background click and typing, because bcu's background click makes the
 // app believe it is active; `--foreground` delivers the same array in the foreground. A
 // window that does expose accessibility content keeps the capture-free default look.
@@ -163,6 +165,14 @@ try {
 	assert.deepEqual([nativeResult.delivery, nativeResult.verification.evidence?.source, nativeResult.verification.evidence?.field], ["ax", "ax", "value"], `clicking over 原生 was ${JSON.stringify([nativeResult.delivery, nativeResult.verification.evidence])}`);
 	await nativeUntouched("the click over 原生");
 
+	// A wheel turn at a point over the drawn list: 5 notches move a Qt-style list by whole rows.
+	const row = await located(window.ref, "行3");
+	const scrollUntouched = await userInFront();
+	const beforeScroll = (await pressedLabels()).length;
+	const scrolled = await act("scrolling the drawn list", row.state.stateId, [{ action: "scroll", ...row.center, scrollY: 5 }]);
+	assert.notDeepEqual(await loggedSince(beforeScroll, "scroll "), [], "5 notches of the wheel did not scroll the drawn list");
+	assert.deepEqual([scrolled.outcome, scrolled.delivery, scrolled.verification.evidence?.source], ["worked", "pid", "screen"], `scrolling the drawn list was ${JSON.stringify([scrolled.outcome, scrolled.delivery, scrolled.verification.evidence])}`);
+	await scrollUntouched("scrolling the drawn list");
 
 
 	// Results that appear only while the app is active appear after a background click and
@@ -199,7 +209,7 @@ try {
 	assert(!documentView.nodes.some((node) => node.role === "ocr"), "an accessible window was read from the screen by default");
 	assert.equal(documentView.image, undefined, "the default look of an accessible window captured an image");
 
-	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press reported unverified → click over a native toggle pressed it in the background → the user's front app kept the front and its keyboard throughout → results that need an active app appeared after background typing, and --foreground delivered in the foreground → accessible window stays capture-free (pid ${drawn.pid})`);
+	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press reported unverified → click over a native toggle pressed it in the background → wheel notches scrolled the drawn list → the user's front app kept the front and its keyboard throughout → results that need an active app appeared after background typing, and --foreground delivered in the foreground → accessible window stays capture-free (pid ${drawn.pid})`);
 } finally {
 	for (const fixture of [drawn, drawnInput]) {
 		if (fixture && killProcess(fixture.pid, "SIGTERM")) await withTimeout(fixture.exited, "the drawn fixture to exit", 5_000).catch(() => killProcess(fixture.pid));

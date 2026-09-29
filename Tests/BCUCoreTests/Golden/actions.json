@@ -146,7 +146,7 @@
 				]
 			},
 			"output": {
-				"stderr": "error invalid_arguments: scroll.scrollY must be a finite number between -10000 and 10000.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: scroll.scrollY must be a finite number between -50 and 50.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -158,12 +158,12 @@
 					{
 						"action": "scroll",
 						"ref": "@e1",
-						"scrollX": 10001
+						"scrollX": 51
 					}
 				]
 			},
 			"output": {
-				"stderr": "error invalid_arguments: scroll.scrollX must be a finite number between -10000 and 10000.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: scroll.scrollX must be a finite number between -50 and 50.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -799,7 +799,7 @@
 						"action": "scroll",
 						"x": 3,
 						"y": 4,
-						"scrollX": -10000,
+						"scrollX": -50,
 						"scrollY": 2.5
 					},
 					{
@@ -827,7 +827,7 @@
 				]
 			},
 			"output": {
-				"ok": "[{\"action\":\"press\",\"button\":\"right\",\"ref\":\"@e1\"},{\"action\":\"doubleClick\",\"x\":1,\"y\":2},{\"action\":\"typeText\",\"text\":\"t\"},{\"action\":\"keypress\",\"keys\":[\"cmd\",\"s\"]},{\"action\":\"setText\",\"ref\":\"@e2\",\"text\":\"v\"},{\"action\":\"scroll\",\"scrollX\":-10000,\"scrollY\":2.5,\"x\":3,\"y\":4},{\"action\":\"drag\",\"path\":[{\"x\":1,\"y\":2},[3,4]],\"ref\":\"@e3\"},{\"action\":\"moveMouse\",\"ref\":\"@e4\"},{\"action\":\"wait\",\"ms\":60000}]"
+				"ok": "[{\"action\":\"press\",\"button\":\"right\",\"ref\":\"@e1\"},{\"action\":\"doubleClick\",\"x\":1,\"y\":2},{\"action\":\"typeText\",\"text\":\"t\"},{\"action\":\"keypress\",\"keys\":[\"cmd\",\"s\"]},{\"action\":\"setText\",\"ref\":\"@e2\",\"text\":\"v\"},{\"action\":\"scroll\",\"scrollX\":-50,\"scrollY\":2.5,\"x\":3,\"y\":4},{\"action\":\"drag\",\"path\":[{\"x\":1,\"y\":2},[3,4]],\"ref\":\"@e3\"},{\"action\":\"moveMouse\",\"ref\":\"@e4\"},{\"action\":\"wait\",\"ms\":60000}]"
 			}
 		},
 		{

@@ -177,7 +177,7 @@ try {
 		const state = await observeWindow("A", "Scroll area");
 		const found = await bcu(["search-ui", "--state", state.stateId, "--text", "Scroll area", "--action", "scroll", "--limit", "1"]);
 		if (!found.matches[0]) throw new Error("the scroll area exposes no scroll capability");
-		const result = await act(state.stateId, [{ action: "scroll", ref: found.matches[0].ref, scrollY: 200 }]);
+		const result = await act(state.stateId, [{ action: "scroll", ref: found.matches[0].ref, scrollY: 5 }]);
 		const now = await dom(pageA);
 		return { result, effect: { ok: now.scrollTop > 0, detail: `scrollTop ${now.scrollTop}` } };
 	});
