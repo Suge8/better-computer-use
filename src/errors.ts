@@ -56,6 +56,7 @@ export const ERROR_CODE_ALIASES = {
 	postcondition_failed: "action_failed",
 	action_failed: "action_failed",
 	capability_deferred: "action_failed",
+	element_disabled: "action_failed",
 	capture_failed: "action_failed",
 	coordinate_unavailable: "action_failed",
 	coordinate_unavailable_for_root: "action_failed",

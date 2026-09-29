@@ -91,7 +91,9 @@ find-roots → observe-ui → cached query → act-ui → successor state
 
 根的身份由 helper 的 root reference 承载，`look` 只按它定位。窗口 id 是窗口的一个属性，仅用于截图；菜单栏、菜单、sheet 和 popover 往往没有窗口 id，只能通过 root reference 观察。root reference 失效时 helper 直接返回 `root_not_found`，不会退回到应用的其他窗口。
 
-每个有菜单栏的应用暴露一个 `kind: "menubar"` 根（指向 AXMenuBar），它是应用全部命令的入口：`observe-ui --root @rN` 返回菜单栏项的投影，press 其中一项就打开对应菜单。菜单栏只在前台应用身上生效，背景应用的菜单栏项接受 AXPress 却不做事，因此 helper 把它当作 `foreground_required`，由投递梯子激活应用后重试。菜单栏和桌面一样：可以被指名观察，bcu 不会替 agent 默选它，也不会出现在无过滤的 `find-roots` 里。
+每个有菜单栏的应用暴露一个 `kind: "menubar"` 根（指向 AXMenuBar），它是应用全部命令的入口：`observe-ui --root @rN` 返回菜单栏项的投影，press 其中一项就打开对应菜单。菜单栏只在前台应用身上生效：背景应用的菜单栏项、以及菜单栏下（包括闭合菜单里）的菜单项都接受 AXPress 却不做事，因此 helper 对它们返回 `foreground_required`，由投递梯子激活应用后再按；`headless` 不能激活，直接以 `action_failed` 结束。AppKit 只在菜单打开时校验菜单项，闭合菜单里的项报告的是上次的启用状态，按一个实际已禁用的项同样被接受后丢弃；所以按闭合菜单里的项之前，helper 先逐级打开它上面的菜单（等 `AXMenuOpened`），项仍禁用时以 `action_failed` 报出并关掉菜单，否则按下，菜单随之关闭。
+
+激活和打开菜单都是 bcu 自己做的，不算动作的证据：根基线在激活完成后才取，事件游标越过 bcu 打开菜单的通知，根的变化等 bcu 打开的菜单关上后才比较。菜单项的 AXSelected 是高亮，AppKit 会把它留在最后按过的项上，不作证据；菜单栏项的 AXSelected 是它的菜单已打开，仍作证据。别的应用接管前台也不作证据：激活回让和用户操作都会产生它。菜单栏和桌面一样：可以被指名观察，bcu 不会替 agent 默选它，也不会出现在无过滤的 `find-roots` 里。
 
 菜单栏的 observation 故意遍历全部子菜单（TextEdit 约 350 节点、450 ms）：闭合菜单里的项因此能被 `search-ui` 找到并直接 press，一步就能执行一条菜单命令，不必先打开父菜单再观察一次。这份遍历只发生在被指名观察菜单栏根时。
 

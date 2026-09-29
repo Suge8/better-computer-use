@@ -1936,10 +1936,14 @@ final class Bridge {
 	/// Longest evidence value reported back; comparison always uses the full string.
 	private static let evidenceReportLimit = 40
 
+	/// An item in a menu reports its highlight as AXSelected, and AppKit leaves it on the item
+	/// last pressed; it is not a state the press set. A menu bar item's AXSelected is its
+	/// menu being open, which is.
+
 	private func evidenceSnapshot(_ element: AXUIElement) -> [String: String]? {
-		guard stringAttribute(element, attribute: kAXRoleAttribute as CFString) != nil else { return nil }
+		guard let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) else { return nil }
 		var snapshot: [String: String] = [:]
-		for entry in Self.evidenceAttributes {
+		for entry in Self.evidenceAttributes where !(entry.field == "selected" && role == kAXMenuItemRole as String) {
 			if let value = attributeSignature(element, attribute: entry.attribute) { snapshot[entry.field] = value }
 		}
 		return snapshot
@@ -2111,14 +2115,73 @@ final class Bridge {
 			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId) }
 		}
 
-		/// Activation is asynchronous: the menu bar item has no geometry until it belongs to
-		/// the frontmost app, and that geometry is the signal to wait for.
+		/// Activation is asynchronous: a menu bar item has no geometry until it belongs to the
+		/// frontmost app, and that geometry is the signal to wait for. An item inside a closed
+		/// menu has none either way, so the menu bar item above it is watched instead. The
+		/// switch is bcu's own doing, so the baseline is taken after it.
 		func activateForMenuBar(_ item: AXUIElement) {
 			guard let app = NSRunningApplication(processIdentifier: pid) else { return }
 			performed["activated"] = app.activate()
+			let barItem = ancestor(of: item, role: kAXMenuBarItemRole as String) ?? item
 			let deadline = Date().addingTimeInterval(1.5)
-			while Date() < deadline, (frameForElement(item)?.width ?? 0) <= 0 { usleep(20_000) }
+			while Date() < deadline, (frameForElement(barItem)?.width ?? 0) <= 0 { usleep(20_000) }
+			takeRootBaseline()
 			beforeEvidence = evidenceSnapshot(item)
+		}
+
+		/// AppKit validates a menu's items only when the menu opens, so an item in a closed menu
+		/// reports whatever enabled state it had last time, and a press on an item that is
+		/// really disabled is accepted and dropped. The menus down to the item are opened first;
+		/// that is bcu's own doing, so only the event cursor moves past it, and the root
+		/// snapshot, taken before, sees the menus closed again after the press.
+		func openMenusAbove(_ item: AXUIElement) throws -> AXUIElement? {
+			var openers: [AXUIElement] = []
+			var current = parentElement(item)
+			while let candidate = current {
+				let role = stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) ?? ""
+				if role == kAXMenuBarRole as String { break }
+				if role == kAXMenuItemRole as String || role == kAXMenuBarItemRole as String { openers.insert(candidate, at: 0) }
+				current = parentElement(candidate)
+			}
+			let title = stringAttribute(item, attribute: kAXTitleAttribute as CFString) ?? ""
+			var opened: AXUIElement?
+			for (index, opener) in openers.enumerated() {
+				let shown = index + 1 < openers.count ? openers[index + 1] : item
+				if (frameForElement(shown)?.width ?? 0) > 0 { continue }
+				opened = opened ?? shown
+				let observed = ensureRootObserver(pid: pid)
+				let cursor = rootEventCursor(pid: pid)
+				guard AXUIElementPerformAction(opener, kAXPressAction as CFString) == .success else {
+					throw BridgeFailure(message: "The menu holding '\(title)' did not open", code: "input_failed")
+				}
+				// AppKit posts AXMenuOpened once the menu is validated and tracking; the menu's
+				// geometry can appear before that, so it is only the signal without an observer.
+				func isOpen() -> Bool {
+					observed
+						? rootEvents(pid: pid, since: cursor).contains { $0.notification == "AXMenuOpened" }
+						: (frameForElement(shown)?.width ?? 0) > 0
+				}
+				let deadline = Date().addingTimeInterval(1.0)
+				while !isOpen() {
+					guard Date() < deadline else {
+						throw BridgeFailure(message: "The menu holding '\(title)' did not open", code: "input_failed")
+					}
+					usleep(20_000)
+				}
+			}
+			if eventsLive { eventCursor = rootEventCursor(pid: pid) }
+			if boolAttribute(item, attribute: kAXEnabledAttribute as CFString) == false {
+				_ = AXUIElementPerformAction(item, kAXCancelAction as CFString)
+				throw BridgeFailure(message: "The menu item '\(title)' is disabled", code: "element_disabled")
+			}
+			return opened
+		}
+
+		/// A pressed menu item closes its menus a moment later; the roots are judged once the
+		/// menus bcu opened are gone, so they are neither an appeared nor a closed root.
+		func awaitMenuClosed(_ shown: AXUIElement) {
+			let deadline = Date().addingTimeInterval(1.0)
+			while Date() < deadline, (frameForElement(shown)?.width ?? 0) > 0 { usleep(20_000) }
 		}
 
 		func focusTargetForPhysicalInput() {
@@ -2267,10 +2330,14 @@ final class Bridge {
 			// Native text views place the caret only under a real pointer; Chromium's
 			// AXPress focuses a web text field by itself.
 			let requiresPointerFocus = textRoles.contains(elementRole) && !inWebContent
-			// Only the frontmost app owns the menu bar. A background app accepts the press and
-			// does nothing with it, so activation is a precondition, not a fallback.
-			let requiresFrontmost = elementRole == "AXMenuBarItem" && !(NSRunningApplication(processIdentifier: pid)?.isActive ?? false)
-			if requiresFrontmost && policy != "ax_only" && policy != "foreground" {
+			// Only the frontmost app owns the menu bar. A background app accepts a press on a
+			// menu bar item, or on an item of one of its menus, and does nothing with it, so
+			// activation is a precondition, not a fallback.
+			let inMenuBar = hasAncestorRole(element, role: kAXMenuBarRole as String)
+			let requiresFrontmost = inMenuBar && !(NSRunningApplication(processIdentifier: pid)?.isActive ?? false)
+			// Headless (`ax_only`) may not activate, so it gets the refusal as well instead of a
+			// press that silently does nothing.
+			if requiresFrontmost && policy != "foreground" {
 				throw BridgeFailure(message: "The menu bar only answers in the frontmost app", code: "foreground_required")
 			}
 			if requiresPointerFocus && policy != "ax_only" {
@@ -2281,6 +2348,7 @@ final class Bridge {
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { activateForMenuBar(element) }
+				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String ? try openMenusAbove(element) : nil
 				let cursorPoint = try? coordinatePoint()
 				if !inWebContent, !hasReadableEvidence(element), let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
@@ -2290,6 +2358,7 @@ final class Bridge {
 				if status == .success {
 					performed["grounding"] = "description"
 					performed["delivery"] = "ax"
+					if let openedMenu { awaitMenuClosed(openedMenu) }
 					if let cursorPoint { animateCursor(at: cursorPoint) }
 					// The ladder rule of docs/architecture.md: only a press that provably changed
 					// nothing (`didnt`) moves on to raw input. An unknown one stays put: Chromium's
@@ -2536,8 +2605,10 @@ final class Bridge {
 		if !delta.isEmpty { output["rootDelta"] = delta }
 		// Some actions leave no trace on the element they target: pressing a menu item
 		// closes the menu. A root that appeared, closed or took focus inside the action's
-		// window is then the only evidence the action landed.
-		if !delta.isEmpty, (output["outcome"] as? String) == "unknown" {
+		// window is then the only evidence the action landed. Another app taking the front
+		// is not: activation hand-offs and the user do that on their own.
+		let evidential = delta.filter { !(($0["change"] as? String) == "focused" && ($0["kind"] as? String) == "app" && ($0["pid"] as? Int) != Int(pid)) }
+		if !evidential.isEmpty, (output["outcome"] as? String) == "unknown" {
 			output["outcome"] = "worked"
 			output["verification"] = ["source": "root"]
 		}
@@ -2975,14 +3046,19 @@ final class Bridge {
 	}
 
 	private func hasAncestorRole(_ element: AXUIElement, role: String) -> Bool {
+		ancestor(of: element, role: role) != nil
+	}
+
+	/// The element itself or its nearest ancestor with `role`.
+	private func ancestor(of element: AXUIElement, role: String) -> AXUIElement? {
 		var current: AXUIElement? = element
 		var depth = 0
 		while let candidate = current, depth < 30 {
-			if stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) == role { return true }
+			if stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) == role { return candidate }
 			current = parentElement(candidate)
 			depth += 1
 		}
-		return false
+		return nil
 	}
 
 	/// Standard AX actions are stable API names. Custom actions arrive as multi-line
