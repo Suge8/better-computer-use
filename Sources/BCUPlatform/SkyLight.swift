@@ -154,17 +154,18 @@ enum SkyLight {
 		}
 	}
 
-	/// A wheel turn at `point`: the renderer scrolls whatever is scrollable under it, so a
+	/// Wheel notches at `point`: the renderer scrolls whatever is scrollable under it, so a
 	/// move first primes the window's idea of where the pointer is.
-	static func scroll(at point: CGPoint, along route: PointerRoute, deltaX: Int, deltaY: Int) throws {
+	static func scroll(_ notches: [CGEvent], at point: CGPoint, along route: PointerRoute) throws {
 		let symbols = try require()
-		guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left),
-			let wheel = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: Int32(-deltaY), wheel2: Int32(deltaX), wheel3: 0)
-		else { throw BCUError(.actionFailed, "Failed to create scroll event") }
-		wheel.location = point
+		guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else {
+			throw BCUError(.actionFailed, "Failed to create scroll event")
+		}
 		post(move, along: route, at: point, fields: [], symbols: symbols)
-		usleep(15_000)
-		post(wheel, along: route, at: point, fields: [], symbols: symbols)
+		for notch in notches {
+			usleep(wheelNotchInterval)
+			post(notch, along: route, at: point, fields: [], symbols: symbols)
+		}
 	}
 
 	private static func mouseTypes(_ button: CGMouseButton) -> (CGEventType, CGEventType) {

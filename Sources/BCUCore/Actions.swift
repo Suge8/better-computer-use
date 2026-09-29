@@ -4,7 +4,9 @@
 private typealias Validator = @Sendable (JSONValue) -> Bool
 
 private let maxActions = 20
-private let scrollRange = -10_000.0...10_000.0
+/// Scroll amounts are wheel notches; each is delivered as its own wheel event.
+private let scrollRange = -50.0...50.0
+private let scrollRequirement = "a finite number between \(Int(scrollRange.lowerBound)) and \(Int(scrollRange.upperBound))"
 private let waitRange = 0.0...60_000.0
 private let defaultWaitMs = 1_000.0
 
@@ -42,8 +44,8 @@ private let fieldRules: [String: (valid: Validator, requirement: String)] = [
 	"y": ({ finite($0) != nil }, "a finite number"),
 	"text": ({ $0.string != nil }, "a string"),
 	"keys": ({ ($0.array.map { !$0.isEmpty && $0.allSatisfy { $0.string.map { !Text.trim($0).isEmpty } ?? false } }) ?? false }, "a non-empty array of non-empty strings"),
-	"scrollX": ({ finite($0).map(scrollRange.contains) ?? false }, "a finite number between -10000 and 10000"),
-	"scrollY": ({ finite($0).map(scrollRange.contains) ?? false }, "a finite number between -10000 and 10000"),
+	"scrollX": ({ finite($0).map(scrollRange.contains) ?? false }, scrollRequirement),
+	"scrollY": ({ finite($0).map(scrollRange.contains) ?? false }, scrollRequirement),
 	"path": ({ ($0.array.map { $0.count >= 2 && $0.allSatisfy(isPoint) }) ?? false }, "an array of at least two finite {x,y} points or [x,y] pairs"),
 	"button": ({ $0.string.flatMap(MouseButton.init(rawValue:)) != nil }, "left, right, or middle"),
 	"clickCount": ({ finite($0).map { $0 == $0.rounded() && (1...3).contains($0) } ?? false }, "an integer from 1 to 3"),

@@ -258,8 +258,8 @@ extension Platform {
 			let webTarget = subject.map { hasAncestorRole($0, role: "AXWebArea") } ?? false
 			let readable = subject.map(hasReadableEvidence) ?? false
 			// Screen evidence is reserved for a point whose resolved subject has no AX fact
-			// that a press would move; see docs/architecture.md.
-			let screenTarget = pressLike && !webTarget && !readable
+			// that a press or a wheel turn would move; see docs/architecture.md.
+			let screenTarget = (pressLike || action == .scroll) && !webTarget && !readable
 			if element == nil, pressLike, readable, let subject {
 				evidenceElement = subject
 				beforeEvidence = evidenceSnapshot(subject)

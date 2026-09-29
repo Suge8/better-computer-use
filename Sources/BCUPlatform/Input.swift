@@ -134,24 +134,37 @@ extension Platform {
 	}
 
 	func postScrollWheel(at point: CGPoint, deltaX: Int, deltaY: Int, pid: Int32, route: SkyLight.PointerRoute, delivery: Delivery = .hid) throws {
+		let notches = try wheelNotches(at: point, deltaX: deltaX, deltaY: deltaY)
 		if delivery == .pid {
-			try SkyLight.scroll(at: point, along: route, deltaX: deltaX, deltaY: deltaY)
+			try SkyLight.scroll(notches, at: point, along: route)
 			return
 		}
 		physicalInputLock.lock()
 		defer { physicalInputLock.unlock() }
 		try postMouseMove(to: point, pid: pid, delivery: delivery)
-		guard let event = CGEvent(
-			scrollWheelEvent2Source: nil,
-			units: .pixel,
-			wheelCount: 2,
-			wheel1: Int32(-deltaY),
-			wheel2: Int32(deltaX),
-			wheel3: 0
-		) else {
+		for notch in notches {
+			try postEvent(notch, pid: pid, delivery: delivery)
+			usleep(wheelNotchInterval)
+		}
+	}
+}
+
+/// Pause between two wheel notches, about how fast a physical wheel reports them.
+let wheelNotchInterval: useconds_t = 15_000
+
+/// `deltaX` and `deltaY` notches at `point`, one line-based wheel event each, the way a
+/// physical mouse wheel reports them. Qt counts every such event as one notch whatever its
+/// size and a few pixels of precise delta as a fraction of one, so a pixel delta of 5 scrolls
+/// a Qt list not at all; AppKit and Chromium scroll a line per notch. Positive y scrolls the
+/// content toward its end, positive x toward its right.
+func wheelNotches(at point: CGPoint, deltaX: Int, deltaY: Int) throws -> [CGEvent] {
+	try (0..<max(abs(deltaX), abs(deltaY))).map { index in
+		let y = index < abs(deltaY) ? -deltaY.signum() : 0
+		let x = index < abs(deltaX) ? -deltaX.signum() : 0
+		guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .line, wheelCount: 2, wheel1: Int32(y), wheel2: Int32(x), wheel3: 0) else {
 			throw BCUError(.actionFailed, "Failed to create scroll event")
 		}
 		event.location = point
-		try postEvent(event, pid: pid, delivery: delivery)
+		return event
 	}
 }
