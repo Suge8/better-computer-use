@@ -124,6 +124,24 @@ enum SkyLight {
 		symbols.postToPid(route.pid, event)
 	}
 
+	/// The pauses of the Chromium click and drag recipes ported from trycua/cua (see
+	/// docs/architecture.md), in microseconds.
+	private enum ClickPacing {
+		/// The renderer takes the move as the pointer's position before the press arrives.
+		static let moveToPress: useconds_t = 15_000
+		/// Events posted to a pid arrive in order; the press only has to precede the release.
+		static let pressHold: useconds_t = 1_000
+		/// The primer's user activation is registered before the real press lands.
+		static let primerToPress: useconds_t = 100_000
+		/// Between the clicks of a double or triple click.
+		static let multiClick: useconds_t = 80_000
+		/// Chromium handles the last dragged event a run loop turn later; releasing sooner
+		/// ends the gesture short of it.
+		static let dragToRelease: useconds_t = 50_000
+		/// Some apps drop the second half of the focus handoff when both arrive in the same instant.
+		static let focusHalves: useconds_t = 10_000
+	}
+
 	/// One Chromium-trusted click: a move to the target, a primer press outside every
 	/// window that satisfies the user-activation gate without touching the page, then the
 	/// real presses.
@@ -141,16 +159,16 @@ enum SkyLight {
 			], symbols: symbols)
 		}
 		try send(.mouseMoved, at: point, phase: 2, clickState: 0)
-		usleep(15_000)
+		usleep(ClickPacing.moveToPress)
 		try send(down, at: offscreen, phase: 1, clickState: 1)
-		usleep(1_000)
+		usleep(ClickPacing.pressHold)
 		try send(up, at: offscreen, phase: 2, clickState: 1)
-		usleep(100_000)
+		usleep(ClickPacing.primerToPress)
 		for index in 1...max(1, clickCount) {
 			try send(down, at: point, phase: 3, clickState: Int64(index))
-			usleep(1_000)
+			usleep(ClickPacing.pressHold)
 			try send(up, at: point, phase: 3, clickState: Int64(index))
-			if index < clickCount { usleep(80_000) }
+			if index < clickCount { usleep(ClickPacing.multiClick) }
 		}
 	}
 
@@ -171,20 +189,18 @@ enum SkyLight {
 			], symbols: symbols)
 		}
 		try send(.mouseMoved, at: first, clickState: 0)
-		usleep(15_000)
+		usleep(ClickPacing.moveToPress)
 		try send(.leftMouseDown, at: first, clickState: 1)
-		usleep(15_000)
+		usleep(ClickPacing.moveToPress)
 		for (from, to) in zip(points, points.dropFirst()) {
 			let steps = max(1, min(dragMaxSteps, Int(hypot(to.x - from.x, to.y - from.y) / dragStepPoints)))
 			for step in 1...steps {
 				let t = CGFloat(step) / CGFloat(steps)
 				try send(.leftMouseDragged, at: CGPoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t), clickState: 1)
-				usleep(8_000)
+				usleep(Pacing.step)
 			}
 		}
-		// Chromium handles the last dragged event a run-loop turn later; releasing sooner ends
-		// the gesture short of it.
-		usleep(50_000)
+		usleep(ClickPacing.dragToRelease)
 		try send(.leftMouseUp, at: last, clickState: 1)
 	}
 	private static let dragStepPoints: CGFloat = 10
@@ -199,7 +215,7 @@ enum SkyLight {
 		}
 		post(move, along: route, at: point, fields: [], symbols: symbols)
 		for notch in notches {
-			usleep(wheelNotchInterval)
+			usleep(Pacing.wheelNotch)
 			post(notch, along: route, at: point, fields: [], symbols: symbols)
 		}
 	}
@@ -248,8 +264,7 @@ enum SkyLight {
 		let symbols = try require()
 		if let currentKey {
 			try postRecord(owning: windowId, about: currentKey, kind: 0x0D, symbols: symbols) { $0[0x8A] = 0x02 }
-			// Some apps drop the focus half when both arrive in the same instant.
-			usleep(10_000)
+			usleep(ClickPacing.focusHalves)
 			try postRecord(owning: windowId, about: windowId, kind: 0x0D, symbols: symbols) { $0[0x8A] = 0x01 }
 		}
 		for kind: UInt8 in [0x01, 0x02] {

@@ -1,18 +1,26 @@
 import AppKit
 
+/// How long an accessibility request to an app may block: short where one unresponsive app
+/// must not stall the others (broad discovery, starting an observer), longer where one app is
+/// the target.
+let quickMessagingTimeout: Float = 0.25
+let messagingTimeout: Float = 1.0
+/// Chromium's web-content tree appears this long after enhanced accessibility is switched on.
+let browserAccessibilitySettle: TimeInterval = 0.35
+
 extension Platform {
 	func ensureEnhancedAccessibility(pid: Int32) {
 		let inserted = enhancedAccessibilityPids.withLock { $0.insert(pid).inserted }
 		if !inserted { return }
 		let appElement = AXUIElementCreateApplication(pid)
-		AXUIElementSetMessagingTimeout(appElement, 0.25)
+		AXUIElementSetMessagingTimeout(appElement, quickMessagingTimeout)
 		let enhancedStatus = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
 		let manualStatus = AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-		// Chromium-family apps often materialize web-content AX asynchronously
-		// after these toggles. Pay a small one-time settle cost per pid so the
-		// first tree walk is less likely to see browser chrome only.
+		// Chromium builds its web-content tree asynchronously after these toggles and says
+		// nothing when it is done, so the first walk of a browser waits a measured moment
+		// once per pid instead of seeing the browser chrome only.
 		if isBrowser(pid: pid) && (enhancedStatus == .success || manualStatus == .success) {
-			Thread.sleep(forTimeInterval: 0.35)
+			Thread.sleep(forTimeInterval: browserAccessibilitySettle)
 		}
 	}
 

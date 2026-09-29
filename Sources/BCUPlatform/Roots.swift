@@ -148,9 +148,9 @@ extension Platform {
 			let appPid = owner.pid
 			let appName = owner.appName ?? processName(pid: appPid) ?? "Unknown App"
 			let bundleId = owner.bundleId
-			roots += listWindows(pid: appPid, appName: appName, bundleId: bundleId, cgEntries: entries, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)
+			roots += listWindows(pid: appPid, appName: appName, bundleId: bundleId, cgEntries: entries, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
 			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries)
-			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)
+			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
 			for candidate in popupCandidates {
 				let menuElement = menuElement(drawnBy: candidate, among: menuElements)
 				roots.append(Root(
@@ -181,7 +181,7 @@ extension Platform {
 	}
 
 	/// The app's windows and their sheets, in the app's own window order.
-	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = 1.0) -> [Root] {
+	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = messagingTimeout) -> [Root] {
 		ensureEnhancedAccessibility(pid: pid)
 		let appElement = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
@@ -263,14 +263,14 @@ extension Platform {
 		if let root {
 			guard case .element(let element) = root.rootObject else { return nil }
 			let stored = element.element
-			AXUIElementSetMessagingTimeout(stored, 1.0)
+			AXUIElementSetMessagingTimeout(stored, messagingTimeout)
 			var ownerPid: pid_t = 0
 			guard AXUIElementGetPid(stored, &ownerPid) == .success, ownerPid == pid else { return nil }
 			return stored
 		}
 
 		let appElement = AXUIElementCreateApplication(pid)
-		AXUIElementSetMessagingTimeout(appElement, 1.0)
+		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
 		let windows = Array(axElementArray(appElement, attribute: kAXWindowsAttribute as CFString).prefix(128))
 		guard !windows.isEmpty else { return nil }
 		guard let windowId else {
@@ -318,7 +318,7 @@ extension Platform {
 		return title
 	}
 
-	func openMenuElements(pid: Int32, messagingTimeout: Float = 1.0) -> [AXUIElement] {
+	func openMenuElements(pid: Int32, messagingTimeout: Float = messagingTimeout) -> [AXUIElement] {
 		let app = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(app, messagingTimeout)
 		let descendants = collectDescendants(startingAt: app, maxDepth: 6)

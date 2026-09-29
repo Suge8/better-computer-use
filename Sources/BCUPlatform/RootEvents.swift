@@ -17,6 +17,10 @@ final class AppNotifications: Sendable {
 		var lastUsed = Date()
 	}
 
+	/// Notifications kept for readers behind; one action reads back what it caused, which is
+	/// far fewer.
+	private static let retainedEvents = 64
+
 	let pid: Int32
 	private let log = OSAllocatedUnfairLock(initialState: Log())
 	/// Waiters hold it while they compare generations, so a notification recorded between the
@@ -39,7 +43,7 @@ final class AppNotifications: Sendable {
 		log.withLock { log in
 			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification))
 			log.nextSequence += 1
-			if log.events.count > 64 { log.events.removeFirst(log.events.count - 64) }
+			if log.events.count > Self.retainedEvents { log.events.removeFirst(log.events.count - Self.retainedEvents) }
 			log.generation += 1
 		}
 		broadcast()
@@ -250,7 +254,7 @@ extension Platform {
 
 	private func makeObserver(for app: AppNotifications) -> AXObserver? {
 		let appElement = AXUIElementCreateApplication(app.pid)
-		AXUIElementSetMessagingTimeout(appElement, 0.25)
+		AXUIElementSetMessagingTimeout(appElement, quickMessagingTimeout)
 		var observer: AXObserver?
 		let createStatus = AXObserverCreate(app.pid, { _, _, notification, refcon in
 			guard let refcon else { return }

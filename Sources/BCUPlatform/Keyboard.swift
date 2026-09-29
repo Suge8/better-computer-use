@@ -91,7 +91,7 @@ extension Platform {
 		up.flags = flags
 		try postEvent(down, pid: pid, delivery: delivery)
 		try postEvent(up, pid: pid, delivery: delivery)
-		usleep(8_000)
+		usleep(Pacing.step)
 	}
 
 	/// Text goes in as the characters themselves, never as the keys that would type them:
@@ -112,7 +112,7 @@ extension Platform {
 			}
 			try postEvent(down, pid: pid, delivery: delivery)
 			try postEvent(up, pid: pid, delivery: delivery)
-			usleep(8_000)
+			usleep(Pacing.step)
 		}
 	}
 
