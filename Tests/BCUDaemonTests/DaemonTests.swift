@@ -235,6 +235,23 @@ struct ActionTests {
 		#expect(harness.desktop.scene.acts.isEmpty)
 	}
 
+	@Test func foregroundStartsTheLadderInTheForeground() async throws {
+		let harness = editor()
+		let state = try await harness.observe()
+		harness.desktop.update { $0.answer = { _ in reported(.unknown, .hid) } }
+		let result = try await harness.act(state.stateId, #"[{"action":"press","ref":"@e2"}]"#, #","foreground":true"#)
+		#expect(harness.desktop.scene.acts.map(\.policy) == [.foreground])
+		#expect(harness.desktop.scene.acts.first?.params.pidDelivery == false)
+		#expect(result.delivery == "hid")
+	}
+
+	@Test func foregroundContradictsHeadless() async throws {
+		let harness = editor()
+		let state = try await harness.observe()
+		#expect(await expectCode(.invalidArguments) { _ = try await harness.act(state.stateId, #"[{"action":"press","ref":"@e2"}]"#, #","foreground":true,"headless":true"#) })
+		#expect(harness.desktop.scene.acts.isEmpty && harness.desktop.scene.batches.isEmpty)
+	}
+
 	@Test func anActionThatClosesItsRootReportsTheRootTheAppShowsNext() async throws {
 		let harness = editor()
 		harness.desktop.update { $0.roots[101] = [editorSheet(), editorWindow(focused: false)] }

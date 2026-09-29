@@ -122,7 +122,7 @@ try {
 	const page = await pageSession(chrome, pageUrl);
 	const drawnTitle = `bcu drawn input ${randomUUID().slice(0, 8)}`;
 	const drawnLog = path.join(root, "drawn-input.log");
-	drawn = await launchDrawnInput(root, drawnLog, drawnTitle);
+	drawn = await launchDrawnInput(root, drawnLog, drawnTitle, path.join(root, "drawn-input-events.log"));
 	await waitForAxWindow(drawn.pid, drawn.exited, drawnTitle);
 
 	for (const source of sources) {

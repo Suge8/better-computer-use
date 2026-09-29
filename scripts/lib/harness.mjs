@@ -153,9 +153,12 @@ export async function launchDrawnButtons(directory, logPath, title) {
 	return { pid, exited };
 }
 
-/** Starts scripts/fixtures/drawn-input.swift, a self-drawn text input with no accessible content. */
-export async function launchDrawnInput(directory, logPath, title) {
-	const { pid, exited } = await launchSwiftFixture(directory, "drawn-input", [logPath, title], "the drawn input window");
+/**
+ * Starts scripts/fixtures/drawn-input.swift, a self-drawn text input with no accessible
+ * content; `eventsPath` receives its input-method and result-area events.
+ */
+export async function launchDrawnInput(directory, logPath, title, eventsPath) {
+	const { pid, exited } = await launchSwiftFixture(directory, "drawn-input", [logPath, title, eventsPath], "the drawn input window");
 	return { pid, exited };
 }
 

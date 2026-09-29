@@ -172,7 +172,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu act-ui - [options]\n\nRun a checked action array from stdin against one state and return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --headless                never activate, focus or move the pointer physically\n  --image never|always      write a screenshot artifact (default never)\n  --expect-text <value>     postcondition: this text must appear\n  --expect-role <value>     postcondition: an element with this role must appear\n  --expect-value <value>    postcondition: an element must hold this exact value\n  --expect-gone             invert the postcondition: it must disappear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu act-ui - [options]\n\nRun a checked action array from stdin against one state and return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --headless                never activate, focus or move the pointer physically\n  --foreground              start in the foreground: activate the app and use real input\n  --image never|always      write a screenshot artifact (default never)\n  --expect-text <value>     postcondition: this text must appear\n  --expect-role <value>     postcondition: an element with this role must appear\n  --expect-value <value>    postcondition: an element must hold this exact value\n  --expect-gone             invert the postcondition: it must disappear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -884,6 +884,23 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"click\",\"ref\":\"@e1\"}],\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "act-ui foreground",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--foreground",
+					"-"
+				],
+				"stdin": "[{\"action\":\"typeText\",\"text\":\"a\",\"x\":1,\"y\":2}]"
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"typeText\",\"text\":\"a\",\"x\":1,\"y\":2}],\"foreground\":true,\"stateId\":\"s\"}}"
 			}
 		},
 		{
