@@ -51,7 +51,7 @@
 		"test:event-readiness": "node scripts/check-event-readiness.mjs",
 		"test:helper-install": "node scripts/check-helper-install.mjs",
 		"test:package": "node scripts/check-package.mjs",
-		"test:swift": "swift build --product bridge && swift test",
+		"test:swift": "swift build && swift test",
 		"test:helper-live": "node scripts/check-helper-live.mjs",
 		"test:web-background": "node scripts/check-web-background.mjs",
 		"test:ocr-targets": "node scripts/check-ocr-targets.mjs",
