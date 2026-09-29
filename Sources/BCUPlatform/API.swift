@@ -170,7 +170,7 @@ public struct LookImage: Sendable {
 	public let height: Int
 }
 
-public struct LookResult: Sendable {
+public struct LookResult {
 	public let capturedAt: Date
 	public let window: LookWindow
 	public let outline: LookNode

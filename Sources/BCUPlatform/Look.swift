@@ -23,7 +23,7 @@ extension Platform {
 
 	/// Observes one root: its accessibility outline, and its picture and the text read from
 	/// it when asked or when Accessibility says too little.
-	public func look(_ request: LookRequest) throws -> LookResult {
+	public func look(_ request: LookRequest) throws -> sending LookResult {
 		let windowId = request.windowId
 		let maxDimension = request.maxDimension.map { max(1, $0) }
 		let readText = request.readText
