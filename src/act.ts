@@ -94,10 +94,6 @@ async function helperAct(
 	signal?: AbortSignal,
 ): Promise<ExecutionTrace> {
 	const timeoutMs = actTimeoutMs(action);
-	if (action.usesCurrentFocus && !headless) {
-		const foreground = checkedActResult(await macosBackend.act(helperActRequest(target, action, "foreground"), { signal, timeoutMs }));
-		return executionTraceFromAct(foreground, "foreground");
-	}
 	const initialPolicy = headless ? "ax_only" : "background";
 	try {
 		const result = checkedActResult(await macosBackend.act(helperActRequest(target, action, initialPolicy), { signal, timeoutMs }));

@@ -1348,7 +1348,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -1673,7 +1673,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -1998,7 +1998,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"save\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -2325,7 +2325,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"press\",\"establishesFocus\":false,\"params\":{\"button\":\"right\",\"clickCount\":2},\"target\":{\"ref\":\"save\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"press\",\"establishesFocus\":false,\"params\":{\"button\":\"right\",\"clickCount\":2},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -2650,7 +2650,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":400,\"y\":20},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":400,\"y\":20}}"
 			}
 		},
 		{
@@ -2975,7 +2975,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":35.5,\"y\":415.5},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":35.5,\"y\":415.5}}"
 			}
 		},
 		{
@@ -3300,7 +3300,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"custom\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"custom\"}}"
 			}
 		},
 		{
@@ -3625,7 +3625,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":250.5,\"y\":510},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":250.5,\"y\":510}}"
 			}
 		},
 		{
@@ -3950,7 +3950,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":310,\"y\":310},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":310,\"y\":310}}"
 			}
 		},
 		{
@@ -4275,7 +4275,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"far\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"far\"}}"
 			}
 		},
 		{
@@ -4601,7 +4601,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":799.5,\"y\":0},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":799.5,\"y\":0}}"
 			}
 		},
 		{
@@ -5576,7 +5576,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":2},\"target\":{\"ref\":\"save\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":2},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -5902,7 +5902,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"setText\",\"establishesFocus\":false,\"params\":{\"text\":\"hello\"},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"setText\",\"establishesFocus\":false,\"params\":{\"text\":\"hello\"},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -6227,7 +6227,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"typeText\",\"establishesFocus\":false,\"params\":{\"text\":\"hello\"},\"target\":{\"focus\":{\"x\":400,\"y\":300}},\"usesCurrentFocus\":true}"
+				"prepared": "{\"action\":\"typeText\",\"establishesFocus\":false,\"params\":{\"text\":\"hello\"},\"target\":{\"focus\":{\"x\":400,\"y\":300}}}"
 			}
 		},
 		{
@@ -6554,7 +6554,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"keypress\",\"establishesFocus\":false,\"params\":{\"keys\":[\"return\"]},\"target\":{\"focus\":{\"x\":400,\"y\":299}},\"usesCurrentFocus\":true}"
+				"prepared": "{\"action\":\"keypress\",\"establishesFocus\":false,\"params\":{\"keys\":[\"return\"]},\"target\":{\"focus\":{\"x\":400,\"y\":299}}}"
 			}
 		},
 		{
@@ -7528,7 +7528,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"typeText\",\"establishesFocus\":false,\"params\":{\"text\":\"x\"},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"typeText\",\"establishesFocus\":false,\"params\":{\"text\":\"x\"},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -7857,7 +7857,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"keypress\",\"establishesFocus\":false,\"params\":{\"keys\":[\"cmd\",\"a\"]},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"keypress\",\"establishesFocus\":false,\"params\":{\"keys\":[\"cmd\",\"a\"]},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -8182,7 +8182,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"scroll\",\"establishesFocus\":false,\"params\":{\"scrollX\":0,\"scrollY\":0},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"scroll\",\"establishesFocus\":false,\"params\":{\"scrollX\":0,\"scrollY\":0},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -8510,7 +8510,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"scroll\",\"establishesFocus\":false,\"params\":{\"scrollX\":-2,\"scrollY\":3},\"target\":{\"x\":5,\"y\":5},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"scroll\",\"establishesFocus\":false,\"params\":{\"scrollX\":-2,\"scrollY\":3},\"target\":{\"x\":5,\"y\":5}}"
 			}
 		},
 		{
@@ -8834,7 +8834,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"wait\",\"establishesFocus\":false,\"params\":{\"ms\":1000},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"wait\",\"establishesFocus\":false,\"params\":{\"ms\":1000}}"
 			}
 		},
 		{
@@ -9159,7 +9159,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"wait\",\"establishesFocus\":false,\"params\":{\"ms\":11},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"wait\",\"establishesFocus\":false,\"params\":{\"ms\":11}}"
 			}
 		},
 		{
@@ -9493,7 +9493,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"drag\",\"establishesFocus\":false,\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3.5,\"y\":4}]},\"target\":{\"x\":1,\"y\":2},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"drag\",\"establishesFocus\":false,\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3.5,\"y\":4}]},\"target\":{\"x\":1,\"y\":2}}"
 			}
 		},
 		{
@@ -9828,7 +9828,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"drag\",\"establishesFocus\":false,\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3,\"y\":4}]},\"target\":{\"ref\":\"editor\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"drag\",\"establishesFocus\":false,\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3,\"y\":4}]},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -10488,7 +10488,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"moveMouse\",\"establishesFocus\":false,\"params\":{},\"target\":{\"ref\":\"save\"},\"usesCurrentFocus\":false}"
+				"prepared": "{\"action\":\"moveMouse\",\"establishesFocus\":false,\"params\":{},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{

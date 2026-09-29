@@ -3912,49 +3912,25 @@ final class Bridge {
 		usleep(8_000)
 	}
 
+	/// Text goes in as the characters themselves, never as the keys that would type them:
+	/// the target's input method (Pinyin, Kana) composes physical keys into other text.
 	private func postUnicodeText(_ text: String, pid: Int32, delivery: String = "hid") throws {
 		if delivery == "hid" { physicalInputLock.lock() }
 		defer { if delivery == "hid" { physicalInputLock.unlock() } }
-		for scalar in text.unicodeScalars {
-			let char = String(scalar)
-			if let stroke = physicalKeyStroke(for: char) {
-				try postKey(stroke.key, flags: stroke.flags, pid: pid, delivery: delivery)
-				continue
-			}
+		for character in text {
 			guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
 				let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
 			else {
 				throw BridgeFailure(message: "Failed to create unicode key event", code: "input_failed")
 			}
-			setUnicodeString(event: down, text: char)
-			setUnicodeString(event: up, text: char)
+			for event in [down, up] {
+				setUnicodeString(event: event, text: String(character))
+				// Chromium reads modifiers from the flags; a stale Shift would leak into the text.
+				event.flags = []
+			}
 			try postEvent(down, pid: pid, delivery: delivery)
 			try postEvent(up, pid: pid, delivery: delivery)
 			usleep(8_000)
-		}
-	}
-
-	/// Prefer physical key codes for characters represented by the US layout.
-	/// AppKit field editors can observe synthetic Unicode events without applying
-	/// them to the backing value, while normal key codes follow the same input
-	/// path as a user keystroke. Unicode synthesis remains the fallback for text
-	/// that has no direct key representation.
-	private func physicalKeyStroke(for character: String) -> (key: String, flags: CGEventFlags)? {
-		guard character.count == 1 else { return nil }
-		if character >= "a" && character <= "z" { return (character, []) }
-		if character >= "A" && character <= "Z" { return (character.lowercased(), [.maskShift]) }
-		if character >= "0" && character <= "9" { return (character, []) }
-		switch character {
-		case " ": return ("space", [])
-		case ".", ",", "/", "-", "=", ";", "'", "[", "]", "\\", "`": return (character, [])
-		case "_": return ("-", [.maskShift])
-		case "+": return ("=", [.maskShift])
-		case ":": return (";", [.maskShift])
-		case "\"": return ("'", [.maskShift])
-		case "?": return ("/", [.maskShift])
-		case "<": return (",", [.maskShift])
-		case ">": return (".", [.maskShift])
-		default: return nil
 		}
 	}
 

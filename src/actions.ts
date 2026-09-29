@@ -5,14 +5,14 @@ import type { OutlineNode } from "./outline.ts";
 export type ActionTarget = { ref: string } | { x: number; y: number } | { focus: { x: number; y: number } };
 
 export type PreparedAction =
-	| { action: "press" | "click"; target: ActionTarget; params: { button?: MouseButtonName; clickCount?: number }; establishesFocus: boolean; usesCurrentFocus: false }
-	| { action: "setText"; target: ActionTarget; params: { text: string }; establishesFocus: false; usesCurrentFocus: false }
-	| { action: "typeText"; target: ActionTarget; params: { text: string }; establishesFocus: false; usesCurrentFocus: boolean }
-	| { action: "keypress"; target: ActionTarget; params: { keys: string[] }; establishesFocus: false; usesCurrentFocus: boolean }
-	| { action: "scroll"; target: ActionTarget; params: { scrollX: number; scrollY: number }; establishesFocus: false; usesCurrentFocus: false }
-	| { action: "drag"; target: ActionTarget; params: { path: Array<{ x: number; y: number }> }; establishesFocus: false; usesCurrentFocus: false }
-	| { action: "moveMouse"; target: ActionTarget; params: Record<string, never>; establishesFocus: false; usesCurrentFocus: false }
-	| { action: "wait"; params: { ms: number }; establishesFocus: false; usesCurrentFocus: false };
+	| { action: "press" | "click"; target: ActionTarget; params: { button?: MouseButtonName; clickCount?: number }; establishesFocus: boolean }
+	| { action: "setText"; target: ActionTarget; params: { text: string }; establishesFocus: false }
+	| { action: "typeText"; target: ActionTarget; params: { text: string }; establishesFocus: false }
+	| { action: "keypress"; target: ActionTarget; params: { keys: string[] }; establishesFocus: false }
+	| { action: "scroll"; target: ActionTarget; params: { scrollX: number; scrollY: number }; establishesFocus: false }
+	| { action: "drag"; target: ActionTarget; params: { path: Array<{ x: number; y: number }> }; establishesFocus: false }
+	| { action: "moveMouse"; target: ActionTarget; params: Record<string, never>; establishesFocus: false }
+	| { action: "wait"; params: { ms: number }; establishesFocus: false };
 
 export interface ActionState {
 	currentFocus: boolean;
@@ -196,22 +196,22 @@ export function validateActions(actions: readonly unknown[]): asserts actions is
 
 export function prepareAction(action: UiAction, state: ActionState, env: ActionEnvironment): PreparedAction {
 	if (action.action === "wait") {
-		return { action: "wait", params: { ms: Math.round(action.ms ?? 1_000) }, establishesFocus: false, usesCurrentFocus: false };
+		return { action: "wait", params: { ms: Math.round(action.ms ?? 1_000) }, establishesFocus: false };
 	}
 	const operation = action.action === "doubleClick" ? "click" : action.action;
-	const usesCurrentFocus = !env.headless && state.currentFocus && !action.ref && (operation === "typeText" || operation === "keypress");
-	const target = usesCurrentFocus ? focusedTarget(env) : nativeTarget(action, operation, env);
+	const intoCurrentFocus = !env.headless && state.currentFocus && !action.ref && (operation === "typeText" || operation === "keypress");
+	const target = intoCurrentFocus ? focusedTarget(env) : nativeTarget(action, operation, env);
 	const establishesFocus = !env.headless && Boolean(action.ref) && (operation === "click" || operation === "press") && containsEditable(env.node(action.ref!));
 
 	switch (operation) {
 		case "press":
-		case "click": return { action: operation, target, params: { button: mouseButton(action.button), clickCount: action.action === "doubleClick" ? 2 : clickCount(action.clickCount) }, establishesFocus, usesCurrentFocus: false };
-		case "setText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false, usesCurrentFocus: false };
-		case "typeText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false, usesCurrentFocus };
-		case "keypress": return { action: operation, target, params: { keys: action.keys! }, establishesFocus: false, usesCurrentFocus };
-		case "scroll": return { action: operation, target, params: { scrollX: scrollDelta(action.scrollX), scrollY: scrollDelta(action.scrollY) }, establishesFocus: false, usesCurrentFocus: false };
-		case "drag": return { action: operation, target, params: { path: path(action.path, env) }, establishesFocus: false, usesCurrentFocus: false };
-		case "moveMouse": return { action: operation, target, params: {}, establishesFocus: false, usesCurrentFocus: false };
+		case "click": return { action: operation, target, params: { button: mouseButton(action.button), clickCount: action.action === "doubleClick" ? 2 : clickCount(action.clickCount) }, establishesFocus };
+		case "setText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false };
+		case "typeText": return { action: operation, target, params: { text: action.text! }, establishesFocus: false };
+		case "keypress": return { action: operation, target, params: { keys: action.keys! }, establishesFocus: false };
+		case "scroll": return { action: operation, target, params: { scrollX: scrollDelta(action.scrollX), scrollY: scrollDelta(action.scrollY) }, establishesFocus: false };
+		case "drag": return { action: operation, target, params: { path: path(action.path, env) }, establishesFocus: false };
+		case "moveMouse": return { action: operation, target, params: {}, establishesFocus: false };
 	}
 }
 

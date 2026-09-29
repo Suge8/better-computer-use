@@ -189,7 +189,6 @@ public struct PreparedAction: Codable, Sendable, Equatable {
 	public var params: PreparedParams
 	/// A click that put keyboard focus into an editable element, so later typing may use it.
 	public var establishesFocus: Bool
-	public var usesCurrentFocus: Bool
 }
 
 public struct ActionState: Sendable {
@@ -294,12 +293,12 @@ private func containsEditable(_ node: OutlineNode) -> Bool {
 
 public func prepareAction(_ action: UiAction, state: ActionState, environment: ActionEnvironment) throws -> PreparedAction {
 	if action.action == .wait {
-		return PreparedAction(action: .wait, params: .wait(ms: Int((action.ms ?? defaultWaitMs).rounded())), establishesFocus: false, usesCurrentFocus: false)
+		return PreparedAction(action: .wait, params: .wait(ms: Int((action.ms ?? defaultWaitMs).rounded())), establishesFocus: false)
 	}
 	let operation = action.action == .doubleClick ? .click : action.action
 	let ref = action.ref ?? ""
-	let usesCurrentFocus = !environment.headless && state.currentFocus && ref.isEmpty && (operation == .typeText || operation == .keypress)
-	let target = usesCurrentFocus ? try focusedTarget(environment) : try nativeTarget(action, operation, environment)
+	let intoCurrentFocus = !environment.headless && state.currentFocus && ref.isEmpty && (operation == .typeText || operation == .keypress)
+	let target = intoCurrentFocus ? try focusedTarget(environment) : try nativeTarget(action, operation, environment)
 	let clicks = operation == .click || operation == .press
 	let establishesFocus = try !environment.headless && !ref.isEmpty && clicks && containsEditable(environment.node(ref, for: action.action))
 	let params: PreparedParams = switch operation {
@@ -312,8 +311,7 @@ public func prepareAction(_ action: UiAction, state: ActionState, environment: A
 	}
 	return PreparedAction(
 		action: operation, target: target, params: params,
-		establishesFocus: establishesFocus,
-		usesCurrentFocus: operation == .typeText || operation == .keypress ? usesCurrentFocus : false
+		establishesFocus: establishesFocus
 	)
 }
 
