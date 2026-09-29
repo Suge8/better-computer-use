@@ -117,19 +117,7 @@ extension Daemon {
 		if name.hasPrefix("@r") {
 			throw BCUError(.windowStale, "Root ref '\(name)' is not available in this session. Run find-roots first.")
 		}
-		var candidates: [Target] = []
-		for app in try await apps() { candidates += try await roots(pid: app.pid).map { target($0, in: app) } }
-		let query = normalized(name)
-		let exact = candidates.filter { normalized($0.appName) == query || normalized($0.title) == query }
-		let fuzzy = !exact.isEmpty ? exact : candidates.filter { "\(normalized($0.appName)) \(normalized($0.title))".contains(query) }
-		let ranked = stableSorted(fuzzy) { lhs, rhs in
-			if lhs.root.isFocused != rhs.root.isFocused { return lhs.root.isFocused }
-			return lhs.root.zOrder < rhs.root.zOrder
-		}
-		guard let match = ranked.first else {
-			throw BCUError(.windowStale, "Root query '\(name)' did not match any current root. Run find-roots to list roots.")
-		}
-		return match
+		throw BCUError(.invalidArguments, "--root takes an @r ref from find-roots or a numeric window id, not '\(name)'. Select by name with --app or --window-title.")
 	}
 
 	private func target(titled title: String) async throws -> Target {
