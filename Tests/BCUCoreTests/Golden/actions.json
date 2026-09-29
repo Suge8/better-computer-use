@@ -607,7 +607,7 @@
 				]
 			},
 			"output": {
-				"stderr": "error invalid_arguments: Unsupported action 'undefined'.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: Every act-ui item needs an action.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},

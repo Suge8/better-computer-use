@@ -1,5 +1,6 @@
 // The core must produce Golden/ byte for byte. Each case names the operation, its input and
 // every output stream it produces; the cases are the contract, edited by hand when it changes.
+// JSON outputs are the core's own encoding: compact with sorted keys, `inspect-ui` pretty.
 import BCUCore
 import Foundation
 import Testing
@@ -13,7 +14,6 @@ struct GoldenCase: Sendable, CustomTestStringConvertible {
 	let op: String
 	let input: JSONValue
 	let output: JSONValue
-	let compare: String?
 
 	var testDescription: String { "\(file): \(name)" }
 
@@ -27,9 +27,8 @@ struct GoldenCase: Sendable, CustomTestStringConvertible {
 				file: file,
 				name: item["name"]?.string ?? "",
 				op: item["op"]?.string ?? "",
-				input: item["input"] ?? .object([]),
-				output: item["output"] ?? .object([]),
-				compare: item["compare"]?.string
+				input: item["input"] ?? .null,
+				output: item["output"] ?? .null
 			)
 		}
 	}
@@ -51,6 +50,39 @@ private func loadOutline(_ input: JSONValue) throws -> Outline {
 
 private func json<T: Encodable>(_ value: T) throws -> JSONValue {
 	try JSONCoding.encode(value)
+}
+
+private struct Grafted: Encodable {
+	let ref: String
+	let outline: SerializedOutline
+}
+
+private struct Projected: Encodable {
+	let nodes: [ProjectedNode]
+	let shown: Int
+	let total: Int
+	let truncated: Bool
+}
+
+/// A prepared action as the platform receives it: without the focus bookkeeping.
+private struct Delivered: Encodable {
+	let action: ActionName
+	let target: ActionTarget?
+	let params: PreparedParams
+}
+
+/// A parsed invocation as the resident receives it, and whether the CLI prints JSON.
+private struct Sent: Encodable {
+	let request: CommandRequest
+	let json: Bool
+
+	enum CodingKeys: String, CodingKey { case json }
+
+	func encode(to encoder: any Encoder) throws {
+		try request.encode(to: encoder)
+		var container = encoder.container(keyedBy: CodingKeys.self)
+		try container.encode(json, forKey: .json)
+	}
 }
 
 private func refs(_ value: JSONValue?) -> Set<String>? {
@@ -101,8 +133,7 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 	case "graft":
 		let outline = try loadOutline(input["outline"]!)
 		let grafted = try outline.graft(try loadOutline(input["scoped"]!), at: input["target"]!.string!)
-		let value = JSONValue.object([JSONMember("ref", .string(grafted.ref)), JSONMember("outline", try json(outline.serialized))])
-		return ["json": .string(value.serialized())]
+		return ["json": .string(try JSONCoding.string(Grafted(ref: grafted.ref, outline: outline.serialized)))]
 	case "project":
 		return try projectCase(input)
 	case "changes":
@@ -115,18 +146,17 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		return ["json": .string(try JSONCoding.string(view))]
 	case "validate":
 		let actions = try validateActions(input["actions"]!.array!)
-		return ["ok": .string(try json(actions).serialized(sortedKeys: true))]
+		return ["ok": .string(try JSONCoding.string(actions))]
 	case "prepare":
 		let action = try JSONCoding.decode(UiAction.self, from: input["action"]!)
 		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: input["headless"]!.bool!)
 		let prepared = try prepareAction(action, state: ActionState(currentFocus: input["currentFocus"]!.bool!), environment: environment)
-		return ["prepared": .string(try json(prepared).serialized(sortedKeys: true))]
+		return ["prepared": .string(try JSONCoding.string(prepared))]
 	case "deliver":
 		let actions = try validateActions([input["action"]!])
 		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: false)
-		let prepared = try json(prepareAction(actions[0], state: ActionState(currentFocus: false), environment: environment))
-		let request = JSONValue.object(["action", "target", "params"].map { JSONMember($0, prepared[$0]!) })
-		return ["request": .string(request.serialized(sortedKeys: true))]
+		let prepared = try prepareAction(actions[0], state: ActionState(currentFocus: false), environment: environment)
+		return ["request": .string(try JSONCoding.string(Delivered(action: prepared.action, target: prepared.target, params: prepared.params)))]
 	case "outcome":
 		return ["result": .string(try outcomeCase(input))]
 	case "observedValues":
@@ -149,19 +179,13 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 
 private func projectCase(_ input: JSONValue) throws -> [String: JSONValue] {
 	let outline = try loadOutline(input["outline"]!)
-	let options = input["options"] ?? .object([])
+	let options = input["options"] ?? .null
 	var projectOptions = ProjectOptions()
 	projectOptions.maxDepth = options["maxDepth"]?.number.map { Int($0) }
 	projectOptions.maxNodes = options["maxNodes"]?.number.map { Int($0) }
 	projectOptions.unfold = options["unfold"]?.array?.compactMap(\.string) ?? []
 	projectOptions.from = options["from"]?.string.flatMap { outline.node($0) }
 	let projection = project(outline, projectOptions)
-	let value = JSONValue.object([
-		JSONMember("nodes", try json(projection.nodes)),
-		JSONMember("shown", .number(Double(projection.shown))),
-		JSONMember("total", .number(Double(projection.total))),
-		JSONMember("truncated", .bool(projection.truncated)),
-	])
 	let text: String
 	if let header = input["header"] {
 		let view = ObservationView(
@@ -175,7 +199,7 @@ private func projectCase(_ input: JSONValue) throws -> [String: JSONValue] {
 	} else {
 		text = renderNodes(projection.nodes)
 	}
-	return ["json": .string(value.serialized()), "text": .string(text)]
+	return ["json": .string(try JSONCoding.string(Projected(nodes: projection.nodes, shown: projection.shown, total: projection.total, truncated: projection.truncated))), "text": .string(text)]
 }
 
 private func changesCase(_ input: JSONValue) throws -> [String: JSONValue] {
@@ -222,9 +246,7 @@ private func cliCase(_ input: JSONValue) throws -> [String: JSONValue] {
 		return [:]
 	case .command(let request, let asJSON):
 		var output: [String: JSONValue] = [:]
-		let encoded = try json(request)
-		let sent = JSONValue.object([JSONMember("command", encoded["command"]!), JSONMember("json", .bool(asJSON)), JSONMember("params", encoded["params"]!)])
-		output["request"] = .string(sent.serialized(sortedKeys: true))
+		output["request"] = .string(try JSONCoding.string(Sent(request: request, json: asJSON)))
 		if let result = input["result"] {
 			let decoded = try CommandResult.decode(request.name, from: result)
 			output.merge(streams(stdout: try CLI.output(decoded, json: asJSON))) { $1 }
@@ -262,23 +284,12 @@ private func queryCase(_ input: JSONValue) throws -> [String: JSONValue] {
 
 // MARK: - comparison
 
-/** Only the key-sorted form is compared for cases whose recorded key order is not the declared one. */
-private func canonicalized(_ text: String) -> String {
-	text.split(separator: "\n", omittingEmptySubsequences: false).map { line in
-		(try? JSONValue(parsing: String(line)))?.serialized(sortedKeys: true) ?? String(line)
-	}.joined(separator: "\n")
-}
-
 private func check(_ golden: GoldenCase) {
 	let actual = run(golden)
 	guard case .object(let expected) = golden.output else { return }
 	for member in expected {
-		var want = member.value
-		var got = actual[member.key] ?? .null
-		if golden.compare == "canonical-json", member.key == "stdout", let wantText = want.string, let gotText = got.string {
-			want = .string(canonicalized(wantText))
-			got = .string(canonicalized(gotText))
-		}
+		let want = member.value
+		let got = actual[member.key] ?? .null
 		if let wantText = want.string, let gotText = got.string {
 			#expect(gotText == wantText, "\(member.key) differs")
 		} else {

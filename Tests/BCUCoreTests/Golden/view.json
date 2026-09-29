@@ -222,7 +222,7 @@
 				"stabilize": true
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"added\",\"ref\":\"@e4\",\"parent\":\"@e1\",\"node\":{\"ref\":\"@e4\",\"role\":\"text\",\"name\":\"Status\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}},{\"type\":\"updated\",\"ref\":\"@e3\",\"fields\":{\"value\":\"hello\"}}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
+				"json": "{\"changes\":[{\"node\":{\"caps\":[],\"depth\":1,\"name\":\"Status\",\"parent\":\"@e1\",\"ref\":\"@e4\",\"role\":\"text\"},\"parent\":\"@e1\",\"ref\":\"@e4\",\"type\":\"added\"},{\"fields\":{\"value\":\"hello\"},\"ref\":\"@e3\",\"type\":\"updated\"}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
 				"text": "+ @e4 in @e1 text \"Status\"\n~ @e3 =\"hello\"",
 				"offscreen": ""
 			}
@@ -420,7 +420,7 @@
 				"stabilize": true
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e3\",\"fields\":{\"value\":\"updated\"}}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"updated\"},\"ref\":\"@e3\",\"type\":\"updated\"}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
 				"text": "~ @e3 =\"updated\"",
 				"offscreen": ""
 			}
@@ -629,7 +629,7 @@
 				"stabilize": false
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e3\",\"fields\":{\"state\":[\"focused\"]}}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
+				"json": "{\"changes\":[{\"fields\":{\"state\":[\"focused\"]},\"ref\":\"@e3\",\"type\":\"updated\"}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
 				"text": "~ @e3 focused",
 				"offscreen": ""
 			}
@@ -839,7 +839,7 @@
 				"stabilize": false
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e2\",\"fields\":{\"state\":[\"onscreen\"]}},{\"type\":\"updated\",\"ref\":\"@e3\",\"fields\":{\"state\":[\"focused\"]}}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
+				"json": "{\"changes\":[{\"fields\":{\"state\":[\"onscreen\"]},\"ref\":\"@e2\",\"type\":\"updated\"},{\"fields\":{\"state\":[\"focused\"]},\"ref\":\"@e3\",\"type\":\"updated\"}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
 				"text": "~ @e2 onscreen\n~ @e3 focused",
 				"offscreen": ""
 			}
@@ -1259,7 +1259,7 @@
 				"stabilize": false
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e2\",\"fields\":{\"role\":\"checkbox\",\"name\":\"New\",\"value\":\"1\",\"caps\":[\"toggle\"]}},{\"type\":\"updated\",\"ref\":\"@e3\",\"fields\":{\"state\":[\"complete\",\"scroll end\"]}},{\"type\":\"updated\",\"ref\":\"@e4\",\"fields\":{\"state\":[\"unfocused\"]}},{\"type\":\"updated\",\"ref\":\"@e5\",\"fields\":{\"role\":\"scrollarea\",\"name\":\"Other\",\"caps\":[\"scroll\"],\"state\":[\"scroll 1/5\"]}},{\"type\":\"updated\",\"ref\":\"@e6\",\"fields\":{\"role\":\"button\",\"name\":\"Added\",\"caps\":[\"press\"],\"state\":[\"onscreen\"]}},{\"type\":\"added\",\"ref\":\"@e7\",\"parent\":\"@e6\",\"node\":{\"ref\":\"@e7\",\"role\":\"button\",\"name\":\"Child\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e6\"}}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
+				"json": "{\"changes\":[{\"fields\":{\"caps\":[\"toggle\"],\"name\":\"New\",\"role\":\"checkbox\",\"value\":\"1\"},\"ref\":\"@e2\",\"type\":\"updated\"},{\"fields\":{\"state\":[\"complete\",\"scroll end\"]},\"ref\":\"@e3\",\"type\":\"updated\"},{\"fields\":{\"state\":[\"unfocused\"]},\"ref\":\"@e4\",\"type\":\"updated\"},{\"fields\":{\"caps\":[\"scroll\"],\"name\":\"Other\",\"role\":\"scrollarea\",\"state\":[\"scroll 1/5\"]},\"ref\":\"@e5\",\"type\":\"updated\"},{\"fields\":{\"caps\":[\"press\"],\"name\":\"Added\",\"role\":\"button\",\"state\":[\"onscreen\"]},\"ref\":\"@e6\",\"type\":\"updated\"},{\"node\":{\"caps\":[\"press\"],\"depth\":2,\"name\":\"Child\",\"parent\":\"@e6\",\"ref\":\"@e7\",\"role\":\"button\"},\"parent\":\"@e6\",\"ref\":\"@e7\",\"type\":\"added\"}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":false}",
 				"text": "~ @e2 checkbox \"New\" =\"1\" {toggle}\n~ @e3 complete scroll end\n~ @e4 unfocused\n~ @e5 scrollarea \"Other\" {scroll} scroll 1/5\n~ @e6 button \"Added\" {press} onscreen\n+ @e7 in @e6 button \"Child\" {press}",
 				"offscreen": ""
 			}
@@ -3675,7 +3675,7 @@
 				"stabilize": true
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"noise on\"}}],\"offscreen\":{\"added\":30,\"removed\":0},\"useFullView\":false}",
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"noise on\"},\"ref\":\"@e9\",\"type\":\"updated\"}],\"offscreen\":{\"added\":30,\"removed\":0},\"useFullView\":false}",
 				"text": "~ @e9 =\"noise on\"",
 				"offscreen": "… offscreen elements outside the view: 30 added"
 			}
@@ -5158,7 +5158,7 @@
 				}
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"typed\"}}]}"
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"typed\"},\"ref\":\"@e9\",\"type\":\"updated\"}]}"
 			}
 		},
 		{
@@ -7569,7 +7569,7 @@
 				}
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"noise on\"}}],\"offscreen\":{\"added\":30,\"removed\":0}}"
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"noise on\"},\"ref\":\"@e9\",\"type\":\"updated\"}],\"offscreen\":{\"added\":30,\"removed\":0}}"
 			}
 		},
 		{
@@ -11444,7 +11444,7 @@
 				}
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"noise off\"}}],\"offscreen\":{\"added\":0,\"removed\":30}}"
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"noise off\"},\"ref\":\"@e9\",\"type\":\"updated\"}],\"offscreen\":{\"added\":0,\"removed\":30}}"
 			}
 		},
 		{
@@ -11478,7 +11478,7 @@
 				}
 			},
 			"output": {
-				"json": "{\"nodes\":[{\"ref\":\"@e48\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e62\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e55\"},\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e64\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e139\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e119\"},\"depth\":2,\"parent\":\"@e64\"},{\"ref\":\"@e144\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e146\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e95\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e96\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e66\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e50\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e51\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e52\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e53\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e54\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"}],\"shown\":14,\"total\":99}"
+				"json": "{\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"shown\":14,\"total\":99}"
 			}
 		},
 		{
@@ -11781,7 +11781,7 @@
 				"menusOpenedByBcu": true
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e2\",\"fields\":{\"value\":\"open\"}}],\"offscreen\":{\"added\":2,\"removed\":1}}"
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"open\"},\"ref\":\"@e2\",\"type\":\"updated\"}],\"offscreen\":{\"added\":2,\"removed\":1}}"
 			}
 		},
 		{
@@ -12084,7 +12084,7 @@
 				"menusOpenedByBcu": false
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e2\",\"fields\":{\"value\":\"open\"}},{\"type\":\"added\",\"ref\":\"@e5\",\"parent\":\"@e3\",\"node\":{\"ref\":\"@e5\",\"role\":\"menuitem\",\"name\":\"搜索\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e3\"}},{\"type\":\"added\",\"ref\":\"@e6\",\"parent\":\"@e3\",\"node\":{\"ref\":\"@e6\",\"role\":\"menuitem\",\"name\":\"新菜单\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e3\"}},{\"type\":\"removed\",\"ref\":\"@e4\",\"parent\":\"@e3\"}]}"
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"open\"},\"ref\":\"@e2\",\"type\":\"updated\"},{\"node\":{\"caps\":[\"press\"],\"depth\":3,\"name\":\"搜索\",\"parent\":\"@e3\",\"ref\":\"@e5\",\"role\":\"menuitem\"},\"parent\":\"@e3\",\"ref\":\"@e5\",\"type\":\"added\"},{\"node\":{\"caps\":[\"press\"],\"depth\":3,\"name\":\"新菜单\",\"parent\":\"@e3\",\"ref\":\"@e6\",\"role\":\"menuitem\"},\"parent\":\"@e3\",\"ref\":\"@e6\",\"type\":\"added\"},{\"parent\":\"@e3\",\"ref\":\"@e4\",\"type\":\"removed\"}]}"
 			}
 		},
 		{
@@ -14024,7 +14024,7 @@
 				"stabilize": true
 			},
 			"output": {
-				"json": "{\"changes\":[{\"type\":\"updated\",\"ref\":\"@e2\",\"fields\":{\"value\":\"0\"}},{\"type\":\"updated\",\"ref\":\"@e3\",\"fields\":{\"value\":\"1\"}},{\"type\":\"updated\",\"ref\":\"@e4\",\"fields\":{\"value\":\"2\"}},{\"type\":\"updated\",\"ref\":\"@e5\",\"fields\":{\"value\":\"3\"}},{\"type\":\"updated\",\"ref\":\"@e6\",\"fields\":{\"value\":\"4\"}},{\"type\":\"updated\",\"ref\":\"@e7\",\"fields\":{\"value\":\"5\"}},{\"type\":\"updated\",\"ref\":\"@e8\",\"fields\":{\"value\":\"6\"}},{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"7\"}},{\"type\":\"updated\",\"ref\":\"@e10\",\"fields\":{\"value\":\"8\"}},{\"type\":\"updated\",\"ref\":\"@e11\",\"fields\":{\"value\":\"9\"}},{\"type\":\"updated\",\"ref\":\"@e12\",\"fields\":{\"value\":\"10\"}},{\"type\":\"updated\",\"ref\":\"@e13\",\"fields\":{\"value\":\"11\"}},{\"type\":\"updated\",\"ref\":\"@e14\",\"fields\":{\"value\":\"12\"}},{\"type\":\"updated\",\"ref\":\"@e15\",\"fields\":{\"value\":\"13\"}},{\"type\":\"updated\",\"ref\":\"@e16\",\"fields\":{\"value\":\"14\"}},{\"type\":\"updated\",\"ref\":\"@e17\",\"fields\":{\"value\":\"15\"}},{\"type\":\"updated\",\"ref\":\"@e18\",\"fields\":{\"value\":\"16\"}},{\"type\":\"updated\",\"ref\":\"@e19\",\"fields\":{\"value\":\"17\"}},{\"type\":\"updated\",\"ref\":\"@e20\",\"fields\":{\"value\":\"18\"}},{\"type\":\"updated\",\"ref\":\"@e21\",\"fields\":{\"value\":\"19\"}},{\"type\":\"updated\",\"ref\":\"@e22\",\"fields\":{\"value\":\"20\"}},{\"type\":\"updated\",\"ref\":\"@e23\",\"fields\":{\"value\":\"21\"}},{\"type\":\"updated\",\"ref\":\"@e24\",\"fields\":{\"value\":\"22\"}},{\"type\":\"updated\",\"ref\":\"@e25\",\"fields\":{\"value\":\"23\"}},{\"type\":\"updated\",\"ref\":\"@e26\",\"fields\":{\"value\":\"24\"}},{\"type\":\"updated\",\"ref\":\"@e27\",\"fields\":{\"value\":\"25\"}},{\"type\":\"updated\",\"ref\":\"@e28\",\"fields\":{\"value\":\"26\"}},{\"type\":\"updated\",\"ref\":\"@e29\",\"fields\":{\"value\":\"27\"}},{\"type\":\"updated\",\"ref\":\"@e30\",\"fields\":{\"value\":\"28\"}},{\"type\":\"updated\",\"ref\":\"@e31\",\"fields\":{\"value\":\"29\"}}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":true}",
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"0\"},\"ref\":\"@e2\",\"type\":\"updated\"},{\"fields\":{\"value\":\"1\"},\"ref\":\"@e3\",\"type\":\"updated\"},{\"fields\":{\"value\":\"2\"},\"ref\":\"@e4\",\"type\":\"updated\"},{\"fields\":{\"value\":\"3\"},\"ref\":\"@e5\",\"type\":\"updated\"},{\"fields\":{\"value\":\"4\"},\"ref\":\"@e6\",\"type\":\"updated\"},{\"fields\":{\"value\":\"5\"},\"ref\":\"@e7\",\"type\":\"updated\"},{\"fields\":{\"value\":\"6\"},\"ref\":\"@e8\",\"type\":\"updated\"},{\"fields\":{\"value\":\"7\"},\"ref\":\"@e9\",\"type\":\"updated\"},{\"fields\":{\"value\":\"8\"},\"ref\":\"@e10\",\"type\":\"updated\"},{\"fields\":{\"value\":\"9\"},\"ref\":\"@e11\",\"type\":\"updated\"},{\"fields\":{\"value\":\"10\"},\"ref\":\"@e12\",\"type\":\"updated\"},{\"fields\":{\"value\":\"11\"},\"ref\":\"@e13\",\"type\":\"updated\"},{\"fields\":{\"value\":\"12\"},\"ref\":\"@e14\",\"type\":\"updated\"},{\"fields\":{\"value\":\"13\"},\"ref\":\"@e15\",\"type\":\"updated\"},{\"fields\":{\"value\":\"14\"},\"ref\":\"@e16\",\"type\":\"updated\"},{\"fields\":{\"value\":\"15\"},\"ref\":\"@e17\",\"type\":\"updated\"},{\"fields\":{\"value\":\"16\"},\"ref\":\"@e18\",\"type\":\"updated\"},{\"fields\":{\"value\":\"17\"},\"ref\":\"@e19\",\"type\":\"updated\"},{\"fields\":{\"value\":\"18\"},\"ref\":\"@e20\",\"type\":\"updated\"},{\"fields\":{\"value\":\"19\"},\"ref\":\"@e21\",\"type\":\"updated\"},{\"fields\":{\"value\":\"20\"},\"ref\":\"@e22\",\"type\":\"updated\"},{\"fields\":{\"value\":\"21\"},\"ref\":\"@e23\",\"type\":\"updated\"},{\"fields\":{\"value\":\"22\"},\"ref\":\"@e24\",\"type\":\"updated\"},{\"fields\":{\"value\":\"23\"},\"ref\":\"@e25\",\"type\":\"updated\"},{\"fields\":{\"value\":\"24\"},\"ref\":\"@e26\",\"type\":\"updated\"},{\"fields\":{\"value\":\"25\"},\"ref\":\"@e27\",\"type\":\"updated\"},{\"fields\":{\"value\":\"26\"},\"ref\":\"@e28\",\"type\":\"updated\"},{\"fields\":{\"value\":\"27\"},\"ref\":\"@e29\",\"type\":\"updated\"},{\"fields\":{\"value\":\"28\"},\"ref\":\"@e30\",\"type\":\"updated\"},{\"fields\":{\"value\":\"29\"},\"ref\":\"@e31\",\"type\":\"updated\"}],\"offscreen\":{\"added\":0,\"removed\":0},\"useFullView\":true}",
 				"text": "~ @e2 =\"0\"\n~ @e3 =\"1\"\n~ @e4 =\"2\"\n~ @e5 =\"3\"\n~ @e6 =\"4\"\n~ @e7 =\"5\"\n~ @e8 =\"6\"\n~ @e9 =\"7\"\n~ @e10 =\"8\"\n~ @e11 =\"9\"\n~ @e12 =\"10\"\n~ @e13 =\"11\"\n~ @e14 =\"12\"\n~ @e15 =\"13\"\n~ @e16 =\"14\"\n~ @e17 =\"15\"\n~ @e18 =\"16\"\n~ @e19 =\"17\"\n~ @e20 =\"18\"\n~ @e21 =\"19\"\n~ @e22 =\"20\"\n~ @e23 =\"21\"\n~ @e24 =\"22\"\n~ @e25 =\"23\"\n~ @e26 =\"24\"\n~ @e27 =\"25\"\n~ @e28 =\"26\"\n~ @e29 =\"27\"\n~ @e30 =\"28\"\n~ @e31 =\"29\"",
 				"offscreen": ""
 			}
