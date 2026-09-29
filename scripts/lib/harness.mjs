@@ -4,29 +4,33 @@ import { createInterface } from "node:readline";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { npmInvocation } from "../npm-invocation.mjs";
 
 const execFile = promisify(execFileCallback);
 export const TEXT_EDIT_APP = "/System/Applications/TextEdit.app";
 
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
-export const bundlePath = path.join(repoRoot, "dist", "bcu.mjs");
+/** The installed app; live gates drive it, because macOS grants its permissions to this bundle. */
+export const appPath = process.env.BCU_APP_PATH ?? "/Applications/bcu.app";
+let cliPath = process.env.BCU_BIN ?? path.join(appPath, "Contents", "MacOS", "bcu");
 
-/** Builds the CLI bundle the harness invokes. */
-export async function buildBundle() {
-	const [npm, npmArgs] = npmInvocation(["run", "build", "--silent"]);
-	await execFile(npm, npmArgs, { cwd: repoRoot });
+/** Builds the bcu executable from this checkout and runs that instead of the installed one. */
+export async function useBuiltCli() {
+	await execFile("swift", ["build", "--product", "bcu"], { cwd: repoRoot, maxBuffer: 32 * 1024 * 1024 });
+	const { stdout } = await execFile("swift", ["build", "--show-bin-path"], { cwd: repoRoot });
+	cliPath = path.join(stdout.trim(), "bcu");
+	return cliPath;
 }
 
 export async function makeTemporaryRoot(label) {
-	return await fs.mkdtemp(path.join(os.tmpdir(), `bcu-${label}-`));
+	// Short, because a Unix socket path inside it must fit in 104 bytes.
+	return await fs.mkdtemp(path.join("/tmp", `bcu-${label}-`));
 }
 
-/** Isolates a test broker on its own socket so it never touches the user's broker. */
-export function brokerEnvironment(socketPath, idleMs) {
-	return { ...process.env, BCU_BROKER_SOCKET_PATH: socketPath, BCU_IDLE_MS: String(idleMs) };
+/** Isolates a test resident on its own socket so it never touches the user's resident. */
+export function residentEnvironment(socketPath, idleMs) {
+	return { ...process.env, BCU_SOCKET_PATH: socketPath, BCU_IDLE_MS: String(idleMs) };
 }
 
 export function rejectAfter(description, milliseconds) {
@@ -40,45 +44,10 @@ export function withTimeout(promise, description, milliseconds) {
 	return Promise.race([promise, rejectAfter(description, milliseconds)]);
 }
 
-/** Starts a broker in-process-per-test and resolves once it signals readiness on fd 3. */
-export function spawnBroker(env) {
-	const broker = spawn(process.execPath, [bundlePath, "__serve"], {
-		cwd: repoRoot,
-		env,
-		stdio: ["ignore", "ignore", "pipe", "pipe"],
-	});
-	let stderr = "";
-	broker.stderr.setEncoding("utf8");
-	broker.stderr.on("data", (chunk) => { stderr += chunk; });
-	return { process: broker, ready: broker.stdio[3], stderr: () => stderr };
-}
-
-/** One broker command through the CLI's internal request path. */
-export async function brokerRequest(command, args = {}, env = process.env) {
-	const { stdout } = await execFile(process.execPath, [bundlePath, "__request", command, JSON.stringify(args)], {
-		cwd: repoRoot,
-		env,
-		maxBuffer: 32 * 1024 * 1024,
-	});
-	return JSON.parse(stdout);
-}
-
-/** One broker command issued the way an agent library would: through src/client.ts. */
-export async function sourceAgentRequest(command, args = {}, env = process.env) {
-	const clientUrl = pathToFileURL(path.join(repoRoot, "src", "client.ts")).href;
-	const source = `import { requestBroker } from ${JSON.stringify(clientUrl)}; console.log(JSON.stringify(await requestBroker(process.argv[1], JSON.parse(process.argv[2]))))`;
-	const { stdout } = await execFile(process.execPath, ["--input-type=module", "-e", source, command, JSON.stringify(args)], {
-		cwd: repoRoot,
-		env,
-		maxBuffer: 32 * 1024 * 1024,
-	});
-	return JSON.parse(stdout);
-}
-
 /** Runs the public CLI and captures its exit code and streams. */
 export function runCli(args, { input = "", env = process.env } = {}) {
 	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, [bundlePath, ...args], { cwd: repoRoot, env, stdio: ["pipe", "pipe", "pipe"] });
+		const child = spawn(cliPath, args, { cwd: repoRoot, env, stdio: ["pipe", "pipe", "pipe"] });
 		let stdout = "";
 		let stderr = "";
 		child.stdout.setEncoding("utf8");
@@ -89,6 +58,31 @@ export function runCli(args, { input = "", env = process.env } = {}) {
 		child.on("close", (code) => resolve({ code, stdout, stderr }));
 		child.stdin.end(input);
 	});
+}
+
+const FLAGS = { stateId: "--state", timeoutMs: "--timeout" };
+const EXPECT_FLAGS = { text: "--expect-text", role: "--expect-role", value: "--expect-value", gone: "--expect-gone", scope: "--scope", timeoutMs: "--timeout" };
+
+function flag(key) {
+	return FLAGS[key] ?? `--${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+}
+
+function optionArgs(entries, flagFor) {
+	return entries.flatMap(([key, value]) => value === undefined || value === false ? [] : value === true ? [flagFor(key)] : [flagFor(key), String(value)]);
+}
+
+/**
+ * One command given as its parameter object, the way an agent library would call it, run
+ * through the public CLI: options become flags, act-ui actions go to stdin. Resolves with the
+ * JSON result; rejects with an error carrying the exit code and both streams.
+ */
+export async function request(command, params = {}, env = process.env) {
+	const { actions, expect, ...options } = params;
+	const args = [command, ...optionArgs(Object.entries(options), flag), ...optionArgs(Object.entries(expect ?? {}), (key) => EXPECT_FLAGS[key])];
+	if (command === "act-ui") args.push("-");
+	const result = await runCli([...args, "--json"], { input: actions ? JSON.stringify(actions) : "", env });
+	if (result.code !== 0) throw Object.assign(new Error(`bcu ${command} exited ${result.code}: ${result.stderr.trim()}`), result);
+	return JSON.parse(result.stdout);
 }
 
 export function killProcess(pid, signal = "SIGKILL") {

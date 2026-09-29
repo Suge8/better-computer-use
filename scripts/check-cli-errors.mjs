@@ -1,55 +1,55 @@
 #!/usr/bin/env node
-// The CLI failure surface: every helper error code has a public mapping, an unclassified
-// error stays internal_error, exit codes are contiguous, every command documents itself,
-// and invalid action payloads are rejected before anything is delivered. A helper that
-// fails while act-ui is delivering tells the caller the action may already have landed.
+// The CLI failure surface, against the bcu executable built from this checkout with no
+// resident able to start: every command documents itself, malformed arguments and action
+// payloads are rejected as invalid_arguments before anything is started or connected, a
+// valid payload gets as far as starting the resident, a resident that cannot start is
+// reported as broker_unavailable, and setup refuses a terminal nobody can answer. Failures
+// write nothing to stdout and name their code and recovery on stderr.
 import assert from "node:assert/strict";
-import { execFile as execFileCallback, spawn } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { promisify } from "node:util";
-import { validateActions } from "../src/actions.ts";
-import { BrokerCommandError } from "../src/client.ts";
-import { ERROR_CODE_ALIASES, ERROR_DEFINITIONS, inFlightActionError, normalizeCliError } from "../src/errors.ts";
-import { parseBrokerResponse } from "../src/ipc.ts";
-import { npmInvocation } from "./npm-invocation.mjs";
+import { makeTemporaryRoot, runCli, useBuiltCli } from "./lib/harness.mjs";
 
-const execFile = promisify(execFileCallback);
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const bundle = path.join(root, "dist", "bcu.mjs");
-const [npm, npmArgs] = npmInvocation(["run", "build", "--silent"]);
-await execFile(npm, npmArgs, { cwd: root });
-const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bcu-cli-errors-"));
-const socketPath = path.join(temporaryRoot, "broker.sock");
+await useBuiltCli();
+const root = await makeTemporaryRoot("cli-errors");
+const socketDirectory = path.join(root, "run");
+const missingApp = path.join(root, "missing", "bcu.app");
+const env = { ...process.env, BCU_SOCKET_PATH: path.join(socketDirectory, "resident.sock"), BCU_APP_PATH: missingApp };
 
-function coded(code, message = "opaque native failure") {
-	return Object.assign(new Error(message), { code });
+const run = (args, input = "") => runCli(args, { input, env });
+
+function assertFailure(result, code, label) {
+	assert.notEqual(result.code, 0, `${label} unexpectedly exited zero`);
+	assert.equal(result.stdout, "", `${label} wrote to stdout on failure`);
+	const lines = result.stderr.trim().split("\n");
+	assert.match(lines[0] ?? "", new RegExp(`^error ${code}: .+`), `${label} did not fail with ${code}: ${result.stderr}`);
+	assert.match(lines[1] ?? "", /^recovery: .+/, `${label} omitted recovery guidance`);
 }
 
-function sourceErrorCodes() {
-	const platform = path.join(root, "Sources", "BCUPlatform");
-	const swift = readdirSync(platform).filter((file) => file.endsWith(".swift")).map((file) => readFileSync(path.join(platform, file), "utf8")).join("\n");
-	return new Set([...swift.matchAll(/code:\s*"([a-z0-9_]+)"/g)].map((match) => match[1]));
-}
+const act = (actions) => run(["act-ui", "--state", "abcd1234", "-"], JSON.stringify(actions));
 
-function checkErrorCodes() {
-	for (const code of sourceErrorCodes()) {
-		assert(code in ERROR_CODE_ALIASES, `native error '${code}' has no explicit public mapping`);
-		assert.equal(normalizeCliError(coded(code)).code, ERROR_CODE_ALIASES[code], `native error '${code}' is not mapped at its source`);
+try {
+	const help = await run(["--help"]);
+	assert.equal(help.code, 0, "bcu --help failed");
+	const publicCommands = [
+		"find-roots", "observe-ui", "search-ui", "expand-ui", "inspect-ui", "act-ui", "read-text", "wait-for",
+		"status", "doctor", "setup", "stop",
+	];
+	for (const command of publicCommands) assert(help.stdout.includes(command), `bcu --help omitted ${command}`);
+	assert(!/browser/i.test(help.stdout), "bcu --help advertises browser commands");
+	for (const command of publicCommands) {
+		const commandHelp = await run([command, "--help"]);
+		assert.equal(commandHelp.code, 0, `bcu ${command} --help failed`);
+		assert(commandHelp.stdout.startsWith(`bcu ${command}`), `bcu ${command} --help does not describe ${command}`);
+		assert(commandHelp.stdout.includes("--json"), `bcu ${command} --help omits --json`);
 	}
-	// No code means nobody classified the failure: that is a bug, not a user-recoverable state.
-	for (const message of ["window is gone", "timed out", "permission missing", "app is not running"]) {
-		assert.equal(normalizeCliError(new Error(message)).code, "internal_error", `message '${message}' was classified without an explicit code`);
-	}
-	assert(!readFileSync(path.join(root, "src", "errors.ts"), "utf8").includes("inferCode"), "message-based error inference is back in src/errors.ts");
-	const exitCodes = Object.values(ERROR_DEFINITIONS).map((definition) => definition.exitCode).sort((left, right) => left - right);
-	assert.deepEqual(exitCodes, Array.from({ length: exitCodes.length }, (_, index) => index + 1), `exit codes are not contiguous: ${exitCodes.join(",")}`);
-}
 
-function checkActionValidation() {
+	assertFailure(await run(["read-text", "--state", "abcd1234"]), "invalid_arguments", "read-text without --ref");
+	assertFailure(await run(["expand-ui", "--state", "abcd1234"]), "invalid_arguments", "expand-ui without --ref");
+	assertFailure(await run(["find-roots", "--pid", "abc"]), "invalid_arguments", "a non-numeric --pid");
+	assertFailure(await run(["no-such-command"]), "invalid_arguments", "an unknown command");
+	assertFailure(await run(["act-ui", "--state", "abcd1234", "-"], "not-json\n"), "invalid_arguments", "act-ui with a non-JSON payload");
 	const invalidActions = [
 		["numeric ref", { action: "click", ref: 123 }],
 		["empty ref", { action: "click", ref: "" }],
@@ -73,118 +73,27 @@ function checkActionValidation() {
 		["unknown field", { action: "click", ref: "@e1", extra: true }],
 		["missing target", { action: "click" }],
 	];
-	for (const [label, action] of invalidActions) {
-		assert.throws(
-			() => validateActions([action]),
-			(error) => normalizeCliError(error).code === "invalid_arguments",
-			`${label} did not map to invalid_arguments`,
-		);
-	}
+	for (const [label, action] of invalidActions) assertFailure(await act([action]), "invalid_arguments", label);
+	assertFailure(await act([]), "invalid_arguments", "an empty action array");
+	assertFailure(await act(Array.from({ length: 21 }, () => ({ action: "wait" }))), "invalid_arguments", "21 actions");
+	assert(!existsSync(socketDirectory), "a rejected command reached for the resident");
+
+	// A valid payload passes validation and only then fails, on the resident that cannot start.
 	for (const actions of [
 		[{ action: "click", ref: "@e1" }],
 		[{ action: "click", x: 10, y: 10, button: "middle", clickCount: 3 }],
-		[{ action: "scroll", ref: "@e1" }],
-		[{ action: "wait" }],
 		[{ action: "wait", ms: 0 }],
 		[{ action: "drag", path: [[1, 1], { x: 2, y: 2 }] }],
 		[{ action: "setText", ref: "@e1", text: "" }],
 		[{ action: "click", x: 10, y: 10 }, { action: "typeText", text: "focused" }],
-	]) assert.doesNotThrow(() => validateActions(actions));
-	assert.throws(() => validateActions([]), (error) => normalizeCliError(error).code === "invalid_arguments");
-	assert.throws(() => validateActions(Array.from({ length: 21 }, () => ({ action: "wait" }))), (error) => normalizeCliError(error).code === "invalid_arguments");
-	const actionSource = readFileSync(path.join(root, "src", "actions.ts"), "utf8");
-	assert(!actionSource.includes("toFiniteNumber"), "action boundary still silently coerces invalid values");
-}
+		[{ action: "press", ref: "@e1" }, { action: "keypress", keys: ["return"] }],
+	]) assertFailure(await act(actions), "broker_unavailable", `valid actions ${JSON.stringify(actions)}`);
+	const unstartable = await run(["find-roots"]);
+	assertFailure(unstartable, "broker_unavailable", "a command whose resident cannot start");
+	assert(unstartable.stderr.includes(missingApp), `the failure does not name the missing app: ${unstartable.stderr}`);
 
-function run(args, { env = {}, input = "" } = {}) {
-	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, [bundle, ...args], {
-			cwd: root,
-			env: { ...process.env, BCU_BROKER_SOCKET_PATH: socketPath, ...env },
-			stdio: ["pipe", "pipe", "pipe"],
-		});
-		let stdout = "";
-		let stderr = "";
-		child.stdout.setEncoding("utf8");
-		child.stderr.setEncoding("utf8");
-		child.stdout.on("data", (chunk) => { stdout += chunk; });
-		child.stderr.on("data", (chunk) => { stderr += chunk; });
-		child.on("error", reject);
-		child.on("close", (code, signal) => resolve({ code, signal, stdout, stderr }));
-		child.stdin.end(input);
-	});
-}
-
-function runOnPlatform(platform, args) {
-	return new Promise((resolve, reject) => {
-		const source = `Object.defineProperty(process, "platform", { value: ${JSON.stringify(platform)} });\nawait import(${JSON.stringify(pathToFileURL(bundle).href)});\n`;
-		const child = spawn(process.execPath, ["--input-type=module", "-e", source, bundle, ...args], {
-			cwd: root,
-			env: { ...process.env, BCU_BROKER_SOCKET_PATH: socketPath },
-			stdio: ["pipe", "pipe", "pipe"],
-		});
-		let stdout = "";
-		let stderr = "";
-		child.stdout.setEncoding("utf8");
-		child.stderr.setEncoding("utf8");
-		child.stdout.on("data", (chunk) => { stdout += chunk; });
-		child.stderr.on("data", (chunk) => { stderr += chunk; });
-		child.on("error", reject);
-		child.on("close", (code, signal) => resolve({ code, signal, stdout, stderr }));
-		child.stdin.end("");
-	});
-}
-
-function assertFailure(result, code) {
-	assert.notEqual(result.code, 0, `${code} unexpectedly exited zero`);
-	assert.equal(result.stdout, "", `${code} wrote protocol errors to stdout`);
-	const lines = result.stderr.trim().split("\n");
-	assert.match(lines[0] ?? "", new RegExp(`^error ${code}: .+`), `${code} has an unstable error line`);
-	assert.match(lines[1] ?? "", /^recovery: .+/, `${code} omitted recovery guidance`);
-}
-
-/** The act-ui guidance survives the broker hop, and no other command or code is affected. */
-function checkInFlightActionErrors() {
-	const lost = inFlightActionError(coded("helper_unavailable", "Daemon command 'act' timed out after 12000ms."));
-	assert.equal(lost.code, "helper_unavailable", "a helper lost mid-action changed its public code");
-	assert.match(lost.recovery, /may already have taken effect/i, "a helper lost mid-action does not warn that the action may have landed");
-	assert.match(lost.recovery, /observe/i, "a helper lost mid-action does not ask for a fresh observation");
-	assert.equal(inFlightActionError(coded("stale_ref")).recovery, ERROR_DEFINITIONS.element_not_found.recovery, "act-ui guidance leaked into another error code");
-	assert.equal(normalizeCliError(coded("helper_unavailable")).recovery, ERROR_DEFINITIONS.helper_unavailable.recovery, "act-ui guidance leaked into other commands");
-	const wire = parseBrokerResponse(JSON.parse(JSON.stringify({ id: "1", ok: false, error: { message: lost.message, code: lost.code, recovery: lost.recovery } })));
-	const received = normalizeCliError(new BrokerCommandError(wire.error.message, wire.error.code, wire.error.recovery));
-	assert.equal(received.recovery, lost.recovery, "the act-ui guidance was lost between broker and CLI");
-}
-
-checkErrorCodes();
-checkActionValidation();
-checkInFlightActionErrors();
-
-try {
-	const help = await run(["--help"]);
-	assert.equal(help.code, 0, "bcu --help failed");
-	const publicCommands = [
-		"find-roots", "observe-ui", "search-ui", "expand-ui", "inspect-ui", "act-ui", "read-text", "wait-for",
-		"status", "doctor", "setup", "stop",
-	];
-	for (const command of publicCommands) {
-		assert(help.stdout.includes(command), `bcu --help omitted ${command}`);
-	}
-	assert(!/browser/i.test(help.stdout), "bcu --help still advertises browser commands");
-	for (const command of publicCommands) {
-		const commandHelp = await run([command, "--help"]);
-		assert.equal(commandHelp.code, 0, `bcu ${command} --help failed`);
-		assert(commandHelp.stdout.startsWith(`bcu ${command}`), `bcu ${command} --help does not describe ${command}`);
-		assert(commandHelp.stdout.includes("--json"), `bcu ${command} --help omits --json`);
-	}
-	assertFailure(await run(["read-text", "--state", "state-1"]), "invalid_arguments");
-	assertFailure(await run(["expand-ui", "--state", "state-1"]), "invalid_arguments");
-	assertFailure(await run(["act-ui", "--state", "state-1", "-"], { input: "not-json\n" }), "invalid_arguments");
-	assertFailure(await run(["find-roots"], {
-		env: { BCU_BROKER_ENTRY_PATH: path.join(temporaryRoot, "missing-broker.mjs") },
-	}), "broker_unavailable");
-	assertFailure(await runOnPlatform("linux", ["find-roots"]), "unsupported_platform");
-	console.log(`CLI error checks passed (${publicCommands.length} help screens, ${sourceErrorCodes().size} native codes, explicit-code normalization, action validation).`);
+	assertFailure(await run(["setup"]), "permission_missing", "setup without a terminal");
+	console.log(`CLI error checks passed (${publicCommands.length} help screens, ${invalidActions.length + 7} rejected payloads, unstartable resident, non-interactive setup).`);
 } finally {
-	await fs.rm(temporaryRoot, { recursive: true, force: true });
+	await fs.rm(root, { recursive: true, force: true });
 }
