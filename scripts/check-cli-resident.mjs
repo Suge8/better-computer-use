@@ -101,7 +101,7 @@ async function scriptedChecks() {
 	try {
 		const refused = await runCli(["find-roots"], { env });
 		assert.equal(refused.code, 10, `a resident of protocol 2 was not refused: ${refused.stderr}`);
-		assert.match(refused.stderr, /^error broker_unavailable: .*protocol 2/m);
+		assert.match(refused.stderr, /^error resident_unavailable: .*protocol 2/m);
 	} finally {
 		foreign.close();
 		await foreign.closed;

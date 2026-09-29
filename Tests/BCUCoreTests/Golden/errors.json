@@ -97,14 +97,14 @@
 			}
 		},
 		{
-			"name": "broker_unavailable",
+			"name": "resident_unavailable",
 			"op": "error",
 			"input": {
-				"code": "broker_unavailable",
-				"message": "A broker_unavailable failure."
+				"code": "resident_unavailable",
+				"message": "A resident_unavailable failure."
 			},
 			"output": {
-				"stderr": "error broker_unavailable: A broker_unavailable failure.\nrecovery: Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry.\n",
+				"stderr": "error resident_unavailable: A resident_unavailable failure.\nrecovery: Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry.\n",
 				"exitCode": 10
 			}
 		},

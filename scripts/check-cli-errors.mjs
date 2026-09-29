@@ -3,7 +3,7 @@
 // resident able to start: every command documents itself, malformed arguments and action
 // payloads are rejected as invalid_arguments before anything is started or connected, a
 // valid payload gets as far as starting the resident, a resident that cannot start is
-// reported as broker_unavailable, and setup refuses a terminal nobody can answer. Failures
+// reported as resident_unavailable, and setup refuses a terminal nobody can answer. Failures
 // write nothing to stdout and name their code and recovery on stderr.
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -87,9 +87,9 @@ try {
 		[{ action: "setText", ref: "@e1", text: "" }],
 		[{ action: "click", x: 10, y: 10 }, { action: "typeText", text: "focused" }],
 		[{ action: "press", ref: "@e1" }, { action: "keypress", keys: ["return"] }],
-	]) assertFailure(await act(actions), "broker_unavailable", `valid actions ${JSON.stringify(actions)}`);
+	]) assertFailure(await act(actions), "resident_unavailable", `valid actions ${JSON.stringify(actions)}`);
 	const unstartable = await run(["find-roots"]);
-	assertFailure(unstartable, "broker_unavailable", "a command whose resident cannot start");
+	assertFailure(unstartable, "resident_unavailable", "a command whose resident cannot start");
 	assert(unstartable.stderr.includes(missingApp), `the failure does not name the missing app: ${unstartable.stderr}`);
 
 	assertFailure(await run(["setup"]), "permission_missing", "setup without a terminal");
