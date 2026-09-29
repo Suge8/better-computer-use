@@ -1605,14 +1605,13 @@ final class Bridge {
 	/// Nodes below the window chrome that name something or can be acted on. The traffic
 	/// light buttons and the title bar's own icon and title text say nothing about content.
 	private func accessibleContentCount(_ root: LookNode, windowTitle: String) -> Int {
-		let chrome: Set<String> = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"]
 		var count = 0
 		func visit(_ node: LookNode) {
 			for child in node.children where count < Self.sparseContentLimit {
 				let label = [child.title, child.description, child.value].first { !$0.isEmpty } ?? ""
 				let titleBar = ["AXStaticText", "AXImage"].contains(child.role) && !label.isEmpty && windowTitle.contains(label)
 				let actionable = child.canPress || child.canSetValue || child.canScroll || child.isTextInput
-				if !chrome.contains(child.subrole), !titleBar, !label.isEmpty || actionable { count += 1 }
+				if !windowControls.contains(child.subrole), !titleBar, !label.isEmpty || actionable { count += 1 }
 				visit(child)
 			}
 		}

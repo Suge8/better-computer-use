@@ -64,7 +64,7 @@ echo '[{"action":"press","ref":"@e12"}]' |
 
 每条命令的完整参数用 `bcu <命令> --help` 查看，`--json` 返回同一份结果的结构化形式。
 
-默认不取图。需要截图时显式请求：
+默认不取图（自动读屏的窗口除外，见下文）。需要截图时显式请求：
 
 ```bash
 bcu observe-ui --app TextEdit --image always   # 或 --mode fused
@@ -72,7 +72,7 @@ bcu observe-ui --app TextEdit --image always   # 或 --mode fused
 
 截图写入 `~/Library/Caches/bcu/shots/`，stdout 只返回文件路径和尺寸，不输出 base64。
 
-窗口几乎没有无障碍内容时（微信、Qt、游戏这类自绘界面），`observe-ui` 自动识别屏幕文字（中英文），每行文字成为一个 `ocr` 节点，可以直接 press。
+窗口几乎没有无障碍内容时（微信、Qt、游戏这类自绘界面），`observe-ui` 自动识别屏幕文字（中英文），每行文字成为一个 `ocr` 节点，可以直接 press；这次截的图也随结果返回路径，没有文字的区域（例如空输入框）看图按坐标点。
 
 ## 诊断与服务状态
 

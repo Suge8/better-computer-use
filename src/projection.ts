@@ -37,6 +37,8 @@ export interface ProjectedNode {
 	state?: ProjectedState;
 	/** Descendants the render budget folded away; they stay expandable through expand-ui. */
 	hidden?: { count: number; roles: Record<string, number> };
+	/** Text lines a text input folds away: its value already says them, read-text reads them in full. */
+	lines?: number;
 }
 
 export interface Projection {
@@ -127,11 +129,12 @@ const TEXT_ROLES = new Set(["textfield", "textarea", "combobox", "searchfield"])
 /** Role words whose press flips a value. The helper judges the same family by AX role and subrole. */
 const TOGGLE_ROLES = new Set(["checkbox", "radio", "switch", "disclosuretriangle", "togglebutton", "segment"]);
 
-interface ProjectedTree extends Omit<ProjectedNode, "depth" | "parent" | "hidden" | "owners"> {
+interface ProjectedTree extends Omit<ProjectedNode, "depth" | "parent" | "hidden" | "owners" | "lines"> {
 	children: ProjectedTree[];
 	owners: Partial<Record<Capability, string>>;
 	/** Outline refs this node speaks for: itself plus everything merged into it. */
 	refs: string[];
+	lines?: number;
 }
 
 function word(value: string): string {
@@ -242,6 +245,39 @@ function isTextLeaf(tree: ProjectedTree): boolean {
 	return tree.children.length === 0 && (tree.role === "text" || tree.role === "image");
 }
 
+/** A subtree that says nothing but text: the lines and paragraphs of an editor. */
+function isTextOnly(tree: ProjectedTree): boolean {
+	return tree.role === "text" || (STRUCTURAL_ROLES.has(tree.role) && tree.children.every(isTextOnly));
+}
+
+function subtreeRefs(tree: ProjectedTree): string[] {
+	return [...tree.refs, ...tree.children.flatMap(subtreeRefs)];
+}
+
+/**
+ * A text input already says its text in its value, so the lines under it fold into a count
+ * the input speaks for. Structure around them dissolves; links, buttons and other
+ * non-text descendants stay.
+ */
+function foldTextLines(children: ProjectedTree[]): { children: ProjectedTree[]; lines: number; refs: string[] } {
+	const folded = { children: [] as ProjectedTree[], lines: 0, refs: [] as string[] };
+	for (const child of children) {
+		if (isTextOnly(child)) {
+			folded.lines += 1;
+			folded.refs.push(...subtreeRefs(child));
+		} else if (STRUCTURAL_ROLES.has(child.role)) {
+			const inner = foldTextLines(child.children);
+			if (child.name) folded.lines += 1;
+			folded.refs.push(...child.refs, ...inner.refs);
+			folded.children.push(...inner.children);
+			folded.lines += inner.lines;
+		} else {
+			folded.children.push(child);
+		}
+	}
+	return folded;
+}
+
 function buildTrees(node: OutlineNode, insideWeb: boolean): ProjectedTree[] {
 	const role = roleWord(node);
 	if (DROPPED_ROLES.has(role)) return [];
@@ -294,6 +330,10 @@ function buildTrees(node: OutlineNode, insideWeb: boolean): ProjectedTree[] {
 		}
 	}
 	if (!tree.name) tree = { ...tree, name: identifierName(node) };
+	if (node.isTextInput || TEXT_ROLES.has(role)) {
+		const folded = foldTextLines(tree.children);
+		if (folded.lines > 0) tree = { ...tree, children: folded.children, refs: [...tree.refs, ...folded.refs], lines: folded.lines };
+	}
 	return [tree];
 }
 
@@ -352,8 +392,8 @@ function foldAtDepth(trees: ProjectedTree[], total: number, maxDepth: number, ma
 			return;
 		}
 		const fold = tree.children.length > 0 && depth >= maxDepth && !unfolded.has(tree.ref);
-		const { children: _children, refs: _refs, owners, ...fields } = tree;
-		nodes.push({ ...fields, owners: Object.keys(owners).length > 0 ? owners : undefined, depth, parent, hidden: fold ? descendantRoles(tree) : undefined });
+		const { children: _children, refs: _refs, owners, lines, ...fields } = tree;
+		nodes.push({ ...fields, owners: Object.keys(owners).length > 0 ? owners : undefined, depth, parent, hidden: fold ? descendantRoles(tree) : undefined, lines });
 		if (fold) return;
 		for (const child of tree.children) emit(child, depth + 1, tree.ref);
 	};
@@ -407,12 +447,16 @@ function hiddenSummary(hidden: ProjectedNode["hidden"]): string {
 	return ` ▸ ${hidden.count} hidden: ${roles}`;
 }
 
+function linesSummary(node: ProjectedNode): string {
+	return node.lines ? ` ▸ ${node.lines} line${node.lines === 1 ? "" : "s"}, read-text ${node.ref}` : "";
+}
+
 /** One node without its indent or ref, for diff lines. */
 export function renderNodeBody(node: ProjectedNode): string {
 	const name = node.name ? ` ${JSON.stringify(node.name)}` : "";
 	const value = node.value === undefined ? "" : ` =${JSON.stringify(node.value)}`;
 	const caps = node.caps.length ? ` {${node.caps.join(",")}}` : "";
-	return `${node.role}${name}${value}${caps}${stateWords(node.state)}${hiddenSummary(node.hidden)}`;
+	return `${node.role}${name}${value}${caps}${stateWords(node.state)}${hiddenSummary(node.hidden)}${linesSummary(node)}`;
 }
 
 export function renderNode(node: ProjectedNode): string {

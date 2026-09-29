@@ -115,9 +115,13 @@ export function rootSummary(result: CaptureResult): RootSummary {
 	};
 }
 
-export async function imageInfo(result: CaptureResult, mode: ImageMode): Promise<ImageInfo | undefined> {
+/**
+ * The helper sends image bytes only when they were asked for or when it read the window from
+ * the screen; either way the agent gets the file, since OCR cannot read blank regions.
+ */
+export async function imageInfo(result: CaptureResult): Promise<ImageInfo | undefined> {
 	const image = result.look.image;
-	if (mode !== "always" || !image?.jpegBase64) return undefined;
+	if (!image?.jpegBase64) return undefined;
 	return await saveScreenshot(result.capture.stateId, {
 		data: image.jpegBase64,
 		mimeType: image.mimeType ?? "image/jpeg",
@@ -217,7 +221,7 @@ async function performObserve(params: ObserveParams, signal?: AbortSignal): Prom
 			`Observation drifted from the requested root: asked for ${requestedTarget.appName} — ${requestedTarget.windowTitle}, captured ${captureResult.target.appName} — ${captureResult.target.windowTitle}. Retry with an exact --root.`,
 		);
 	}
-	return observeResult(captureResult, await imageInfo(captureResult, imageMode));
+	return observeResult(captureResult, await imageInfo(captureResult));
 }
 
 function capabilityQuery(action: string | undefined): Capability | undefined {

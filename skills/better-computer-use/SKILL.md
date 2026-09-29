@@ -35,8 +35,8 @@ state e4441aa2 ← 937572b9 · worked via ax · value →hello · verified
 - `worked` 有证据；`unverified` 是已投递但没有可读证据（菜单命令、快捷键、自绘窗口常见），多半已经生效，照常继续，不要重做；后续步骤依赖它时用 `--expect-*` 确认。
 - 菜单从 `find-roots --app X --kind menubar` 的根进入：observe 它之后 search 到目标菜单项就能直接 press，不用先打开父菜单。
 - `@e` ref 属于生成它的 `stateId`。act-ui 返回新 `stateId`，下一步用它；`stale_state`、`window_stale`、`element_not_found` 都表示重新 `observe-ui` 取新状态。
-- 视图折叠掉的部分用 `search-ui` 找、`expand-ui` 展开、`inspect-ui` 看原始字段、`read-text` 读长文本；需要像素证据时 `--mode fused`。
+- 视图折叠掉的部分用 `search-ui` 找、`expand-ui` 展开、`inspect-ui` 看原始字段、`read-text` 读长文本；输入框后面的 `▸ N lines, read-text @eN` 表示它的逐行文字折起来了，值里已有，要全文就 `read-text`。需要像素证据时 `--mode fused`。
 - 等待写进命令本身：`--expect-text` / `--expect-role` / `--expect-value` 加 `--scope @eN`，或独立用 `wait-for`；后一步不依赖中间 UI 时才把多个动作放进同一数组。
 - 非 0 退出码是失败，stderr 的 `recovery:` 就是下一步；`action_failed` 表示动作被证明无效或后置条件未满足；权限相关只走交互式 `bcu setup`。`action_timeout` 只说明条件没出现，动作可能已经生效——先观察再决定是否重试。
-- 自绘窗口（微信、Qt、游戏）没有无障碍内容时，视图里是 `ocr "文字" {press}` 节点：它们来自屏幕识别，只能 press；画面有变化时结果是 `worked via pid · screen changed`，没有变化时是 `unverified`——不要重按。
+- 自绘窗口（微信、Qt、游戏）没有无障碍内容时，视图里是 `ocr "文字" {press}` 节点：它们来自屏幕识别，只能 press；画面有变化时结果是 `worked via pid · screen changed`，没有变化时是 `unverified`——不要重按。这类窗口的结果末行 `image <path>` 是 bcu 已截的图，OCR 读不到的地方（空输入框、图标）看图用坐标 `{"action":"click","x":..,"y":..}`。
 - 浏览器窗口按普通窗口操作；网页里只有认得出的滚动区域标 `{scroll}`，没标的网页元素照样可以 scroll。页面内部的导航、DOM 和 console 交给 `better-browser-use`。

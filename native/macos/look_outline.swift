@@ -94,7 +94,7 @@ final class LookNode {
 }
 
 /// Every line Accessibility does not already say becomes its own node, under the
-/// deepest element that contains it; an agent presses it by its coordinates.
+/// deepest container around it; an agent presses it by its coordinates.
 func attachOCR(_ boxes: [OCRBox], to root: LookNode) {
 	for (index, box) in boxes.enumerated() where !ocrBoxDuplicatesAXLabel(box, in: root) {
 		let parent = deepestNode(containing: CGPoint(x: box.rect.midX, y: box.rect.midY), in: root) ?? root
@@ -119,12 +119,24 @@ private func ocrBoxDuplicatesAXLabel(_ box: OCRBox, in root: LookNode) -> Bool {
 	return false
 }
 
+/// Traffic-light buttons: window chrome, never content.
+let windowControls: Set<String> = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"]
+
+/// Window controls, and leaf controls that already have a name, hold no content of their
+/// own: a line over them is part of whatever holds them.
+private func holdsContent(_ node: LookNode) -> Bool {
+	if windowControls.contains(node.subrole) { return false }
+	let leaf = !node.children.contains { !$0.pictureOnly }
+	let named = [node.title, node.description, node.value].contains { !$0.isEmpty }
+	return !(leaf && named)
+}
+
 private func deepestNode(containing point: CGPoint, in root: LookNode) -> LookNode? {
 	guard root.rect.contains(point), !root.pictureOnly else { return nil }
 	for child in root.children.reversed() {
 		if let match = deepestNode(containing: point, in: child) { return match }
 	}
-	return root
+	return holdsContent(root) ? root : nil
 }
 
 func normalizedLabel(_ value: String) -> String {

@@ -330,7 +330,7 @@ async function closedRootResult(params: ActParams, target: ResolvedTarget, execu
 		closed: { root: appearanceOf(target), skipped: execution.skipped || undefined },
 		next: capture ? appearanceOf(capture.target) : undefined,
 		...(capture ? fullView(capture.outline) : {}),
-		image: capture ? await imageInfo(capture, imageMode) : undefined,
+		image: capture ? await imageInfo(capture) : undefined,
 	};
 }
 
@@ -394,7 +394,7 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 			...successorView(baseOutline, capture.outline, {
 				menusOpenedByBcu: [execution, ...(execution.steps ?? [])].some((step) => step.performed?.openedMenus),
 			}),
-			image: await imageInfo(capture, imageMode),
+			image: await imageInfo(capture),
 		};
 	});
 }

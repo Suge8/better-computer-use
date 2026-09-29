@@ -110,7 +110,7 @@ StateStore 有四道容量边界：
 
 ## 截图 artifact
 
-helper 通过 native 协议返回 base64。只有显式要求图片时，Broker 在返回结果前完成以下步骤：
+helper 通过 native 协议返回 base64，只在显式要求图片（`--image always`、`--mode fused`）或它自动读屏时回传。收到图片时，Broker 在返回结果前完成以下步骤：
 
 1. 解码图片；
 2. 写入 `shots/<stateId>.jpg`；
@@ -144,9 +144,9 @@ observation 包含：
 
 完整 outline 只存在 StateStore 里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 仍然查询完整缓存，因此被投影省略或折叠的节点照样可达。截断节点需要扩展时，Broker 在相同 epoch 上做 scoped look，不能把并发 mutation 后的数据 graft 到旧状态。
 
-`observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，helper 自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。`--mode fused` 或 `--image always` 才产生截图文件。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点。
+`observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，helper 自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。截了图的观察都把截图文件交给 agent（结果带 `image`，文本视图末行 `image <path> (WxH)`）：OCR 读不到空输入框这类无字区域，agent 要看图按坐标点；没截图的窗口不会为此多截。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点和截图。
 
-OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别拉丁文字，中文界面会是空的）。同一行文字已被无障碍说出（某个相交节点的标题、值或描述包含它）时丢弃；其余每行成为一个独立节点，挂在包含它中心点的最深节点下。实测（M 系列，热启动）：微信主窗口截图约 60 ms、OCR 约 190 ms，`observe-ui` 端到端约 0.4 s，得到 47 个 OCR 节点；IINA 窗口 OCR 约 80 ms。
+OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别拉丁文字，中文界面会是空的）。同一行文字已被无障碍说出（某个相交节点的标题、值或描述包含它）时丢弃；其余每行成为一个独立节点，挂在包含它中心点的最深容器下；红绿灯按钮和已有名称的叶子控件不算容器，压在它们上面的文字挂到持有它们的元素下。实测（M 系列，热启动）：微信主窗口截图约 60 ms、OCR 约 190 ms，`observe-ui` 端到端约 0.4 s，得到 47 个 OCR 节点；IINA 窗口 OCR 约 80 ms。
 
 ## 投影
 
@@ -159,6 +159,7 @@ OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别�
 - 从屏幕读出的文字 role 固定为 `ocr`，caps 只有 `press`：它没有无障碍元素，只能按坐标点击，不能 setText 或 typeText；`search-ui --role ocr` 与 `inspect-ui` 看到的是同一个节点；
 - name 取 title、description，其次是被包裹的文本，最后才是非内部标识的 identifier；
 - 没有名称、能力和状态的节点消失；结构性容器把子节点提升；只包裹文本的条目折成一行并合并能力；
+- 文本输入框（textarea、textfield 等）的值已经说出了它的文字，它下面只由文字组成的后代（编辑器按行、按段拆出的 text 与包着它们的结构容器）不逐行投影，折成一句 `▸ N lines, read-text @eN`，`--json` 里是该节点的 `lines: N`；链接、按钮等非文字后代照常显示。折掉的行仍由输入框代表，`search-ui` 搜到它们时返回输入框，全文用 `read-text`；
 - 首屏按字节预算逐层展开：焦点所在的子树始终展开，其余用 `▸ N hidden: role×n` 概括，可用 `expand-ui` 继续打开；`--json` 的 `nodes` 与文本视图展示的是同一组节点，被折叠的后代只由 `hidden: {count, roles}` 概括。
 
 caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外层 ref 上，这时投影同时记录 `owners`（capability → 真正执行它的 ref）。`act-ui` 收到语义动作时按 `owners` 解析到拥有者再投递，坐标类动作仍用渲染 ref 的几何；`inspect-ui` 输出同一份 `owners` 映射。`search-ui --action` 按同一份 caps 过滤，只收词表里的能力词。
