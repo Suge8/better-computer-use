@@ -2,9 +2,7 @@ import AppKit
 
 extension Platform {
 	func ensureEnhancedAccessibility(pid: Int32) {
-		enhancedAccessibilityLock.lock()
-		let inserted = enhancedAccessibilityPids.insert(pid).inserted
-		enhancedAccessibilityLock.unlock()
+		let inserted = enhancedAccessibilityPids.withLock { $0.insert(pid).inserted }
 		if !inserted { return }
 		let appElement = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(appElement, 0.25)
@@ -210,14 +208,14 @@ extension Platform {
 	func asAXElement(_ value: AnyObject) -> AXUIElement? {
 		let cfValue = value as CFTypeRef
 		guard CFGetTypeID(cfValue) == AXUIElementGetTypeID() else { return nil }
-		return unsafeBitCast(cfValue, to: AXUIElement.self)
+		return unsafeDowncast(cfValue, to: AXUIElement.self)
 	}
 
 	func pointAttribute(_ element: AXUIElement, attribute: CFString) -> CGPoint? {
 		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
 		let cfValue = value as CFTypeRef
 		guard CFGetTypeID(cfValue) == AXValueGetTypeID() else { return nil }
-		let axValue = unsafeBitCast(cfValue, to: AXValue.self)
+		let axValue = unsafeDowncast(cfValue, to: AXValue.self)
 		guard AXValueGetType(axValue) == .cgPoint else { return nil }
 		var point = CGPoint.zero
 		guard AXValueGetValue(axValue, .cgPoint, &point) else { return nil }
@@ -228,7 +226,7 @@ extension Platform {
 		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
 		let cfValue = value as CFTypeRef
 		guard CFGetTypeID(cfValue) == AXValueGetTypeID() else { return nil }
-		let axValue = unsafeBitCast(cfValue, to: AXValue.self)
+		let axValue = unsafeDowncast(cfValue, to: AXValue.self)
 		guard AXValueGetType(axValue) == .cgSize else { return nil }
 		var size = CGSize.zero
 		guard AXValueGetValue(axValue, .cgSize, &size) else { return nil }

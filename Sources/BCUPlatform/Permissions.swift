@@ -75,12 +75,7 @@ extension Platform {
 	}
 
 	public func checkPermissions() -> PermissionStatus {
-		permissionCacheLock.lock()
-		if let cached = grantedPermissionStatus {
-			permissionCacheLock.unlock()
-			return cached
-		}
-		permissionCacheLock.unlock()
+		if let cached = grantedPermissionStatus.withLock({ $0 }) { return cached }
 		let accessibility = AXIsProcessTrusted()
 		let screenRecordingPreflight = CGPreflightScreenCaptureAccess()
 		let capturable = screenRecordingCapturable()
@@ -95,9 +90,7 @@ extension Platform {
 		// enables them, while fresh agent processes avoid repeating a multi-second
 		// ScreenCaptureKit probe against the same long-lived resident process.
 		if accessibility && capturable {
-			permissionCacheLock.lock()
-			grantedPermissionStatus = result
-			permissionCacheLock.unlock()
+			grantedPermissionStatus.withLock { $0 = result }
 		}
 		return result
 	}
@@ -108,7 +101,8 @@ extension Platform {
 	/// app only appears under Screen Recording after a real ScreenCaptureKit
 	/// attempt, which the capturable probe performs.
 	public func registerPermissions() -> PermissionRegistration {
-		let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+		// The value of `kAXTrustedCheckOptionPrompt`, a C global Swift 6 cannot read without isolation.
+		let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
 		let accessibility = AXIsProcessTrustedWithOptions(options)
 		_ = CGRequestScreenCaptureAccess()
 		return PermissionRegistration(accessibility: accessibility, screenRecording: screenRecordingCapturable())

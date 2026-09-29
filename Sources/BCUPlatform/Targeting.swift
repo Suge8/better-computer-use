@@ -1,9 +1,9 @@
 import AppKit
 
-let axScrollDownAction = "AXScrollDown" as CFString
-let axScrollUpAction = "AXScrollUp" as CFString
-let axScrollLeftAction = "AXScrollLeft" as CFString
-let axScrollRightAction = "AXScrollRight" as CFString
+let axScrollDownAction = "AXScrollDown"
+let axScrollUpAction = "AXScrollUp"
+let axScrollLeftAction = "AXScrollLeft"
+let axScrollRightAction = "AXScrollRight"
 
 extension Platform {
 	/// Finds an element again from what it looked like, when its accessibility object was replaced.
@@ -70,16 +70,16 @@ extension Platform {
 
 	func scrollActionNames(scrollX: Int, scrollY: Int) -> [CFString] {
 		var actions: [CFString] = []
-		if scrollY > 0 { actions.append(axScrollDownAction) }
-		if scrollY < 0 { actions.append(axScrollUpAction) }
-		if scrollX > 0 { actions.append(axScrollRightAction) }
-		if scrollX < 0 { actions.append(axScrollLeftAction) }
+		if scrollY > 0 { actions.append(axScrollDownAction as CFString) }
+		if scrollY < 0 { actions.append(axScrollUpAction as CFString) }
+		if scrollX > 0 { actions.append(axScrollRightAction as CFString) }
+		if scrollX < 0 { actions.append(axScrollLeftAction as CFString) }
 		return actions
 	}
 
 	func supportsAnyScrollAction(_ element: AXUIElement) -> Bool {
 		let actions = Set(actionNames(element))
-		return actions.contains(axScrollDownAction as String) || actions.contains(axScrollUpAction as String) || actions.contains(axScrollLeftAction as String) || actions.contains(axScrollRightAction as String)
+		return actions.contains(axScrollDownAction) || actions.contains(axScrollUpAction) || actions.contains(axScrollLeftAction) || actions.contains(axScrollRightAction)
 	}
 
 	/// Scrolls with the element's own scroll actions, or those of the nearest ancestor of the

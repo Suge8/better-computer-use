@@ -1,143 +1,166 @@
 import AppKit
+import os
 
-struct RootAXEvent {
+struct RootAXEvent: Sendable {
 	let sequence: UInt64
-	let timestamp: TimeInterval
 	let notification: String
-	let element: AXUIElement?
 }
 
-final class RootAXObserverState {
-	let pid: Int32
-	let observer: AXObserver
-	let change = NSCondition()
-	var changeGeneration: UInt64 = 0
-	var events: [RootAXEvent] = []
-	var nextSequence: UInt64 = 1
-	var lastUsed: TimeInterval = Date().timeIntervalSince1970
+/// One app's accessibility notifications: its observer thread records them, requests read
+/// them and wait for the next one.
+final class AppNotifications: Sendable {
+	private struct Log: Sendable {
+		var events: [RootAXEvent] = []
+		var nextSequence: UInt64 = 1
+		var generation: UInt64 = 0
+		var lastUsed = Date()
+	}
 
-	init(pid: Int32, observer: AXObserver) {
+	let pid: Int32
+	private let log = OSAllocatedUnfairLock(initialState: Log())
+	/// Waiters hold it while they compare generations, so a notification recorded between the
+	/// comparison and the wait still wakes them.
+	private let changed = NSCondition()
+
+	init(pid: Int32) {
 		self.pid = pid
-		self.observer = observer
+	}
+
+	var lastUsed: Date { log.withLock { $0.lastUsed } }
+	var generation: UInt64 { log.withLock { $0.generation } }
+	var cursor: UInt64 { log.withLock { $0.nextSequence } }
+
+	func touch() {
+		log.withLock { $0.lastUsed = Date() }
+	}
+
+	func record(_ notification: String) {
+		log.withLock { log in
+			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification))
+			log.nextSequence += 1
+			if log.events.count > 64 { log.events.removeFirst(log.events.count - 64) }
+			log.generation += 1
+		}
+		changed.lock()
+		changed.broadcast()
+		changed.unlock()
+	}
+
+	func events(since cursor: UInt64) -> [RootAXEvent] {
+		log.withLock { $0.events.filter { $0.sequence >= cursor } }
+	}
+
+	/// Returns after the next notification, at the deadline, or after 0.2 s, whichever is first.
+	func wait(since generation: UInt64, until deadline: Date) {
+		changed.lock()
+		if self.generation == generation {
+			_ = changed.wait(until: min(deadline, Date().addingTimeInterval(0.2)))
+		}
+		changed.unlock()
 	}
 }
 
+/// The apps whose notifications are observed; the least recently used is dropped past the limit.
+final class RootObservers: Sendable {
+	private static let limit = 4
+	private let apps = OSAllocatedUnfairLock(initialState: [Int32: AppNotifications]())
+
+	subscript(pid: Int32) -> AppNotifications? {
+		apps.withLock { $0[pid] }
+	}
+
+	func insert(_ app: AppNotifications) {
+		apps.withLock { apps in
+			if apps.count >= Self.limit, let evict = apps.values.min(by: { $0.lastUsed < $1.lastUsed })?.pid {
+				apps.removeValue(forKey: evict)
+			}
+			apps[app.pid] = app
+		}
+	}
+}
+
+private let observedNotifications = [
+	"AXWindowCreated",
+	"AXSheetCreated",
+	"AXMenuOpened",
+	"AXMenuClosed",
+	"AXUIElementDestroyed",
+	"AXFocusedWindowChanged",
+	kAXValueChangedNotification,
+	kAXTitleChangedNotification,
+	kAXSelectedChildrenChangedNotification,
+	kAXLayoutChangedNotification,
+]
+
 extension Platform {
+	/// Starts observing the app's root changes unless it already is; false when the app
+	/// accepts no observer.
 	func ensureRootObserver(pid: Int32) -> Bool {
-		rootObserverLock.lock()
 		if let existing = rootObservers[pid] {
-			existing.lastUsed = Date().timeIntervalSince1970
-			rootObserverLock.unlock()
+			existing.touch()
 			return true
 		}
-		rootObserverLock.unlock()
-
-		let appElement = AXUIElementCreateApplication(pid)
-		AXUIElementSetMessagingTimeout(appElement, 0.25)
-		var observer: AXObserver?
-		let createStatus = AXObserverCreate(pid, { observer, element, notification, refcon in
-			guard let refcon else { return }
-			let platform = Unmanaged<Platform>.fromOpaque(refcon).takeUnretainedValue()
-			platform.recordRootAXEvent(observer: observer, notification: notification as String, element: element)
-		}, &observer)
-		guard createStatus == .success, let observer else { return false }
-
-		let state = RootAXObserverState(pid: pid, observer: observer)
-		let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
-		let notifications: [CFString] = [
-			"AXWindowCreated" as CFString,
-			"AXSheetCreated" as CFString,
-			"AXMenuOpened" as CFString,
-			"AXMenuClosed" as CFString,
-			"AXUIElementDestroyed" as CFString,
-			"AXFocusedWindowChanged" as CFString,
-			kAXValueChangedNotification as CFString,
-			kAXTitleChangedNotification as CFString,
-			kAXSelectedChildrenChangedNotification as CFString,
-			kAXLayoutChangedNotification as CFString,
-		]
-		var registered = false
-		let observedElements = [appElement] + axElementArray(appElement, attribute: kAXWindowsAttribute as CFString)
-		for observed in observedElements {
-			for notification in notifications {
-				let status = AXObserverAddNotification(observer, observed, notification, context)
-				if status == .success || status == .notificationAlreadyRegistered { registered = true }
+		let app = AppNotifications(pid: pid)
+		let started = DispatchSemaphore(value: 0)
+		let observing = Box(false)
+		// Each observer lives on its own thread and run loop, so its callbacks never compete
+		// with AppKit rendering on the main thread. The thread keeps the observer and the log
+		// its callbacks write to alive.
+		Thread.detachNewThread { [self] in
+			let observer = makeObserver(for: app)
+			if let observer {
+				CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)
 			}
+			observing.value = observer != nil
+			started.signal()
+			guard observer != nil else { return }
+			withExtendedLifetime((observer, app)) { CFRunLoopRun() }
 		}
-		guard registered else { return false }
-
-		rootObserverLock.lock()
-		if rootObservers.count >= maxRootObservers,
-			let evict = rootObservers.values.min(by: { $0.lastUsed < $1.lastUsed })?.pid
-		{
-			rootObservers.removeValue(forKey: evict)
-		}
-		rootObservers[pid] = state
-		rootObserverLock.unlock()
-
-		let source = AXObserverGetRunLoopSource(observer)
-		Thread.detachNewThread {
-			// Keep each AXObserver on its own run loop so its callbacks never compete
-			// with AppKit rendering on the main thread.
-			CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
-			CFRunLoopRun()
-		}
+		started.wait()
+		guard observing.value else { return false }
+		rootObservers.insert(app)
 		return true
 	}
 
-	func recordRootAXEvent(observer: AXObserver, notification: String, element: AXUIElement) {
-		rootObserverLock.lock()
-		let state = rootObservers.values.first { CFEqual($0.observer, observer) }
-		if let state {
-			state.events.append(RootAXEvent(sequence: state.nextSequence, timestamp: Date().timeIntervalSince1970, notification: notification, element: element))
-			state.nextSequence += 1
-			if state.events.count > 64 { state.events.removeFirst(state.events.count - 64) }
+	private func makeObserver(for app: AppNotifications) -> AXObserver? {
+		let appElement = AXUIElementCreateApplication(app.pid)
+		AXUIElementSetMessagingTimeout(appElement, 0.25)
+		var observer: AXObserver?
+		let createStatus = AXObserverCreate(app.pid, { _, _, notification, refcon in
+			guard let refcon else { return }
+			Unmanaged<AppNotifications>.fromOpaque(refcon).takeUnretainedValue().record(notification as String)
+		}, &observer)
+		guard createStatus == .success, let observer else { return nil }
+		// Unretained: the observer thread holds `app` for as long as the observer can call back.
+		let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(app).toOpaque())
+		var registered = false
+		for observed in [appElement] + axElementArray(appElement, attribute: kAXWindowsAttribute as CFString) {
+			for notification in observedNotifications {
+				let status = AXObserverAddNotification(observer, observed, notification as CFString, context)
+				if status == .success || status == .notificationAlreadyRegistered { registered = true }
+			}
 		}
-		rootObserverLock.unlock()
-		if let state {
-			state.change.lock()
-			state.changeGeneration += 1
-			state.change.broadcast()
-			state.change.unlock()
-		}
+		return registered ? observer : nil
 	}
 
 	func rootChangeGeneration(pid: Int32) -> UInt64 {
-		rootObserverLock.lock()
-		let state = rootObservers[pid]
-		rootObserverLock.unlock()
-		guard let state else { return 0 }
-		state.change.lock()
-		defer { state.change.unlock() }
-		return state.changeGeneration
+		rootObservers[pid]?.generation ?? 0
 	}
 
 	func waitForRootChange(pid: Int32, since generation: UInt64, until deadline: Date) {
-		rootObserverLock.lock()
-		let state = rootObservers[pid]
-		rootObserverLock.unlock()
-		guard let state else {
+		guard let app = rootObservers[pid] else {
 			Thread.sleep(forTimeInterval: min(0.2, max(0, deadline.timeIntervalSinceNow)))
 			return
 		}
-		state.change.lock()
-		if state.changeGeneration == generation {
-			_ = state.change.wait(until: min(deadline, Date().addingTimeInterval(0.2)))
-		}
-		state.change.unlock()
+		app.wait(since: generation, until: deadline)
 	}
 
 	func rootEventCursor(pid: Int32) -> UInt64 {
-		rootObserverLock.lock()
-		defer { rootObserverLock.unlock() }
-		return rootObservers[pid]?.nextSequence ?? 1
+		rootObservers[pid]?.cursor ?? 1
 	}
 
 	func rootEvents(pid: Int32, since cursor: UInt64) -> [RootAXEvent] {
-		rootObserverLock.lock()
-		defer { rootObserverLock.unlock() }
-		guard let events = rootObservers[pid]?.events else { return [] }
-		return events.filter { $0.sequence >= cursor }
+		rootObservers[pid]?.events(since: cursor) ?? []
 	}
 
 	// Onscreen CGWindowList id set for one pid: ~1-2ms per call, so it can be

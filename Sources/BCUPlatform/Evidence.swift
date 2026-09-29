@@ -3,12 +3,12 @@ import BCUCore
 
 extension Platform {
 	/// The facts an element tells about itself, in the order they are reported.
-	static let evidenceAttributes: [(field: String, attribute: CFString)] = [
-		("value", kAXValueAttribute as CFString),
-		("selected", "AXSelected" as CFString),
-		("focused", kAXFocusedAttribute as CFString),
-		("selection", kAXSelectedTextRangeAttribute as CFString),
-		("selectedText", kAXSelectedTextAttribute as CFString),
+	static let evidenceAttributes: [(field: String, attribute: String)] = [
+		("value", kAXValueAttribute),
+		("selected", "AXSelected"),
+		("focused", kAXFocusedAttribute),
+		("selection", kAXSelectedTextRangeAttribute),
+		("selectedText", kAXSelectedTextAttribute),
 	]
 
 	/// Longest evidence value reported back; comparison always uses the full string.
@@ -21,7 +21,7 @@ extension Platform {
 		guard let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) else { return nil }
 		var snapshot: [String: String] = [:]
 		for entry in Self.evidenceAttributes where !(entry.field == "selected" && role == kAXMenuItemRole as String) {
-			if let value = attributeSignature(element, attribute: entry.attribute) { snapshot[entry.field] = value }
+			if let value = attributeSignature(element, attribute: entry.attribute as CFString) { snapshot[entry.field] = value }
 		}
 		return snapshot
 	}
