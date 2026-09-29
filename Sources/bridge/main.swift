@@ -1,1 +1,6 @@
-// The helper entry point moves here with the platform work of ADR 0002 step 2.
+import AppKit
+import BCUPlatform
+
+_ = NSApplication.shared
+NSApp.setActivationPolicy(CommandLine.arguments.contains("serve") ? .accessory : .prohibited)
+Bridge().run()

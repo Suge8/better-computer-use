@@ -1,0 +1,290 @@
+import AppKit
+
+struct AXDescendant {
+	let element: AXUIElement
+	let depth: Int
+	let insideWebArea: Bool
+	let axVisible: Bool
+}
+
+extension Bridge {
+	func findDescendant(startingAt root: AXUIElement, maxDepth: Int, predicate: (AXUIElement) -> Bool) -> AXUIElement? {
+		collectDescendants(startingAt: root, maxDepth: maxDepth).first(where: predicate)
+	}
+
+	func ensureEnhancedAccessibility(pid: Int32) {
+		enhancedAccessibilityLock.lock()
+		let inserted = enhancedAccessibilityPids.insert(pid).inserted
+		enhancedAccessibilityLock.unlock()
+		if !inserted { return }
+		let appElement = AXUIElementCreateApplication(pid)
+		AXUIElementSetMessagingTimeout(appElement, 0.25)
+		let enhancedStatus = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+		let manualStatus = AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+		// Chromium-family apps often materialize web-content AX asynchronously
+		// after these toggles. Pay a small one-time settle cost per pid so the
+		// first tree walk is less likely to see browser chrome only.
+		if isBrowser(pid: pid) && (enhancedStatus == .success || manualStatus == .success) {
+			Thread.sleep(forTimeInterval: 0.35)
+		}
+	}
+
+	func isBrowser(pid: Int32) -> Bool {
+		let app = NSRunningApplication(processIdentifier: pid)
+		if browserBundleIds.contains(app?.bundleIdentifier ?? "") { return true }
+		let name = (app?.localizedName ?? processName(pid: pid) ?? "").lowercased()
+		return ["chrome", "chromium", "brave", "edge", "vivaldi", "opera", "firefox", "helium"].contains { name.contains($0) }
+	}
+
+	func collectDescendants(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXUIElement] {
+		collectDescendantsWithContext(startingAt: root, maxDepth: maxDepth, maxNodes: maxNodes).map(\.element)
+	}
+
+	func collectDescendantsWithContext(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXDescendant] {
+		let nodeLimit = max(1, maxNodes)
+		var queue: [(AXUIElement, Int, Bool, Bool)] = [(root, 0, false, true)]
+		var seen = Set<ObjectIdentifier>()
+		var index = 0
+		var output: [AXDescendant] = []
+		while index < queue.count && output.count < nodeLimit {
+			let (element, depth, parentInsideWebArea, inheritedVisible) = queue[index]
+			index += 1
+			let identity = ObjectIdentifier(element)
+			if seen.contains(identity) { continue }
+			seen.insert(identity)
+			let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
+			let insideWebArea = parentInsideWebArea || role == "AXWebArea"
+			output.append(AXDescendant(element: element, depth: depth, insideWebArea: insideWebArea, axVisible: inheritedVisible))
+			if depth >= maxDepth { continue }
+			let children = axElementArray(element, attribute: kAXChildrenAttribute as CFString)
+			let visibleChildren = visibleAXChildren(element)
+			for child in children {
+				if queue.count >= nodeLimit { break }
+				let childVisible = inheritedVisible && (visibleChildren.map { set in set.contains { self.sameElement($0, child) } } ?? true)
+				queue.append((child, depth + 1, insideWebArea, childVisible))
+			}
+		}
+		return output
+	}
+
+	func visibleAXChildren(_ element: AXUIElement) -> [AXUIElement]? {
+		let attributes: [CFString] = [
+			kAXVisibleChildrenAttribute as CFString,
+			kAXVisibleRowsAttribute as CFString,
+			kAXVisibleColumnsAttribute as CFString,
+			kAXVisibleCellsAttribute as CFString,
+		]
+		let visible = attributes.flatMap { axElementArray(element, attribute: $0) }
+		return visible.isEmpty ? nil : visible
+	}
+
+	func insideWebAreaMap(_ descendants: [AXDescendant]) -> [ObjectIdentifier: Bool] {
+		var output: [ObjectIdentifier: Bool] = [:]
+		for descendant in descendants {
+			let key = ObjectIdentifier(descendant.element)
+			output[key] = (output[key] ?? false) || descendant.insideWebArea
+		}
+		return output
+	}
+
+	func axSource(role: String, insideWebArea: Bool, isBrowser: Bool, containsWebArea: Bool) -> String {
+		if insideWebArea || role == "AXWebArea" { return "web_content_ax" }
+		if isBrowser || containsWebArea { return "browser_chrome_ax" }
+		return "desktop_ax"
+	}
+
+	func frameForElement(_ element: AXUIElement) -> CGRect? {
+		let origin = pointAttribute(element, attribute: kAXPositionAttribute as CFString)
+		let size = sizeAttribute(element, attribute: kAXSizeAttribute as CFString)
+		guard let origin, let size, size.width > 0, size.height > 0 else { return nil }
+		return CGRect(origin: origin, size: size)
+	}
+
+	func pidForElement(_ element: AXUIElement) -> Int32? {
+		var pid: pid_t = 0
+		let status = AXUIElementGetPid(element, &pid)
+		guard status == .success else { return nil }
+		return Int32(pid)
+	}
+
+	func parentElement(_ element: AXUIElement) -> AXUIElement? {
+		guard let value = copyAttribute(element, attribute: kAXParentAttribute as CFString) else {
+			return nil
+		}
+		return asAXElement(value)
+	}
+
+	func sameElement(_ lhs: AXUIElement, _ rhs: AXUIElement) -> Bool {
+		CFEqual(lhs as CFTypeRef, rhs as CFTypeRef)
+	}
+
+	func isElement(_ element: AXUIElement, descendantOf ancestor: AXUIElement) -> Bool {
+		var current: AXUIElement? = element
+		var depth = 0
+		while let candidate = current, depth < 20 {
+			if sameElement(candidate, ancestor) {
+				return true
+			}
+			current = parentElement(candidate)
+			depth += 1
+		}
+		return false
+	}
+
+	func hasAncestorRole(_ element: AXUIElement, role: String) -> Bool {
+		ancestor(of: element, role: role) != nil
+	}
+
+	/// The element itself or its nearest ancestor with `role`.
+	func ancestor(of element: AXUIElement, role: String) -> AXUIElement? {
+		var current: AXUIElement? = element
+		var depth = 0
+		while let candidate = current, depth < 30 {
+			if stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) == role { return candidate }
+			current = parentElement(candidate)
+			depth += 1
+		}
+		return nil
+	}
+
+	/// Standard AX actions are stable API names. Custom actions arrive as multi-line
+	/// `Name:…\nTarget:…\nSelector:…` descriptions, of which only the name is useful.
+	func readableActionName(_ raw: String) -> String? {
+		if raw.hasPrefix("AX") { return raw }
+		let firstLine = raw.split(separator: "\n", omittingEmptySubsequences: false).first.map(String.init) ?? raw
+		let named = firstLine.hasPrefix("Name:") ? String(firstLine.dropFirst("Name:".count)) : firstLine
+		let trimmed = named.trimmingCharacters(in: .whitespacesAndNewlines)
+		return trimmed.isEmpty ? nil : trimmed
+	}
+
+	func actionNames(_ element: AXUIElement) -> [String] {
+		var actionsValue: CFArray?
+		let status = AXUIElementCopyActionNames(element, &actionsValue)
+		guard status == .success else { return [] }
+		guard let actionsArray = actionsValue as? [AnyObject] else { return [] }
+		return actionsArray.compactMap { ($0 as? String).flatMap(readableActionName) }
+	}
+
+	func supportsAction(_ element: AXUIElement, action: CFString) -> Bool {
+		actionNames(element).contains(action as String)
+	}
+
+	func copyAttribute(_ element: AXUIElement, attribute: CFString) -> AnyObject? {
+		var value: AnyObject?
+		let status = AXUIElementCopyAttributeValue(element, attribute, &value)
+		guard status == .success else { return nil }
+		return value
+	}
+
+	func boolAttribute(_ element: AXUIElement, attribute: CFString) -> Bool? {
+		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
+		if let boolValue = value as? Bool {
+			return boolValue
+		}
+		if let number = value as? NSNumber {
+			return number.boolValue
+		}
+		return nil
+	}
+
+	func stringAttribute(_ element: AXUIElement, attribute: CFString) -> String? {
+		copyAttribute(element, attribute: attribute) as? String
+	}
+
+	/// One comparable string for an accessibility fact, so the same attribute can be
+	/// diffed across an action whatever type it carries.
+	func attributeSignature(_ element: AXUIElement, attribute: CFString) -> String? {
+		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
+		if let text = value as? String { return text }
+		if let number = value as? NSNumber { return number.stringValue }
+		guard CFGetTypeID(value) == AXValueGetTypeID(), AXValueGetType(value as! AXValue) == .cfRange else { return nil }
+		var range = CFRange()
+		guard AXValueGetValue(value as! AXValue, .cfRange, &range) else { return nil }
+		return "\(range.location),\(range.length)"
+	}
+
+	// Secure fields can expose plaintext through AX value in non-native apps,
+	// and serialized values flow into the model conversation. Never emit them.
+	func isSecureTextElement(role: String, subrole: String) -> Bool {
+		role == "AXSecureTextField" || subrole == "AXSecureTextField"
+	}
+
+	/// Toggles carry their state in a numeric AXValue, so a value is rendered whatever
+	/// its type: an agent that cannot read `0`/`1` cannot tell a checked box from a clear one.
+	func displayValue(_ element: AXUIElement, role: String, subrole: String) -> String {
+		if isSecureTextElement(role: role, subrole: subrole) { return "" }
+		guard let value = copyAttribute(element, attribute: kAXValueAttribute as CFString) else { return "" }
+		if let text = value as? String { return text }
+		return (value as? NSNumber)?.stringValue ?? ""
+	}
+
+	// kAXSheetsAttribute is unsupported (-25205) on recent macOS; sheets are
+	// exposed only as AXSheet-role children. Merge both sources so sheet
+	// discovery works across versions.
+	func sheetElements(of window: AXUIElement) -> [AXUIElement] {
+		var sheets = axElementArray(window, attribute: "AXSheets" as CFString)
+		for child in axElementArray(window, attribute: kAXChildrenAttribute as CFString) {
+			guard (stringAttribute(child, attribute: kAXRoleAttribute as CFString) ?? "") == "AXSheet" else { continue }
+			if !sheets.contains(where: { CFEqual($0, child) }) { sheets.append(child) }
+		}
+		return sheets
+	}
+
+	func axElementArray(_ element: AXUIElement, attribute: CFString) -> [AXUIElement] {
+		guard let value = copyAttribute(element, attribute: attribute) else { return [] }
+		if let array = value as? [AXUIElement] {
+			return array
+		}
+		if let anyArray = value as? [AnyObject] {
+			return anyArray.compactMap(asAXElement)
+		}
+		return []
+	}
+
+	func axElementArrayIfPresent(_ element: AXUIElement, attribute: CFString) -> [AXUIElement]? {
+		var value: CFTypeRef?
+		let status = AXUIElementCopyAttributeValue(element, attribute, &value)
+		guard status == .success, let value else { return nil }
+		if let array = value as? [AXUIElement] {
+			return array
+		}
+		if let anyArray = value as? [AnyObject] {
+			return anyArray.compactMap(asAXElement)
+		}
+		return []
+	}
+
+	func asAXElement(_ value: AnyObject) -> AXUIElement? {
+		let cfValue = value as CFTypeRef
+		guard CFGetTypeID(cfValue) == AXUIElementGetTypeID() else { return nil }
+		return unsafeBitCast(cfValue, to: AXUIElement.self)
+	}
+
+	func pointAttribute(_ element: AXUIElement, attribute: CFString) -> CGPoint? {
+		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
+		let cfValue = value as CFTypeRef
+		guard CFGetTypeID(cfValue) == AXValueGetTypeID() else { return nil }
+		let axValue = unsafeBitCast(cfValue, to: AXValue.self)
+		guard AXValueGetType(axValue) == .cgPoint else { return nil }
+		var point = CGPoint.zero
+		guard AXValueGetValue(axValue, .cgPoint, &point) else { return nil }
+		return point
+	}
+
+	func sizeAttribute(_ element: AXUIElement, attribute: CFString) -> CGSize? {
+		guard let value = copyAttribute(element, attribute: attribute) else { return nil }
+		let cfValue = value as CFTypeRef
+		guard CFGetTypeID(cfValue) == AXValueGetTypeID() else { return nil }
+		let axValue = unsafeBitCast(cfValue, to: AXValue.self)
+		guard AXValueGetType(axValue) == .cgSize else { return nil }
+		var size = CGSize.zero
+		guard AXValueGetValue(axValue, .cgSize, &size) else { return nil }
+		return size
+	}
+
+	func frameForWindow(_ window: AXUIElement) -> CGRect {
+		let origin = pointAttribute(window, attribute: kAXPositionAttribute as CFString) ?? .zero
+		let size = sizeAttribute(window, attribute: kAXSizeAttribute as CFString) ?? .zero
+		return CGRect(origin: origin, size: size)
+	}
+}

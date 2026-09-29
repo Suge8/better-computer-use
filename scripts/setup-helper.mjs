@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Installs prebuilt/macos/<arch>/bridge as the bcu helper app and signs it with a
-// machine-local identity that stays stable across reinstalls, because macOS keys
-// Accessibility and Screen Recording grants to the code-signing identity.
-// Building the helper belongs to build-native.mjs.
+// Installs prebuilt/macos/<arch>/bridge, the SwiftPM `bridge` product that build-native.mjs
+// places there, as the bcu helper app and signs it with a machine-local identity that stays
+// stable across reinstalls, because macOS keys Accessibility and Screen Recording grants to
+// the code-signing identity.
 
 import { createHash } from "node:crypto";
 import { spawn, execFile as execFileCallback } from "node:child_process";
@@ -14,7 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveMacosHelperAppPath } from "../src/macos/helper-path.mjs";
 import { macosHelper } from "../src/macos/helper.ts";
-import { HELPER_BUNDLE_ID, MACOS_DEPLOYMENT_TARGET } from "./lib/helper-target.mjs";
+import { HELPER_BUNDLE_ID, MACOS_DEPLOYMENT_TARGET, prebuiltHelperPath } from "./lib/helper-target.mjs";
 
 const execFile = promisify(execFileCallback);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,10 +31,6 @@ const localSigningLockPath = path.join(os.tmpdir(), `bcu-local-signing-${typeof 
 function normalizeArch(arch) {
 	if (arch === "arm64" || arch === "x64") return arch;
 	throw new Error(`Unsupported architecture '${arch}'. Supported: arm64, x64.`);
-}
-
-function prebuiltPathForArch(arch) {
-	return path.join(rootDir, "prebuilt", "macos", arch, "bridge");
 }
 
 async function packageVersion() {
@@ -363,7 +359,7 @@ async function setup() {
 	if (process.platform !== "darwin") throw new Error(`The bcu helper only supports macOS; this host is ${process.platform}.`);
 
 	const arch = normalizeArch(process.arch);
-	const prebuiltPath = prebuiltPathForArch(arch);
+	const prebuiltPath = prebuiltHelperPath(rootDir, arch);
 	if (!(await exists(prebuiltPath))) {
 		throw new Error(`No prebuilt helper found for ${arch} at ${prebuiltPath}. Run 'npm run build:native'.`);
 	}

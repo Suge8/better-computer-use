@@ -5,7 +5,7 @@
 // fails while act-ui is delivering tells the caller the action may already have landed.
 import assert from "node:assert/strict";
 import { execFile as execFileCallback, spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -30,7 +30,8 @@ function coded(code, message = "opaque native failure") {
 }
 
 function sourceErrorCodes() {
-	const swift = readFileSync(path.join(root, "native", "macos", "bridge.swift"), "utf8");
+	const platform = path.join(root, "Sources", "BCUPlatform");
+	const swift = readdirSync(platform).filter((file) => file.endsWith(".swift")).map((file) => readFileSync(path.join(platform, file), "utf8")).join("\n");
 	return new Set([...swift.matchAll(/code:\s*"([a-z0-9_]+)"/g)].map((match) => match[1]));
 }
 

@@ -1,27 +1,22 @@
+@testable import BCUPlatform
 import CoreGraphics
-import Foundation
+import Testing
 
 // A line read from the screen joins the deepest container around it. Window controls and
 // leaf controls that already have a name are not containers: a line over them belongs to
 // the element that holds them.
-@main
 struct LookOutlineTests {
-	static func main() {
-		testOCRParents()
-		print("PASS look outline OCR attachment")
-	}
-
-	private static func node(_ ref: String, role: String, subrole: String = "", title: String = "", value: String = "", rect: CGRect, children: [LookNode] = []) -> LookNode {
+	private func node(_ ref: String, role: String, subrole: String = "", title: String = "", value: String = "", rect: CGRect, children: [LookNode] = []) -> LookNode {
 		let node = LookNode(element: nil, ref: ref, role: role, subrole: subrole, identifier: "", title: title, description: "", value: value, actions: [], canPress: role == "AXButton", canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: rect)
 		node.children = children
 		return node
 	}
 
-	private static func box(_ text: String, centeredIn rect: CGRect) -> OCRBox {
+	private func box(_ text: String, centeredIn rect: CGRect) -> OCRBox {
 		OCRBox(string: text, confidence: 1, rect: CGRect(x: rect.midX - 4, y: rect.midY - 3, width: 8, height: 6))
 	}
 
-	private static func testOCRParents() {
+	@Test func ocrLinesJoinTheContainerThatHoldsThem() {
 		let minimize = node("min", role: "AXButton", subrole: "AXMinimizeButton", rect: CGRect(x: 30, y: 10, width: 14, height: 14))
 		let close = node("close", role: "AXButton", subrole: "AXCloseButton", rect: CGRect(x: 10, y: 10, width: 14, height: 14))
 		let send = node("send", role: "AXButton", title: "Send", rect: CGRect(x: 600, y: 500, width: 80, height: 30))
@@ -42,18 +37,11 @@ struct LookOutlineTests {
 		func lines(_ node: LookNode) -> [String] {
 			node.children.filter(\.pictureOnly).map(\.title)
 		}
-		expect(lines(minimize).isEmpty && lines(close).isEmpty, "a line over a window control was attached to the control: \(lines(minimize) + lines(close))")
-		expect(lines(send).isEmpty, "a line over a named button was attached to the button: \(lines(send))")
-		expect(lines(label).isEmpty, "a line over named text was attached to the text: \(lines(label))")
-		expect(lines(window) == ["文件传输助手", "最小化", "发送"], "lines over controls did not join the window that holds them: \(lines(window))")
-		expect(lines(icon) == ["表情"], "an unnamed control lost the line that names it: \(lines(icon))")
-		expect(lines(pane) == ["World", "Pane text"], "lines inside a container did not join it: \(lines(pane))")
-	}
-
-	private static func expect(_ condition: Bool, _ message: String) {
-		if !condition {
-			FileHandle.standardError.write(Data("FAIL \(message)\n".utf8))
-			exit(1)
-		}
+		#expect(lines(minimize).isEmpty && lines(close).isEmpty, "a line over a window control was attached to the control")
+		#expect(lines(send).isEmpty, "a line over a named button was attached to the button")
+		#expect(lines(label).isEmpty, "a line over named text was attached to the text")
+		#expect(lines(window) == ["文件传输助手", "最小化", "发送"], "lines over controls did not join the window that holds them")
+		#expect(lines(icon) == ["表情"], "an unnamed control lost the line that names it")
+		#expect(lines(pane) == ["World", "Pane text"], "lines inside a container did not join it")
 	}
 }

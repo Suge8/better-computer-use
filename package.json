@@ -51,14 +51,13 @@
 		"test:event-readiness": "node scripts/check-event-readiness.mjs",
 		"test:helper-install": "node scripts/check-helper-install.mjs",
 		"test:package": "node scripts/check-package.mjs",
-		"test:native": "node scripts/check-native.mjs",
-		"test:swift": "swift test",
+		"test:swift": "swift build --product bridge && swift test",
 		"test:helper-live": "node scripts/check-helper-live.mjs",
 		"test:web-background": "node scripts/check-web-background.mjs",
 		"test:ocr-targets": "node scripts/check-ocr-targets.mjs",
 		"test:ime-typing": "node scripts/check-ime-typing.mjs",
 		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-helper-live.mjs && node scripts/check-web-background.mjs && node scripts/check-ocr-targets.mjs && node scripts/check-ime-typing.mjs",
-		"test": "npm run typecheck && npm run test:projection && npm run test:contract && npm run test:cli-errors && npm run test:runtime && npm run test:artifacts && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:helper-install && npm run test:package && npm run test:native && npm run test:swift"
+		"test": "npm run typecheck && npm run test:projection && npm run test:contract && npm run test:cli-errors && npm run test:runtime && npm run test:artifacts && npm run test:broker && npm run test:helper-transport && npm run test:event-readiness && npm run test:helper-install && npm run test:package && npm run test:swift"
 	},
 	"devDependencies": {
 		"@types/node": "^26.1.1",
