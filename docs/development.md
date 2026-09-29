@@ -37,9 +37,10 @@ non-negative decimal integers.
 
 ## Native helper
 
-The helper is the SwiftPM `bridge` product: `Sources/bridge` is only its entry point, and
-`BCUPlatform` holds everything it does behind the in-process `Platform` API. The platform
-targets stay in the Swift 5 language mode (see `Package.swift`). `/Applications/bcu.app`
+`BCUPlatform` holds every desktop call behind the in-process `Platform` API, and
+`BCUDaemon` runs the resident commands on it; both are tested against a fake desktop in
+`Tests/BCUDaemonTests` and `Tests/BCUPlatformTests`. The platform target stays in the Swift 5
+language mode (see `Package.swift`). `/Applications/bcu.app`
 targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:
 
 ```bash
@@ -54,10 +55,7 @@ whose identity is stable across rebuilds on this machine, because macOS keys the
 Accessibility and Screen Recording grants to the code-signing identity. Replacing the binary
 also restarts the helper daemon if one is running: it would otherwise keep serving the code
 it started with, which the protocol version alone cannot tell apart from the new build.
-Bundle id and deployment target come from `scripts/lib/helper-target.mjs`. Bump
-`helperProtocolVersion` in `Sources/BCUPlatform/WireProtocol.swift` together with
-`HELPER_PROTOCOL_VERSION` in `src/macos/helper.ts` when a helper request or response
-changes shape; the Broker refuses a mismatched helper instead of degrading.
+Bundle id and deployment target come from `scripts/lib/helper-target.mjs`.
 
 ## Upstream engine
 

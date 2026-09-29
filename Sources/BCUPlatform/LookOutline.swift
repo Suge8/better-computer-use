@@ -11,7 +11,8 @@ struct OCRBox {
 	let rect: CGRect
 }
 
-public final class LookNode {
+/// A look's outline is built once and handed to the caller, which owns it from then on.
+public final class LookNode: @unchecked Sendable {
 	/// Role of a line read from the screen; it has no accessibility element.
 	public static let ocrRole = "OCR"
 

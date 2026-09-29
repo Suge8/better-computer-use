@@ -78,7 +78,7 @@ extension Platform {
 		let source = AXObserverGetRunLoopSource(observer)
 		Thread.detachNewThread {
 			// Keep each AXObserver on its own run loop so its callbacks never compete
-			// with AppKit rendering on the helper's main thread.
+			// with AppKit rendering on the main thread.
 			CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
 			CFRunLoopRun()
 		}

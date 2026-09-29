@@ -49,11 +49,42 @@ public struct SerializedOutlineNode: Codable, Sendable, Equatable {
 	public var truncated: Bool
 	public var scrollExtent: ScrollExtent?
 	public var children: [SerializedOutlineNode]
+
+	public init(ref: String, wireRef: String? = nil, role: String, subrole: String, identifier: String, title: String, description: String, value: String, actions: [String], canPress: Bool, canFocus: Bool, canSetValue: Bool, canScroll: Bool, canIncrement: Bool, canDecrement: Bool, isTextInput: Bool, rect: OutlineRect? = nil, focused: Bool, offscreen: Bool, pictureOnly: Bool, truncated: Bool, scrollExtent: ScrollExtent? = nil, children: [SerializedOutlineNode]) {
+		self.ref = ref
+		self.wireRef = wireRef
+		self.role = role
+		self.subrole = subrole
+		self.identifier = identifier
+		self.title = title
+		self.description = description
+		self.value = value
+		self.actions = actions
+		self.canPress = canPress
+		self.canFocus = canFocus
+		self.canSetValue = canSetValue
+		self.canScroll = canScroll
+		self.canIncrement = canIncrement
+		self.canDecrement = canDecrement
+		self.isTextInput = isTextInput
+		self.rect = rect
+		self.focused = focused
+		self.offscreen = offscreen
+		self.pictureOnly = pictureOnly
+		self.truncated = truncated
+		self.scrollExtent = scrollExtent
+		self.children = children
+	}
 }
 
 public struct SerializedOutline: Codable, Sendable, Equatable {
 	public var lookId: String
 	public var root: SerializedOutlineNode
+
+	public init(lookId: String, root: SerializedOutlineNode) {
+		self.lookId = lookId
+		self.root = root
+	}
 }
 
 public final class OutlineNode {
