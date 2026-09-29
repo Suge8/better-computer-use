@@ -104,12 +104,16 @@ extension Platform {
 		}
 	}
 
-	func postMouseDrag(points: [CGPoint], pid: Int32, delivery: Delivery = .hid) throws {
-		if delivery == .hid { physicalInputLock.lock() }
-		defer { if delivery == .hid { physicalInputLock.unlock() } }
+	func postMouseDrag(points: [CGPoint], pid: Int32, route: SkyLight.PointerRoute, delivery: Delivery = .hid) throws {
 		guard points.count >= 2, let first = points.first else {
 			throw BCUError(.invalidArguments, "Drag requires at least two points")
 		}
+		if delivery == .pid {
+			try SkyLight.drag(points, along: route)
+			return
+		}
+		physicalInputLock.lock()
+		defer { physicalInputLock.unlock() }
 		try postMouseMove(to: first, pid: pid, delivery: delivery)
 		guard let down = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: first, mouseButton: .left) else {
 			throw BCUError(.actionFailed, "Failed to create mouse down event")

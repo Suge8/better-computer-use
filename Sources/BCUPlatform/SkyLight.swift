@@ -154,6 +154,42 @@ enum SkyLight {
 		}
 	}
 
+	/// A press at the first point, drag events along the path, a release at the last. A move
+	/// primes the window's idea of where the pointer is; every event carries the route and
+	/// one click group, and each segment is walked in short steps, because views track a drag
+	/// by the dragged events between press and release.
+	static func drag(_ points: [CGPoint], along route: PointerRoute) throws {
+		let symbols = try require()
+		guard let first = points.first, let last = points.last else { return }
+		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)
+		func send(_ type: CGEventType, at location: CGPoint, clickState: Int64) throws {
+			guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: location, mouseButton: .left) else {
+				throw BCUError(.actionFailed, "Failed to create drag event")
+			}
+			post(event, along: route, at: location, fields: [
+				(Field.clickState, clickState), (Field.buttonNumber, Int64(CGMouseButton.left.rawValue)), (Field.clickGroup, group),
+			], symbols: symbols)
+		}
+		try send(.mouseMoved, at: first, clickState: 0)
+		usleep(15_000)
+		try send(.leftMouseDown, at: first, clickState: 1)
+		usleep(15_000)
+		for (from, to) in zip(points, points.dropFirst()) {
+			let steps = max(1, min(dragMaxSteps, Int(hypot(to.x - from.x, to.y - from.y) / dragStepPoints)))
+			for step in 1...steps {
+				let t = CGFloat(step) / CGFloat(steps)
+				try send(.leftMouseDragged, at: CGPoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t), clickState: 1)
+				usleep(8_000)
+			}
+		}
+		// Chromium handles the last dragged event a run-loop turn later; releasing sooner ends
+		// the gesture short of it.
+		usleep(50_000)
+		try send(.leftMouseUp, at: last, clickState: 1)
+	}
+	private static let dragStepPoints: CGFloat = 10
+	private static let dragMaxSteps = 30
+
 	/// Wheel notches at `point`: the renderer scrolls whatever is scrollable under it, so a
 	/// move first primes the window's idea of where the pointer is.
 	static func scroll(_ notches: [CGEvent], at point: CGPoint, along route: PointerRoute) throws {

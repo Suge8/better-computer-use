@@ -258,8 +258,8 @@ extension Platform {
 			let webTarget = subject.map { hasAncestorRole($0, role: "AXWebArea") } ?? false
 			let readable = subject.map(hasReadableEvidence) ?? false
 			// Screen evidence is reserved for a point whose resolved subject has no AX fact
-			// that a press or a wheel turn would move; see docs/architecture.md.
-			let screenTarget = (pressLike || action == .scroll) && !webTarget && !readable
+			// that a press, a wheel turn or a drag would move; see docs/architecture.md.
+			let screenTarget = (pressLike || action == .scroll || action == .drag) && !webTarget && !readable
 			if element == nil, pressLike, readable, let subject {
 				evidenceElement = subject
 				beforeEvidence = evidenceSnapshot(subject)
@@ -293,7 +293,7 @@ extension Platform {
 					throw BCUError(.invalidArguments, "drag requires path")
 				}
 				animateCursor(at: point)
-				try postMouseDrag(points: path.map { lookPoint(record, x: $0.x, y: $0.y) }, pid: pid, delivery: delivery)
+				try postMouseDrag(points: path.map { lookPoint(record, x: $0.x, y: $0.y) }, pid: pid, route: route, delivery: delivery)
 			case .setText, .typeText, .keypress:
 				throw BCUError(.invalidArguments, "Action \(action.rawValue) cannot use coordinate grounding")
 			}
