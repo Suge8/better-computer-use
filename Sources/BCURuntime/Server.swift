@@ -22,6 +22,8 @@ public final class Server: @unchecked Sendable {
 	private var connections: Set<Int32> = []
 	private var idleTimer: DispatchWorkItem?
 	private var stopped = false
+	/// Stopped, and the stop request has its reply: the process may exit now.
+	private var finished = false
 	private var waiters: [CheckedContinuation<Void, Never>] = []
 
 	public init(socketPath: String, idleTimeout: Duration = defaultIdleTimeout, protocolVersion: Int = wireProtocolVersion, handler: @escaping RequestHandler) {
@@ -66,7 +68,7 @@ public final class Server: @unchecked Sendable {
 	public func stopped() async {
 		await withCheckedContinuation { continuation in
 			queue.async {
-				if self.stopped { continuation.resume() } else { self.waiters.append(continuation) }
+				if self.finished { continuation.resume() } else { self.waiters.append(continuation) }
 			}
 		}
 	}
@@ -122,6 +124,12 @@ public final class Server: @unchecked Sendable {
 		listener?.cancel()
 		listener = nil
 		for descriptor in connections where descriptor != requester { shutdown(descriptor, SHUT_RDWR) }
+		if requester == nil { finish() }
+	}
+
+	/// Wakes whoever waits for the stop; the requester's connection calls it once its reply is out.
+	private func finish() {
+		finished = true
 		for waiter in waiters { waiter.resume() }
 		waiters = []
 	}
@@ -145,7 +153,7 @@ public final class Server: @unchecked Sendable {
 		// Forgotten before closing: once closed, accept may hand the same number to a new client.
 		queue.sync {
 			_ = connections.remove(descriptor)
-			scheduleIdle()
+			if stopped { finish() } else { scheduleIdle() }
 		}
 		close(descriptor)
 	}
