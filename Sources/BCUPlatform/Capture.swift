@@ -8,71 +8,65 @@ struct CapturedWindowImage {
 	let frame: CGRect
 }
 
-extension Bridge {
+extension Platform {
 	func captureWindow(windowId: UInt32) throws -> CapturedWindowImage {
-		if #available(macOS 14.0, *) {
-			let semaphore = DispatchSemaphore(value: 0)
-			let capturedImage = Box<CGImage?>(nil)
-			let capturedError = Box<Error?>(nil)
+		let semaphore = DispatchSemaphore(value: 0)
+		let capturedImage = Box<CGImage?>(nil)
+		let capturedError = Box<Error?>(nil)
 
-			let task = Task {
-				defer { semaphore.signal() }
-				do {
-					if Task.isCancelled {
-						return
-					}
-					let shareable = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-					guard let window = shareable.windows.first(where: { $0.windowID == windowId }) else {
-						throw BridgeFailure(message: "Window \(windowId) is not available for capture", code: "window_not_found")
-					}
-
-					let filter = SCContentFilter(desktopIndependentWindow: window)
-					let config = SCStreamConfiguration()
-					// Avoid ScreenCaptureKit's default 1920x1080 canvas for window captures.
-					let scale = displayScaleFactor(for: window.frame)
-					config.width = max(1, Int((window.frame.width * scale).rounded()))
-					config.height = max(1, Int((window.frame.height * scale).rounded()))
-					config.showsCursor = false
-					config.ignoreShadowsSingleWindow = true
-
-					let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
-					capturedImage.value = image
-				} catch {
-					capturedError.value = error
+		let task = Task {
+			defer { semaphore.signal() }
+			do {
+				if Task.isCancelled {
+					return
 				}
+				let shareable = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+				guard let window = shareable.windows.first(where: { $0.windowID == windowId }) else {
+					throw PlatformError(message: "Window \(windowId) is not available for capture", code: "window_not_found")
+				}
+
+				let filter = SCContentFilter(desktopIndependentWindow: window)
+				let config = SCStreamConfiguration()
+				// Avoid ScreenCaptureKit's default 1920x1080 canvas for window captures.
+				let scale = displayScaleFactor(for: window.frame)
+				config.width = max(1, Int((window.frame.width * scale).rounded()))
+				config.height = max(1, Int((window.frame.height * scale).rounded()))
+				config.showsCursor = false
+				config.ignoreShadowsSingleWindow = true
+
+				let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+				capturedImage.value = image
+			} catch {
+				capturedError.value = error
 			}
-
-			if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
-				task.cancel()
-				if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-					return payload
-				}
-				throw BridgeFailure(message: "Capture timed out while capturing window \(windowId)", code: "capture_timeout")
-			}
-
-			if let error = capturedError.value {
-				if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-					return payload
-				}
-				if let failure = error as? BridgeFailure {
-					throw failure
-				}
-				throw BridgeFailure(message: "Capture failed: \(error.localizedDescription)", code: "capture_failed")
-			}
-
-			guard let image = capturedImage.value else {
-				if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-					return payload
-				}
-				throw BridgeFailure(message: "Capture failed", code: "capture_failed")
-			}
-
-			return CapturedWindowImage(image: image, windowId: windowId, frame: currentWindowBounds(windowId: windowId) ?? CGRect(x: 0, y: 0, width: image.width, height: image.height))
 		}
-		if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-			return payload
+
+		if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
+			task.cancel()
+			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
+				return payload
+			}
+			throw PlatformError(message: "Capture timed out while capturing window \(windowId)", code: "capture_timeout")
 		}
-		throw BridgeFailure(message: "Capture failed", code: "capture_failed")
+
+		if let error = capturedError.value {
+			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
+				return payload
+			}
+			if let failure = error as? PlatformError {
+				throw failure
+			}
+			throw PlatformError(message: "Capture failed: \(error.localizedDescription)", code: "capture_failed")
+		}
+
+		guard let image = capturedImage.value else {
+			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
+				return payload
+			}
+			throw PlatformError(message: "Capture failed", code: "capture_failed")
+		}
+
+		return CapturedWindowImage(image: image, windowId: windowId, frame: currentWindowBounds(windowId: windowId) ?? CGRect(x: 0, y: 0, width: image.width, height: image.height))
 	}
 
 	func jpegData(image: CGImage, quality: Double) -> Data? {
@@ -136,7 +130,7 @@ extension Bridge {
 	}
 
 	func currentWindowBounds(windowId: UInt32) -> CGRect? {
-		if #available(macOS 14.0, *), let scBounds = currentWindowBoundsViaScreenCaptureKit(windowId: windowId) {
+		if let scBounds = currentWindowBoundsViaScreenCaptureKit(windowId: windowId) {
 			return scBounds
 		}
 		return windowInfo(windowId: windowId)?.bounds
@@ -164,7 +158,6 @@ extension Bridge {
 		return (pid, bounds)
 	}
 
-	@available(macOS 14.0, *)
 	func currentWindowBoundsViaScreenCaptureKit(windowId: UInt32) -> CGRect? {
 		let semaphore = DispatchSemaphore(value: 0)
 		let output = Box<CGRect?>(nil)

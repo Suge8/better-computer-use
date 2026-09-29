@@ -1,7 +1,11 @@
 import AppKit
 
-extension Bridge {
-	func listApps(cgEntries: [[String: Any]]? = nil) -> [[String: Any]] {
+extension Platform {
+	public func listApps() -> [RunningApp] {
+		listApps(cgEntries: nil)
+	}
+
+	func listApps(cgEntries: [[String: Any]]?) -> [RunningApp] {
 		let frontmostPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
 		let apps = NSWorkspace.shared.runningApplications.filter { app in
 			// Computer-use targets are windows, not Dock-visible applications. Some
@@ -14,15 +18,12 @@ extension Bridge {
 		var seen = Set<Int32>()
 		var output = apps.map { app in
 			seen.insert(app.processIdentifier)
-			var data: [String: Any] = [
-				"appName": app.localizedName ?? processName(pid: app.processIdentifier) ?? "Unknown App",
-				"pid": Int(app.processIdentifier),
-				"isFrontmost": app.processIdentifier == frontmostPid,
-			]
-			if let bundleId = app.bundleIdentifier {
-				data["bundleId"] = bundleId
-			}
-			return data
+			return RunningApp(
+				appName: app.localizedName ?? processName(pid: app.processIdentifier) ?? "Unknown App",
+				pid: app.processIdentifier,
+				bundleId: app.bundleIdentifier,
+				isFrontmost: app.processIdentifier == frontmostPid
+			)
 		}
 
 		// NSWorkspace can miss apps launched from ad-hoc bundles or test harnesses
@@ -31,50 +32,48 @@ extension Bridge {
 		// and then build the normal AX scene through listWindows(pid:).
 		for owner in cgWindowOwners(entries: cgEntries) where owner.pid != getpid() && !seen.contains(owner.pid) && pidIsAlive(owner.pid) {
 			seen.insert(owner.pid)
-			output.append([
-				"appName": owner.name,
-				"pid": Int(owner.pid),
-				"isFrontmost": owner.pid == frontmostPid,
-			])
+			output.append(RunningApp(appName: owner.name, pid: owner.pid, bundleId: nil, isFrontmost: owner.pid == frontmostPid))
 		}
 		return output
 	}
 
-	func getFrontmost() throws -> [String: Any] {
+	public func frontmost() throws -> Frontmost {
 		guard let app = NSWorkspace.shared.frontmostApplication else {
-			throw BridgeFailure(message: "No frontmost app available", code: "frontmost_unavailable")
+			throw PlatformError(message: "No frontmost app available", code: "frontmost_unavailable")
 		}
 		let pid = app.processIdentifier
-		let windows = try listWindows(pid: pid)
-
-		var result: [String: Any] = [
-			"appName": app.localizedName ?? "Unknown App",
-			"pid": Int(pid),
-		]
-		if let bundleId = app.bundleIdentifier {
-			result["bundleId"] = bundleId
-		}
-
-		if let chosen = windows.sorted(by: { scoreWindow($0) > scoreWindow($1) }).first {
-			result["windowTitle"] = (chosen["title"] as? String) ?? ""
-			if let windowId = chosen["windowId"] {
-				result["windowId"] = windowId
-			}
-			if let rootRef = chosen["rootRef"] as? String {
-				result["rootRef"] = rootRef
-			}
-		}
-		return result
+		let appName = app.localizedName ?? "Unknown App"
+		let windows = listWindows(pid: pid, appName: appName, bundleId: app.bundleIdentifier)
+		return Frontmost(appName: appName, pid: pid, bundleId: app.bundleIdentifier, window: windows.sorted { windowScore($0) > windowScore($1) }.first)
 	}
 
-	func scoreWindow(_ window: [String: Any]) -> Int {
+	func windowScore(_ window: Root) -> Int {
 		var score = 0
-		if (window["isFocused"] as? Bool) == true { score += 100 }
-		if (window["isMain"] as? Bool) == true { score += 80 }
-		if (window["isMinimized"] as? Bool) == false { score += 40 }
-		if (window["isOnscreen"] as? Bool) == true { score += 20 }
-		if window["windowId"] != nil { score += 10 }
+		if window.isFocused { score += 100 }
+		if window.isMain { score += 80 }
+		if !window.isMinimized { score += 40 }
+		if window.isOnscreen { score += 20 }
+		if window.windowId != nil { score += 10 }
 		return score
+	}
+
+	public func focusWindow(_ target: RootTarget) -> FocusWindowResult {
+		guard let window = resolveRoot(pid: target.pid, windowId: target.windowId, rootRef: target.rootRef) else {
+			return FocusWindowResult(focused: false, alreadyFocused: false, setMain: nil, setFocused: nil, raised: nil, reason: "window_not_found")
+		}
+
+		let appElement = AXUIElementCreateApplication(target.pid)
+		if let focusedWindow = copyAttribute(appElement, attribute: kAXFocusedWindowAttribute as CFString).flatMap(asAXElement),
+			sameElement(focusedWindow, window)
+		{
+			return FocusWindowResult(focused: true, alreadyFocused: true, setMain: nil, setFocused: nil, raised: nil, reason: nil)
+		}
+
+		let setMain = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue) == .success
+		let setFocused = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success
+		let raised = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
+		let focused = setMain || setFocused || raised
+		return FocusWindowResult(focused: focused, alreadyFocused: false, setMain: setMain, setFocused: setFocused, raised: raised, reason: focused ? nil : "focus_failed")
 	}
 
 	/// A popup menu that Accessibility never exposed as an element is still a real root on
@@ -84,13 +83,13 @@ extension Bridge {
 		return UInt32(rootRef.dropFirst(cgMenuRefPrefix.count))
 	}
 
-	func rootKind(role: String, subrole: String) -> String {
-		if role == "AXMenuBar" { return "menubar" }
-		if role == "AXMenu" { return "menu" }
-		if role == "AXSheet" { return "sheet" }
-		if subrole.localizedCaseInsensitiveContains("popover") { return "popover" }
-		if subrole.localizedCaseInsensitiveContains("dialog") || role == "AXDialog" { return "dialog" }
-		return "window"
+	func rootKind(role: String, subrole: String) -> RootKind {
+		if role == "AXMenuBar" { return .menubar }
+		if role == "AXMenu" { return .menu }
+		if role == "AXSheet" { return .sheet }
+		if subrole.localizedCaseInsensitiveContains("popover") { return .popover }
+		if subrole.localizedCaseInsensitiveContains("dialog") || role == "AXDialog" { return .dialog }
+		return .window
 	}
 
 	func isDialogLikeRoot(role: String, subrole: String) -> Bool {
@@ -100,119 +99,114 @@ extension Bridge {
 			|| text.range(of: "sheet", options: [.caseInsensitive]) != nil
 	}
 
-	func rootMetadata(pairing: WindowPairing, sheetCount: Int) -> [String: Any] {
-		["pairing": ["confidence": pairing.confidence, "score": pairing.score], "sheetCount": sheetCount]
+	func rootMetadata(pairing: WindowPairing, sheetCount: Int) -> RootMetadata {
+		RootMetadata(pairing: RootPairing(confidence: pairing.confidence, score: pairing.score), sheetCount: sheetCount)
 	}
 
 	/// An app's menu bar is a root in its own right: it is how every app command is reached,
 	/// and it exists whether or not the app owns a window on screen.
-	func menuBarRoot(pid: Int32, appName: String, bundleId: String?) -> [String: Any]? {
+	func menuBarRoot(pid: Int32, appName: String, bundleId: String?) -> Root? {
 		let appElement = AXUIElementCreateApplication(pid)
 		guard let bar = copyAttribute(appElement, attribute: kAXMenuBarAttribute as CFString).flatMap(asAXElement) else { return nil }
 		let frame = frameForWindow(bar)
 		guard frame.width > 1, frame.height > 1 else { return nil }
-		// A menu bar has no title of its own, and discovery may know the app only by its
-		// executable name; the localized app name is the one identity that always matches.
-		let title = NSRunningApplication(processIdentifier: pid)?.localizedName ?? appName
-		var root: [String: Any] = [
-			"kind": "menubar",
-			"rootRef": refStore.storeWindow(bar),
+		return Root(
+			kind: .menubar,
+			rootRef: refStore.storeWindow(bar),
+			windowId: nil,
 			// Behind every window, and never the root an unqualified query should land on.
-			"zOrder": Int.max,
-			"title": title,
-			"role": "AXMenuBar",
-			"subrole": "",
-			"isModal": false,
-			"framePoints": ["x": frame.origin.x, "y": frame.origin.y, "w": frame.width, "h": frame.height],
-			"scaleFactor": displayScaleFactor(for: frame),
-			"isMinimized": false,
-			"isOnscreen": true,
-			"isMain": false,
-			"isFocused": false,
-			"pid": Int(pid),
-			"appName": appName,
-		]
-		if let bundleId { root["bundleId"] = bundleId }
-		return root
+			zOrder: Int.max,
+			// A menu bar has no title of its own, and discovery may know the app only by its
+			// executable name; the localized app name is the one identity that always matches.
+			title: NSRunningApplication(processIdentifier: pid)?.localizedName ?? appName,
+			role: "AXMenuBar",
+			subrole: "",
+			isModal: false,
+			framePoints: frame,
+			scaleFactor: displayScaleFactor(for: frame),
+			isMinimized: false,
+			isOnscreen: true,
+			isMain: false,
+			isFocused: false,
+			metadata: nil,
+			pid: pid,
+			appName: appName,
+			bundleId: bundleId
+		)
 	}
 
-	func broadRootCandidateApps(entries: [[String: Any]]) -> [[String: Any]] {
+	/// The apps a root search covers; `appName` is nil when only the pid is known.
+	private struct RootOwner {
+		let pid: Int32
+		let appName: String?
+		let bundleId: String?
+	}
+
+	private func broadRootOwners(entries: [[String: Any]]) -> [RootOwner] {
 		cgBroadRootOwners(entries: entries).compactMap { owner in
 			guard owner.pid != getpid(), pidIsAlive(owner.pid) else { return nil }
-			var app: [String: Any] = ["appName": owner.name, "pid": Int(owner.pid)]
-			if let bundleId = NSRunningApplication(processIdentifier: owner.pid)?.bundleIdentifier {
-				app["bundleId"] = bundleId
-			}
-			return app
+			return RootOwner(pid: owner.pid, appName: owner.name, bundleId: NSRunningApplication(processIdentifier: owner.pid)?.bundleIdentifier)
 		}
 	}
 
-	func listRoots(pid: Int32?, title: String? = nil) throws -> [String: Any] {
+	/// Every root of one app (`pid`), of the apps with a window whose title contains `title`,
+	/// or, with neither, of every app that shows a window or an open menu; front to back.
+	public func listRoots(pid: Int32? = nil, title: String? = nil) -> [Root] {
 		let requestedTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
 		let entries = allCGWindowEntries()
 		let isBroadDiscovery = pid == nil && requestedTitle.isEmpty
-		let apps: [[String: Any]]
+		let owners: [RootOwner]
 		if let pid {
-			apps = [["pid": Int(pid)]]
+			owners = [RootOwner(pid: pid, appName: nil, bundleId: nil)]
 		} else if !requestedTitle.isEmpty {
 			let matchingPids = Set(entries.compactMap { entry -> Int32? in
 				let candidate = ((entry[kCGWindowName as String] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 				guard candidate == requestedTitle || candidate.contains(requestedTitle) else { return nil }
 				return (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value
 			})
-			apps = listApps(cgEntries: entries).filter { app in
-				guard let rawPid = app["pid"] as? Int else { return false }
-				return matchingPids.contains(Int32(rawPid))
-			}
+			owners = listApps(cgEntries: entries).filter { matchingPids.contains($0.pid) }.map { RootOwner(pid: $0.pid, appName: $0.appName, bundleId: $0.bundleId) }
 		} else {
-			apps = broadRootCandidateApps(entries: entries)
+			owners = broadRootOwners(entries: entries)
 		}
-		var roots: [[String: Any]] = []
-		for app in apps {
-			guard let rawPid = app["pid"] as? Int else { continue }
-			let appPid = Int32(rawPid)
-			let appName = app["appName"] as? String ?? processName(pid: appPid) ?? "Unknown App"
-			let bundleId = app["bundleId"] as? String
-			for var root in (try? listWindows(pid: appPid, cgEntries: entries, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)) ?? [] {
-				root["pid"] = rawPid
-				root["appName"] = appName
-				if let bundleId { root["bundleId"] = bundleId }
-				roots.append(root)
-			}
+		var roots: [Root] = []
+		for owner in owners {
+			let appPid = owner.pid
+			let appName = owner.appName ?? processName(pid: appPid) ?? "Unknown App"
+			let bundleId = owner.bundleId
+			roots += listWindows(pid: appPid, appName: appName, bundleId: bundleId, cgEntries: entries, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)
 			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries)
 			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? 0.25 : 1.0)
 			for candidate in popupCandidates {
 				let menuElement = menuElement(drawnBy: candidate, among: menuElements)
-				let menuRef = menuElement.map { refStore.storeWindow($0) } ?? "\(cgMenuRefPrefix)\(candidate.windowId)"
-				var menu: [String: Any] = [
-					"kind": "menu",
-					"rootRef": menuRef,
-					"windowId": Int(candidate.windowId),
-					"zOrder": candidate.zOrder,
-					"title": menuElement.flatMap { menuTitle($0) } ?? candidate.title,
-					"role": "AXMenu",
-					"subrole": "",
-					"isModal": false,
-					"framePoints": ["x": candidate.bounds.origin.x, "y": candidate.bounds.origin.y, "w": candidate.bounds.width, "h": candidate.bounds.height],
-					"scaleFactor": displayScaleFactor(for: candidate.bounds),
-					"isMinimized": false,
-					"isOnscreen": candidate.isOnscreen,
-					"isMain": false,
-					"isFocused": true,
-					"metadata": ["pairing": ["confidence": menuElement == nil ? "low" : "high", "score": menuElement == nil ? 0 : 100], "sheetCount": 0],
-					"pid": rawPid,
-					"appName": appName,
-				]
-				if let bundleId { menu["bundleId"] = bundleId }
-				roots.append(menu)
+				roots.append(Root(
+					kind: .menu,
+					rootRef: menuElement.map { refStore.storeWindow($0) } ?? "\(cgMenuRefPrefix)\(candidate.windowId)",
+					windowId: candidate.windowId,
+					zOrder: candidate.zOrder,
+					title: menuElement.flatMap { menuTitle($0) } ?? candidate.title,
+					role: "AXMenu",
+					subrole: "",
+					isModal: false,
+					framePoints: candidate.bounds,
+					scaleFactor: displayScaleFactor(for: candidate.bounds),
+					isMinimized: false,
+					isOnscreen: candidate.isOnscreen,
+					isMain: false,
+					isFocused: true,
+					metadata: RootMetadata(pairing: RootPairing(confidence: menuElement == nil ? .low : .high, score: menuElement == nil ? 0 : 100), sheetCount: 0),
+					pid: appPid,
+					appName: appName,
+					bundleId: bundleId
+				))
 			}
 			if let bar = menuBarRoot(pid: appPid, appName: appName, bundleId: bundleId) { roots.append(bar) }
 		}
-		roots.sort { (($0["zOrder"] as? Int) ?? Int.max) < (($1["zOrder"] as? Int) ?? Int.max) }
-		return ["roots": roots]
+		roots.sort { $0.zOrder < $1.zOrder }
+		return roots
 	}
 
-	func listWindows(pid: Int32, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = 1.0) throws -> [[String: Any]] {
+	/// The app's windows and their sheets, in the app's own window order.
+	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = 1.0) -> [Root] {
 		ensureEnhancedAccessibility(pid: pid)
 		let appElement = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
@@ -220,13 +214,13 @@ extension Bridge {
 		let candidates = cgWindowCandidates(pid: pid, entries: cgEntries)
 		let pairings = windowPairings(windows: windows, candidates: candidates)
 
-		var output: [[String: Any]] = []
+		var output: [Root] = []
 		for (zIndex, window) in windows.enumerated() {
 			let axTitle = stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? ""
 			let axRole = stringAttribute(window, attribute: kAXRoleAttribute as CFString) ?? ""
 			let axSubrole = stringAttribute(window, attribute: kAXSubroleAttribute as CFString) ?? ""
 			let axFrame = frameForWindow(window)
-			let pairing = pairings[ObjectIdentifier(window)] ?? WindowPairing(candidate: nil, score: -Double.greatestFiniteMagnitude, confidence: "low")
+			let pairing = pairings[ObjectIdentifier(window)] ?? .unpaired
 			let candidate = pairing.candidate
 
 			let effectiveFrame = axFrame.width > 1 && axFrame.height > 1 ? axFrame : (candidate?.bounds ?? axFrame)
@@ -239,56 +233,52 @@ extension Bridge {
 			let isFocused = boolAttribute(window, attribute: kAXFocusedAttribute as CFString) ?? false
 			let sheetCount = sheetElements(of: window).count
 			let isModal = (boolAttribute(window, attribute: "AXModal" as CFString) ?? false) || sheetCount > 0 || isDialogLikeRoot(role: axRole, subrole: axSubrole)
-			let scale = displayScaleFactor(for: effectiveFrame)
 
-			var item: [String: Any] = [
-				"kind": rootKind(role: axRole, subrole: axSubrole),
-				"rootRef": rootRef,
-				"zOrder": candidate?.zOrder ?? zIndex,
-				"title": title,
-				"role": axRole,
-				"subrole": axSubrole,
-				"isModal": isModal,
-				"framePoints": [
-					"x": effectiveFrame.origin.x,
-					"y": effectiveFrame.origin.y,
-					"w": effectiveFrame.size.width,
-					"h": effectiveFrame.size.height,
-				],
-				"scaleFactor": scale,
-				"isMinimized": isMinimized,
-				"isOnscreen": candidate?.isOnscreen ?? !isMinimized,
-				"isMain": isMain,
-				"isFocused": isFocused,
-				"metadata": rootMetadata(pairing: pairing, sheetCount: sheetCount),
-			]
-			if let candidate {
-				item["windowId"] = Int(candidate.windowId)
-			}
-			output.append(item)
+			output.append(Root(
+				kind: rootKind(role: axRole, subrole: axSubrole),
+				rootRef: rootRef,
+				windowId: candidate?.windowId,
+				zOrder: candidate?.zOrder ?? zIndex,
+				title: title,
+				role: axRole,
+				subrole: axSubrole,
+				isModal: isModal,
+				framePoints: effectiveFrame,
+				scaleFactor: displayScaleFactor(for: effectiveFrame),
+				isMinimized: isMinimized,
+				isOnscreen: candidate?.isOnscreen ?? !isMinimized,
+				isMain: isMain,
+				isFocused: isFocused,
+				metadata: rootMetadata(pairing: pairing, sheetCount: sheetCount),
+				pid: pid,
+				appName: appName,
+				bundleId: bundleId
+			))
 
 			for sheet in sheetElements(of: window) {
 				let sheetRef = refStore.storeWindow(sheet)
 				let sheetFrame = frameForWindow(sheet)
 				let sheetCandidate = bestCandidate(for: sheet, candidates: candidates)
-				var sheetItem: [String: Any] = [
-					"kind": "sheet",
-					"rootRef": sheetRef,
-					"zOrder": sheetCandidate?.zOrder ?? candidate?.zOrder ?? zIndex,
-					"title": stringAttribute(sheet, attribute: kAXTitleAttribute as CFString) ?? title,
-					"role": stringAttribute(sheet, attribute: kAXRoleAttribute as CFString) ?? "AXSheet",
-					"subrole": stringAttribute(sheet, attribute: kAXSubroleAttribute as CFString) ?? "",
-					"isModal": true,
-					"framePoints": ["x": sheetFrame.origin.x, "y": sheetFrame.origin.y, "w": sheetFrame.width, "h": sheetFrame.height],
-					"scaleFactor": displayScaleFactor(for: sheetFrame),
-					"isMinimized": false,
-					"isOnscreen": sheetCandidate?.isOnscreen ?? candidate?.isOnscreen ?? !isMinimized,
-					"isMain": false,
-					"isFocused": isFocused,
-					"metadata": ["pairing": ["confidence": sheetCandidate == nil ? pairing.confidence : "high", "score": sheetCandidate == nil ? pairing.score : 100], "sheetCount": 0],
-				]
-				if let sheetCandidate { sheetItem["windowId"] = Int(sheetCandidate.windowId) }
-				output.append(sheetItem)
+				output.append(Root(
+					kind: .sheet,
+					rootRef: sheetRef,
+					windowId: sheetCandidate?.windowId,
+					zOrder: sheetCandidate?.zOrder ?? candidate?.zOrder ?? zIndex,
+					title: stringAttribute(sheet, attribute: kAXTitleAttribute as CFString) ?? title,
+					role: stringAttribute(sheet, attribute: kAXRoleAttribute as CFString) ?? "AXSheet",
+					subrole: stringAttribute(sheet, attribute: kAXSubroleAttribute as CFString) ?? "",
+					isModal: true,
+					framePoints: sheetFrame,
+					scaleFactor: displayScaleFactor(for: sheetFrame),
+					isMinimized: false,
+					isOnscreen: sheetCandidate?.isOnscreen ?? candidate?.isOnscreen ?? !isMinimized,
+					isMain: false,
+					isFocused: isFocused,
+					metadata: RootMetadata(pairing: sheetCandidate == nil ? RootPairing(confidence: pairing.confidence, score: pairing.score) : RootPairing(confidence: .high, score: 100), sheetCount: 0),
+					pid: pid,
+					appName: appName,
+					bundleId: bundleId
+				))
 			}
 		}
 		return output

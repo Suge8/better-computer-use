@@ -1,6 +1,6 @@
 import AppKit
 
-extension Bridge {
+extension Platform {
 	/// The facts an element tells about itself, in the order they are reported.
 	static let evidenceAttributes: [(field: String, attribute: CFString)] = [
 		("value", kAXValueAttribute as CFString),
@@ -16,7 +16,6 @@ extension Bridge {
 	/// An item in a menu reports its highlight as AXSelected, and AppKit leaves it on the item
 	/// last pressed; it is not a state the press set. A menu bar item's AXSelected is its
 	/// menu being open, which is.
-
 	func evidenceSnapshot(_ element: AXUIElement) -> [String: String]? {
 		guard let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) else { return nil }
 		var snapshot: [String: String] = [:]
@@ -31,12 +30,12 @@ extension Bridge {
 		return flat.count > Self.evidenceReportLimit ? String(flat.prefix(Self.evidenceReportLimit)) + "\u{2026}" : flat
 	}
 
-	func evidenceDifference(before: [String: String], after: [String: String]) -> [String: Any]? {
+	func evidenceDifference(before: [String: String], after: [String: String]) -> ActEvidence? {
 		for entry in Self.evidenceAttributes {
 			let from = before[entry.field] ?? ""
 			let to = after[entry.field] ?? ""
 			guard from != to else { continue }
-			return ["source": "ax", "field": entry.field, "from": evidenceExcerpt(from), "to": evidenceExcerpt(to)]
+			return ActEvidence(source: .ax, field: entry.field, from: evidenceExcerpt(from), to: evidenceExcerpt(to))
 		}
 		return nil
 	}
@@ -108,7 +107,7 @@ extension Bridge {
 
 	static let screenEvidenceTitleBarPoints = 28.0
 
-	func screenChanged(before: CGImage, windowId: UInt32, timeout: TimeInterval = Bridge.screenEvidenceTimeout) -> Bool {
+	func screenChanged(before: CGImage, windowId: UInt32, timeout: TimeInterval = Platform.screenEvidenceTimeout) -> Bool {
 		func ratio(_ after: CGImage) -> Double {
 			let width = min(before.width, after.width), height = min(before.height, after.height)
 			let scale = currentWindowBounds(windowId: windowId).map { $0.width > 0 ? Double(before.width) / Double($0.width) : 1 } ?? 1

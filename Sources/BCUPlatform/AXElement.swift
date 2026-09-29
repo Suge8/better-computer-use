@@ -2,16 +2,10 @@ import AppKit
 
 struct AXDescendant {
 	let element: AXUIElement
-	let depth: Int
 	let insideWebArea: Bool
-	let axVisible: Bool
 }
 
-extension Bridge {
-	func findDescendant(startingAt root: AXUIElement, maxDepth: Int, predicate: (AXUIElement) -> Bool) -> AXUIElement? {
-		collectDescendants(startingAt: root, maxDepth: maxDepth).first(where: predicate)
-	}
-
+extension Platform {
 	func ensureEnhancedAccessibility(pid: Int32) {
 		enhancedAccessibilityLock.lock()
 		let inserted = enhancedAccessibilityPids.insert(pid).inserted
@@ -42,55 +36,32 @@ extension Bridge {
 
 	func collectDescendantsWithContext(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXDescendant] {
 		let nodeLimit = max(1, maxNodes)
-		var queue: [(AXUIElement, Int, Bool, Bool)] = [(root, 0, false, true)]
+		var queue: [(element: AXUIElement, depth: Int, insideWebArea: Bool)] = [(root, 0, false)]
 		var seen = Set<ObjectIdentifier>()
 		var index = 0
 		var output: [AXDescendant] = []
 		while index < queue.count && output.count < nodeLimit {
-			let (element, depth, parentInsideWebArea, inheritedVisible) = queue[index]
+			let (element, depth, parentInsideWebArea) = queue[index]
 			index += 1
 			let identity = ObjectIdentifier(element)
 			if seen.contains(identity) { continue }
 			seen.insert(identity)
 			let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 			let insideWebArea = parentInsideWebArea || role == "AXWebArea"
-			output.append(AXDescendant(element: element, depth: depth, insideWebArea: insideWebArea, axVisible: inheritedVisible))
+			output.append(AXDescendant(element: element, insideWebArea: insideWebArea))
 			if depth >= maxDepth { continue }
-			let children = axElementArray(element, attribute: kAXChildrenAttribute as CFString)
-			let visibleChildren = visibleAXChildren(element)
-			for child in children {
+			for child in axElementArray(element, attribute: kAXChildrenAttribute as CFString) {
 				if queue.count >= nodeLimit { break }
-				let childVisible = inheritedVisible && (visibleChildren.map { set in set.contains { self.sameElement($0, child) } } ?? true)
-				queue.append((child, depth + 1, insideWebArea, childVisible))
+				queue.append((child, depth + 1, insideWebArea))
 			}
 		}
 		return output
 	}
 
-	func visibleAXChildren(_ element: AXUIElement) -> [AXUIElement]? {
-		let attributes: [CFString] = [
-			kAXVisibleChildrenAttribute as CFString,
-			kAXVisibleRowsAttribute as CFString,
-			kAXVisibleColumnsAttribute as CFString,
-			kAXVisibleCellsAttribute as CFString,
-		]
-		let visible = attributes.flatMap { axElementArray(element, attribute: $0) }
-		return visible.isEmpty ? nil : visible
-	}
-
-	func insideWebAreaMap(_ descendants: [AXDescendant]) -> [ObjectIdentifier: Bool] {
-		var output: [ObjectIdentifier: Bool] = [:]
-		for descendant in descendants {
-			let key = ObjectIdentifier(descendant.element)
-			output[key] = (output[key] ?? false) || descendant.insideWebArea
-		}
-		return output
-	}
-
-	func axSource(role: String, insideWebArea: Bool, isBrowser: Bool, containsWebArea: Bool) -> String {
-		if insideWebArea || role == "AXWebArea" { return "web_content_ax" }
-		if isBrowser || containsWebArea { return "browser_chrome_ax" }
-		return "desktop_ax"
+	func axSource(role: String, insideWebArea: Bool, isBrowser: Bool, containsWebArea: Bool) -> ElementSource {
+		if insideWebArea || role == "AXWebArea" { return .webContent }
+		if isBrowser || containsWebArea { return .browserChrome }
+		return .desktop
 	}
 
 	func frameForElement(_ element: AXUIElement) -> CGRect? {

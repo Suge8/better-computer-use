@@ -17,10 +17,12 @@ struct CGWindowOwnerSummary {
 struct WindowPairing {
 	let candidate: CGWindowCandidate?
 	let score: Double
-	let confidence: String
+	let confidence: PairingConfidence
+
+	static let unpaired = WindowPairing(candidate: nil, score: -Double.greatestFiniteMagnitude, confidence: .low)
 }
 
-extension Bridge {
+extension Platform {
 	func allCGWindowEntries() -> [[String: Any]] {
 		(CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
 	}
@@ -142,7 +144,7 @@ extension Bridge {
 	}
 
 	func pairingForWindow(_ window: AXUIElement, pid: Int32) -> WindowPairing {
-		windowPairings(windows: [window], candidates: cgWindowCandidates(pid: pid))[ObjectIdentifier(window)] ?? WindowPairing(candidate: nil, score: -Double.greatestFiniteMagnitude, confidence: "low")
+		windowPairings(windows: [window], candidates: cgWindowCandidates(pid: pid))[ObjectIdentifier(window)] ?? .unpaired
 	}
 
 	func windowPairings(windows: [AXUIElement], candidates: [CGWindowCandidate]) -> [ObjectIdentifier: WindowPairing] {
@@ -170,7 +172,7 @@ extension Bridge {
 		for window in windows {
 			let key = ObjectIdentifier(window)
 			if output[key] == nil {
-				output[key] = WindowPairing(candidate: nil, score: -Double.greatestFiniteMagnitude, confidence: "low")
+				output[key] = .unpaired
 			}
 		}
 		return output
@@ -198,15 +200,15 @@ extension Bridge {
 		return score
 	}
 
-	func pairingConfidence(frame: CGRect, title: String, candidate: CGWindowCandidate, score: Double) -> String {
-		guard frame.width > 1 && frame.height > 1 else { return "low" }
+	func pairingConfidence(frame: CGRect, title: String, candidate: CGWindowCandidate, score: Double) -> PairingConfidence {
+		guard frame.width > 1 && frame.height > 1 else { return .low }
 		let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 		let candidateTitle = candidate.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 		let titleEqual = !normalizedTitle.isEmpty && !candidateTitle.isEmpty && normalizedTitle == candidateTitle
 		let geometryExact = abs(frame.origin.x - candidate.bounds.origin.x) <= 2 && abs(frame.origin.y - candidate.bounds.origin.y) <= 2 && abs(frame.width - candidate.bounds.width) <= 2 && abs(frame.height - candidate.bounds.height) <= 2
-		if titleEqual && geometryExact { return "exact" }
-		if score >= 50 { return "high" }
-		return "low"
+		if titleEqual && geometryExact { return .exact }
+		if score >= 50 { return .high }
+		return .low
 	}
 
 	func displayScaleFactor(for frame: CGRect) -> Double {

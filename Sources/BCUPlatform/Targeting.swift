@@ -5,7 +5,7 @@ let axScrollUpAction = "AXScrollUp" as CFString
 let axScrollLeftAction = "AXScrollLeft" as CFString
 let axScrollRightAction = "AXScrollRight" as CFString
 
-extension Bridge {
+extension Platform {
 	func refindElement(ref: String, pid: Int32, windowId: UInt32) -> AXUIElement? {
 		guard let snapshot = refStore.snapshot(for: ref),
 			let window = resolveRoot(pid: pid, windowId: windowId)
@@ -83,51 +83,24 @@ extension Bridge {
 		return actions.contains(axScrollDownAction as String) || actions.contains(axScrollUpAction as String) || actions.contains(axScrollLeftAction as String) || actions.contains(axScrollRightAction as String)
 	}
 
-	func performScrollActionOrAncestor(startingAt element: AXUIElement, targetPid: Int32, scrollX: Int, scrollY: Int, steps: Int) -> [String: Any] {
+	/// Scrolls with the element's own scroll actions, or those of the nearest ancestor of the
+	/// same process that has them. False when nothing in the chain scrolled.
+	func performScrollActionOrAncestor(startingAt element: AXUIElement, targetPid: Int32, scrollX: Int, scrollY: Int) -> Bool {
 		let actions = scrollActionNames(scrollX: scrollX, scrollY: scrollY)
-		guard !actions.isEmpty else { return ["scrolled": false, "reason": "zero_delta"] }
+		guard !actions.isEmpty else { return false }
 		var current: AXUIElement? = element
 		var depth = 0
 
 		while let candidate = current, depth < 10 {
-			if let pid = pidForElement(candidate), pid != targetPid {
-				return ["scrolled": false, "reason": "pid_mismatch", "ownerPid": Int(pid)]
-			}
+			if let pid = pidForElement(candidate), pid != targetPid { return false }
 			var didScroll = false
-			for _ in 0..<steps {
-				for action in actions where supportsAction(candidate, action: action) {
-					let status = AXUIElementPerformAction(candidate, action)
-					if status == .success { didScroll = true }
-				}
+			for action in actions where supportsAction(candidate, action: action) {
+				if AXUIElementPerformAction(candidate, action) == .success { didScroll = true }
 			}
-			if didScroll { return ["scrolled": true] }
+			if didScroll { return true }
 			current = parentElement(candidate)
 			depth += 1
 		}
-
-		return ["scrolled": false, "reason": "no_scroll_action"]
-	}
-
-	func performActionOrAncestor(startingAt element: AXUIElement, action: CFString, targetPid: Int32) -> [String: Any] {
-		var current: AXUIElement? = element
-		var depth = 0
-
-		while let candidate = current, depth < 10 {
-			if let pid = pidForElement(candidate), pid != targetPid {
-				return ["performed": false, "reason": "pid_mismatch", "ownerPid": Int(pid)]
-			}
-
-			if supportsAction(candidate, action: action) {
-				let actionStatus = AXUIElementPerformAction(candidate, action)
-				if actionStatus == .success {
-					return ["performed": true]
-				}
-			}
-
-			current = parentElement(candidate)
-			depth += 1
-		}
-
-		return ["performed": false, "reason": "no_matching_action"]
+		return false
 	}
 }

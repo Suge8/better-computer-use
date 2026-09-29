@@ -22,7 +22,7 @@ final class RootAXObserverState {
 	}
 }
 
-extension Bridge {
+extension Platform {
 	func ensureRootObserver(pid: Int32) -> Bool {
 		rootObserverLock.lock()
 		if let existing = rootObservers[pid] {
@@ -37,8 +37,8 @@ extension Bridge {
 		var observer: AXObserver?
 		let createStatus = AXObserverCreate(pid, { observer, element, notification, refcon in
 			guard let refcon else { return }
-			let bridge = Unmanaged<Bridge>.fromOpaque(refcon).takeUnretainedValue()
-			bridge.recordRootAXEvent(observer: observer, notification: notification as String, element: element)
+			let platform = Unmanaged<Platform>.fromOpaque(refcon).takeUnretainedValue()
+			platform.recordRootAXEvent(observer: observer, notification: notification as String, element: element)
 		}, &observer)
 		guard createStatus == .success, let observer else { return false }
 

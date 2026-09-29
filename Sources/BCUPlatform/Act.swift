@@ -1,28 +1,32 @@
 import AppKit
 
-extension Bridge {
-	func act(_ request: [String: Any]) throws -> [String: Any] {
-		let lookId = try stringArg(request, "lookId")
-		guard let record = lookRecord(for: lookId) else {
-			throw BridgeFailure(message: "Look id '\(lookId)' is no longer available", code: "stale_look")
+extension Platform {
+	/// Delivers one action on the look's root and judges its outcome from the evidence; see
+	/// "投递梯子" and "Action transaction" in docs/architecture.md.
+	public func act(_ request: ActRequest) throws -> ActResult {
+		try act(request, deferRootDelta: false)
+	}
+
+	/// `deferRootDelta` leaves the root changes to the batch that runs this step.
+	func act(_ request: ActRequest, deferRootDelta: Bool) throws -> ActResult {
+		guard let record = lookRecord(for: request.lookId) else {
+			throw PlatformError(message: "Look id '\(request.lookId)' is no longer available", code: "stale_look")
 		}
-		let pid = Int32(try intArg(request, "pid"))
-		let action = try stringArg(request, "action")
-		let target = request["target"] as? [String: Any] ?? [:]
-		let params = request["params"] as? [String: Any] ?? [:]
-		let policy = optionalStringArg(request, "policy") ?? "default"
-		let deferRootDelta = boolArg(request, "deferRootDelta") ?? false
-		let delivery = policy == "background" ? "pid" : ((params["delivery"] as? String) == "pid" ? "pid" : "hid")
+		let pid = request.pid
+		let action = request.action
+		let params = request.params
+		let policy = request.policy
+		let delivery: Delivery = policy == .background || params.pidDelivery ? .pid : .hid
 		var holdsPhysicalInput = false
 		func acquirePhysicalInputIfNeeded() {
-			if delivery == "hid" && !holdsPhysicalInput {
+			if delivery == .hid && !holdsPhysicalInput {
 				physicalInputLock.lock()
 				holdsPhysicalInput = true
 			}
 		}
 		defer { if holdsPhysicalInput { physicalInputLock.unlock() } }
-		let pressLike = action == "press" || action == "click"
-		var performed: [String: Any] = ["delivery": delivery]
+		let pressLike = action == .press || action == .click
+		var performed = ActPerformed(delivery: delivery)
 		var element: AXUIElement?
 		var rawPoint: CGPoint?
 		// The element the outcome is judged on, and whether the pointer provably reached it.
@@ -33,7 +37,7 @@ extension Bridge {
 		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
 		var beforeFrontmostPid: pid_t?
 		var eventCursor: UInt64 = 0
-		var beforeRootSnapshot: [String: [String: Any]] = [:]
+		var beforeRootSnapshot: [String: Root] = [:]
 		var beforeCgSignature: Set<UInt32> = []
 		var beforeSheetCount = 0
 		var beforeFocusedWindow = ""
@@ -52,21 +56,30 @@ extension Bridge {
 			if let subject = element ?? evidenceElement { beforeEvidence = evidenceSnapshot(subject) }
 		}
 		takeBaseline()
-		func finish(_ response: [String: Any]) -> [String: Any] {
+		func finish(_ response: ActResult) -> ActResult {
 			if deferRootDelta { return response }
-			return attachRootDelta(to: response, before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+			var result = response
+			let observed = awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+			result.performed.deltaSource = observed.source
+			result.rootDelta = observed.delta
+			if rootDeltaIsEvidence(observed.delta, pid: pid), result.outcome == .unknown {
+				result.outcome = .worked
+				result.verification = ActEvidence(source: .root)
+			}
+			return result
 		}
 		/// Input posted to a pid reaches only its key window. The handoff is taken into the
 		/// baseline, so it is never mistaken for the action's own effect.
 		func focusTargetForBackgroundInput() throws {
-			guard delivery == "pid", policy != "ax_only", !(params["preserveFocus"] as? Bool ?? false),
+			guard delivery == .pid, policy != .axOnly, !params.preserveFocus,
 				try focusWindowWithoutRaise(pid: pid, windowId: record.windowId)
 			else { return }
-			performed["focusedWindow"] = true
+			performed.focusedWindow = true
 			takeBaseline()
 		}
 
-		if let ref = target["ref"] as? String {
+		switch request.target {
+		case .ref(let ref):
 			var refound = false
 			let cached = refStore.element(for: ref)
 			let cachedIsLive = cached.map {
@@ -84,22 +97,22 @@ extension Bridge {
 				if resolved == nil, let cached, stringAttribute(cached, attribute: kAXRoleAttribute as CFString) != nil { resolved = cached }
 			}
 			guard let stored = resolved else {
-				throw BridgeFailure(message: "Element reference is stale", code: "stale_ref")
+				throw PlatformError(message: "Element reference is stale", code: "stale_ref")
 			}
-			if refound { performed["refound"] = true }
+			if refound { performed.refound = true }
 			element = stored
 			evidenceElement = stored
 			beforeEvidence = evidenceSnapshot(stored)
-		} else if let xNumber = target["x"] as? NSNumber, let yNumber = target["y"] as? NSNumber {
+		case .point(let x, let y):
 			guard record.hasImage else {
-				throw BridgeFailure(message: "Coordinate targeting is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
+				throw PlatformError(message: "Coordinate targeting is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
 			}
-			let point = lookPoint(record: record, x: xNumber.doubleValue, y: yNumber.doubleValue)
+			let point = lookPoint(record: record, x: x, y: y)
 			rawPoint = point
 			// A plain click over a native discrete control takes the same ladder as its ref,
 			// starting from a background AXPress. Web content keeps the pointer: Chromium's own
 			// pointer path is exact, and its AXPress cannot be told apart from a no-op.
-			let plainClick = pressLike && (params["button"] as? String ?? "left") == "left" && ((params["clickCount"] as? NSNumber)?.intValue ?? 1) == 1
+			let plainClick = pressLike && params.button == .left && params.clickCount == 1
 			if plainClick, let control = coordinateSubject(at: point, pid: pid, windowId: record.windowId),
 				Self.discreteControlRoles.contains(stringAttribute(control, attribute: kAXRoleAttribute as CFString) ?? ""),
 				supportsAction(control, action: kAXPressAction as CFString),
@@ -109,8 +122,6 @@ extension Bridge {
 				evidenceElement = control
 				beforeEvidence = evidenceSnapshot(control)
 			}
-		} else {
-			throw BridgeFailure(message: "act target must include ref or x/y", code: "invalid_args")
 		}
 
 		func coordinatePoint() throws -> CGPoint {
@@ -118,15 +129,15 @@ extension Bridge {
 			if let element, let frame = frameForElement(element) {
 				return CGPoint(x: frame.midX, y: frame.midY)
 			}
-			throw BridgeFailure(message: "No coordinate grounding is available", code: "coordinate_unavailable")
+			throw PlatformError(message: "No coordinate grounding is available", code: "coordinate_unavailable")
 		}
 
 		func animateCursor(at point: CGPoint) {
-			guard supportsAgentCursor,
-				(request["cursorOverlay"] as? Bool ?? true),
-				delivery == "pid",
-				policy != "ax_only",
-				["press", "click", "moveMouse", "scroll", "drag"].contains(action)
+			guard showsAgentCursor,
+				request.cursorOverlay,
+				delivery == .pid,
+				policy != .axOnly,
+				[.press, .click, .moveMouse, .scroll, .drag].contains(action)
 			else { return }
 			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId) }
 		}
@@ -137,7 +148,7 @@ extension Bridge {
 		/// switch is bcu's own doing, so the baseline is taken after it.
 		func activateForMenuBar(_ item: AXUIElement) {
 			guard let app = NSRunningApplication(processIdentifier: pid) else { return }
-			performed["activated"] = app.activate()
+			performed.activated = app.activate()
 			let barItem = ancestor(of: item, role: kAXMenuBarItemRole as String) ?? item
 			let deadline = Date().addingTimeInterval(1.5)
 			while Date() < deadline, (frameForElement(barItem)?.width ?? 0) <= 0 { usleep(20_000) }
@@ -168,7 +179,7 @@ extension Bridge {
 				let observed = ensureRootObserver(pid: pid)
 				let cursor = rootEventCursor(pid: pid)
 				guard AXUIElementPerformAction(opener, kAXPressAction as CFString) == .success else {
-					throw BridgeFailure(message: "The menu holding '\(title)' did not open", code: "input_failed")
+					throw PlatformError(message: "The menu holding '\(title)' did not open", code: "input_failed")
 				}
 				// AppKit posts AXMenuOpened once the menu is validated and tracking; the menu's
 				// geometry can appear before that, so it is only the signal without an observer.
@@ -180,16 +191,16 @@ extension Bridge {
 				let deadline = Date().addingTimeInterval(1.0)
 				while !isOpen() {
 					guard Date() < deadline else {
-						throw BridgeFailure(message: "The menu holding '\(title)' did not open", code: "input_failed")
+						throw PlatformError(message: "The menu holding '\(title)' did not open", code: "input_failed")
 					}
 					usleep(20_000)
 				}
 			}
 			if eventsLive { eventCursor = rootEventCursor(pid: pid) }
-			if opened != nil { performed["openedMenus"] = true }
+			if opened != nil { performed.openedMenus = true }
 			if boolAttribute(item, attribute: kAXEnabledAttribute as CFString) == false {
 				_ = AXUIElementPerformAction(item, kAXCancelAction as CFString)
-				throw BridgeFailure(message: "The menu item '\(title)' is disabled", code: "element_disabled")
+				throw PlatformError(message: "The menu item '\(title)' is disabled", code: "element_disabled")
 			}
 			return opened
 		}
@@ -202,14 +213,14 @@ extension Bridge {
 		}
 
 		func focusTargetForPhysicalInput() {
-			guard delivery == "hid" else { return }
+			guard delivery == .hid else { return }
 			if let app = NSRunningApplication(processIdentifier: pid), !app.isActive {
-				performed["activated"] = app.activate()
+				performed.activated = app.activate()
 			}
 			if let window = resolveRoot(pid: pid, windowId: record.windowId) {
 				_ = AXUIElementSetAttributeValue(window, kAXMainAttribute as CFString, kCFBooleanTrue)
 				_ = AXUIElementSetAttributeValue(window, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-				performed["raised"] = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
+				performed.raised = AXUIElementPerformAction(window, kAXRaiseAction as CFString) == .success
 			}
 			// Activation lands asynchronously; the baseline waits for it so the switch is
 			// never read as the action's effect.
@@ -228,21 +239,21 @@ extension Bridge {
 				}
 				let role = stringAttribute(hit, attribute: kAXRoleAttribute as CFString) ?? ""
 				if role == "AXWindow" || role == "AXApplication" { return }
-				if delivery == "hid" && attempt < 3 {
+				if delivery == .hid && attempt < 3 {
 					focusTargetForPhysicalInput()
 					usleep(20_000)
 					continue
 				}
-				throw BridgeFailure(message: "Target is occluded by \(payloadNode(element: hit))", code: "occluded_target")
+				throw PlatformError(message: "Target is occluded by \(describedNode(hit).wireObject())", code: "occluded_target")
 			}
 		}
 
 		func executeCoordinates(_ point: CGPoint) throws {
 			guard element != nil || record.hasImage else {
-				throw BridgeFailure(message: "Coordinate grounding is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
+				throw PlatformError(message: "Coordinate grounding is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
 			}
-			performed["grounding"] = "coordinates"
-			if delivery == "pid" { performed["verification"] = "caller_required" }
+			performed.grounding = .coordinates
+			if delivery == .pid { performed.callerMustVerify = true }
 			let subject = element ?? coordinateSubject(at: point, pid: pid, windowId: record.windowId)
 			let webTarget = subject.map { hasAncestorRole($0, role: "AXWebArea") } ?? false
 			let readable = subject.map(hasReadableEvidence) ?? false
@@ -255,89 +266,81 @@ extension Bridge {
 				hitVerified = true
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == "pid", !webTarget {
+			if delivery == .pid, !webTarget {
 				// A stock NSView drops the first click on an inactive app; this makes the
 				// target app take the click without becoming the front app.
 				try SkyLight.activateWithoutRaise(windowId: record.windowId)
-				performed["backgroundActivation"] = true
+				performed.backgroundActivation = true
 			} else {
 				focusTargetForPhysicalInput()
 				try focusTargetForBackgroundInput()
 			}
 			if screenTarget, let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
-			if delivery == "hid" { try preflight(point) }
+			if delivery == .hid { try preflight(point) }
 			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
 			switch action {
-			case "press", "click":
+			case .press, .click:
 				animateCursor(at: point)
-				try postMouseClick(at: point, pid: pid, route: route, button: mouseButton(params["button"] as? String ?? "left"), clickCount: max(1, min(3, (params["clickCount"] as? NSNumber)?.intValue ?? 1)), delivery: delivery)
-			case "moveMouse":
+				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery)
+			case .moveMouse:
 				animateCursor(at: point)
 				try postMouseMove(to: point, pid: pid, delivery: delivery)
-			case "scroll":
+			case .scroll:
 				animateCursor(at: point)
-				try postScrollWheel(at: point, deltaX: (params["scrollX"] as? NSNumber)?.intValue ?? 0, deltaY: (params["scrollY"] as? NSNumber)?.intValue ?? 0, pid: pid, route: route, delivery: delivery)
-			case "drag":
-				guard let rawPath = params["path"] as? [[String: Any]], rawPath.count >= 2 else {
-					throw BridgeFailure(message: "drag requires path", code: "invalid_args")
-				}
-				let points = try rawPath.map { raw -> CGPoint in
-					guard let x = (raw["x"] as? NSNumber)?.doubleValue, let y = (raw["y"] as? NSNumber)?.doubleValue else {
-						throw BridgeFailure(message: "drag path entries require x and y", code: "invalid_args")
-					}
-					return lookPoint(record: record, x: x, y: y)
+				try postScrollWheel(at: point, deltaX: params.scrollX, deltaY: params.scrollY, pid: pid, route: route, delivery: delivery)
+			case .drag:
+				guard let path = params.path, path.count >= 2 else {
+					throw PlatformError(message: "drag requires path", code: "invalid_args")
 				}
 				animateCursor(at: point)
-				try postMouseDrag(points: points, pid: pid, delivery: delivery)
-			default:
-				throw BridgeFailure(message: "Action \(action) cannot use coordinate grounding", code: "invalid_args")
+				try postMouseDrag(points: path.map { lookPoint(record: record, x: $0.x, y: $0.y) }, pid: pid, delivery: delivery)
+			case .setText, .typeText, .keypress:
+				throw PlatformError(message: "Action \(action.rawValue) cannot use coordinate grounding", code: "invalid_args")
 			}
 		}
 
 		func refreshElement() -> AXUIElement? {
-			guard let ref = target["ref"] as? String,
+			guard case .ref(let ref) = request.target,
 				let refreshed = refindElement(ref: ref, pid: pid, windowId: record.windowId)
 			else { return nil }
 			element = refreshed
-			performed["refound"] = true
+			performed.refound = true
 			return refreshed
 		}
 
 		/// Judges the outcome on the evidence rules; see docs/architecture.md.
-		func verdict() -> [String: Any] {
+		func verdict() -> ActResult {
 			let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
 			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
-			var outcome = "unknown"
-			var verification: [String: Any]?
+			var outcome = ActOutcome.unknown
+			var verification: ActEvidence?
 			// The element that was acted on speaks first: its own value, selection or focus
 			// moving is proof no window-level summary can contradict.
 			if let subject = element ?? evidenceElement, let before = beforeEvidence {
 				let after = evidenceAfterAction(subject, before: before, timeout: 0.25)
 				if let after, let difference = evidenceDifference(before: before, after: after) {
-					outcome = "worked"
+					outcome = .worked
 					verification = difference
 				} else if pressLike, hitVerified, after?["focused"] == "1", !Set([kAXWindowRole, kAXApplicationRole]).contains(stringAttribute(subject, attribute: kAXRoleAttribute as CFString) ?? "") {
 					// The pointer provably reached this element and it now holds keyboard focus:
 					// a click that only places a caret leaves no other trace.
-					outcome = "worked"
-					verification = ["source": "focus", "field": "focused"]
+					outcome = .worked
+					verification = ActEvidence(source: .focus, field: "focused")
 				} else if pressLike, after != nil, before["value"] != nil, isToggleLike(subject) {
-					outcome = "didnt"
-					verification = ["source": "ax", "field": "value", "from": evidenceExcerpt(before["value"] ?? ""), "to": evidenceExcerpt(before["value"] ?? "")]
+					outcome = .didnt
+					verification = ActEvidence(source: .ax, field: "value", from: evidenceExcerpt(before["value"] ?? ""), to: evidenceExcerpt(before["value"] ?? ""))
 				}
 			}
-			if outcome == "unknown", windowChanged {
-				outcome = "worked"
-				verification = ["source": "root"]
+			if outcome == .unknown, windowChanged {
+				outcome = .worked
+				verification = ActEvidence(source: .root)
 			}
 			// Weakest evidence, and the slowest to read: only for a subject with no AX fact.
-			if outcome == "unknown", let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
-				outcome = "worked"
-				verification = ["source": "screen", "field": "changed"]
+			if outcome == .unknown, let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
+				outcome = .worked
+				verification = ActEvidence(source: .screen, field: "changed")
 			}
-			var response: [String: Any] = ["outcome": outcome, "performed": performed]
-			if let verification { response["verification"] = verification }
-			return response
+			return ActResult(outcome: outcome, performed: performed, verification: verification)
 		}
 
 		if let element, pressLike {
@@ -354,14 +357,14 @@ extension Bridge {
 			let requiresFrontmost = inMenuBar && !(NSRunningApplication(processIdentifier: pid)?.isActive ?? false)
 			// Headless (`ax_only`) may not activate, so it gets the refusal as well instead of a
 			// press that silently does nothing.
-			if requiresFrontmost && policy != "foreground" {
-				throw BridgeFailure(message: "The menu bar only answers in the frontmost app", code: "foreground_required")
+			if requiresFrontmost && policy != .foreground {
+				throw PlatformError(message: "The menu bar only answers in the frontmost app", code: "foreground_required")
 			}
-			if requiresPointerFocus && policy != "ax_only" {
-				if policy == "foreground" {
+			if requiresPointerFocus && policy != .axOnly {
+				if policy == .foreground {
 					try executeCoordinates(coordinatePoint())
 				} else {
-					throw BridgeFailure(message: "Text input needs the real pointer to place its caret", code: "foreground_required")
+					throw PlatformError(message: "Text input needs the real pointer to place its caret", code: "foreground_required")
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { activateForMenuBar(element) }
@@ -373,8 +376,8 @@ extension Bridge {
 					status = AXUIElementPerformAction(refreshed, kAXPressAction as CFString)
 				}
 				if status == .success {
-					performed["grounding"] = "description"
-					performed["delivery"] = "ax"
+					performed.grounding = .description
+					performed.delivery = .ax
 					if let openedMenu { awaitMenuClosed(openedMenu) }
 					if let cursorPoint { animateCursor(at: cursorPoint) }
 					// The ladder rule of docs/architecture.md: only a press that provably changed
@@ -382,8 +385,8 @@ extension Bridge {
 					// AXPress already dispatches mousedown, mouseup and click, so pressing again
 					// would apply the action twice.
 					let axVerdict = verdict()
-					if policy == "ax_only" || (axVerdict["outcome"] as? String) != "didnt" { return finish(axVerdict) }
-					performed["delivery"] = delivery
+					if policy == .axOnly || axVerdict.outcome != .didnt { return finish(axVerdict) }
+					performed.delivery = delivery
 					try executeCoordinates(coordinatePoint())
 				} else {
 					try executeCoordinates(coordinatePoint())
@@ -391,8 +394,8 @@ extension Bridge {
 			} else {
 				try executeCoordinates(coordinatePoint())
 			}
-		} else if let element, action == "setText" {
-			let text = params["text"] as? String ?? ""
+		} else if let element, action == .setText {
+			let text = params.text
 			var targetElement = element
 			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
 			if status != .success, let refreshed = refreshElement() {
@@ -400,50 +403,51 @@ extension Bridge {
 				status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
 			}
 			if status == .success {
-				performed["grounding"] = "description"
-				performed["delivery"] = "ax"
+				performed.grounding = .description
+				performed.delivery = .ax
 				let value = stringAttribute(targetElement, attribute: kAXValueAttribute as CFString) ?? ""
-				if value != text && policy != "foreground" {
-					throw BridgeFailure(message: "The background accessibility value write was accepted but did not take effect", code: "foreground_required")
+				if value != text && policy != .foreground {
+					throw PlatformError(message: "The background accessibility value write was accepted but did not take effect", code: "foreground_required")
 				}
-				return finish([
-					"outcome": value == text ? "worked" : "didnt",
-					"performed": performed,
-					"verification": ["source": "ax", "field": "value", "from": evidenceExcerpt(beforeEvidence?["value"] ?? ""), "to": evidenceExcerpt(value)],
-				])
+				return finish(ActResult(
+					outcome: value == text ? .worked : .didnt,
+					performed: performed,
+					verification: ActEvidence(source: .ax, field: "value", from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
+				))
 			}
 			try executeCoordinates(coordinatePoint())
-		} else if action == "typeText" {
-			let preserveFocus = params["preserveFocus"] as? Bool ?? false
+		} else if action == .typeText {
+			let preserveFocus = params.preserveFocus
 			try focusTargetForBackgroundInput()
 			if let element {
 				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-				if focused == .success { performed["focused"] = true }
+				if focused == .success { performed.focused = true }
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == "hid" && !preserveFocus { focusTargetForPhysicalInput() }
-			let text = params["text"] as? String ?? ""
+			if delivery == .hid && !preserveFocus { focusTargetForPhysicalInput() }
+			let text = params.text
 			try postUnicodeText(text, pid: pid, delivery: delivery)
-			performed["grounding"] = "coordinates"
+			performed.grounding = .coordinates
 			if let element, !text.isEmpty {
 				usleep(30_000)
 				let beforeValue = beforeEvidence?["value"] ?? ""
 				let afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
-				return finish([
-					"outcome": afterValue != beforeValue ? "worked" : "didnt",
-					"performed": performed,
-					"verification": ["source": "ax", "field": "value", "from": evidenceExcerpt(beforeValue), "to": evidenceExcerpt(afterValue)],
-				])
+				return finish(ActResult(
+					outcome: afterValue != beforeValue ? .worked : .didnt,
+					performed: performed,
+					verification: ActEvidence(source: .ax, field: "value", from: evidenceExcerpt(beforeValue), to: evidenceExcerpt(afterValue))
+				))
 			}
-		} else if action == "keypress" {
-			let preserveFocus = params["preserveFocus"] as? Bool ?? false
-			guard let keys = params["keys"] as? [String], !keys.isEmpty else {
-				throw BridgeFailure(message: "keypress requires keys", code: "invalid_args")
+		} else if action == .keypress {
+			let preserveFocus = params.preserveFocus
+			let keys = params.keys
+			guard !keys.isEmpty else {
+				throw PlatformError(message: "keypress requires keys", code: "invalid_args")
 			}
 			try focusTargetForBackgroundInput()
 			if let element {
 				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-				if focused == .success { performed["focused"] = true }
+				if focused == .success { performed.focused = true }
 				let normalizedKeys = keys.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
 				if normalizedKeys.count == 2,
 					normalizedKeys.last == "a",
@@ -454,25 +458,24 @@ extension Bridge {
 					if let selection = AXValueCreate(.cfRange, &range),
 						AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, selection) == .success
 					{
-						performed["selectionGrounding"] = "ax"
+						performed.selectedAllViaAX = true
 					}
 				}
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == "hid" && !preserveFocus { focusTargetForPhysicalInput() }
+			if delivery == .hid && !preserveFocus { focusTargetForPhysicalInput() }
 			try postKeyPress(keys: keys, pid: pid, delivery: delivery)
-			performed["grounding"] = "coordinates"
-		} else if let element, action == "scroll" {
+			performed.grounding = .coordinates
+		} else if let element, action == .scroll {
 			let cursorPoint = try? coordinatePoint()
 			let before = scrollPositionSignature(element)
 			// Chromium exposes no scroll action on a scrollable element, and the actions of
 			// its ancestors scroll the page instead, so web content scrolls by a wheel turn
 			// over the element itself.
 			let scrollsByWheel = hasAncestorRole(element, role: "AXWebArea") && !supportsAnyScrollAction(element)
-			let result = scrollsByWheel ? [:] : performScrollActionOrAncestor(startingAt: element, targetPid: pid, scrollX: (params["scrollX"] as? NSNumber)?.intValue ?? 0, scrollY: (params["scrollY"] as? NSNumber)?.intValue ?? 0, steps: 1)
-			if (result["scrolled"] as? Bool) == true {
-				performed["grounding"] = "description"
-				performed["delivery"] = "ax"
+			if !scrollsByWheel, performScrollActionOrAncestor(startingAt: element, targetPid: pid, scrollX: params.scrollX, scrollY: params.scrollY) {
+				performed.grounding = .description
+				performed.delivery = .ax
 				if let cursorPoint { animateCursor(at: cursorPoint) }
 			} else {
 				try executeCoordinates(coordinatePoint())
@@ -480,10 +483,10 @@ extension Bridge {
 			// Web content reports the new offset a frame or two after the wheel turn.
 			let deadline = Date().addingTimeInterval(0.3)
 			while before == scrollPositionSignature(element) {
-				guard Date() < deadline else { return finish(["outcome": "unknown", "performed": performed]) }
+				guard Date() < deadline else { return finish(ActResult(outcome: .unknown, performed: performed)) }
 				usleep(20_000)
 			}
-			return finish(["outcome": "worked", "performed": performed, "verification": ["source": "ax", "field": "scroll"]])
+			return finish(ActResult(outcome: .worked, performed: performed, verification: ActEvidence(source: .ax, field: "scroll")))
 		} else {
 			try executeCoordinates(coordinatePoint())
 		}
@@ -491,48 +494,55 @@ extension Bridge {
 		return finish(verdict())
 	}
 
-	func actBatch(_ request: [String: Any]) throws -> [String: Any] {
-		guard let actions = request["actions"] as? [[String: Any]], !actions.isEmpty, actions.count <= 20 else {
-			throw BridgeFailure(message: "actBatch requires 1...20 actions", code: "invalid_args")
+	/// Delivers up to 20 actions on one look as a transaction: one resource lock, one root
+	/// baseline, and a stop at the first step that provably did nothing or failed.
+	public func actBatch(_ requests: [ActRequest]) throws -> ActBatchResult {
+		guard let first = requests.first, requests.count <= 20 else {
+			throw PlatformError(message: "actBatch requires 1...20 actions", code: "invalid_args")
 		}
-		let pid = Int32(try intArg(actions[0], "pid"))
-		let lookId = try stringArg(actions[0], "lookId")
-		guard actions.allSatisfy({ ($0["pid"] as? NSNumber)?.int32Value == pid }) else {
-			throw BridgeFailure(message: "actBatch actions must target one pid", code: "invalid_args")
+		let pid = first.pid
+		guard requests.allSatisfy({ $0.pid == pid }) else {
+			throw PlatformError(message: "actBatch actions must target one pid", code: "invalid_args")
 		}
-		guard actions.allSatisfy({ ($0["lookId"] as? String) == lookId }) else {
-			throw BridgeFailure(message: "actBatch actions must belong to one look", code: "invalid_args")
+		guard requests.allSatisfy({ $0.lookId == first.lookId }) else {
+			throw PlatformError(message: "actBatch actions must belong to one look", code: "invalid_args")
 		}
 		let eventsLive = ensureRootObserver(pid: pid)
 		let eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
 		let beforeRootSnapshot = rootMetadataSnapshot(pid: pid)
 		let beforeCgSignature = cgRootSignature(pid: pid)
 		let beforeFrontmostPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
-		let mayUsePhysicalInput = actions.contains { action in
-			(optionalStringArg(action, "policy") ?? "default") != "ax_only"
-		}
+		let mayUsePhysicalInput = requests.contains { $0.policy != .axOnly }
 		if mayUsePhysicalInput { physicalInputLock.lock() }
 		defer { if mayUsePhysicalInput { physicalInputLock.unlock() } }
 
-		var steps: [[String: Any]] = []
+		var steps: [ActStep] = []
 		var stoppedAt: Int?
-		for (index, action) in actions.enumerated() {
-			var deferred = action
-			deferred["deferRootDelta"] = true
+		for (index, request) in requests.enumerated() {
 			do {
-				let step = try act(deferred)
-				steps.append(step)
-				if (step["outcome"] as? String) == "didnt" { stoppedAt = index; break }
-			} catch let failure as BridgeFailure {
-				steps.append(["outcome": "didnt", "error": ["code": failure.code, "message": failure.message]])
+				let step = try act(request, deferRootDelta: true)
+				steps.append(.completed(step))
+				if step.outcome == .didnt { stoppedAt = index; break }
+			} catch let failure as PlatformError {
+				steps.append(.failed(failure))
 				stoppedAt = index
 				break
 			}
 		}
-		let outcomes = steps.compactMap { $0["outcome"] as? String }
-		let outcome = outcomes.contains("didnt") ? "didnt" : (outcomes.contains("unknown") ? "unknown" : "worked")
-		var response: [String: Any] = ["outcome": outcome, "performed": ["transaction": true, "actionCount": steps.count], "steps": steps]
-		if let stoppedAt { response["stoppedAt"] = stoppedAt }
-		return attachRootDelta(to: response, before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+		let outcomes = steps.map(\.outcome)
+		let observed = awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+		var result = ActBatchResult(
+			outcome: outcomes.contains(.didnt) ? .didnt : (outcomes.contains(.unknown) ? .unknown : .worked),
+			steps: steps,
+			stoppedAt: stoppedAt,
+			deltaSource: observed.source,
+			verification: nil,
+			rootDelta: observed.delta
+		)
+		if rootDeltaIsEvidence(observed.delta, pid: pid), result.outcome == .unknown {
+			result.outcome = .worked
+			result.verification = ActEvidence(source: .root)
+		}
+		return result
 	}
 }

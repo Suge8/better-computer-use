@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 
 struct LookRecord {
 	let lookId: String
@@ -9,33 +10,34 @@ struct LookRecord {
 	let hasImage: Bool
 }
 
-extension Bridge {
+extension Platform {
 	/// A popup menu Accessibility never exposed still has screen geometry, so callers get a
 	/// picture-only root rather than a failure they cannot act on.
-	func cgMenuLook(rootRef: String, windowId: UInt32, capturedAt: Date) -> [String: Any] {
+	func cgMenuLook(rootRef: String, windowId: UInt32, capturedAt: Date) -> LookResult {
 		let frame = windowInfo(windowId: windowId)?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
 		let lookId = freshLookId()
 		storeLookRecord(LookRecord(lookId: lookId, windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false))
 		let outline = LookNode(element: nil, ref: rootRef, role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: max(1, frame.width), height: max(1, frame.height)), pictureOnly: true)
-		return [
-			"lookId": lookId,
-			"capturedAt": capturedAt.timeIntervalSince1970,
-			"window": ["windowId": Int(windowId), "rootRef": rootRef, "kind": "menu", "framePoints": ["x": frame.origin.x, "y": frame.origin.y, "w": frame.width, "h": frame.height], "scaleFactor": displayScaleFactor(for: frame), "isModal": false, "metadata": ["pairing": ["confidence": "low", "score": 0], "sheetCount": 0], "role": "AXMenu", "subrole": ""],
-			"outline": outline.payload(),
-			"timings": ["captureMs": 0, "describeMs": 0, "readTextMs": 0],
-		]
+		return LookResult(
+			lookId: lookId,
+			capturedAt: capturedAt,
+			window: LookWindow(windowId: windowId, rootRef: rootRef, kind: .menu, framePoints: frame, scaleFactor: displayScaleFactor(for: frame), isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .low, score: 0), sheetCount: 0), role: "AXMenu", subrole: ""),
+			outline: outline,
+			timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
+			readText: nil,
+			image: nil
+		)
 	}
 
-	func look(_ request: [String: Any]) throws -> [String: Any] {
-		let windowId = optionalIntArg(request, "windowId").map { UInt32($0) }
-		let rootRef = try stringArg(request, "rootRef")
-		let maxDimension = optionalIntArg(request, "maxDimension").map { max(1, $0) }
-		let readText = optionalStringArg(request, "readText") ?? "auto"
-		let baseLookId = optionalStringArg(request, "baseLookId")
-		let includeImage = boolArg(request, "includeImage") ?? true
-		guard readText == "auto" || readText == "always" || readText == "never" else {
-			throw BridgeFailure(message: "readText must be auto, always, or never", code: "invalid_args")
-		}
+	/// Observes one root: its accessibility outline, and its picture and the text read from
+	/// it when asked or when Accessibility says too little. The look is remembered so later
+	/// actions can address its refs and coordinates.
+	public func look(_ request: LookRequest) throws -> LookResult {
+		let windowId = request.windowId
+		let rootRef = request.rootRef
+		let maxDimension = request.maxDimension.map { max(1, $0) }
+		let readText = request.readText
+		let includeImage = request.includeImage
 
 		let requestedRoot = refStore.window(for: rootRef)
 		let requestedRole = requestedRoot.flatMap { stringAttribute($0, attribute: kAXRoleAttribute as CFString) } ?? ""
@@ -48,24 +50,24 @@ extension Bridge {
 			defer { captureMs = elapsedMs(started) }
 			return try captureWindow(windowId: windowId)
 		}
-		var capture = includeImage || readText == "always" ? try capturedWindow() : nil
+		var capture = includeImage || readText == .always ? try capturedWindow() : nil
 
 		guard let window = requestedRoot else {
 			guard let menuWindowId = cgMenuWindowId(rootRef), let menuPid = pidForWindowId(menuWindowId) else {
-				throw BridgeFailure(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
+				throw PlatformError(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
 			}
 			ensureEnhancedAccessibility(pid: menuPid)
 			return cgMenuLook(rootRef: rootRef, windowId: menuWindowId, capturedAt: captureStart)
 		}
 		guard let pid = pidForElement(window) else {
-			throw BridgeFailure(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
+			throw PlatformError(message: "Root reference is stale. Call find-roots again.", code: "root_not_found")
 		}
 		ensureEnhancedAccessibility(pid: pid)
 		let rootElement: AXUIElement
-		let scopeRef = optionalStringArg(request, "scopeRef")
+		let scopeRef = request.scopeRef
 		if let scopeRef {
 			guard let scoped = refStore.element(for: scopeRef), isElement(scoped, descendantOf: window) else {
-				throw BridgeFailure(message: "Scope ref is stale or outside the target root", code: "element_ref_invalid")
+				throw PlatformError(message: "Scope ref is stale or outside the target root", code: "element_ref_invalid")
 			}
 			rootElement = scoped
 		} else {
@@ -88,7 +90,7 @@ extension Bridge {
 		var outline = buildLookOutline(root: rootElement, transform: frame.transform)
 		// A window that says (almost) nothing through Accessibility is read from the screen,
 		// so the same observe → act loop still has something to act on.
-		let readsScreen = readText == "always" || (readText == "auto" && scopeRef == nil && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
+		let readsScreen = readText == .always || (readText == .auto && scopeRef == nil && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
 		var describeMs = elapsedMs(describeStart)
 		if readsScreen && capture == nil, let captured = try capturedWindow() {
 			capture = captured
@@ -99,13 +101,13 @@ extension Bridge {
 		}
 		let imageWidth = frame.width
 		let imageHeight = frame.height
-		var imagePayload: [String: Any]?
+		var image: LookImage?
 		// OCR nodes are pressed by coordinates, and coordinates need the image they belong to.
-		if let image = frame.image, includeImage || readsScreen {
-			guard let jpeg = jpegData(image: image, quality: 0.8) else {
-				throw BridgeFailure(message: "Failed to encode look image as JPEG", code: "encoding_failed")
+		if let picture = frame.image, includeImage || readsScreen {
+			guard let jpeg = jpegData(image: picture, quality: 0.8) else {
+				throw PlatformError(message: "Failed to encode look image as JPEG", code: "encoding_failed")
 			}
-			imagePayload = ["jpegBase64": jpeg.base64EncodedString(), "width": image.width, "height": image.height]
+			image = LookImage(jpeg: jpeg, width: picture.width, height: picture.height)
 		}
 
 		var readTextMs = 0
@@ -119,7 +121,7 @@ extension Bridge {
 		}
 
 		let lookId = freshLookId()
-		let baseRecord = baseLookId.flatMap { lookRecord(for: $0) }
+		let baseRecord = request.baseLookId.flatMap { lookRecord(for: $0) }
 		storeLookRecord(LookRecord(
 			lookId: lookId,
 			windowId: windowId ?? baseRecord?.windowId ?? 0,
@@ -133,26 +135,25 @@ extension Bridge {
 		let role = stringAttribute(window, attribute: kAXRoleAttribute as CFString) ?? ""
 		let subrole = stringAttribute(window, attribute: kAXSubroleAttribute as CFString) ?? ""
 		let sheetCount = sheetElements(of: window).count
-		var response: [String: Any] = [
-			"lookId": lookId,
-			"capturedAt": captureStart.timeIntervalSince1970,
-			"window": [
-				"windowId": Int(windowId ?? 0),
-				"rootRef": rootRef,
-				"kind": rootKind(role: role, subrole: subrole),
-				"framePoints": ["x": (capture?.frame ?? rootFrame).origin.x, "y": (capture?.frame ?? rootFrame).origin.y, "w": (capture?.frame ?? rootFrame).width, "h": (capture?.frame ?? rootFrame).height],
-				"scaleFactor": scale,
-				"isModal": (boolAttribute(window, attribute: "AXModal" as CFString) ?? false) || sheetCount > 0 || isDialogLikeRoot(role: role, subrole: subrole),
-				"metadata": rootMetadata(pairing: pairing, sheetCount: sheetCount),
-				"role": role,
-				"subrole": subrole,
-			],
-			"outline": outline.payload(),
-			"timings": ["captureMs": captureMs, "describeMs": describeMs, "readTextMs": readTextMs],
-			"readText": ["requested": readText, "executed": readTextExecuted],
-		]
-		if let imagePayload { response["image"] = imagePayload }
-		return response
+		return LookResult(
+			lookId: lookId,
+			capturedAt: captureStart,
+			window: LookWindow(
+				windowId: windowId ?? 0,
+				rootRef: rootRef,
+				kind: rootKind(role: role, subrole: subrole),
+				framePoints: capture?.frame ?? rootFrame,
+				scaleFactor: scale,
+				isModal: (boolAttribute(window, attribute: "AXModal" as CFString) ?? false) || sheetCount > 0 || isDialogLikeRoot(role: role, subrole: subrole),
+				metadata: rootMetadata(pairing: pairing, sheetCount: sheetCount),
+				role: role,
+				subrole: subrole
+			),
+			outline: outline,
+			timings: LookTimings(captureMs: captureMs, describeMs: describeMs, readTextMs: readTextMs),
+			readText: (readText, readTextExecuted),
+			image: image
+		)
 	}
 
 	func storeLookRecord(_ record: LookRecord) {
@@ -284,7 +285,7 @@ extension Bridge {
 			let rows = axElementArray(element, attribute: kAXRowsAttribute as CFString)
 			let visibleRows = axElementArrayIfPresent(element, attribute: kAXVisibleRowsAttribute as CFString)
 			if !rows.isEmpty, let visibleRows {
-				node.scrollExtent = ["seen": visibleRows.count, "total": rows.count]
+				node.scrollExtent = ScrollExtent(seen: visibleRows.count, total: rows.count)
 			}
 		}
 		return node
@@ -333,22 +334,18 @@ extension Bridge {
 		return CGPoint(x: record.windowFrame.origin.x + record.windowFrame.width * relX, y: record.windowFrame.origin.y + record.windowFrame.height * relY)
 	}
 
-	func payloadNode(element: AXUIElement) -> [String: Any] {
-		let node = lookNode(element: element, transform: { $0 }, offscreen: false)
-		var payload = node.payload()
-		payload["children"] = []
-		return payload
+	func describedNode(_ element: AXUIElement) -> LookNode {
+		lookNode(element: element, transform: { $0 }, offscreen: false)
 	}
 
-	func hitTest(_ request: [String: Any]) throws -> [String: Any] {
-		let lookId = try stringArg(request, "lookId")
+	/// The element at a point of a look's image, described without children.
+	public func hitTest(lookId: String, x: Double, y: Double) throws -> LookNode {
 		guard let record = lookRecord(for: lookId) else {
-			throw BridgeFailure(message: "Look id '\(lookId)' is no longer available", code: "stale_look")
+			throw PlatformError(message: "Look id '\(lookId)' is no longer available", code: "stale_look")
 		}
-		let point = lookPoint(record: record, x: try doubleArg(request, "x"), y: try doubleArg(request, "y"))
-		guard let element = hitTestElement(at: point) else {
-			throw BridgeFailure(message: "No element at point", code: "hit_test_failed")
+		guard let element = hitTestElement(at: lookPoint(record: record, x: x, y: y)) else {
+			throw PlatformError(message: "No element at point", code: "hit_test_failed")
 		}
-		return payloadNode(element: element)
+		return describedNode(element)
 	}
 }

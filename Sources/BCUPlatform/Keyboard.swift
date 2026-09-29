@@ -1,6 +1,6 @@
 import AppKit
 
-extension Bridge {
+extension Platform {
 	func modifierFlag(_ key: String) -> CGEventFlags? {
 		switch key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
 		case "cmd", "command", "meta":
@@ -50,9 +50,9 @@ extension Bridge {
 		return (flags, keys.last ?? "")
 	}
 
-	func postKeyPress(keys: [String], pid: Int32, delivery: String = "hid") throws {
-		if delivery == "hid" { physicalInputLock.lock() }
-		defer { if delivery == "hid" { physicalInputLock.unlock() } }
+	func postKeyPress(keys: [String], pid: Int32, delivery: Delivery = .hid) throws {
+		if delivery == .hid { physicalInputLock.lock() }
+		defer { if delivery == .hid { physicalInputLock.unlock() } }
 		if let chord = keyChord(keys) {
 			try postKey(chord.key, flags: chord.flags, pid: pid, delivery: delivery)
 			return
@@ -71,20 +71,20 @@ extension Bridge {
 		}
 	}
 
-	func postKey(_ key: String, flags: CGEventFlags, pid: Int32, delivery: String = "hid") throws {
-		if delivery == "hid" { physicalInputLock.lock() }
-		defer { if delivery == "hid" { physicalInputLock.unlock() } }
+	func postKey(_ key: String, flags: CGEventFlags, pid: Int32, delivery: Delivery = .hid) throws {
+		if delivery == .hid { physicalInputLock.lock() }
+		defer { if delivery == .hid { physicalInputLock.unlock() } }
 		guard let code = keyCode(key) else {
 			if key.count == 1 {
 				try postUnicodeText(key, pid: pid, delivery: delivery)
 				return
 			}
-			throw BridgeFailure(message: "Unsupported key '\(key)'", code: "invalid_args")
+			throw PlatformError(message: "Unsupported key '\(key)'", code: "invalid_args")
 		}
 		guard let down = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true),
 			let up = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: false)
 		else {
-			throw BridgeFailure(message: "Failed to create key event", code: "input_failed")
+			throw PlatformError(message: "Failed to create key event", code: "input_failed")
 		}
 		down.flags = flags
 		up.flags = flags
@@ -95,14 +95,14 @@ extension Bridge {
 
 	/// Text goes in as the characters themselves, never as the keys that would type them:
 	/// the target's input method (Pinyin, Kana) composes physical keys into other text.
-	func postUnicodeText(_ text: String, pid: Int32, delivery: String = "hid") throws {
-		if delivery == "hid" { physicalInputLock.lock() }
-		defer { if delivery == "hid" { physicalInputLock.unlock() } }
+	func postUnicodeText(_ text: String, pid: Int32, delivery: Delivery = .hid) throws {
+		if delivery == .hid { physicalInputLock.lock() }
+		defer { if delivery == .hid { physicalInputLock.unlock() } }
 		for character in text {
 			guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
 				let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
 			else {
-				throw BridgeFailure(message: "Failed to create unicode key event", code: "input_failed")
+				throw PlatformError(message: "Failed to create unicode key event", code: "input_failed")
 			}
 			for event in [down, up] {
 				setUnicodeString(event: event, text: String(character))

@@ -1,8 +1,9 @@
 import ApplicationServices
+import BCUCore
 import Foundation
 
 // The outline a look returns, and how lines read from the screen join it. Kept apart from
-// the bridge so the attachment rules are unit-tested without a live desktop.
+// the platform calls so the attachment rules are unit-tested without a live desktop.
 
 struct OCRBox {
 	let string: String
@@ -10,33 +11,34 @@ struct OCRBox {
 	let rect: CGRect
 }
 
-final class LookNode {
+public final class LookNode {
 	/// Role of a line read from the screen; it has no accessibility element.
-	static let ocrRole = "OCR"
+	public static let ocrRole = "OCR"
 
+	/// Nil for nodes read from the screen and for picture-only roots.
 	let element: AXUIElement?
-	let ref: String
-	let role: String
-	let subrole: String
-	let identifier: String
-	let title: String
-	let description: String
-	let value: String
-	let actions: [String]
-	let canPress: Bool
-	let canFocus: Bool
-	let canSetValue: Bool
-	let canScroll: Bool
-	let canIncrement: Bool
-	let canDecrement: Bool
-	let isTextInput: Bool
-	let rect: CGRect
-	let focused: Bool
-	var offscreen: Bool
-	var pictureOnly: Bool
-	var truncated: Bool
-	var scrollExtent: [String: Int]?
-	var children: [LookNode]
+	public let ref: String
+	public let role: String
+	public let subrole: String
+	public let identifier: String
+	public let title: String
+	public let description: String
+	public let value: String
+	public let actions: [String]
+	public let canPress: Bool
+	public let canFocus: Bool
+	public let canSetValue: Bool
+	public let canScroll: Bool
+	public let canIncrement: Bool
+	public let canDecrement: Bool
+	public let isTextInput: Bool
+	public let rect: CGRect
+	public let focused: Bool
+	public internal(set) var offscreen: Bool
+	public internal(set) var pictureOnly: Bool
+	public internal(set) var truncated: Bool
+	public internal(set) var scrollExtent: ScrollExtent?
+	public internal(set) var children: [LookNode]
 
 	init(element: AXUIElement?, ref: String, role: String, subrole: String, identifier: String, title: String, description: String, value: String, actions: [String], canPress: Bool, canFocus: Bool, canSetValue: Bool, canScroll: Bool, canIncrement: Bool, canDecrement: Bool, isTextInput: Bool, rect: CGRect, focused: Bool = false, offscreen: Bool = false, pictureOnly: Bool = false) {
 		self.element = element
@@ -62,35 +64,6 @@ final class LookNode {
 		self.truncated = false
 		self.children = []
 	}
-
-	func payload() -> [String: Any] {
-		var output: [String: Any] = [
-			"ref": ref,
-			"role": role,
-			"subrole": subrole,
-			"identifier": identifier,
-			"title": title,
-			"description": description,
-			"value": value,
-			"actions": actions,
-			"canPress": canPress,
-			"canFocus": canFocus,
-			"canSetValue": canSetValue,
-			"canScroll": canScroll,
-			"canIncrement": canIncrement,
-			"canDecrement": canDecrement,
-			"isTextInput": isTextInput,
-			"rect": ["x": rect.origin.x, "y": rect.origin.y, "w": rect.width, "h": rect.height],
-			"children": children.map { $0.payload() },
-		]
-		if focused { output["focused"] = true }
-		if offscreen { output["offscreen"] = true }
-		if pictureOnly { output["pictureOnly"] = true }
-		if truncated { output["truncated"] = true }
-		if let scrollExtent { output["scrollExtent"] = scrollExtent }
-		return output
-	}
-
 }
 
 /// Every line Accessibility does not already say becomes its own node, under the

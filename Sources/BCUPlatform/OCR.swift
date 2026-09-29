@@ -1,6 +1,6 @@
 import Vision
 
-extension Bridge {
+extension Platform {
 	/// Without languages Vision reads Latin script only, and a Chinese interface comes back empty.
 	static let ocrLanguages = ["zh-Hans", "zh-Hant", "en-US"]
 
@@ -30,10 +30,10 @@ extension Bridge {
 		request.usesLanguageCorrection = false
 		try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
 		if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
-			throw BridgeFailure(message: "Text recognition timed out", code: "text_recognition_timeout")
+			throw PlatformError(message: "Text recognition timed out", code: "text_recognition_timeout")
 		}
 		if let error = recognizedError.value {
-			throw BridgeFailure(message: "Text recognition failed: \(error.localizedDescription)", code: "text_recognition_failed")
+			throw PlatformError(message: "Text recognition failed: \(error.localizedDescription)", code: "text_recognition_failed")
 		}
 		return recognized.value
 	}

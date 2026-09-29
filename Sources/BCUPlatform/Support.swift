@@ -1,10 +1,5 @@
 import AppKit
 
-struct BridgeFailure: Error {
-	let message: String
-	let code: String
-}
-
 final class Box<T> {
 	var value: T
 	init(_ value: T) {
@@ -12,7 +7,7 @@ final class Box<T> {
 	}
 }
 
-extension Bridge {
+extension Platform {
 	func processPath(pid: pid_t) -> String? {
 		var buffer = [CChar](repeating: 0, count: 4096)
 		let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
