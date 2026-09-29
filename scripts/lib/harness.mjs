@@ -181,7 +181,10 @@ export async function launchKeyHolder(directory) {
 	};
 }
 
-/** Opens a document in a dedicated TextEdit instance so live tests never touch the user's own windows. */
+/**
+ * Opens a document in a dedicated TextEdit instance so live tests never touch the user's own
+ * windows, and without restoring the windows of earlier sessions.
+ */
 export async function launchTextEdit(documentPath) {
 	const source = [
 		"import AppKit",
@@ -192,6 +195,8 @@ export async function launchTextEdit(documentPath) {
 		"let configuration = NSWorkspace.OpenConfiguration()",
 		"configuration.createsNewApplicationInstance = true",
 		"configuration.activates = false",
+		// Restored windows from earlier sessions would crowd and replace the test's own document.
+		"configuration.arguments = [\"-ApplePersistenceIgnoreState\", \"YES\"]",
 		"NSWorkspace.shared.open([documentURL], withApplicationAt: appURL, configuration: configuration) { app, error in",
 		"  if let error { fputs(\"\\(error)\\n\", stderr); exit(2) }",
 		"  guard let app else { exit(3) }",
@@ -238,10 +243,7 @@ export async function monitorProcess(pid) {
 	return { child, exited };
 }
 
-/**
- * TextEdit reopens documents from earlier sessions, so waiting for any window would race
- * the document the caller asked for. `titlePrefix` names that document.
- */
+/** Resolves once the window whose title starts with `titlePrefix` is exposed to Accessibility. */
 export async function waitForAxWindow(pid, processExited, titlePrefix = "") {
 	await runSwiftReadyProbe([
 		"import ApplicationServices",
@@ -273,6 +275,24 @@ export async function waitForAxWindow(pid, processExited, titlePrefix = "") {
 	], [pid, titlePrefix], "the TextEdit Accessibility window event", { abortedBy: processExited });
 }
 
+/**
+ * When the front app quits, macOS hands the front to another app a moment later. A test
+ * that starts before that lands can have its own activation undone, closing the menus it
+ * opened, so this resolves once the front belongs to a live app other than `pid`.
+ */
+async function waitForFrontToLeave(pid) {
+	await runSwiftReadyProbe([
+		"import AppKit",
+		"import Darwin",
+		"let pid = pid_t(CommandLine.arguments[1])!",
+		"func ready() { print(\"ready\"); fflush(stdout); exit(0) }",
+		"func settled() -> Bool { guard let front = NSWorkspace.shared.frontmostApplication else { return false }; return front.processIdentifier != pid && !front.isTerminated }",
+		"NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { _ in if settled() { ready() } }",
+		"if settled() { ready() }",
+		"RunLoop.main.run()",
+	], [pid], "the front to move off the stopped TextEdit", { timeoutMs: 5_000 });
+}
+
 export async function stopTextEdit(pid, monitor) {
 	if (!killProcess(pid, 0)) return;
 	monitor ??= await monitorProcess(pid);
@@ -285,4 +305,5 @@ export async function stopTextEdit(pid, monitor) {
 	} finally {
 		if (monitor.child.exitCode === null && !monitor.child.killed) monitor.child.kill("SIGTERM");
 	}
+	await waitForFrontToLeave(pid);
 }
