@@ -28,7 +28,7 @@ public struct Diagnostics: Sendable {
 /// Which TCC identity the permission booleans reflect.
 public enum PermissionAttribution: String, Sendable {
 	/// The installed bundle launched through LaunchServices: grants belong to bcu.app.
-	case helperApp = "helper-app"
+	case bcuApp = "bcu-app"
 	/// Anything else: the booleans reflect whatever app spawned this process.
 	case caller
 }

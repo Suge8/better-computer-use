@@ -82,7 +82,7 @@ private struct DoctorReport: Encodable {
 		let screenRecording: Bool
 		/// The per-process preflight answer; it disagrees with `screenRecording` when a grant is stale or foreign.
 		let screenRecordingPreflight: Bool
-		/// `helper-app` when the grants belong to the installed bcu.app, `caller` when to whatever launched it.
+		/// `bcu-app` when the grants belong to the installed bcu.app, `caller` when to whatever launched it.
 		let attribution: String
 
 		init(_ status: PermissionStatus) {

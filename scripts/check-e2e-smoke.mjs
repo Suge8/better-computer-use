@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The full loop against a real TextEdit window: find, observe, search, reject invalid
 // payloads, wait, act with a verified postcondition, and fail honestly when it is not met.
-// It also holds bcu to its evidence rule: an action counts as worked only when the helper
+// It also holds bcu to its evidence rule: an action counts as worked only when the platform
 // can name the fact that moved. A key with no visible effect still succeeds, reported as
 // unverified. Pressing Save straight from the menu bar root succeeds and the document
 // file on disk shows that it saved; whether bcu could read evidence for it is not the contract,

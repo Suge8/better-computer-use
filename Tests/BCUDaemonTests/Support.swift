@@ -116,7 +116,7 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 
 	func checkPermissions() -> PermissionStatus {
 		let granted = scene.permissions
-		return PermissionStatus(accessibility: granted, screenRecording: granted, screenRecordingPreflight: granted, source: PermissionSource(pid: 1, parentPid: 1, parentPath: nil, parentBundleId: nil, executablePath: "/Applications/bcu.app/Contents/MacOS/bcu", macOS: "27", attribution: .helperApp))
+		return PermissionStatus(accessibility: granted, screenRecording: granted, screenRecordingPreflight: granted, source: PermissionSource(pid: 1, parentPid: 1, parentPath: nil, parentBundleId: nil, executablePath: "/Applications/bcu.app/Contents/MacOS/bcu", macOS: "27", attribution: .bcuApp))
 	}
 
 	func registerPermissions() -> PermissionRegistration {

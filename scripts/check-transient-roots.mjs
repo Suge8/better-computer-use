@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Roots without a window id — the menu bar, open menus and sheets — are reachable only
-// through the helper's root reference. This gate drives one real chain end to end: list the
+// through the platform's root handle. This gate drives one real chain end to end: list the
 // menu bar, press a menu bar item, follow the menu root the action reports, press an item in
 // it, and observe the sheet that the document work then raises. Pressing the sheet's Cancel
 // closes the sheet: that is the proof the press landed, and the result names the root to
@@ -147,12 +147,12 @@ async function dismissSheets(pid) {
 	], [pid], "the TextEdit sheets to be dismissed");
 }
 
-/** The projection hides raw action names, so the helper's own output is the subject here. */
+/** The projection hides raw action names, so inspect-ui's raw fields are the subject here. */
 async function assertReadableActions(stateId, refs) {
 	for (const ref of refs) {
 		const inspected = await request("inspect-ui", { stateId, ref });
 		for (const action of inspected.node.actions ?? []) {
-			assert(!action.includes("\n") && !action.includes("Target:0x"), `helper reported an unreadable action name ${JSON.stringify(action)}`);
+			assert(!action.includes("\n") && !action.includes("Target:0x"), `inspect-ui reported an unreadable action name ${JSON.stringify(action)}`);
 		}
 	}
 }

@@ -1,6 +1,5 @@
-// The Swift core must reproduce the TS implementation byte for byte. Golden/ holds the outputs
-// scripts/generate-swift-golden.mjs recorded from the TS code on the same inputs; each case
-// names the operation, its input and every output stream it produced.
+// The core must produce Golden/ byte for byte. Each case names the operation, its input and
+// every output stream it produces; the cases are the contract, edited by hand when it changes.
 import BCUCore
 import Foundation
 import Testing
@@ -263,7 +262,7 @@ private func queryCase(_ input: JSONValue) throws -> [String: JSONValue] {
 
 // MARK: - comparison
 
-/** Only the key-sorted form is compared for cases whose TS key order is not the declared one. */
+/** Only the key-sorted form is compared for cases whose recorded key order is not the declared one. */
 private func canonicalized(_ text: String) -> String {
 	text.split(separator: "\n", omittingEmptySubsequences: false).map { line in
 		(try? JSONValue(parsing: String(line)))?.serialized(sortedKeys: true) ?? String(line)

@@ -17,8 +17,8 @@
 
 `bcu` 通过 LaunchServices 启动常驻进程，系统不会把调用方的环境交给它，所以 `bcu` 把全部 `BCU_*` 变量显式转交过去。测试与开发用的变量：
 
-- `BCU_SOCKET_PATH`：常驻进程的 socket，默认 `~/Library/Caches/bcu/broker.sock`；不同路径各自一个常驻进程。
+- `BCU_SOCKET_PATH`：常驻进程的 socket，默认 `~/Library/Caches/bcu/resident.sock`；不同路径各自一个常驻进程。
 - `BCU_IDLE_MS`：空闲多少毫秒后退出，默认 600000。
 - `BCU_APP_PATH`：按需启动的 app，默认 `/Applications/bcu.app`。
 
-运行时路径：常驻进程 socket `~/Library/Caches/bcu/broker.sock`，截图 `~/Library/Caches/bcu/shots/`，app `/Applications/bcu.app`。常驻进程按需启动，空闲 10 分钟退出。
+运行时路径：常驻进程 socket `~/Library/Caches/bcu/resident.sock`，截图 `~/Library/Caches/bcu/shots/`，app `/Applications/bcu.app`。常驻进程按需启动，空闲 10 分钟退出。

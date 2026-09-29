@@ -51,7 +51,7 @@ extension Platform {
 	/// Which TCC identity the permission booleans reflect. macOS attributes
 	/// grants to the *responsible process* (the LaunchServices launching
 	/// app), so:
-	///   - "helper-app": running from the installed bundle, launched via
+	///   - "bcu-app": running from the installed bundle, launched via
 	///     LaunchServices — grants belong to the installed bcu.app.
 	///   - "caller": anything else (dev binary under a terminal, etc.) —
 	///     the booleans reflect whatever app spawned us, NOT the canonical
@@ -62,7 +62,7 @@ extension Platform {
 		// Non-spoofable signals only: installed-bundle executable path + launchd parent
 		// (`open` handed us to LaunchServices). A dev binary or a directly-spawned copy
 		// fails closed to "caller".
-		let attribution: PermissionAttribution = executable.contains("/bcu.app/Contents/MacOS/") && parentPid == 1 ? .helperApp : .caller
+		let attribution: PermissionAttribution = executable.contains("/bcu.app/Contents/MacOS/") && parentPid == 1 ? .bcuApp : .caller
 		return PermissionSource(
 			pid: Int32(getpid()),
 			parentPid: parentPid,
