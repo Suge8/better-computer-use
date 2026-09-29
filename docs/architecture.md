@@ -39,7 +39,7 @@ CLI 只负责：
 - 渲染文本或 JSON；
 - 把稳定错误码和恢复动作写入 stderr。
 
-CLI 不保存 UI 状态，也不直接连接 native helper。平台守卫只在 CLI 入口执行一次：非 macOS 立即返回 `unsupported_platform`。
+CLI 不保存 UI 状态，也不直接连接 native helper。
 
 ### Broker
 
