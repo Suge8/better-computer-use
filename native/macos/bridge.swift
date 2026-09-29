@@ -132,92 +132,6 @@ private final class RootAXObserverState {
 	}
 }
 
-private struct OCRBox {
-	let string: String
-	let confidence: Double
-	let rect: CGRect
-}
-
-final class LookNode {
-	let element: AXUIElement?
-	let ref: String
-	let role: String
-	let subrole: String
-	let identifier: String
-	let title: String
-	let description: String
-	let value: String
-	let actions: [String]
-	let canPress: Bool
-	let canFocus: Bool
-	let canSetValue: Bool
-	let canScroll: Bool
-	let canIncrement: Bool
-	let canDecrement: Bool
-	let isTextInput: Bool
-	let rect: CGRect
-	let focused: Bool
-	var offscreen: Bool
-	var pictureOnly: Bool
-	var truncated: Bool
-	var scrollExtent: [String: Int]?
-	var children: [LookNode]
-
-	init(element: AXUIElement?, ref: String, role: String, subrole: String, identifier: String, title: String, description: String, value: String, actions: [String], canPress: Bool, canFocus: Bool, canSetValue: Bool, canScroll: Bool, canIncrement: Bool, canDecrement: Bool, isTextInput: Bool, rect: CGRect, focused: Bool = false, offscreen: Bool = false, pictureOnly: Bool = false) {
-		self.element = element
-		self.ref = ref
-		self.role = role
-		self.subrole = subrole
-		self.identifier = identifier
-		self.title = title
-		self.description = description
-		self.value = value
-		self.actions = actions
-		self.canPress = canPress
-		self.canFocus = canFocus
-		self.canSetValue = canSetValue
-		self.canScroll = canScroll
-		self.canIncrement = canIncrement
-		self.canDecrement = canDecrement
-		self.isTextInput = isTextInput
-		self.rect = rect
-		self.focused = focused
-		self.offscreen = offscreen
-		self.pictureOnly = pictureOnly
-		self.truncated = false
-		self.children = []
-	}
-
-	func payload() -> [String: Any] {
-		var output: [String: Any] = [
-			"ref": ref,
-			"role": role,
-			"subrole": subrole,
-			"identifier": identifier,
-			"title": title,
-			"description": description,
-			"value": value,
-			"actions": actions,
-			"canPress": canPress,
-			"canFocus": canFocus,
-			"canSetValue": canSetValue,
-			"canScroll": canScroll,
-			"canIncrement": canIncrement,
-			"canDecrement": canDecrement,
-			"isTextInput": isTextInput,
-			"rect": ["x": rect.origin.x, "y": rect.origin.y, "w": rect.width, "h": rect.height],
-			"children": children.map { $0.payload() },
-		]
-		if focused { output["focused"] = true }
-		if offscreen { output["offscreen"] = true }
-		if pictureOnly { output["pictureOnly"] = true }
-		if truncated { output["truncated"] = true }
-		if let scrollExtent { output["scrollExtent"] = scrollExtent }
-		return output
-	}
-
-}
-
 final class Box<T> {
 	var value: T
 	init(_ value: T) {
@@ -1682,7 +1596,6 @@ final class Bridge {
 
 	/// Role of a node read from the screen. It is not an accessibility role, and the
 	/// projection shows it as `ocr`.
-	private static let ocrRole = "OCR"
 
 	/// Fewer accessible content nodes than this and the window is read from the screen.
 	/// Calibrated on macOS 27: WeChat, IINA and a drawn-button window expose 0 below their
@@ -1707,40 +1620,6 @@ final class Bridge {
 		return count
 	}
 
-	/// Every line Accessibility does not already say becomes its own node, under the
-	/// deepest element that contains it; an agent presses it by its coordinates.
-	private func attachOCR(_ boxes: [OCRBox], to root: LookNode) {
-		for (index, box) in boxes.enumerated() where !ocrBoxDuplicatesAXLabel(box, in: root) {
-			let parent = deepestNode(containing: CGPoint(x: box.rect.midX, y: box.rect.midY), in: root) ?? root
-			parent.children.append(LookNode(element: nil, ref: "ocr_\(index + 1)", role: Self.ocrRole, subrole: "", identifier: "", title: box.string, description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: box.rect, pictureOnly: true))
-		}
-	}
-
-	private func ocrBoxDuplicatesAXLabel(_ box: OCRBox, in root: LookNode) -> Bool {
-		let boxLabel = normalizedLabel(box.string)
-		if boxLabel.isEmpty { return true }
-		var queue = [root]
-		var index = 0
-		while index < queue.count {
-			let node = queue[index]
-			index += 1
-			if !node.pictureOnly, node.rect.intersects(box.rect) {
-				let fields = [node.title, node.value, node.description]
-				if fields.contains(where: { normalizedLabel($0).contains(boxLabel) }) { return true }
-			}
-			queue.append(contentsOf: node.children)
-		}
-		return false
-	}
-
-	private func deepestNode(containing point: CGPoint, in root: LookNode) -> LookNode? {
-		guard root.rect.contains(point), !root.pictureOnly else { return nil }
-		for child in root.children.reversed() {
-			if let match = deepestNode(containing: point, in: child) { return match }
-		}
-		return root
-	}
-
 	private func lookPoint(record: LookRecord, x: Double, y: Double) -> CGPoint {
 		let relX = min(max(x / max(1.0, Double(record.imageWidth)), 0), 1)
 		let relY = min(max(y / max(1.0, Double(record.imageHeight)), 0), 1)
@@ -1754,9 +1633,6 @@ final class Bridge {
 		return payload
 	}
 
-	private func normalizedLabel(_ value: String) -> String {
-		value.lowercased().components(separatedBy: CharacterSet.whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
-	}
 
 	private func ensureRootObserver(pid: Int32) -> Bool {
 		rootObserverLock.lock()

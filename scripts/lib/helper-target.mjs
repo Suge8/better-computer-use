@@ -4,7 +4,7 @@
 export const HELPER_BUNDLE_ID = "com.sugeh.bcu";
 export const MACOS_DEPLOYMENT_TARGET = "14.0";
 export const HELPER_FRAMEWORKS = ["ApplicationServices", "AppKit", "ScreenCaptureKit", "Foundation", "SwiftUI"];
-export const HELPER_SOURCE_FILES = ["agent_cursor.swift", "agent_cursor_motion.swift", "bridge.swift", "skylight.swift"];
+export const HELPER_SOURCE_FILES = ["agent_cursor.swift", "agent_cursor_motion.swift", "bridge.swift", "look_outline.swift", "skylight.swift"];
 
 const ARCH_TRIPLES = {
 	arm64: "arm64-apple-macosx",
