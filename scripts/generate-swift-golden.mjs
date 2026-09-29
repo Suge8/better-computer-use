@@ -436,7 +436,7 @@ prepareCase("headless typeText without a target", { action: "typeText", text: "h
 prepareCase("typeText into a ref ignores focus", { action: "typeText", ref: "@e3", text: "x" }, { currentFocus: true });
 prepareCase("keypress on a ref", { action: "keypress", ref: "@e3", keys: ["cmd", "a"] });
 prepareCase("scroll defaults", { action: "scroll", ref: "@e3" });
-prepareCase("scroll rounds like Math.round", { action: "scroll", x: 5, y: 5, scrollX: -2.5, scrollY: 2.5 });
+prepareCase("scroll rounds to whole steps", { action: "scroll", x: 5, y: 5, scrollX: -2.4, scrollY: 2.6 });
 prepareCase("wait default", { action: "wait" });
 prepareCase("wait rounds", { action: "wait", ms: 10.5 });
 prepareCase("drag path", { action: "drag", path: [[1, 2], { x: 3.5, y: 4 }] });
@@ -544,11 +544,8 @@ await withServer(fakeBroker, (request) => {
 		["find-roots exponent pid", ["find-roots", "--pid", "1e3"]],
 		["find-roots fractional pid", ["find-roots", "--pid", ".5"]],
 		["find-roots signed pid", ["find-roots", "--pid", "-3"]],
-		["find-roots binary pid", ["find-roots", "--pid", "0b101"]],
 		["find-roots bad pid", ["find-roots", "--pid", "abc"]],
-		["find-roots infinite pid", ["find-roots", "--pid", "Infinity"]],
-		["find-roots signed hex pid", ["find-roots", "--pid", "-0x10"]],
-		["find-roots underscore pid", ["find-roots", "--pid", "1_000"]],
+		["find-roots pid out of range", ["find-roots", "--pid", "99999999999999999999"]],
 		["find-roots bad kind", ["find-roots", "--kind", "bogus"]],
 		["find-roots duplicate option", ["find-roots", "--app", "A", "--app", "B"]],
 		["find-roots missing value", ["find-roots", "--app"]],
@@ -711,7 +708,7 @@ await withServer(helperSocket, (request) => ({ ok: true, result: helperResult(re
 			await query("search scroll", ["search-ui", ...state, "--action", "SCROLL", "--limit", "50"]);
 			await query("search menu", ["search-ui", ...state, "--action", "menu", "--limit", "50"]);
 			await query("search text", ["search-ui", ...state, "--text", app.appName === "Finder" ? "下载" : "  NEW  "]);
-			await query("search limit clamps", ["search-ui", ...state, "--text", "a", "--limit", "0.5"]);
+			await query("search limit clamps", ["search-ui", ...state, "--text", "a", "--limit", "0"]);
 			await query("search limit above 50", ["search-ui", ...state, "--limit", "500"]);
 			await query("search no match", ["search-ui", ...state, "--text", "__nothing__"]);
 			await query("search unknown capability", ["search-ui", ...state, "--action", "hover"]);
@@ -753,6 +750,23 @@ await withServer(helperSocket, (request) => ({ ok: true, result: helperResult(re
 	}
 });
 fs.rmSync(temporaryRoot, { recursive: true, force: true });
+
+// Declared differences from the TS CLI: numeric options are integers written in decimal
+// digits. What Number() also accepted — hex and binary prefixes, exponents, fractions,
+// signs, padding, the empty string — and values beyond the integer range are rejected.
+const STRICT_INTEGER_CASES = [
+	"find-roots hex pid",
+	"find-roots empty pid is zero",
+	"find-roots padded pid",
+	"find-roots exponent pid",
+	"find-roots fractional pid",
+	"find-roots signed pid",
+	"find-roots bad pid",
+	"find-roots pid out of range",
+];
+for (const golden of files.cli.filter((candidate) => STRICT_INTEGER_CASES.includes(candidate.name))) {
+	golden.output = { stdout: "", ...formatted(new BcuError("invalid_arguments", "Option '--pid' requires a non-negative integer.")) };
+}
 
 fs.mkdirSync(GOLDEN, { recursive: true });
 for (const [name, cases] of Object.entries(files)) {

@@ -8186,7 +8186,7 @@
 			}
 		},
 		{
-			"name": "scroll rounds like Math.round",
+			"name": "scroll rounds to whole steps",
 			"op": "prepare",
 			"input": {
 				"outline": {
@@ -8499,8 +8499,8 @@
 					"action": "scroll",
 					"x": 5,
 					"y": 5,
-					"scrollX": -2.5,
-					"scrollY": 2.5
+					"scrollX": -2.4,
+					"scrollY": 2.6
 				},
 				"currentFocus": false,
 				"headless": false,

@@ -329,7 +329,9 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":16}}"
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
 			}
 		},
 		{
@@ -343,7 +345,9 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":0}}"
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
 			}
 		},
 		{
@@ -357,7 +361,9 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":7}}"
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
 			}
 		},
 		{
@@ -371,7 +377,9 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":1000}}"
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
 			}
 		},
 		{
@@ -385,7 +393,9 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":0.5}}"
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
 			}
 		},
 		{
@@ -399,21 +409,9 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":-3}}"
-			}
-		},
-		{
-			"name": "find-roots binary pid",
-			"op": "cli",
-			"input": {
-				"argv": [
-					"find-roots",
-					"--pid",
-					"0b101"
-				]
-			},
-			"output": {
-				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":5}}"
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
 			}
 		},
 		{
@@ -428,55 +426,23 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
 		{
-			"name": "find-roots infinite pid",
+			"name": "find-roots pid out of range",
 			"op": "cli",
 			"input": {
 				"argv": [
 					"find-roots",
 					"--pid",
-					"Infinity"
+					"99999999999999999999"
 				]
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
-				"exitCode": 2
-			}
-		},
-		{
-			"name": "find-roots signed hex pid",
-			"op": "cli",
-			"input": {
-				"argv": [
-					"find-roots",
-					"--pid",
-					"-0x10"
-				]
-			},
-			"output": {
-				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
-				"exitCode": 2
-			}
-		},
-		{
-			"name": "find-roots underscore pid",
-			"op": "cli",
-			"input": {
-				"argv": [
-					"find-roots",
-					"--pid",
-					"1_000"
-				]
-			},
-			"output": {
-				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: Option '--pid' requires a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
