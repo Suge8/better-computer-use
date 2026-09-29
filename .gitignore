@@ -13,9 +13,6 @@ benchmarks/results/*.local.*
 benchmarks/results/*local*
 tmp/
 
-# Rust build artifacts
-native/windows/bridge-rs/target/
-
 # Manual run outputs
 results/
 scripts/cubench-results.json
