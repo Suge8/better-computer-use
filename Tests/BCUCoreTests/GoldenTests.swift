@@ -47,7 +47,7 @@ private func loadOutline(_ input: JSONValue) throws -> Outline {
 	}
 	let serialized = try JSONCoding.decode(SerializedOutline.self, from: source)
 	if input["numbering"]?.string == "saved" { return Outline(restoring: serialized) }
-	return Outline(lookId: serialized.lookId, root: OutlineNode(serialized.root))
+	return Outline(root: OutlineNode(serialized.root))
 }
 
 private func json<T: Encodable>(_ value: T) throws -> JSONValue {

@@ -121,7 +121,7 @@ func adopt(_ look: LookNode, base: ObservedOutline.Contents?) -> (outline: Outli
 		)
 	}
 	let root = serialize(look)
-	return (Outline(lookId: "", root: OutlineNode(root)), handles)
+	return (Outline(root: OutlineNode(root)), handles)
 }
 
 private let wirePrefix = "h"

@@ -61,7 +61,6 @@ public func expandUI(_ params: ExpandUiParams, in outline: Outline, stateId: Str
 		_ = try target.accessibilityRef()
 		let scoped = try scopedLook(target)
 		target = try outline.graft(scoped, at: target.ref)
-		outline.lookId = scoped.lookId
 	}
 	let projection = project(outline, ProjectOptions(maxDepth: depth, from: target))
 	return ExpandResult(stateId: stateId, ref: target.ref, nodes: projection.nodes)

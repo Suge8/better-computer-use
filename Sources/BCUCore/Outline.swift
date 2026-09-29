@@ -78,11 +78,9 @@ public struct SerializedOutlineNode: Codable, Sendable, Equatable {
 }
 
 public struct SerializedOutline: Codable, Sendable, Equatable {
-	public var lookId: String
 	public var root: SerializedOutlineNode
 
-	public init(lookId: String, root: SerializedOutlineNode) {
-		self.lookId = lookId
+	public init(root: SerializedOutlineNode) {
 		self.root = root
 	}
 }
@@ -194,14 +192,12 @@ public final class OutlineNode {
 }
 
 public final class Outline {
-	public var lookId: String
 	public let root: OutlineNode
 	/// Breadth-first for a fresh look; a restored saved state lists its nodes depth-first.
 	public private(set) var nodes: [OutlineNode] = []
 
 	/// A fresh look: refs are numbered breadth-first from `@e1`.
-	public init(lookId: String, root: OutlineNode) {
-		self.lookId = lookId
+	public init(root: OutlineNode) {
 		self.root = root
 		root.parent = nil
 		rebuildIndexes()
@@ -210,13 +206,12 @@ public final class Outline {
 
 	/// A saved state: refs are kept as saved.
 	public init(restoring serialized: SerializedOutline) {
-		lookId = serialized.lookId
 		root = OutlineNode(serialized.root)
 		nodes = root.preorder
 	}
 
 	public var serialized: SerializedOutline {
-		SerializedOutline(lookId: lookId, root: root.serialized)
+		SerializedOutline(root: root.serialized)
 	}
 
 	/// An `@e` ref, or the platform ref of an element.
