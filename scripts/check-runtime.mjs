@@ -184,7 +184,7 @@ const pictureTarget = { ...editor, ref: "@e-picture", wireRef: undefined, isText
 const pictureClick = prepareAction({ action: "click", ref: pictureTarget.ref }, { currentFocus: false }, { ...actionEnv, node: () => pictureTarget });
 assert.deepEqual(pictureClick.target, { x: pictureTarget.rect?.x ?? 0, y: pictureTarget.rect?.y ?? 0 }, "picture-only clicks lost their point; the helper decides which rung can click it");
 const preparedType = prepareAction({ action: "typeText", text: "hello" }, { currentFocus: true }, actionEnv);
-assert.equal(preparedType.usesCurrentFocus, true, "focused typing did not preserve click-established focus");
+assert.deepEqual(preparedType.target, { focus: { x: 400, y: 300 } }, "focused typing did not preserve click-established focus");
 const preparedScroll = prepareAction({ action: "scroll", ref: editor.ref }, { currentFocus: false }, actionEnv);
 assert.deepEqual(preparedScroll.params, { scrollX: 0, scrollY: 0 }, "omitted scroll deltas did not default to zero");
 const preparedWait = prepareAction({ action: "wait" }, { currentFocus: false }, actionEnv);

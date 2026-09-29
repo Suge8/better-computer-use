@@ -8,12 +8,10 @@
 // Elements that show no trace of a press are pressed exactly once and reported as an
 // unverified success, never replayed on a higher rung.
 import assert from "node:assert/strict";
-import { execFile as execFileCallback, spawn } from "node:child_process";
-import { once } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
-import { brokerEnvironment, buildBundle, killProcess, launchKeyHolder, makeTemporaryRoot, runCli, withTimeout } from "./lib/harness.mjs";
+import { launchChrome, pageSession, devtoolsSession, stopChrome } from "./lib/chrome.mjs";
+import { brokerEnvironment, buildBundle, desktop, killProcess, launchKeyHolder, makeTemporaryRoot, runCli, withTimeout } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP web background matrix (set BCU_LIVE=1)");
@@ -21,8 +19,6 @@ if (process.env.BCU_LIVE !== "1") {
 }
 if (process.platform !== "darwin") throw new Error("The web background matrix requires macOS.");
 
-const execFile = promisify(execFileCallback);
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const TYPED = "bcu typed 42";
 const SET = "bcu set 7";
 
@@ -48,95 +44,8 @@ const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
 let chrome;
 let holder;
 
-/** Front application and real pointer, read by a process that is not bcu. */
-async function desktop() {
-	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", [
-		"ObjC.import('AppKit')",
-		"const m = $.NSEvent.mouseLocation",
-		"JSON.stringify({ front: $.NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier, x: m.x, y: m.y })",
-	].join(";")]);
-	return JSON.parse(stdout);
-}
-
-/** Sets `chrome` as soon as the process exists, so cleanup reaches a launch that fails halfway. */
-async function launchChrome(profile) {
-	await fs.mkdir(profile);
-	const watcher = fs.watch(profile);
-	const child = spawn(CHROME, [
-		`--user-data-dir=${profile}`,
-		"--remote-debugging-port=0",
-		"--no-first-run",
-		"--no-default-browser-check",
-		"--new-window",
-		pageUrl("A"),
-	], { stdio: "ignore" });
-	const exited = once(child, "exit");
-	chrome = { child, exited };
-	const portFile = path.join(profile, "DevToolsActivePort");
-	const ready = (async () => {
-		for (;;) {
-			const text = await fs.readFile(portFile, "utf8").catch(() => "");
-			const [port, browserPath] = text.split("\n");
-			if (port && browserPath) return { port: Number(port), browserPath };
-			await watcher.next();
-		}
-	})();
-	try {
-		const devtools = await withTimeout(Promise.race([
-			ready,
-			exited.then(([code]) => { throw new Error(`Chrome exited during launch (${code})`); }),
-		]), "Chrome DevTools to listen", 20_000);
-		Object.assign(chrome, devtools);
-	} finally {
-		await watcher.return?.();
-	}
-}
-
 function pageUrl(name) {
 	return `file://${path.join(root, "fixture.html")}?w=${name}`;
-}
-
-async function stopChrome() {
-	if (!chrome || !killProcess(chrome.child.pid, "SIGTERM")) return;
-	try {
-		await withTimeout(chrome.exited, "the fixture Chrome to exit", 5_000);
-	} catch {
-		if (killProcess(chrome.child.pid, "SIGKILL")) await chrome.exited;
-	}
-}
-
-/** One DevTools session; `send` resolves with the command result. */
-async function devtoolsSession(url) {
-	const socket = new WebSocket(url);
-	await new Promise((resolve, reject) => {
-		socket.addEventListener("open", resolve, { once: true });
-		socket.addEventListener("error", () => reject(new Error(`DevTools socket ${url} failed`)), { once: true });
-	});
-	let nextId = 0;
-	const pending = new Map();
-	socket.addEventListener("message", (event) => {
-		const message = JSON.parse(event.data);
-		const waiter = pending.get(message.id);
-		if (!waiter) return;
-		pending.delete(message.id);
-		if (message.error) waiter.reject(new Error(message.error.message));
-		else waiter.resolve(message.result);
-	});
-	return {
-		send(method, params = {}) {
-			const id = ++nextId;
-			socket.send(JSON.stringify({ id, method, params }));
-			return withTimeout(new Promise((resolve, reject) => pending.set(id, { resolve, reject })), `DevTools ${method}`, 10_000);
-		},
-		close: () => socket.close(),
-	};
-}
-
-async function pageSession(name) {
-	const response = await fetch(`http://127.0.0.1:${chrome.port}/json/list`);
-	const page = (await response.json()).find((target) => target.type === "page" && target.url === pageUrl(name));
-	assert(page, `Chrome has no page for window ${name}`);
-	return await devtoolsSession(page.webSocketDebuggerUrl);
 }
 
 /** The DOM's own account of the fixture, independent of anything bcu reads. */
@@ -213,8 +122,8 @@ try {
 	await buildBundle();
 	holder = await launchKeyHolder(root);
 	await fs.writeFile(path.join(root, "fixture.html"), FIXTURE_HTML);
-	await launchChrome(path.join(root, "profile"));
-	const pageA = await pageSession("A");
+	await launchChrome(path.join(root, "profile"), pageUrl("A"), (spawned) => { chrome = spawned; });
+	const pageA = await pageSession(chrome, pageUrl("A"));
 	const observed = await observeWindow("A", "Key log");
 	const refs = {
 		button: await refFor(observed.stateId, "Count clicks", "button"),
@@ -279,7 +188,7 @@ try {
 	const browser = await devtoolsSession(`ws://127.0.0.1:${chrome.port}${chrome.browserPath}`);
 	await browser.send("Target.createTarget", { url: pageUrl("B"), newWindow: true });
 	browser.close();
-	const pageB = await pageSession("B");
+	const pageB = await pageSession(chrome, pageUrl("B"));
 	await observeWindow("B", "Key log");
 	await cell("typeText into the non-key window of two", async () => {
 		const beforeA = await dom(pageA);
@@ -292,7 +201,7 @@ try {
 	pageA.close();
 	pageB.close();
 } finally {
-	await stopChrome();
+	await stopChrome(chrome);
 	if (holder && killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });

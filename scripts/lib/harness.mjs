@@ -159,6 +159,50 @@ export async function launchDrawnButtons(directory, logPath, title) {
 	return { pid, exited };
 }
 
+/** Starts scripts/fixtures/drawn-input.swift, a self-drawn text input with no accessible content. */
+export async function launchDrawnInput(directory, logPath, title) {
+	const { pid, exited } = await launchSwiftFixture(directory, "drawn-input", [logPath, title], "the drawn input window");
+	return { pid, exited };
+}
+
+/** Front application and real pointer, read by a process that is not bcu. */
+export async function desktop() {
+	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", [
+		"ObjC.import('AppKit')",
+		"const m = $.NSEvent.mouseLocation",
+		"JSON.stringify({ front: $.NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier, x: m.x, y: m.y })",
+	].join(";")]);
+	return JSON.parse(stdout);
+}
+
+const INPUT_SOURCE_TOOL = [
+	"import Carbon",
+	"func property(_ source: TISInputSource, _ key: CFString) -> AnyObject? { TISGetInputSourceProperty(source, key).map { Unmanaged<AnyObject>.fromOpaque($0).takeUnretainedValue() } }",
+	"let wanted = CommandLine.arguments.dropFirst().first",
+	"if let wanted {",
+	"  let enabled = TISCreateInputSourceList([kTISPropertyInputSourceID as String: wanted] as CFDictionary, false)?.takeRetainedValue() as? [TISInputSource] ?? []",
+	"  guard let source = enabled.first else { print(\"{}\"); exit(0) }",
+	"  guard TISSelectInputSource(source) == noErr else { exit(2) }",
+	"}",
+	"let current = TISCopyCurrentKeyboardInputSource().takeRetainedValue()",
+	"let type = property(current, kTISPropertyInputSourceType) as? String ?? \"\"",
+	"let languages = property(current, kTISPropertyInputSourceLanguages) as? [String] ?? []",
+	"let composes = type != (kTISTypeKeyboardLayout as String) && languages.first.map { [\"zh\", \"ja\", \"ko\"].contains(String($0.prefix(2))) } == true",
+	"let id = property(current, kTISPropertyInputSourceID) as? String ?? \"\"",
+	"print(\"{\\\"id\\\":\\\"\\(id)\\\",\\\"cjk\\\":\\(composes)}\")",
+].join("\n");
+
+/**
+ * Selects the enabled keyboard input source `id` for the whole session and returns the one
+ * now current as `{id, cjk}`, `cjk` telling whether it is a Chinese, Japanese or Korean
+ * input method that composes keys into other text. `{}` means `id` is not enabled on this
+ * Mac. Without `id` it only reads the current one.
+ */
+export async function selectInputSource(id) {
+	const { stdout } = await execFile("swift", ["-e", INPUT_SOURCE_TOOL, ...(id ? [id] : [])], { timeout: 60_000 });
+	return JSON.parse(stdout);
+}
+
 /**
  * Starts scripts/fixtures/key-holder.swift, a stand-in for the user's front app that logs
  * every loss of its key window or activation. `takeFront` hands it the front again and
@@ -196,7 +240,8 @@ export async function launchTextEdit(documentPath) {
 		"configuration.createsNewApplicationInstance = true",
 		"configuration.activates = false",
 		// Restored windows from earlier sessions would crowd and replace the test's own document.
-		"configuration.arguments = [\"-ApplePersistenceIgnoreState\", \"YES\"]",
+		// Automatic capitalization would rewrite typed text the way it would the user's.
+		"configuration.arguments = [\"-ApplePersistenceIgnoreState\", \"YES\", \"-NSAutomaticCapitalizationEnabled\", \"NO\"]",
 		"NSWorkspace.shared.open([documentURL], withApplicationAt: appURL, configuration: configuration) { app, error in",
 		"  if let error { fputs(\"\\(error)\\n\", stderr); exit(2) }",
 		"  guard let app else { exit(3) }",

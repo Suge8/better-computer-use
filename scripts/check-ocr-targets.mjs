@@ -10,16 +10,15 @@
 // front and its keyboard. A window that does expose accessibility content keeps the
 // capture-free default look.
 import assert from "node:assert/strict";
-import { execFile as execFileCallback } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import {
 	brokerEnvironment,
 	buildBundle,
+	desktop,
 	killProcess,
 	launchDrawnButtons,
 	launchKeyHolder,
@@ -38,7 +37,6 @@ if (process.env.BCU_LIVE !== "1") {
 }
 if (process.platform !== "darwin") throw new Error("The OCR target test requires macOS.");
 
-const execFile = promisify(execFileCallback);
 const root = await makeTemporaryRoot("ocr-targets");
 const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
 const title = `bcu drawn ${randomUUID().slice(0, 8)}`;
@@ -52,16 +50,6 @@ async function bcu(args, input) {
 	const result = await runCli([...args, "--json"], { input, env });
 	if (result.code !== 0) throw new Error(`bcu ${args[0]} exited ${result.code}: ${result.stderr.trim()}`);
 	return JSON.parse(result.stdout);
-}
-
-/** Front application and real pointer, read by a process that is not bcu. */
-async function desktop() {
-	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", [
-		"ObjC.import('AppKit')",
-		"const m = $.NSEvent.mouseLocation",
-		"JSON.stringify({ front: $.NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier, x: m.x, y: m.y })",
-	].join(";")]);
-	return JSON.parse(stdout);
 }
 
 /**
