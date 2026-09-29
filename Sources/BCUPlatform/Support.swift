@@ -1,8 +1,8 @@
 import AppKit
 import os
 
-/// A value a callback or task hands to the thread that waits for it on a semaphore.
-final class Box<Value: Sendable>: Sendable {
+/// A value a callback, task or thread hands to the thread that waits for it.
+final class Handoff<Value: Sendable>: Sendable {
 	private let lock: OSAllocatedUnfairLock<Value>
 
 	init(_ value: Value) {

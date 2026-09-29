@@ -37,7 +37,7 @@ extension Platform {
 	/// two disagree, the preflight boolean is the one lying.
 	func screenRecordingCapturable() -> Bool {
 		let sema = DispatchSemaphore(value: 0)
-		let capturable = Box<Bool>(false)
+		let capturable = Handoff<Bool>(false)
 		SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { shareable, error in
 			if let shareable = shareable {
 				capturable.value = !shareable.displays.isEmpty

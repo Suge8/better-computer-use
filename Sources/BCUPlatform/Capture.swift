@@ -12,8 +12,8 @@ struct CapturedWindowImage {
 extension Platform {
 	func captureWindow(windowId: UInt32) throws -> CapturedWindowImage {
 		let semaphore = DispatchSemaphore(value: 0)
-		let capturedImage = Box<CGImage?>(nil)
-		let capturedError = Box<Error?>(nil)
+		let capturedImage = Handoff<CGImage?>(nil)
+		let capturedError = Handoff<Error?>(nil)
 
 		let task = Task {
 			defer { semaphore.signal() }
@@ -54,10 +54,7 @@ extension Platform {
 			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
 				return payload
 			}
-			if let failure = error as? BCUError {
-				throw failure
-			}
-			throw BCUError(.actionFailed, "Capture failed: \(error.localizedDescription)")
+			throw captureError(error, windowId: windowId)
 		}
 
 		guard let image = capturedImage.value else {
@@ -161,7 +158,7 @@ extension Platform {
 
 	func currentWindowBoundsViaScreenCaptureKit(windowId: UInt32) -> CGRect? {
 		let semaphore = DispatchSemaphore(value: 0)
-		let output = Box<CGRect?>(nil)
+		let output = Handoff<CGRect?>(nil)
 
 		let task = Task {
 			defer { semaphore.signal() }
@@ -184,4 +181,10 @@ extension Platform {
 		}
 		return output.value
 	}
+}
+
+/// The public failure for a capture ScreenCaptureKit refused or could not make.
+func captureError(_ error: any Error, windowId: UInt32) -> BCUError {
+	if let failure = error as? BCUError { return failure }
+	return BCUError(.actionFailed, "Capture failed: \(error.localizedDescription)")
 }

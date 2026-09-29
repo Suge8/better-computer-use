@@ -124,7 +124,7 @@ extension Platform {
 		}
 		func captureAfter(_ deadline: Date) -> CGImage? {
 			let semaphore = DispatchSemaphore(value: 0)
-			let result = Box<CGImage?>(nil)
+			let result = Handoff<CGImage?>(nil)
 			DispatchQueue.global().async {
 				result.value = try? self.captureWindow(windowId: windowId).image
 				semaphore.signal()

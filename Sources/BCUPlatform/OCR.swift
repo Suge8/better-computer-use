@@ -13,8 +13,8 @@ extension Platform {
 	func recognizeText(in capture: CGImage, pixelsPerPoint: Double, outputWidth: Int, outputHeight: Int) throws -> [OCRBox] {
 		let image = pixelsPerPoint < Self.ocrPixelsPerPoint ? try scaled(capture, by: Self.ocrPixelsPerPoint / pixelsPerPoint) : capture
 		let semaphore = DispatchSemaphore(value: 0)
-		let recognized = Box<[OCRBox]>([])
-		let recognizedError = Box<Error?>(nil)
+		let recognized = Handoff<[OCRBox]>([])
+		let recognizedError = Handoff<Error?>(nil)
 		let request = VNRecognizeTextRequest { request, error in
 			defer { semaphore.signal() }
 			if let error {

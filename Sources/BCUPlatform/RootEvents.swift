@@ -50,6 +50,17 @@ final class AppNotifications: Sendable {
 		log.withLock { $0.events.filter { $0.sequence >= cursor } }
 	}
 
+	/// Re-checks `condition` as notifications arrive until it holds or the deadline passes;
+	/// whether it held.
+	func wait(until deadline: Date, _ condition: () -> Bool) -> Bool {
+		while true {
+			let generation = self.generation
+			if condition() { return true }
+			if Date() >= deadline { return false }
+			wait(since: generation, until: deadline)
+		}
+	}
+
 	/// Returns after the next notification, at the deadline, or after 0.2 s, whichever is first.
 	func wait(since generation: UInt64, until deadline: Date) {
 		changed.lock()
@@ -79,7 +90,7 @@ final class RunLoopThread: Sendable {
 	/// returns something to keep, and nil is returned otherwise.
 	static func start(_ setup: @escaping @Sendable () -> AnyObject?) -> RunLoopThread? {
 		let started = DispatchSemaphore(value: 0)
-		let loop = Box<Loop?>(nil)
+		let loop = Handoff<Loop?>(nil)
 		Thread.detachNewThread {
 			let kept = setup()
 			if kept != nil { loop.value = Loop(runLoop: CFRunLoopGetCurrent()) }
