@@ -16,7 +16,6 @@ let package = Package(
 		.library(name: "BCUCore", targets: ["BCUCore"]),
 		.executable(name: "bcu", targets: ["bcu"]),
 		// `npm test` still builds this product name; it goes when the runtime switch drops the TS gates.
-		.executable(name: "bridge", targets: ["bcu"]),
 	],
 	targets: [
 		.target(name: "BCUCore"),
