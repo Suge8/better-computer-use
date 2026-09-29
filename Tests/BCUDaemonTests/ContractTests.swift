@@ -233,7 +233,7 @@ struct ContractTests {
 		#expect(result.baseStateId == state.stateId)
 		#expect(result.verification.status == .verified)
 		#expect(result.verification.evidence == ActEvidence(source: .ax, field: .value, from: "0", to: "1"))
-		#expect(try encoded(result.changes) == #"[{"type":"updated","ref":"\#(editorRef)","fields":{"value":"typed"}}]"#)
+		#expect(try encoded(result.changes) == #"[{"fields":{"value":"typed"},"ref":"\#(editorRef)","type":"updated"}]"#)
 
 		let actedState = try #require(result.stateId)
 		guard case .waitFor(let waited) = try await harness.run(#"{"command":"wait-for","params":{"stateId":"\#(actedState)","text":"typed","timeoutMs":1000}}"#) else { Issue.record(); return }
@@ -275,7 +275,7 @@ struct ContractTests {
 		let continued = try await harness.act(try #require(unverified.stateId), #"[\#(unjudged),{"action":"setText","ref":"\#(editorRef)","text":"after unknown"}]"#)
 		#expect(harness.desktop.scene.acts.contains { $0.action == .setText })
 		#expect(continued.outcome == .unknown)
-		#expect(try encoded(continued.changes) == #"[{"type":"updated","ref":"\#(editorRef)","fields":{"value":"after unknown"}}]"#)
+		#expect(try encoded(continued.changes) == #"[{"fields":{"value":"after unknown"},"ref":"\#(editorRef)","type":"updated"}]"#)
 
 		harness.desktop.update { $0.acts = [] }
 		#expect(await expectCode(.actionFailed) {
@@ -305,7 +305,7 @@ struct ContractTests {
 		#expect(lines(grown).contains("~ \(editorRef) =\"noise on\""), "\(grown)")
 		#expect(lines(grown).contains("… offscreen elements outside the view: \(noiseItems) added"), "\(grown)")
 		let dropped = try await harness.act(String(lines(grown)[0].split(separator: " ")[1]), noise)
-		#expect(try encoded(dropped.changes) == #"[{"type":"updated","ref":"\#(editorRef)","fields":{"value":"noise off"}}]"#)
+		#expect(try encoded(dropped.changes) == #"[{"fields":{"value":"noise off"},"ref":"\#(editorRef)","type":"updated"}]"#)
 		#expect(dropped.offscreen?.added == 0 && dropped.offscreen?.removed == noiseItems)
 	}
 
@@ -317,7 +317,7 @@ struct ContractTests {
 		let closed = try await harness.act(sheet.view.stateId, #"[{"action":"press","ref":"\#(sheet.save)"}]"#)
 		#expect(closed.outcome == .worked)
 		#expect(closed.verification.evidence == ActEvidence(source: .root, field: .closed))
-		#expect(try encoded(closed.closed?.root) == #"{"ref":"\#(sheet.sheet.ref)","kind":"sheet","app":"Fixture","title":"警告"}"#)
+		#expect(try encoded(closed.closed?.root) == #"{"app":"Fixture","kind":"sheet","ref":"\#(sheet.sheet.ref)","title":"警告"}"#)
 		#expect(closed.next?.kind == .window && closed.next?.title == "未命名2")
 		#expect(closed.stateId.map { matches($0, "^[0-9a-z]{8}$") } == true)
 		#expect((closed.nodes?.count ?? 0) > 0)
