@@ -7,7 +7,6 @@ import Foundation
 /// so the client forwards every `BCU_*` variable to the resident explicitly.
 struct Settings {
 	static let defaultAppPath = "/Applications/bcu.app"
-	static let defaultIdleTimeout: Duration = .seconds(600)
 
 	let socketPath: String
 	let idleTimeout: Duration
@@ -25,7 +24,7 @@ struct Settings {
 			}
 			idleTimeout = .milliseconds(milliseconds)
 		} else {
-			idleTimeout = Self.defaultIdleTimeout
+			idleTimeout = Server.defaultIdleTimeout
 		}
 		config = LoadedConfig(environment: environment)
 		forwarded = environment.filter { $0.key.hasPrefix("BCU_") }.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }

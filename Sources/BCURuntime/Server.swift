@@ -7,6 +7,9 @@ import os
 public typealias RequestHandler = @Sendable (Request) async throws -> JSONValue
 
 public final class Server: @unchecked Sendable {
+	/// How long a resident with no connections waits before it exits; `BCU_IDLE_MS` overrides it.
+	public static let defaultIdleTimeout: Duration = .seconds(600)
+
 	private let socketPath: String
 	private let idleTimeout: Duration
 	private let status: ResidentStatus
@@ -21,7 +24,7 @@ public final class Server: @unchecked Sendable {
 	private var stopped = false
 	private var waiters: [CheckedContinuation<Void, Never>] = []
 
-	public init(socketPath: String, idleTimeout: Duration = .seconds(600), protocolVersion: Int = wireProtocolVersion, handler: @escaping RequestHandler) {
+	public init(socketPath: String, idleTimeout: Duration = defaultIdleTimeout, protocolVersion: Int = wireProtocolVersion, handler: @escaping RequestHandler) {
 		self.socketPath = socketPath
 		self.idleTimeout = idleTimeout
 		self.status = ResidentStatus(pid: Int(getpid()), protocolVersion: protocolVersion)
