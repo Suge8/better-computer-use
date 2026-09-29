@@ -10,8 +10,6 @@ public enum ErrorCode: String, CaseIterable, Codable, Sendable {
 	case actionTimeout = "action_timeout"
 	case actionFailed = "action_failed"
 	case brokerUnavailable = "broker_unavailable"
-	case helperUnavailable = "helper_unavailable"
-	case unsupportedPlatform = "unsupported_platform"
 	case stateTooLarge = "state_too_large"
 	case internalError = "internal_error"
 
@@ -27,8 +25,6 @@ public enum ErrorCode: String, CaseIterable, Codable, Sendable {
 		case .actionTimeout: 8
 		case .actionFailed: 9
 		case .brokerUnavailable: 10
-		case .helperUnavailable: 11
-		case .unsupportedPlatform: 12
 		case .stateTooLarge: 13
 		}
 	}
@@ -44,8 +40,6 @@ public enum ErrorCode: String, CaseIterable, Codable, Sendable {
 		case .actionTimeout: "Inspect the current UI, then retry with a valid condition or a longer --timeout."
 		case .actionFailed: "Observe the current UI before deciding whether the action is safe to retry."
 		case .brokerUnavailable: "Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry."
-		case .helperUnavailable: "Run 'bcu doctor', repair the helper it reports, then retry."
-		case .unsupportedPlatform: "Run bcu in an interactive macOS desktop session."
 		case .stateTooLarge: "Observe a smaller root or narrow the UI before retrying."
 		case .internalError: "Run 'bcu doctor' and retry. If it repeats, report the full error."
 		}
