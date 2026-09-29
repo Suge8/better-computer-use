@@ -6,6 +6,8 @@ import Foundation
 /// `bcu serve`. LaunchServices does not hand the caller's environment to the app it starts,
 /// so the client forwards every `BCU_*` variable to the resident explicitly.
 struct Settings {
+	/// Also the default of scripts/install.sh: the script decides where the app goes and the
+	/// client where to launch it from, and a client built with `swift build` sits in no app.
 	static let defaultAppPath = "/Applications/bcu.app"
 
 	let socketPath: String

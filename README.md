@@ -24,8 +24,6 @@ git clone https://github.com/Suge8/better-computer-use ~/Project/better-computer
 
 安装脚本构建 arm64 与 x86_64 通用二进制，装成 `/Applications/bcu.app`，用本机生成的固定签名身份签名，停掉仍在运行的旧常驻进程，再把 `bcu` 链接到 `~/.local/bin`。签名身份每台 Mac 只生成一次，重装后辅助功能与屏幕录制授权仍然有效。更新时在仓库里 `git pull && scripts/install.sh`。
 
-从旧的 Node 版本迁移时，脚本会停掉旧 Broker 和 helper；如果 PATH 里还有 `npm link` 装的旧 `bcu` 排在前面，脚本会提示，用 `npm rm -g better-computer-use` 删掉。
-
 仓库里的 `skills/better-computer-use` 是 agent skill，接进所有 agent 共用的目录：
 
 ```bash

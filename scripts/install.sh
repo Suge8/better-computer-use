@@ -2,23 +2,24 @@
 # Builds bcu for arm64 and x86_64 and installs it as bcu.app: signed with this Mac's stable
 # local identity, because macOS keys the Accessibility and Screen Recording grants to the
 # signing identity and bundle id; the resident process that is still running the previous
-# build is stopped; `bcu` is linked into PATH.
+# build is stopped with `bcu stop`, which honours BCU_SOCKET_PATH; `bcu` is linked into PATH.
 #
-#   BCU_APP_PATH           where the app goes (default /Applications/bcu.app)
+#   BCU_APP_PATH           where the app goes (default /Applications/bcu.app, which is also
+#                          where the client launches it from when BCU_APP_PATH is unset)
 #   BCU_BIN_DIR            where the `bcu` link goes (default ~/.local/bin)
-#   BCU_SOCKET_PATH        the resident socket to stop (default ~/Library/Caches/bcu/resident.sock)
 #   BCU_CODESIGN_IDENTITY  sign with this identity instead of the local one
 set -euo pipefail
 
 readonly BUNDLE_ID=com.sugeh.bcu
 readonly VERSION=0.2.0
-readonly MINIMUM_MACOS=14.0
 readonly IDENTITY_NAME="bcu Local Signing ($BUNDLE_ID)"
 readonly APP=${BCU_APP_PATH:-/Applications/bcu.app}
 readonly BIN_DIR=${BCU_BIN_DIR:-$HOME/.local/bin}
-readonly SOCKET=${BCU_SOCKET_PATH:-$HOME/Library/Caches/bcu/resident.sock}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 readonly ROOT
+# The deployment target is the one Package.swift builds for.
+MINIMUM_MACOS=$(swift package --package-path "$ROOT" describe --type json | plutil -extract platforms.0.version raw -o - -)
+readonly MINIMUM_MACOS
 
 log() { printf '[bcu] %s\n' "$*" >&2; }
 
@@ -97,24 +98,6 @@ signing_identity() {
 	printf '%s' "$identity"
 }
 
-# The running resident keeps serving the build it started with, and is asked to stop over its
-# own protocol: it binds under another name and publishes its socket by rename, which hides
-# it from lsof. The Node CLI's Broker and helper that bcu.app replaced bound broker.sock and
-# bridge.sock in place beside it, so the exact pid holding either is stopped and waited for.
-stop_running() {
-	local binary=$1 socket pid
-	for socket in "$(dirname "$SOCKET")/broker.sock" "$(dirname "$SOCKET")/bridge.sock"; do
-		[[ -S $socket ]] || continue
-		for pid in $(lsof -t -- "$socket" 2>/dev/null); do
-			log "stopping pid $pid on $socket"
-			kill "$pid" 2>/dev/null || continue
-			caffeinate -w "$pid"
-		done
-		rm -f "$socket"
-	done
-	BCU_SOCKET_PATH=$SOCKET "$binary" stop >&2
-}
-
 install_app() {
 	local staged=$1
 	mkdir -p "$(dirname "$APP")"
@@ -132,7 +115,6 @@ link_cli() {
 	*":$BIN_DIR:"*) ;;
 	*) log "add $BIN_DIR to PATH to run bcu" ;;
 	esac
-	# The Node CLI this replaces was installed with `npm link`; npm rm -g better-computer-use removes it.
 	local found
 	found=$(command -v bcu || true)
 	if [[ -n $found && $found != "$BIN_DIR/bcu" ]]; then log "$found comes first in PATH and is not this install; remove it"; fi
@@ -148,7 +130,8 @@ main() {
 	assemble "$binary" "$staging/bcu.app"
 	identity=$(signing_identity)
 	codesign --force --sign "$identity" -i "$BUNDLE_ID" --timestamp=none "$staging/bcu.app"
-	stop_running "$binary"
+	# The running resident keeps serving the build it started with.
+	"$binary" stop >&2
 	install_app "$staging/bcu.app"
 	link_cli
 	log "installed $APP, signed by $identity; bcu → $BIN_DIR/bcu"
