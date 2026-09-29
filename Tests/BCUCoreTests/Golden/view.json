@@ -6,7 +6,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "look-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -100,7 +99,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -235,7 +233,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "look-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -329,7 +326,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-3",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -435,7 +431,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "look-vis-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -533,7 +528,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-vis-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -646,7 +640,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "look-vis-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -744,7 +737,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-vis-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -858,7 +850,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "words-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -1045,7 +1036,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "words-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -1284,7 +1274,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-mutated",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "e1310",
@@ -3701,7 +3690,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-mutated",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "e1310",
@@ -5183,7 +5171,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-mutated",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "e1310",
@@ -7591,7 +7578,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "look-mutated",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "e1310",
@@ -9990,7 +9976,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "look-mutated",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "e1310",
@@ -11502,7 +11487,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "menu-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "bar",
@@ -11633,7 +11617,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "menu-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "bar",
@@ -11807,7 +11790,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "menu-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "bar",
@@ -11938,7 +11920,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "menu-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "bar",
@@ -12112,7 +12093,6 @@
 			"input": {
 				"base": {
 					"outline": {
-						"lookId": "big-1",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -13078,7 +13058,6 @@
 				},
 				"next": {
 					"outline": {
-						"lookId": "big-2",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",

@@ -375,7 +375,6 @@
 			"input": {
 				"outline": {
 					"outline": {
-						"lookId": "menu",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "menu",
@@ -523,7 +522,6 @@
 			"input": {
 				"outline": {
 					"outline": {
-						"lookId": "menubar",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "bar",
@@ -640,7 +638,6 @@
 			"input": {
 				"outline": {
 					"outline": {
-						"lookId": "internal",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "menu",
@@ -1048,7 +1045,6 @@
 			"input": {
 				"outline": {
 					"outline": {
-						"lookId": "escape",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -1246,7 +1242,6 @@
 			"input": {
 				"outline": {
 					"outline": {
-						"lookId": "caps",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
@@ -1948,7 +1943,6 @@
 			"input": {
 				"outline": {
 					"outline": {
-						"lookId": "web",
 						"root": {
 							"ref": "@e1",
 							"wireRef": "window",
