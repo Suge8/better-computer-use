@@ -17,7 +17,7 @@ final class ButtonsView: NSView {
 	static let labels = ["发送", "取消", "静默"]
 	static let silent = "静默"
 	static let list = NSRect(x: 30, y: 180, width: 180, height: 180)
-	static let rowHeight: CGFloat = 36
+	static let rowHeight: CGFloat = 30
 	static let rows = 40
 	static let blockSize: CGFloat = 60
 	static let statusBand = NSRect(x: 30, y: 146, width: 380, height: 26)
@@ -81,7 +81,7 @@ final class ButtonsView: NSView {
 		NSBezierPath(rect: Self.list).addClip()
 		for index in 0..<Self.rows {
 			let top = Self.list.maxY - CGFloat(index + 1 - firstRow) * Self.rowHeight
-			NSAttributedString(string: "行 \(index + 1)", attributes: [.font: NSFont.systemFont(ofSize: 24, weight: .semibold), .foregroundColor: NSColor.black])
+			NSAttributedString(string: "行 \(index + 1)", attributes: [.font: NSFont.systemFont(ofSize: 20), .foregroundColor: NSColor.black])
 				.draw(at: NSPoint(x: Self.list.minX + 12, y: top + 4))
 		}
 		NSGraphicsContext.restoreGraphicsState()
