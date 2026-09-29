@@ -1,9 +1,17 @@
 import AppKit
+import os
 
-final class Box<T> {
-	var value: T
-	init(_ value: T) {
-		self.value = value
+/// A value a callback or task hands to the thread that waits for it on a semaphore.
+final class Box<Value: Sendable>: Sendable {
+	private let lock: OSAllocatedUnfairLock<Value>
+
+	init(_ value: Value) {
+		lock = OSAllocatedUnfairLock(initialState: value)
+	}
+
+	var value: Value {
+		get { lock.withLock { $0 } }
+		set { lock.withLock { $0 = newValue } }
 	}
 }
 
@@ -11,7 +19,7 @@ extension Platform {
 	func processPath(pid: pid_t) -> String? {
 		var buffer = [CChar](repeating: 0, count: 4096)
 		let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
-		return length > 0 ? String(cString: buffer) : nil
+		return length > 0 ? String(decoding: buffer.prefix(Int(length)).map { UInt8(bitPattern: $0) }, as: UTF8.self) : nil
 	}
 
 	func processName(pid: pid_t) -> String? {

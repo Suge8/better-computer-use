@@ -18,7 +18,7 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		var batches: [[ActRequest]] = []
 		var waits: [WaitForRequest] = []
 		var reads: [Handle] = []
-		var look: @Sendable (LookRequest) throws -> LookResult = { _ in throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.") }
+		var look: @Sendable (LookRequest) throws -> sending LookResult = { _ in throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.") }
 		/// Answers each delivered action; the default presses fine and changes nothing.
 		var answer: @Sendable (ActRequest) throws -> ActionReport = { _ in ActionReport(outcome: .worked, performed: ActPerformed(delivery: .ax)) }
 		var wait: @Sendable (WaitForRequest) -> WaitOutcome = { _ in .found }
@@ -54,7 +54,7 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		return Frontmost(appName: app.appName, pid: app.pid, bundleId: app.bundleId, window: scene.roots[app.pid]?.first)
 	}
 
-	func look(_ request: LookRequest) throws -> LookResult {
+	func look(_ request: LookRequest) throws -> sending LookResult {
 		let look = update { scene in
 			scene.looks.append(request)
 			return scene.look

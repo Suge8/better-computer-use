@@ -4,17 +4,32 @@ import ApplicationServices
 /// a root. It compares by the identity of what it names, so the same window found twice is
 /// the same handle. The platform alone looks inside; a caller keeps it with the observation
 /// it came from, and it is released with that observation.
-public struct Handle: Hashable, @unchecked Sendable {
-	let base: AnyHashable
+public struct Handle: Hashable, Sendable {
+	private let value: any Hashable & Sendable
 
 	/// Wraps any value as a handle; the platform's own handles wrap accessibility elements.
 	public init<Value: Hashable & Sendable>(_ value: Value) {
-		base = AnyHashable(value)
+		self.value = value
+	}
+
+	/// The wrapped value, for the platform to look inside and for tests to name their fakes.
+	var base: AnyHashable { AnyHashable(value) }
+
+	public static func == (lhs: Handle, rhs: Handle) -> Bool {
+		lhs.base == rhs.base
+	}
+
+	public func hash(into hasher: inout Hasher) {
+		hasher.combine(base)
 	}
 }
 
 /// An accessibility element, equal to another when both name the same UI object.
-struct AXElement: Hashable {
+///
+/// Sendable although `AXUIElement` is not marked so: the reference is an immutable token for
+/// a UI object in another process, and every AX call on it is a message to that process,
+/// which the Accessibility API allows from any thread.
+struct AXElement: Hashable, @unchecked Sendable {
 	let element: AXUIElement
 
 	static func == (lhs: AXElement, rhs: AXElement) -> Bool {
@@ -28,7 +43,7 @@ struct AXElement: Hashable {
 
 /// What an element looked like when it was observed, to find it again if its accessibility
 /// object is replaced (a list row rebuilt, a view reloaded).
-struct ElementSnapshot {
+struct ElementSnapshot: Sendable {
 	let role: String
 	let identifier: String
 	let label: String
@@ -37,7 +52,7 @@ struct ElementSnapshot {
 }
 
 /// An observed element and its snapshot; identity is the element alone.
-struct ElementRecord: Hashable {
+struct ElementRecord: Hashable, Sendable {
 	let element: AXElement
 	let snapshot: ElementSnapshot
 
@@ -52,7 +67,7 @@ struct ElementRecord: Hashable {
 
 /// A root: its accessibility element, or for a popup menu Accessibility never exposed, the
 /// window-server window that draws it.
-enum RootObject: Hashable {
+enum RootObject: Hashable, Sendable {
 	case element(AXElement)
 	case popupMenu(windowId: UInt32)
 }
@@ -71,14 +86,10 @@ extension Handle {
 	}
 
 	var elementRecord: ElementRecord? {
-		base.base as? ElementRecord
+		value as? ElementRecord
 	}
 
 	var rootObject: RootObject? {
-		base.base as? RootObject
+		value as? RootObject
 	}
 }
-
-extension AXElement: @unchecked Sendable {}
-extension ElementRecord: @unchecked Sendable {}
-extension RootObject: @unchecked Sendable {}

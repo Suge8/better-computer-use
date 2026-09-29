@@ -56,8 +56,12 @@ edits the affected cases by hand and commits them on their own, before the code.
 
 `BCUPlatform` holds every desktop call behind the in-process `Platform` API, and
 `BCUDaemon` runs the resident commands on it; `Tests/BCUDaemonTests` checks the command
-results against a fake desktop. The platform target stays in the Swift 5 language mode (see
-`Package.swift`).
+results against a fake desktop. Every target builds in the Swift 6 language mode. Platform
+calls block and may run on any thread: shared state sits behind locks (`OSAllocatedUnfairLock`,
+and a condition for waiting on accessibility notifications), elements travel as `Sendable`
+handles, and a look's outline is handed to the caller (`sending`) rather than shared. The one
+`@unchecked Sendable` is the accessibility element wrapper in `Handle.swift`; the reason is
+written there. `swift test --sanitize=thread` runs the same tests under Thread Sanitizer.
 
 ## Upstream engine
 
