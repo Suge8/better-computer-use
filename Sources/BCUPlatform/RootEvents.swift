@@ -60,37 +60,83 @@ final class AppNotifications: Sendable {
 	}
 }
 
+/// A thread that runs its own run loop until stopped, keeping alive what its setup returned.
+final class RunLoopThread: Sendable {
+	/// Sendable although `CFRunLoop` is not marked so: the only calls made on it from other
+	/// threads are `CFRunLoopPerformBlock` and `CFRunLoopWakeUp`, which Core Foundation allows
+	/// from any thread.
+	private struct Loop: @unchecked Sendable {
+		let runLoop: CFRunLoop
+	}
+
+	private let loop: Loop
+
+	private init(_ loop: Loop) {
+		self.loop = loop
+	}
+
+	/// Runs `setup` on a new thread; the thread keeps running its run loop only when setup
+	/// returns something to keep, and nil is returned otherwise.
+	static func start(_ setup: @escaping @Sendable () -> AnyObject?) -> RunLoopThread? {
+		let started = DispatchSemaphore(value: 0)
+		let loop = Box<Loop?>(nil)
+		Thread.detachNewThread {
+			let kept = setup()
+			if kept != nil { loop.value = Loop(runLoop: CFRunLoopGetCurrent()) }
+			started.signal()
+			guard kept != nil else { return }
+			withExtendedLifetime(kept) { CFRunLoopRun() }
+		}
+		started.wait()
+		return loop.value.map(RunLoopThread.init)
+	}
+
+	/// Ends the run loop, and with it the thread and what it kept; a stop that arrives before
+	/// the loop runs takes effect when it does.
+	func stop() {
+		CFRunLoopPerformBlock(loop.runLoop, CFRunLoopMode.commonModes.rawValue) {
+			CFRunLoopStop(CFRunLoopGetCurrent())
+		}
+		CFRunLoopWakeUp(loop.runLoop)
+	}
+}
+
 /// The apps whose notifications are observed; the least recently used is dropped past the limit.
 final class RootObservers: Sendable {
+	private struct Observed: Sendable {
+		let app: AppNotifications
+		let thread: RunLoopThread
+	}
+
 	private static let limit = 4
-	private let apps = OSAllocatedUnfairLock(initialState: [Int32: AppNotifications]())
+	private let apps = OSAllocatedUnfairLock(initialState: [Int32: Observed]())
 	private let starting = NSLock()
 
 	subscript(pid: Int32) -> AppNotifications? {
-		apps.withLock { $0[pid] }
+		apps.withLock { $0[pid]?.app }
 	}
 
-	/// The app's notifications, starting an observer for it first when there is none; nil
-	/// when the app accepts no observer. Starts are serialized, so an app never gets two.
-	func ensure(_ pid: Int32, start: (AppNotifications) -> Bool) -> AppNotifications? {
+	/// The app's notifications, starting an observer thread for it first when there is none;
+	/// nil when the app accepts no observer. Starts are serialized, so an app never gets two.
+	func ensure(_ pid: Int32, start: (AppNotifications) -> RunLoopThread?) -> AppNotifications? {
 		starting.withLock {
 			if let existing = self[pid] {
 				existing.touch()
 				return existing
 			}
 			let app = AppNotifications(pid: pid)
-			guard start(app) else { return nil }
-			insert(app)
+			guard let thread = start(app) else { return nil }
+			insert(Observed(app: app, thread: thread))
 			return app
 		}
 	}
 
-	private func insert(_ app: AppNotifications) {
+	private func insert(_ observed: Observed) {
 		apps.withLock { apps in
-			if apps.count >= Self.limit, let evict = apps.values.min(by: { $0.lastUsed < $1.lastUsed })?.pid {
+			if apps.count >= Self.limit, let evict = apps.values.min(by: { $0.app.lastUsed < $1.app.lastUsed })?.app.pid {
 				apps.removeValue(forKey: evict)
 			}
-			apps[app.pid] = app
+			apps[observed.app.pid] = observed
 		}
 	}
 }
@@ -115,25 +161,16 @@ extension Platform {
 		rootObservers.ensure(pid, start: startObserver) != nil
 	}
 
-	/// Runs an observer for the app on a thread of its own; false when it could not register.
-	private func startObserver(for app: AppNotifications) -> Bool {
-		let started = DispatchSemaphore(value: 0)
-		let observing = Box(false)
-		// Each observer lives on its own thread and run loop, so its callbacks never compete
-		// with AppKit rendering on the main thread. The thread keeps the observer and the log
-		// its callbacks write to alive.
-		Thread.detachNewThread { [self] in
-			let observer = makeObserver(for: app)
-			if let observer {
-				CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)
-			}
-			observing.value = observer != nil
-			started.signal()
-			guard observer != nil else { return }
-			withExtendedLifetime((observer, app)) { CFRunLoopRun() }
+	/// Runs an observer for the app on a thread of its own; nil when it could not register.
+	/// Its own run loop keeps its callbacks from competing with AppKit rendering on the main
+	/// thread. The thread keeps the observer and, through this closure, the log its callbacks
+	/// write to alive.
+	private func startObserver(for app: AppNotifications) -> RunLoopThread? {
+		RunLoopThread.start { [self] in
+			guard let observer = makeObserver(for: app) else { return nil }
+			CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)
+			return observer
 		}
-		started.wait()
-		return observing.value
 	}
 
 	private func makeObserver(for app: AppNotifications) -> AXObserver? {

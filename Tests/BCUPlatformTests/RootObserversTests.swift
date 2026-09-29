@@ -12,7 +12,7 @@ struct RootObserversTests {
 			_ = observers.ensure(7) { _ in
 				starts.value += 1
 				usleep(1_000)
-				return true
+				return RunLoopThread.start { NSObject() }
 			}
 		}
 		#expect(starts.value == 1)
@@ -21,11 +21,11 @@ struct RootObserversTests {
 	@Test func aFifthAppDropsTheLeastRecentlyUsed() {
 		let observers = RootObservers()
 		for pid in Int32(1)...4 {
-			_ = observers.ensure(pid) { _ in true }
+			_ = observers.ensure(pid) { _ in RunLoopThread.start { NSObject() } }
 			usleep(1_000)
 		}
-		_ = observers.ensure(1) { _ in Issue.record("an observed app was started again"); return true }
-		_ = observers.ensure(5) { _ in true }
+		_ = observers.ensure(1) { _ in Issue.record("an observed app was started again"); return nil }
+		_ = observers.ensure(5) { _ in RunLoopThread.start { NSObject() } }
 		#expect(observers[1] != nil)
 		#expect(observers[2] == nil)
 		#expect([3, 4, 5].allSatisfy { observers[$0] != nil })
@@ -33,7 +33,7 @@ struct RootObserversTests {
 
 	@Test func anAppThatRefusesAnObserverIsNotKept() {
 		let observers = RootObservers()
-		#expect(observers.ensure(9) { _ in false } == nil)
+		#expect(observers.ensure(9) { _ in nil } == nil)
 		#expect(observers[9] == nil)
 	}
 }
