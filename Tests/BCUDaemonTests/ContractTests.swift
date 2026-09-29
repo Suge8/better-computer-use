@@ -44,7 +44,7 @@ private func plainWindow(_ app: RunningApp) -> Root {
 private final class World: @unchecked Sendable {
 	private let lock = NSLock()
 	private var _sheetOpen = false
-	private var _noiseParent: (role: String, title: String, identifier: String)?
+	private var _noiseParent: (role: String, subrole: String, identifier: String, rect: CGRect)?
 	private var _noisePresent = false
 
 	var sheetOpen: Bool {
@@ -52,7 +52,7 @@ private final class World: @unchecked Sendable {
 		set { lock.withLock { _sheetOpen = newValue } }
 	}
 
-	var noiseParent: (role: String, title: String, identifier: String)? {
+	var noiseParent: (role: String, subrole: String, identifier: String, rect: CGRect)? {
 		get { lock.withLock { _noiseParent } }
 		set { lock.withLock { _noiseParent = newValue } }
 	}
@@ -90,7 +90,7 @@ private func contract() throws -> (Harness, World) {
 	@Sendable func withNoise(_ look: LookNode) -> LookNode {
 		let parent = world.noiseParent, present = world.noisePresent
 		func visit(_ node: LookNode) {
-			if present, let parent, node.role == parent.role, node.title == parent.title, node.identifier == parent.identifier {
+			if present, let parent, node.role == parent.role, node.subrole == parent.subrole, node.identifier == parent.identifier, node.rect == parent.rect {
 				node.children += (0..<noiseItems).map { BCUDaemonTests.node("noise-\($0)", role: "AXMenuItem", title: "菜单项 \($0)", canPress: true, offscreen: true) }
 			}
 			node.children.forEach(visit)
@@ -297,7 +297,8 @@ struct ContractTests {
 		let editorRef = try #require(view.nodes.first { $0.role == "textarea" }?.ref)
 		let folded = try #require(view.nodes.first { $0.hidden != nil })
 		guard case .inspectUi(let parent) = try await harness.run(#"{"command":"inspect-ui","params":{"stateId":"\#(view.stateId)","ref":"\#(folded.ref)"}}"#) else { Issue.record(); return }
-		world.noiseParent = (parent.node.role, parent.node.title, parent.node.identifier)
+		let rect = try #require(parent.node.rect)
+		world.noiseParent = (parent.node.role, parent.node.subrole, parent.node.identifier, CGRect(x: rect.x, y: rect.y, width: rect.w, height: rect.h))
 		let noise = #"[{"action":"keypress","ref":"\#(editorRef)","keys":["\#(noiseKey)"]}]"#
 		let grown = try await harness.text(harness.actRequest(view.stateId, noise))
 		#expect(lines(grown).filter { matches($0, "^[+-] @e") }.isEmpty, "offscreen items were listed one by one:\n\(grown)")

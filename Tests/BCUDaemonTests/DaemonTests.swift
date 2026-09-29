@@ -115,6 +115,7 @@ struct ObservationTests {
 
 	@Test func anImageIsWrittenAsAPrivateArtifact() async throws {
 		let harness = editor()
+		_ = try await harness.roots(#"{"app":"TextEdit"}"#)
 		let result = try await harness.observe(#"{"root":"@r1","image":"always"}"#)
 		let image = try #require(result.image)
 		#expect(image.path.hasPrefix(harness.shots))
