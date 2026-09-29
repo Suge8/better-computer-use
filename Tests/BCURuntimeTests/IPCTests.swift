@@ -1,10 +1,11 @@
 import BCUCore
 import Foundation
+import BCUTestSupport
 import Testing
 @testable import BCURuntime
 
 /// The CLI ↔ resident wire: JSON lines over a private Unix socket, typed by the BCUCore contract.
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct IPCTests {
 	private func findRootsServer(_ path: String, version: Int = wireProtocolVersion) throws -> Server {
 		let server = Server(socketPath: path, protocolVersion: version) { request in

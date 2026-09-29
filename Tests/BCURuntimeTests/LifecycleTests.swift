@@ -1,12 +1,13 @@
 import BCUCore
 import Foundation
+import BCUTestSupport
 import Testing
 @testable import BCURuntime
 
 private let noHandler: RequestHandler = { _ in .null }
 
 /// Starting, finding and stopping the resident process.
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct LifecycleTests {
 	@Test func concurrentClientsStartOneResident() async throws {
 		let path = temporarySocketPath()

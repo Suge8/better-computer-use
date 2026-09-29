@@ -1,10 +1,11 @@
 import BCUCore
 import Foundation
+import BCUTestSupport
 import Testing
 @testable import BCURuntime
 
 /// Screenshot files: private, named by state, pruned on write.
-@Suite struct ArtifactStoreTests {
+@Suite(.temporaryRoot) struct ArtifactStoreTests {
 	private let image = Data([0xFF, 0xD8, 0xFF, 0xE0])
 
 	private func files(_ directory: String) throws -> [String] {

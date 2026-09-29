@@ -2,6 +2,7 @@ import BCUCore
 @testable import BCUDaemon
 @testable import BCUPlatform
 import Foundation
+import BCUTestSupport
 import Testing
 
 // The resident commands over a fake editor app. Its window shows a button, a text field an
@@ -56,7 +57,7 @@ private extension Harness {
 	}
 }
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct DiscoveryTests {
 	@Test func aRootKeepsItsRefWhenItsTitleChanges() async throws {
 		let harness = editor()
@@ -109,7 +110,7 @@ struct DiscoveryTests {
 	}
 }
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct ObservationTests {
 	@Test func observingARootSavesAStateWithItsView() async throws {
 		let harness = editor()
@@ -173,7 +174,7 @@ struct ObservationTests {
 	}
 }
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct ActionTests {
 	@Test func aPressIsDeliveredToTheObservedElementAndStalesItsBase() async throws {
 		let harness = editor()

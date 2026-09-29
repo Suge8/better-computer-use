@@ -2,6 +2,7 @@ import BCUCore
 @testable import BCUDaemon
 @testable import BCUPlatform
 import BCURuntime
+import BCUTestSupport
 import Foundation
 
 /// A scripted desktop. A scene lists the apps and their roots, answers looks, actions, waits
@@ -182,7 +183,7 @@ func handle(of target: ActTarget) -> Handle? {
 /// between an action and reading its effect.
 struct Harness {
 	let desktop: FakeDesktop
-	let shots = "/tmp/bcu-daemon-test-\(UInt32.random(in: 0...UInt32.max))"
+	let shots = TemporaryRoot.path("shots")
 	let daemon: Daemon<FakeDesktop>
 
 	init(_ scene: FakeDesktop.Scene) {

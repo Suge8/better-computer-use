@@ -2,6 +2,7 @@ import BCUCore
 @testable import BCUDaemon
 @testable import BCUPlatform
 import Foundation
+import BCUTestSupport
 import Testing
 
 // The public output contract of every command, over recorded outlines: result shapes, the
@@ -183,7 +184,7 @@ private func matches(_ text: String, _ pattern: String) -> Bool {
 	text.range(of: pattern, options: .regularExpression) != nil
 }
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct ContractTests {
 	@Test func queriesOverOneStateKeepTheirShapes() async throws {
 		let (harness, _) = try contract()

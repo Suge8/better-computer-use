@@ -1,16 +1,15 @@
 import BCUCore
 import Foundation
 import os
+import BCUTestSupport
 import Testing
 
-/// A fresh socket path under /tmp: `sun_path` holds at most 104 bytes, too few for the
-/// per-user temporary directory.
 func temporarySocketPath() -> String {
-	"/tmp/bcu-test-\(UInt32.random(in: 0...UInt32.max))/resident.sock"
+	TemporaryRoot.path("socket") + "/resident.sock"
 }
 
 func temporaryDirectory() throws -> String {
-	let path = "/tmp/bcu-test-\(UInt32.random(in: 0...UInt32.max))"
+	let path = TemporaryRoot.path("files")
 	try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
 	return path
 }
