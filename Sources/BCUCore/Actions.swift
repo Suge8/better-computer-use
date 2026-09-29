@@ -124,6 +124,11 @@ public enum ActionTarget: Codable, Sendable, Equatable {
 		}
 	}
 
+	var isPoint: Bool {
+		if case .point = self { return true }
+		return false
+	}
+
 	public func encode(to encoder: any Encoder) throws {
 		var container = encoder.container(keyedBy: CodingKeys.self)
 		switch self {
@@ -187,7 +192,9 @@ public struct PreparedAction: Codable, Sendable, Equatable {
 	public var action: ActionName
 	public var target: ActionTarget?
 	public var params: PreparedParams
-	/// A click that put keyboard focus into an editable element, so later typing may use it.
+	/// A click that put keyboard focus somewhere later untargeted typing may use: into an
+	/// editable element, or wherever a click delivered at coordinates landed (OCR text, a node
+	/// without an accessibility element, an x/y click), where the platform cannot say.
 	public var establishesFocus: Bool
 }
 
@@ -299,8 +306,7 @@ public func prepareAction(_ action: UiAction, state: ActionState, environment: A
 	let ref = action.ref ?? ""
 	let intoCurrentFocus = !environment.headless && state.currentFocus && ref.isEmpty && (operation == .typeText || operation == .keypress)
 	let target = intoCurrentFocus ? try focusedTarget(environment) : try nativeTarget(action, operation, environment)
-	let clicks = operation == .click || operation == .press
-	let establishesFocus = try !environment.headless && !ref.isEmpty && clicks && containsEditable(environment.node(ref, for: action.action))
+	let establishesFocus = try !environment.headless && (operation == .click || operation == .press) && (target.isPoint || !ref.isEmpty && containsEditable(environment.node(ref, for: action.action)))
 	let params: PreparedParams = switch operation {
 	case .press, .click: .click(button: action.button ?? .left, clickCount: action.action == .doubleClick ? 2 : action.clickCount ?? 1)
 	case .setText, .typeText: .text(action.text ?? "")
