@@ -167,9 +167,10 @@ public enum CLI {
 
 	/// What a successful command writes to stdout.
 	public static func output(_ result: CommandResult, json: Bool) throws -> String {
-		if json { return try result.json().serialized() + "\n" }
-		let text = try render(result)
-		return text.isEmpty ? "" : Text.trimEnd(text) + "\n"
+		if json { return try JSONCoding.string(result) + "\n" }
+		var text = try render(result)
+		while text.last?.isWhitespace == true { text.removeLast() }
+		return text.isEmpty ? "" : text + "\n"
 	}
 }
 
@@ -288,7 +289,7 @@ private func optionHelp(_ options: [OptionSpec]) -> [String] {
 		case .integer: " <n>"
 		}
 		let label = spec.flag + value
-		return "  " + Text.padEnd(label, helpColumn) + (Text.length(label) > helpColumn ? " " : "") + spec.doc
+		return "  " + Text.padEnd(label, helpColumn) + (label.count > helpColumn ? " " : "") + spec.doc
 	}
 }
 

@@ -11,9 +11,9 @@ func render(_ result: CommandResult) throws -> String {
 			renderNode(match.node) + (match.path.last.map { " in \($0)" } ?? "")
 		}).joined(separator: "\n")
 	case .expandUi(let result): lines(["\(result.ref) · state \(result.stateId)", renderNodes(result.nodes)])
-	case .inspectUi(let result): try JSONCoding.string(result.node, indent: 2)
+	case .inspectUi(let result): try JSONCoding.string(result.node, pretty: true)
 	case .actUi(let result): renderAct(result)
-	case .readText(let result): "\(result.ref) \(result.offset)-\(result.offset + Text.length(result.text)) of \(result.total)\n\(result.text)"
+	case .readText(let result): "\(result.ref) \(result.offset)-\(result.offset + result.text.count) of \(result.total)\n\(result.text)"
 	case .waitFor(let result): lines([
 			"state \(result.stateId) · \(result.gone == true ? "gone" : "found")",
 			successorLines(changes: result.changes, offscreen: result.offscreen, nodes: result.nodes),

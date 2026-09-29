@@ -66,26 +66,36 @@ private func run(_ command: PlainCommand, json: Bool, settings: Settings) throws
 	}
 }
 
-private func output(_ value: JSONValue, _ text: String, json: Bool) -> String {
-	json ? value.serialized() + "\n" : text + "\n"
+private func output(_ value: some Encodable, _ text: String, json: Bool) throws -> String {
+	json ? try JSONCoding.string(value) + "\n" : text + "\n"
 }
 
-private func object(_ members: [(String, JSONValue)]) -> JSONValue {
-	.object(members.map { JSONMember($0.0, $0.1) })
+private struct StatusReport: Encodable {
+	var running: Bool
+	var pid: Int?
+	var protocolVersion: Int?
 }
 
-private func number(_ value: Int) -> JSONValue {
-	.number(Double(value))
+private struct StopReport: Encodable {
+	var stopped = true
+	var alreadyStopped: Bool?
+	var pid: Int?
+}
+
+private struct SetupReport: Encodable {
+	var registered: JSONValue
+	var ready = true
+	var permissions: JSONValue
 }
 
 private func status(_ settings: Settings, json: Bool) throws -> String {
 	guard let connection = try Client.connectIfRunning(socketPath: settings.socketPath) else {
-		return output(object([("running", .bool(false))]), "resident stopped", json: json)
+		return try output(StatusReport(running: false), "resident stopped", json: json)
 	}
 	defer { connection.close() }
 	let status = connection.status
-	return output(
-		object([("running", .bool(true)), ("pid", number(status.pid)), ("protocolVersion", number(status.protocolVersion))]),
+	return try output(
+		StatusReport(running: true, pid: status.pid, protocolVersion: status.protocolVersion),
 		"resident running · pid \(status.pid) · protocol \(status.protocolVersion)",
 		json: json
 	)
@@ -93,9 +103,9 @@ private func status(_ settings: Settings, json: Bool) throws -> String {
 
 private func stop(_ settings: Settings, json: Bool) throws -> String {
 	guard let status = try Client.stop(socketPath: settings.socketPath) else {
-		return output(object([("stopped", .bool(true)), ("alreadyStopped", .bool(true))]), "resident already stopped", json: json)
+		return try output(StopReport(alreadyStopped: true), "resident already stopped", json: json)
 	}
-	return output(object([("stopped", .bool(true)), ("pid", number(status.pid))]), "resident stopped · pid \(status.pid)", json: json)
+	return try output(StopReport(pid: status.pid), "resident stopped · pid \(status.pid)", json: json)
 }
 
 /// The resident's doctor report carries `permissions: {accessibility, screenRecording}`.
@@ -116,10 +126,10 @@ private func doctor(_ settings: Settings, json: Bool) throws -> String {
 	defer { connection.close() }
 	let report = try connection.send(.plain(.doctor))
 	let status = connection.status
-	guard case .object(let members) = report else { throw BCUError(.internalError, "The resident's doctor report is not an object.") }
-	let resident = object([("pid", number(status.pid)), ("protocolVersion", number(status.protocolVersion))])
-	let value = JSONValue.object([JSONMember("resident", resident)] + members + [JSONMember("config", try JSONCoding.encode(settings.config))])
-	return output(value, "resident ok · pid \(status.pid) · protocol \(status.protocolVersion)\n\(try Permissions(report: report).line)", json: json)
+	guard case .object(var members) = report else { throw BCUError(.internalError, "The resident's doctor report is not an object.") }
+	members["resident"] = try JSONCoding.encode(status)
+	members["config"] = try JSONCoding.encode(settings.config)
+	return try output(JSONValue.object(members), "resident ok · pid \(status.pid) · protocol \(status.protocolVersion)\n\(try Permissions(report: report).line)", json: json)
 }
 
 /// Registers bcu.app with both privacy panes, waits for the user to switch them on, then
@@ -139,6 +149,5 @@ private func setup(_ settings: Settings, json: Bool) throws -> String {
 	guard permissions.accessibility, permissions.screenRecording else {
 		throw BCUError(.permissionMissing, "bcu still lacks required macOS permissions: \(permissions.line).")
 	}
-	let value = object([("registered", registered), ("ready", .bool(true)), ("permissions", report["permissions"]!)])
-	return output(value, "setup: permissions granted", json: json)
+	return try output(SetupReport(registered: registered, permissions: report["permissions"]!), "setup: permissions granted", json: json)
 }

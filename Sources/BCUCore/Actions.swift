@@ -56,13 +56,14 @@ private func hasTarget(_ action: JSONValue) -> Bool {
 	action["ref"]?.string.map { !Text.trim($0).isEmpty } == true || (action["x"].flatMap(finite) != nil && action["y"].flatMap(finite) != nil)
 }
 
-private func validateFields(_ members: [JSONMember], _ name: ActionName) throws {
+/// Fields are checked in key order, so the same item always reports the same field.
+private func validateFields(_ members: [String: JSONValue], _ name: ActionName) throws {
 	let allowed = actionFields[name] ?? []
-	for member in members where member.key != "action" {
-		guard allowed.contains(member.key), let rule = fieldRules[member.key] else { throw invalid("\(name.rawValue).\(member.key) is not supported.") }
-		if !rule.valid(member.value) { throw invalid("\(name.rawValue).\(member.key) must be \(rule.requirement).") }
+	for (key, value) in members.sorted(by: { $0.key < $1.key }) where key != "action" {
+		guard allowed.contains(key), let rule = fieldRules[key] else { throw invalid("\(name.rawValue).\(key) is not supported.") }
+		if !rule.valid(value) { throw invalid("\(name.rawValue).\(key) must be \(rule.requirement).") }
 	}
-	let keys = Set(members.map(\.key))
+	let keys = Set(members.keys)
 	for field in requiredFields[name] ?? [] where !keys.contains(field) { throw invalid("\(name.rawValue).\(field) is required.") }
 	if keys.contains("x") != keys.contains("y") { throw invalid("\(name.rawValue).x and \(name.rawValue).y must be supplied together.") }
 	if keys.contains("ref"), keys.contains("x") { throw invalid("\(name.rawValue) must use either ref or coordinates, not both.") }
@@ -75,8 +76,9 @@ public func validateActions(_ values: [JSONValue]) throws -> [UiAction] {
 	var focusMayExist = false
 	for value in values {
 		guard case .object(let members) = value else { throw invalid("Every act-ui item must be an action object.") }
-		guard let name = value["action"]?.string.flatMap(ActionName.init(rawValue:)) else {
-			throw invalid("Unsupported action '\(Text.describe(value["action"]))'.")
+		guard let action = value["action"] else { throw invalid("Every act-ui item needs an action.") }
+		guard let name = action.string.flatMap(ActionName.init(rawValue:)) else {
+			throw invalid("Unsupported action '\(action.string ?? action.serialized())'.")
 		}
 		try validateFields(members, name)
 		let targeted = hasTarget(value)
@@ -224,13 +226,13 @@ public struct ActionEnvironment {
 	public let outline: Outline
 	public let image: ImageSize?
 	public let headless: Bool
-	private let owners: [String: OrderedMap<String>]
+	private let owners: [String: [String: String]]
 
 	public init(outline: Outline, image: ImageSize?, headless: Bool) {
 		self.outline = outline
 		self.image = image
 		self.headless = headless
-		var owners: [String: OrderedMap<String>] = [:]
+		var owners: [String: [String: String]] = [:]
 		for node in project(outline, .unfolded).nodes { owners[node.ref] = node.owners }
 		self.owners = owners
 	}

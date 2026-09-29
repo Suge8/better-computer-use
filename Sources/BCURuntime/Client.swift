@@ -14,11 +14,11 @@ public final class Connection {
 	fileprivate init(_ descriptor: Int32, protocolVersion: Int) throws {
 		channel = LineChannel(descriptor)
 		do {
-			try channel.write(Message.hello(protocolVersion))
-			guard let hello = try channel.read()?["hello"] else {
+			try channel.write(Hello(hello: protocolVersion))
+			guard let hello = try channel.read(Hello<ResidentStatus>.self) else {
 				throw BCUError(.residentUnavailable, "The bcu resident process closed the connection during the handshake.")
 			}
-			status = try JSONCoding.decode(ResidentStatus.self, from: hello)
+			status = hello.hello
 		} catch {
 			Darwin.close(descriptor)
 			throw error
@@ -26,9 +26,9 @@ public final class Connection {
 	}
 
 	public func send(_ request: Request) throws -> JSONValue {
-		try channel.write(request.json())
-		guard let reply = try channel.read() else { throw BCUError(.residentUnavailable, "The bcu resident process closed the connection.") }
-		return try Message.unwrap(reply)
+		try channel.write(request)
+		guard let reply = try channel.read(Reply.self) else { throw BCUError(.residentUnavailable, "The bcu resident process closed the connection.") }
+		return try reply.unwrap()
 	}
 
 	public func run(_ command: CommandRequest) throws -> CommandResult {

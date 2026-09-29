@@ -13,22 +13,23 @@ public enum RuntimePaths {
 	public static let shots = caches + "/shots"
 }
 
-public enum Request: Sendable, Equatable {
+public enum Request: Codable, Sendable, Equatable {
 	case command(CommandRequest)
 	case plain(PlainCommand)
 
-	func json() throws -> JSONValue {
-		switch self {
-		case .command(let command): try JSONCoding.encode(command)
-		case .plain(let plain): .object([JSONMember("command", .string(plain.rawValue))])
-		}
+	private enum CodingKeys: String, CodingKey { case command }
+
+	public init(from decoder: any Decoder) throws {
+		let name = try decoder.container(keyedBy: CodingKeys.self).decode(String.self, forKey: .command)
+		self = if let plain = PlainCommand(rawValue: name) { .plain(plain) } else { .command(try CommandRequest(from: decoder)) }
 	}
 
-	init(json: JSONValue) throws {
-		if let name = json["command"]?.string, let plain = PlainCommand(rawValue: name) {
-			self = .plain(plain)
-		} else {
-			self = .command(try JSONCoding.decode(CommandRequest.self, from: json))
+	public func encode(to encoder: any Encoder) throws {
+		switch self {
+		case .command(let command): try command.encode(to: encoder)
+		case .plain(let plain):
+			var container = encoder.container(keyedBy: CodingKeys.self)
+			try container.encode(plain.rawValue, forKey: .command)
 		}
 	}
 }
@@ -39,31 +40,32 @@ public struct ResidentStatus: Codable, Sendable, Equatable {
 	public var protocolVersion: Int
 }
 
-enum Message {
-	static func hello(_ version: Int) -> JSONValue {
-		.object([JSONMember("hello", .number(Double(version)))])
-	}
+/// The first line each side sends: the client's protocol version, the resident's status.
+struct Hello<Content: Codable>: Codable {
+	var hello: Content
+}
 
-	static func hello(_ status: ResidentStatus) throws -> JSONValue {
-		.object([JSONMember("hello", try JSONCoding.encode(status))])
-	}
+/// A line a client sends: its hello, then requests.
+enum Incoming: Decodable {
+	case hello(Int)
+	case request(Request)
 
-	static func result(_ value: JSONValue) -> JSONValue {
-		.object([JSONMember("result", value)])
-	}
+	private enum CodingKeys: String, CodingKey { case hello }
 
-	static func error(_ error: BCUError) -> JSONValue {
-		.object([JSONMember("error", .object([
-			JSONMember("code", .string(error.code.rawValue)),
-			JSONMember("message", .string(error.message)),
-			JSONMember("recovery", .string(error.recovery)),
-		]))])
+	init(from decoder: any Decoder) throws {
+		let container = try decoder.container(keyedBy: CodingKeys.self)
+		self = if container.contains(.hello) { .hello(try container.decode(Int.self, forKey: .hello)) } else { .request(try Request(from: decoder)) }
 	}
+}
 
-	/// The result a reply carries, or the error it reports thrown.
-	static func unwrap(_ reply: JSONValue) throws -> JSONValue {
-		if let error = reply["error"] { throw try JSONCoding.decode(BCUError.self, from: error) }
-		guard let result = reply["result"] else { throw BCUError(.residentUnavailable, "The bcu resident process sent a malformed reply.") }
+/// The answer to one request: its result, or the error it failed with.
+struct Reply: Codable {
+	var result: JSONValue?
+	var error: BCUError?
+
+	func unwrap() throws -> JSONValue {
+		if let error { throw error }
+		guard let result else { throw BCUError(.residentUnavailable, "The bcu resident process sent a malformed reply.") }
 		return result
 	}
 }

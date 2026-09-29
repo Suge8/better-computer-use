@@ -16,7 +16,7 @@ public struct ProjectedState: Codable, Sendable, Equatable {
 /// Descendants the render budget folded away; they stay expandable through expand-ui.
 public struct HiddenSummary: Codable, Sendable, Equatable {
 	public var count: Int
-	public var roles: OrderedMap<Int>
+	public var roles: [String: Int]
 }
 
 public struct ProjectedNode: Codable, Sendable, Equatable {
@@ -27,7 +27,7 @@ public struct ProjectedNode: Codable, Sendable, Equatable {
 	public var caps: [Capability]
 	public var state: ProjectedState?
 	/// Capabilities this node inherited from a merged descendant, and the ref that performs them.
-	public var owners: OrderedMap<String>?
+	public var owners: [String: String]?
 	public var depth: Int
 	public var parent: String?
 	public var hidden: HiddenSummary?
@@ -147,7 +147,7 @@ private struct Tree {
 	var caps: [Capability]
 	var state: ProjectedState?
 	var children: [Tree]
-	var owners = OrderedMap<String>()
+	var owners = [String: String]()
 	/// Outline refs this node speaks for: itself plus everything merged into it.
 	var refs: [String]
 	var lines: Int?
@@ -170,8 +170,8 @@ private func roleWord(_ node: OutlineNode) -> String {
 }
 
 private func clean(_ value: String, _ limit: Int) -> String {
-	let normalized = Text.trim(Text.collapseWhitespace(value))
-	return Text.length(normalized) > limit ? Text.prefix(normalized, limit) + "…" : normalized
+	let normalized = Text.normalized(value)
+	return normalized.count > limit ? String(normalized.prefix(limit)) + "…" : normalized
 }
 
 /// AppKit hands out developer strings where a label belongs — private names, build-time
@@ -263,7 +263,7 @@ private func mergeCapabilities(_ groups: [Capability]...) -> [Capability] {
 }
 
 /// Records who actually performs the capabilities a node inherits from a merged node.
-private func delegate(_ target: Tree, _ sources: [Tree]) -> OrderedMap<String> {
+private func delegate(_ target: Tree, _ sources: [Tree]) -> [String: String] {
 	var owners = target.owners
 	for source in sources {
 		for capability in source.caps where !target.caps.contains(capability) && owners[capability.rawValue] == nil {
@@ -377,7 +377,7 @@ private func absorb(_ wrapper: Tree) -> Tree {
 }
 
 private func descendantRoles(_ tree: Tree) -> HiddenSummary {
-	var roles = OrderedMap<Int>()
+	var roles = [String: Int]()
 	var count = 0
 	func visit(_ current: Tree) {
 		for child in current.children {
@@ -486,7 +486,7 @@ private func stateWords(_ state: ProjectedState?) -> String {
 
 private func hiddenSummary(_ hidden: HiddenSummary?) -> String {
 	guard let hidden else { return "" }
-	let roles = hidden.roles.entries
+	let roles = hidden.roles
 		.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
 		.prefix(4)
 		.map { "\($0.key)×\($0.value)" }

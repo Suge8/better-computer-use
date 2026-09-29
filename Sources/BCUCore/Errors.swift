@@ -61,7 +61,7 @@ public struct BCUError: Error, Codable, Sendable, Equatable {
 
 	/// What the CLI writes to stderr; stdout stays empty on failure.
 	public var formatted: String {
-		let message = Text.trim(Text.collapseWhitespace(message))
+		let message = Text.normalized(message)
 		return "error \(code.rawValue): \(message.isEmpty ? "Unknown failure." : message)\nrecovery: \(recovery)\n"
 	}
 

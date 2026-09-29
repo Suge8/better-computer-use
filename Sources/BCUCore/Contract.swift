@@ -314,7 +314,7 @@ public struct InspectResult: Codable, Sendable, Equatable {
 	public var stateId: String
 	public var node: SerializedOutlineNode
 	/// Capabilities this ref advertises that another element performs.
-	public var owners: OrderedMap<String>?
+	public var owners: [String: String]?
 }
 
 public struct ReadTextResult: Codable, Sendable, Equatable {
@@ -529,7 +529,7 @@ public enum CommandRequest: Codable, Sendable, Equatable {
 }
 
 /// One command's result; its JSON is the result object itself.
-public enum CommandResult: Sendable, Equatable {
+public enum CommandResult: Encodable, Sendable, Equatable {
 	case findRoots(FindRootsResult)
 	case observeUi(ObserveResult)
 	case searchUi(SearchResult)
@@ -552,16 +552,20 @@ public enum CommandResult: Sendable, Equatable {
 		}
 	}
 
-	public func json() throws -> JSONValue {
+	public func encode(to encoder: any Encoder) throws {
 		switch self {
-		case .findRoots(let result): try JSONCoding.encode(result)
-		case .observeUi(let result): try JSONCoding.encode(result)
-		case .searchUi(let result): try JSONCoding.encode(result)
-		case .expandUi(let result): try JSONCoding.encode(result)
-		case .inspectUi(let result): try JSONCoding.encode(result)
-		case .actUi(let result): try JSONCoding.encode(result)
-		case .readText(let result): try JSONCoding.encode(result)
-		case .waitFor(let result): try JSONCoding.encode(result)
+		case .findRoots(let result): try result.encode(to: encoder)
+		case .observeUi(let result): try result.encode(to: encoder)
+		case .searchUi(let result): try result.encode(to: encoder)
+		case .expandUi(let result): try result.encode(to: encoder)
+		case .inspectUi(let result): try result.encode(to: encoder)
+		case .actUi(let result): try result.encode(to: encoder)
+		case .readText(let result): try result.encode(to: encoder)
+		case .waitFor(let result): try result.encode(to: encoder)
 		}
+	}
+
+	public func json() throws -> JSONValue {
+		try JSONCoding.encode(self)
 	}
 }

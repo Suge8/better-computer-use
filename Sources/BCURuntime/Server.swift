@@ -140,12 +140,12 @@ public final class Server: @unchecked Sendable {
 		var channel = LineChannel(descriptor)
 		var open = true
 		while open {
-			let reply: JSONValue
+			let reply: any Encodable
 			do {
-				guard let message = try channel.read() else { break }
+				guard let message = try channel.read(Incoming.self) else { break }
 				(reply, open) = respond(to: message, on: descriptor)
 			} catch {
-				reply = Message.error(BCUError(.internalError, "The bcu resident process received a malformed request: \(error)"))
+				reply = Reply(error: BCUError(.internalError, "The bcu resident process received a malformed request: \(error)"))
 			}
 			// A failed write means the client is gone; there is no one left to tell.
 			if (try? channel.write(reply)) == nil { break }
@@ -159,19 +159,18 @@ public final class Server: @unchecked Sendable {
 	}
 
 	/// The reply to one message, and whether the connection stays open after it.
-	private func respond(to message: JSONValue, on descriptor: Int32) -> (JSONValue, Bool) {
+	private func respond(to message: Incoming, on descriptor: Int32) -> (any Encodable, Bool) {
+		guard case .request(let request) = message else { return (Hello(hello: status), true) }
 		do {
-			if message["hello"] != nil { return (try Message.hello(status), true) }
-			let request = try Request(json: message)
 			switch request {
-			case .plain(.status): return (Message.result(try JSONCoding.encode(status)), true)
+			case .plain(.status): return (Reply(result: try JSONCoding.encode(status)), true)
 			case .plain(.stop):
 				queue.sync { shutDown(keeping: descriptor) }
-				return (Message.result(try JSONCoding.encode(status)), false)
-			default: return (Message.result(try handle(request)), true)
+				return (Reply(result: try JSONCoding.encode(status)), false)
+			default: return (Reply(result: try handle(request)), true)
 			}
 		} catch {
-			return (Message.error(BCUError.normalize(error)), true)
+			return (Reply(error: BCUError.normalize(error)), true)
 		}
 	}
 

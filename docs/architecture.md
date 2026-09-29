@@ -224,7 +224,7 @@ time bcu observe-ui --app TextEdit
 
 ## 结果契约
 
-每条命令返回一个顶层 JSON 对象，没有 `ok`/`result`/`text`/`details` 外壳；类型定义在 `Sources/BCUCore/Contract.swift`，客户端与常驻进程共用这一份。除 `find-roots` 外都带 `stateId`；唯一的例外是动作关掉了应用最后一个根的 `act-ui`。文本视图由客户端从同一个对象渲染。
+每条命令返回一个顶层 JSON 对象，没有 `ok`/`result`/`text`/`details` 外壳；类型定义在 `Sources/BCUCore/Contract.swift`，客户端与常驻进程共用这一份。除 `find-roots` 外都带 `stateId`；唯一的例外是动作关掉了应用最后一个根的 `act-ui`。文本视图由客户端从同一个对象渲染。JSON 一律由 Foundation 的编码器写出：紧凑、键按字典序，同一个值总是同样的字节；`inspect-ui` 的文本视图是它的缩进形式。名称和值按字符截断（名称 120、值 160 个字符，超出的加 `…`），空白按 Swift 的判定折叠。
 
 ## 错误契约
 

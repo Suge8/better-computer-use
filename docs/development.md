@@ -50,8 +50,8 @@ Swift 6 strict concurrency and no AppKit dependency.
 swift test --filter projection   # one golden file: outline, projection, view, actions, errors, cli, queries
 ```
 
-`Tests/BCUCoreTests/Golden/` holds the expected outputs byte for byte. They were recorded
-from the retired TS implementation and are now the contract itself: a behaviour change
+`Tests/BCUCoreTests/Golden/` holds the expected outputs byte for byte, JSON as Foundation's
+encoder writes it (compact, sorted keys). They are the contract itself: a behaviour change
 edits the affected cases by hand and commits them on their own, before the code.
 
 `BCUPlatform` holds every desktop call behind the in-process `Platform` API, and

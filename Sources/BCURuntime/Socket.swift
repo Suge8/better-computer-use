@@ -92,12 +92,12 @@ struct LineChannel {
 	}
 
 	/// The next value, or nil once the peer has closed.
-	mutating func read() throws -> JSONValue? {
+	mutating func read<T: Decodable>(_ type: T.Type) throws -> T? {
 		while true {
 			if let newline = buffer.firstIndex(of: UInt8(ascii: "\n")) {
-				let line = String(decoding: buffer[..<newline], as: UTF8.self)
+				let line = Data(buffer[..<newline])
 				buffer.removeSubrange(...newline)
-				return try JSONValue(parsing: line)
+				return try JSONCoding.decode(type, from: line)
 			}
 			var chunk = [UInt8](repeating: 0, count: 64 * 1024)
 			let count = Foundation.read(descriptor, &chunk, chunk.count)
@@ -109,8 +109,8 @@ struct LineChannel {
 		}
 	}
 
-	func write(_ value: JSONValue) throws {
-		let bytes = Array((value.serialized() + "\n").utf8)
+	func write<T: Encodable>(_ value: T) throws {
+		let bytes = Array(try JSONCoding.data(value)) + [UInt8(ascii: "\n")]
 		var offset = 0
 		while offset < bytes.count {
 			let written = bytes[offset...].withUnsafeBytes { Foundation.write(descriptor, $0.baseAddress, $0.count) }
