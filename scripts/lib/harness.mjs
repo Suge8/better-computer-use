@@ -178,9 +178,10 @@ export async function desktop() {
 const INPUT_SOURCE_TOOL = [
 	"import Carbon",
 	"func property(_ source: TISInputSource, _ key: CFString) -> AnyObject? { TISGetInputSourceProperty(source, key).map { Unmanaged<AnyObject>.fromOpaque($0).takeUnretainedValue() } }",
-	"let wanted = CommandLine.arguments.dropFirst().first",
-	"if let wanted {",
+	"let arguments = Array(CommandLine.arguments.dropFirst())",
+	"if let wanted = arguments.last {",
 	"  let enabled = TISCreateInputSourceList([kTISPropertyInputSourceID as String: wanted] as CFDictionary, false)?.takeRetainedValue() as? [TISInputSource] ?? []",
+	"  if arguments.first == \"enabled\" { print(enabled.isEmpty ? \"false\" : \"true\"); exit(0) }",
 	"  guard let source = enabled.first else { print(\"{}\"); exit(0) }",
 	"  guard TISSelectInputSource(source) == noErr else { exit(2) }",
 	"}",
@@ -200,6 +201,12 @@ const INPUT_SOURCE_TOOL = [
  */
 export async function selectInputSource(id) {
 	const { stdout } = await execFile("swift", ["-e", INPUT_SOURCE_TOOL, ...(id ? [id] : [])], { timeout: 60_000 });
+	return JSON.parse(stdout);
+}
+
+/** Whether the keyboard input source `id` is enabled, without selecting it. */
+export async function inputSourceEnabled(id) {
+	const { stdout } = await execFile("swift", ["-e", INPUT_SOURCE_TOOL, "enabled", id], { timeout: 60_000 });
 	return JSON.parse(stdout);
 }
 

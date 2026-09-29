@@ -18,6 +18,7 @@ import {
 	brokerEnvironment,
 	buildBundle,
 	desktop,
+	inputSourceEnabled,
 	killProcess,
 	launchDrawnInput,
 	launchKeyHolder,
@@ -41,12 +42,12 @@ const PINYIN = "com.apple.inputmethod.SCIM.ITABC";
 const TEXT = "bcu test 42";
 const PAGE = `<!doctype html><meta charset="utf-8"><title>bcu ime fixture</title><input id="field" aria-label="IME field">`;
 
+// Nothing switches the input source before the try whose finally restores the user's.
 const userSource = await selectInputSource();
-const pinyinEnabled = Boolean((await selectInputSource(PINYIN)).id);
+const pinyinEnabled = await inputSourceEnabled(PINYIN);
 if (!pinyinEnabled) console.log(`SKIP ${PINYIN} cells (not enabled on this Mac)`);
 const sources = [...(pinyinEnabled ? [PINYIN] : []), ...(userSource.cjk && userSource.id !== PINYIN ? [userSource.id] : [])];
 if (sources.length === 0) {
-	await selectInputSource(userSource.id);
 	console.log("SKIP IME typing (neither Pinyin nor another CJK input method is enabled)");
 	process.exit(0);
 }
