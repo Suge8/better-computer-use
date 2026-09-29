@@ -41,15 +41,17 @@ extension Platform {
 		return nil
 	}
 
-	/// Accessibility facts settle a run loop turn after delivery, so the platform waits for
-	/// the change instead of guessing a sleep. A dead element yields no evidence at all.
-	func evidenceAfterAction(_ element: AXUIElement, before: [String: String], timeout: TimeInterval) -> [String: String]? {
-		let deadline = Date().addingTimeInterval(timeout)
-		while true {
-			guard let after = evidenceSnapshot(element) else { return nil }
-			if evidenceDifference(before: before, after: after) != nil || Date() >= deadline { return after }
-			usleep(20_000)
+	/// Accessibility facts settle a run loop turn after delivery; they are read again as the
+	/// app announces changes, until one moved or the evidence timeout passes. A dead element
+	/// yields no evidence at all.
+	func evidenceAfterAction(_ element: AXUIElement, pid: Int32, before: [String: String]) throws -> [String: String]? {
+		var after = evidenceSnapshot(element)
+		_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
+			after = evidenceSnapshot(element)
+			guard let after else { return true }
+			return evidenceDifference(before: before, after: after) != nil
 		}
+		return after
 	}
 
 	/// Elements whose press flips a value. The projection (BCUCore) promises these the `toggle`
@@ -94,25 +96,30 @@ extension Platform {
 		return facts.keys.contains { $0 != "focused" }
 	}
 
-	/// Bounded content-area diff; captures omit the cursor and title bar.
-	/// Screen evidence: how long to wait for the window to repaint, how far a channel must
-	/// move for a pixel to count, and the share of content pixels that must move. The title
-	/// bar is left out; its height is in points.
+	/// Screen evidence: how long to wait for the window to repaint, how often to capture it
+	/// meanwhile, how far a channel must move for a pixel to count, and the share of content
+	/// pixels that must move. The title bar is left out; its height is in points.
 	static let screenEvidenceTimeout: TimeInterval = 0.6
-
-	static let screenEvidencePollMicros: UInt32 = 80_000
-
+	static let screenEvidenceInterval: TimeInterval = 0.08
 	static let screenEvidenceChannelDelta = 30
-
 	static let screenEvidenceChangedShare = 0.005
-
 	static let screenEvidenceTitleBarPoints = 28.0
 
-	func screenChanged(before: CGImage, windowId: UInt32, timeout: TimeInterval = Platform.screenEvidenceTimeout) -> Bool {
-		func ratio(_ after: CGImage) -> Double {
+	/// The window before an action whose only evidence may be its pixels; nil when it cannot
+	/// be captured, and the action is then judged without screen evidence.
+	func screenBaseline(windowId: UInt32) -> ScreenBaseline? {
+		(try? captureWindow(windowId: windowId)).map { ScreenBaseline(image: $0.capture.image, capturer: $0.capturer) }
+	}
+
+	/// Whether the window's content area changed since the baseline within the evidence
+	/// timeout. Nothing announces that pixels changed, so this is the one place that captures
+	/// on an interval; the window is looked up once, in the baseline, and only captured here.
+	func screenChanged(since baseline: ScreenBaseline) -> Bool {
+		let before = baseline.image
+		let pixelsPerPoint = baseline.capturer.frame.width > 0 ? Double(before.width) / baseline.capturer.frame.width : 1
+		let titleBarPixels = Int((Self.screenEvidenceTitleBarPoints * pixelsPerPoint).rounded())
+		func changedShare(_ after: CGImage) -> Double {
 			let width = min(before.width, after.width), height = min(before.height, after.height)
-			let scale = currentWindowBounds(windowId: windowId).map { $0.width > 0 ? Double(before.width) / Double($0.width) : 1 } ?? 1
-			let titleBarPixels = Int((Self.screenEvidenceTitleBarPoints * scale).rounded())
 			guard width > 0, height > titleBarPixels, let bd = before.dataProvider?.data, let ad = after.dataProvider?.data,
 				let bp = CFDataGetBytePtr(bd), let ap = CFDataGetBytePtr(ad) else { return 0 }
 			var changed = 0
@@ -122,22 +129,18 @@ extension Platform {
 			} }
 			return Double(changed) / Double(width * (height - titleBarPixels))
 		}
-		func captureAfter(_ deadline: Date) -> CGImage? {
-			let semaphore = DispatchSemaphore(value: 0)
-			let result = Box<CGImage?>(nil)
-			DispatchQueue.global().async {
-				result.value = try? self.captureWindow(windowId: windowId).image
-				semaphore.signal()
-			}
-			guard semaphore.wait(timeout: .now() + max(0, deadline.timeIntervalSinceNow)) == .success else { return nil }
-			return result.value
-		}
-		let deadline = Date().addingTimeInterval(timeout)
+		let deadline = Date().addingTimeInterval(Self.screenEvidenceTimeout)
 		while Date() < deadline {
-			guard let after = captureAfter(deadline) else { return false }
-			if ratio(after) >= Self.screenEvidenceChangedShare { return true }
-			usleep(min(Self.screenEvidencePollMicros, max(1, UInt32(max(0, deadline.timeIntervalSinceNow) * 1_000_000))))
+			guard let after = try? captureAgain(baseline.capturer, within: deadline.timeIntervalSinceNow) else { return false }
+			if changedShare(after) >= Self.screenEvidenceChangedShare { return true }
+			Thread.sleep(until: min(deadline, Date().addingTimeInterval(Self.screenEvidenceInterval)))
 		}
 		return false
 	}
+}
+
+/// A window's pixels before an action, with the capturer that looked the window up.
+struct ScreenBaseline: Sendable {
+	let image: CGImage
+	let capturer: WindowCapturer
 }

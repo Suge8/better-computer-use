@@ -45,10 +45,8 @@ public struct PermissionSource: Sendable {
 
 public struct PermissionStatus: Sendable {
 	public let accessibility: Bool
-	/// The live ScreenCaptureKit probe; the authoritative Screen Recording answer.
+	/// The system's answer as this process first cached it; see `Platform.checkPermissions`.
 	public let screenRecording: Bool
-	/// The per-process preflight cache, kept to diagnose a stale or foreign grant.
-	public let screenRecordingPreflight: Bool
 	public let source: PermissionSource
 }
 
@@ -259,8 +257,12 @@ public enum Grounding: String, Sendable {
 
 /// Where the root change of an action was first noticed.
 public enum DeltaSource: String, Sendable {
-	case snapshot, events
-	case cgPoll = "cg-poll"
+	/// Nothing announced a change; the roots were diffed at the timeout.
+	case snapshot
+	/// A notification of the app said a root opened, closed or took focus.
+	case events
+	/// The window server's list of the app's windows, or the front app, changed.
+	case windowList = "window-list"
 }
 
 /// What the platform did to deliver an action, beyond the action itself.

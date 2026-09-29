@@ -12,12 +12,8 @@ extension Platform {
 		let current = keyWindow()
 		if isKey() { return false }
 		try SkyLight.makeKeyWithoutRaise(windowId: windowId, currentKey: current.flatMap { pairingForWindow($0, pid: pid).candidate?.windowId })
-		let deadline = Date().addingTimeInterval(0.5)
-		while !isKey() {
-			guard Date() < deadline else {
-				throw ForegroundRequired(message: "Window \(windowId) did not become the key window of its app")
-			}
-			usleep(20_000)
+		guard try awaitChange(in: pid, timeout: Self.activationTimeout, isKey) else {
+			throw ForegroundRequired(message: "Window \(windowId) did not become the key window of its app")
 		}
 		return true
 	}
@@ -32,7 +28,7 @@ extension Platform {
 		// at the session event tap.
 		if let app = NSRunningApplication(processIdentifier: pid), !app.isActive {
 			_ = app.activate()
-			usleep(20_000)
+			_ = try awaitChange(in: pid, timeout: Self.activationTimeout) { NSWorkspace.shared.frontmostApplication?.processIdentifier == pid }
 		}
 		event.post(tap: .cghidEventTap)
 	}
@@ -96,10 +92,10 @@ extension Platform {
 			down.setIntegerValueField(.mouseEventClickState, value: Int64(index))
 			up.setIntegerValueField(.mouseEventClickState, value: Int64(index))
 			try postEvent(down, pid: pid, delivery: delivery)
-			usleep(12_000)
+			usleep(Pacing.pressHold)
 			try postEvent(up, pid: pid, delivery: delivery)
 			if index < clickCount {
-				usleep(70_000)
+				usleep(Pacing.multiClick)
 			}
 		}
 	}
@@ -119,14 +115,14 @@ extension Platform {
 			throw BCUError(.actionFailed, "Failed to create mouse down event")
 		}
 		try postEvent(down, pid: pid, delivery: delivery)
-		usleep(12_000)
+		usleep(Pacing.pressHold)
 
 		for point in points.dropFirst() {
 			guard let drag = CGEvent(mouseEventSource: nil, mouseType: mouseDraggedType(for: .left), mouseCursorPosition: point, mouseButton: .left) else {
 				throw BCUError(.actionFailed, "Failed to create mouse drag event")
 			}
 			try postEvent(drag, pid: pid, delivery: delivery)
-			usleep(8_000)
+			usleep(Pacing.step)
 		}
 
 		guard let last = points.last,
@@ -148,13 +144,24 @@ extension Platform {
 		try postMouseMove(to: point, pid: pid, delivery: delivery)
 		for notch in notches {
 			try postEvent(notch, pid: pid, delivery: delivery)
-			usleep(wheelNotchInterval)
+			usleep(Pacing.wheelNotch)
 		}
 	}
 }
 
-/// Pause between two wheel notches, about how fast a physical wheel reports them.
-let wheelNotchInterval: useconds_t = 15_000
+/// Pauses between the events of one gesture, so the target sees them as a person's device
+/// would produce them: a view that tracks a press, a drag or a wheel reads each event on its
+/// own run loop turn. Values are microseconds.
+enum Pacing {
+	/// A wheel reports its notches about this far apart.
+	static let wheelNotch: useconds_t = 15_000
+	/// A press lasts a moment, as a person's does.
+	static let pressHold: useconds_t = 12_000
+	/// Between the clicks of a double or triple click: inside the system's multi-click window.
+	static let multiClick: useconds_t = 70_000
+	/// Between two dragged events, and between two keys of typed text.
+	static let step: useconds_t = 8_000
+}
 
 /// `deltaX` and `deltaY` notches at `point`, one line-based wheel event each, the way a
 /// physical mouse wheel reports them. Qt counts every such event as one notch whatever its

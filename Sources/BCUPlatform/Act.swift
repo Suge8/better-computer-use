@@ -2,6 +2,20 @@ import AppKit
 import BCUCore
 
 extension Platform {
+	/// How long an action's effect may take to show: the element's own facts to move, a typed
+	/// value to arrive.
+	static let evidenceTimeout: TimeInterval = 0.25
+	/// How long an activated app may take to own the front, or its menu bar its geometry.
+	static let activationTimeout: TimeInterval = 0.5
+	static let menuBarActivationTimeout: TimeInterval = 1.5
+	/// How long a menu bcu presses open, or a pressed item's menus, may take to open or close.
+	static let menuTimeout: TimeInterval = 1.0
+	/// Pause after raising a window before hit testing it again.
+	static let raiseSettle: TimeInterval = 0.02
+	/// How long, and how often, a scrolled element's content offset is read back.
+	static let scrollTimeout: TimeInterval = 0.3
+	static let scrollInterval: TimeInterval = 0.02
+
 	/// Delivers one action on the look's root and judges its outcome from the evidence; see
 	/// "投递梯子" and "Action transaction" in docs/architecture.md.
 	public func act(_ request: ActRequest) throws -> ActionReport {
@@ -32,8 +46,8 @@ extension Platform {
 		var evidenceElement: AXUIElement?
 		var beforeEvidence: [String: String]?
 		var hitVerified = false
-		var screenBefore: CGImage?
-		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
+		var screenBefore: ScreenBaseline?
+		let notifications = try observedApp(pid)
 		var beforeFrontmostPid: pid_t?
 		var eventCursor: UInt64 = 0
 		var beforeRootSnapshot: [String: Root] = [:]
@@ -44,7 +58,7 @@ extension Platform {
 		/// bcu's own doing, so it is taken into the baseline rather than counted as an effect.
 		func takeRootBaseline() {
 			beforeFrontmostPid = deferRootDelta ? nil : NSWorkspace.shared.frontmostApplication?.processIdentifier
-			eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
+			eventCursor = notifications.cursor
 			beforeRootSnapshot = deferRootDelta ? [:] : rootMetadataSnapshot(pid: pid)
 			beforeCgSignature = deferRootDelta ? [] : cgRootSignature(pid: pid)
 			beforeSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? 0
@@ -55,10 +69,10 @@ extension Platform {
 			if let subject = element ?? evidenceElement { beforeEvidence = evidenceSnapshot(subject) }
 		}
 		takeBaseline()
-		func finish(_ response: ActionReport) -> ActionReport {
+		func finish(_ response: ActionReport) throws -> ActionReport {
 			if deferRootDelta { return response }
 			var result = response
-			let observed = awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+			let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
 			result.performed.deltaSource = observed.source
 			result.rootDelta = observed.delta
 			if rootDeltaIsEvidence(observed.delta, pid: pid), result.outcome == .unknown {
@@ -145,12 +159,11 @@ extension Platform {
 		/// frontmost app, and that geometry is the signal to wait for. An item inside a closed
 		/// menu has none either way, so the menu bar item above it is watched instead. The
 		/// switch is bcu's own doing, so the baseline is taken after it.
-		func activateForMenuBar(_ item: AXUIElement) {
+		func activateForMenuBar(_ item: AXUIElement) throws {
 			guard let app = NSRunningApplication(processIdentifier: pid) else { return }
 			performed.activated = app.activate()
 			let barItem = ancestor(of: item, role: kAXMenuBarItemRole as String) ?? item
-			let deadline = Date().addingTimeInterval(1.5)
-			while Date() < deadline, (frameForElement(barItem)?.width ?? 0) <= 0 { usleep(20_000) }
+			_ = try awaitChange(in: pid, timeout: Self.menuBarActivationTimeout) { (frameForElement(barItem)?.width ?? 0) > 0 }
 			takeRootBaseline()
 			beforeEvidence = evidenceSnapshot(item)
 		}
@@ -175,27 +188,18 @@ extension Platform {
 				let shown = index + 1 < openers.count ? openers[index + 1] : item
 				if (frameForElement(shown)?.width ?? 0) > 0 { continue }
 				opened = opened ?? shown
-				let observed = ensureRootObserver(pid: pid)
-				let cursor = rootEventCursor(pid: pid)
+				let cursor = notifications.cursor
 				guard AXUIElementPerformAction(opener, kAXPressAction as CFString) == .success else {
 					throw BCUError(.actionFailed, "The menu holding '\(title)' did not open")
 				}
 				// AppKit posts AXMenuOpened once the menu is validated and tracking; the menu's
-				// geometry can appear before that, so it is only the signal without an observer.
-				func isOpen() -> Bool {
-					observed
-						? rootEvents(pid: pid, since: cursor).contains { $0.notification == "AXMenuOpened" }
-						: (frameForElement(shown)?.width ?? 0) > 0
+				// geometry can appear before that, so the notification is what is waited for.
+				let isOpen = try awaitChange(in: pid, timeout: Self.menuTimeout) {
+					notifications.events(since: cursor).contains { $0.notification == kAXMenuOpenedNotification }
 				}
-				let deadline = Date().addingTimeInterval(1.0)
-				while !isOpen() {
-					guard Date() < deadline else {
-						throw BCUError(.actionFailed, "The menu holding '\(title)' did not open")
-					}
-					usleep(20_000)
-				}
+				guard isOpen else { throw BCUError(.actionFailed, "The menu holding '\(title)' did not open") }
 			}
-			if eventsLive { eventCursor = rootEventCursor(pid: pid) }
+			eventCursor = notifications.cursor
 			if opened != nil { performed.openedMenus = true }
 			if boolAttribute(item, attribute: kAXEnabledAttribute as CFString) == false {
 				_ = AXUIElementPerformAction(item, kAXCancelAction as CFString)
@@ -206,12 +210,11 @@ extension Platform {
 
 		/// A pressed menu item closes its menus a moment later; the roots are judged once the
 		/// menus bcu opened are gone, so they are neither an appeared nor a closed root.
-		func awaitMenuClosed(_ shown: AXUIElement) {
-			let deadline = Date().addingTimeInterval(1.0)
-			while Date() < deadline, (frameForElement(shown)?.width ?? 0) > 0 { usleep(20_000) }
+		func awaitMenuClosed(_ shown: AXUIElement) throws {
+			_ = try awaitChange(in: pid, timeout: Self.menuTimeout) { (frameForElement(shown)?.width ?? 0) <= 0 }
 		}
 
-		func focusTargetForPhysicalInput() {
+		func focusTargetForPhysicalInput() throws {
 			guard delivery == .hid else { return }
 			if let app = NSRunningApplication(processIdentifier: pid), !app.isActive {
 				performed.activated = app.activate()
@@ -223,8 +226,7 @@ extension Platform {
 			}
 			// Activation lands asynchronously; the baseline waits for it so the switch is
 			// never read as the action's effect.
-			let deadline = Date().addingTimeInterval(0.5)
-			repeat { usleep(20_000) } while NSWorkspace.shared.frontmostApplication?.processIdentifier != pid && Date() < deadline
+			_ = try awaitChange(in: pid, timeout: Self.activationTimeout) { NSWorkspace.shared.frontmostApplication?.processIdentifier == pid }
 			takeRootBaseline()
 		}
 
@@ -239,8 +241,9 @@ extension Platform {
 				let role = stringAttribute(hit, attribute: kAXRoleAttribute as CFString) ?? ""
 				if role == "AXWindow" || role == "AXApplication" { return }
 				if delivery == .hid && attempt < 3 {
-					focusTargetForPhysicalInput()
-					usleep(20_000)
+					try focusTargetForPhysicalInput()
+					// Raising reorders windows, which no accessibility notification reports.
+					Thread.sleep(forTimeInterval: Self.raiseSettle)
 					continue
 				}
 				let label = stringAttribute(hit, attribute: kAXTitleAttribute as CFString) ?? ""
@@ -272,10 +275,10 @@ extension Platform {
 				try SkyLight.activateWithoutRaise(windowId: record.windowId)
 				performed.backgroundActivation = true
 			} else {
-				focusTargetForPhysicalInput()
+				try focusTargetForPhysicalInput()
 				try focusTargetForBackgroundInput()
 			}
-			if screenTarget, let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
+			if screenTarget { screenBefore = screenBaseline(windowId: record.windowId) }
 			if delivery == .hid { try preflight(point) }
 			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
 			switch action {
@@ -310,7 +313,7 @@ extension Platform {
 		}
 
 		/// Judges the outcome on the evidence rules; see docs/architecture.md.
-		func verdict() -> ActionReport {
+		func verdict() throws -> ActionReport {
 			let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
 			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
 			var outcome = ActOutcome.unknown
@@ -318,7 +321,7 @@ extension Platform {
 			// The element that was acted on speaks first: its own value, selection or focus
 			// moving is proof no window-level summary can contradict.
 			if let subject = element ?? evidenceElement, let before = beforeEvidence {
-				let after = evidenceAfterAction(subject, before: before, timeout: 0.25)
+				let after = try evidenceAfterAction(subject, pid: pid, before: before)
 				if let after, let difference = evidenceDifference(before: before, after: after) {
 					outcome = .worked
 					verification = difference
@@ -337,7 +340,7 @@ extension Platform {
 				verification = ActEvidence(source: .root)
 			}
 			// Weakest evidence, and the slowest to read: only for a subject with no AX fact.
-			if outcome == .unknown, let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
+			if outcome == .unknown, let screenBefore, screenChanged(since: screenBefore) {
 				outcome = .worked
 				verification = ActEvidence(source: .screen, field: .changed)
 			}
@@ -368,10 +371,10 @@ extension Platform {
 					throw ForegroundRequired(message: "Text input needs the real pointer to place its caret")
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
-				if requiresFrontmost { activateForMenuBar(element) }
+				if requiresFrontmost { try activateForMenuBar(element) }
 				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String ? try openMenusAbove(element) : nil
 				let cursorPoint = try? coordinatePoint()
-				if !inWebContent, !hasReadableEvidence(element), let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
+				if !inWebContent, !hasReadableEvidence(element) { screenBefore = screenBaseline(windowId: record.windowId) }
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
 				if status != .success, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
 					status = AXUIElementPerformAction(refreshed, kAXPressAction as CFString)
@@ -379,14 +382,14 @@ extension Platform {
 				if status == .success {
 					performed.grounding = .description
 					performed.delivery = .ax
-					if let openedMenu { awaitMenuClosed(openedMenu) }
+					if let openedMenu { try awaitMenuClosed(openedMenu) }
 					if let cursorPoint { animateCursor(at: cursorPoint) }
 					// The ladder rule of docs/architecture.md: only a press that provably changed
 					// nothing (`didnt`) moves on to raw input. An unknown one stays put: Chromium's
 					// AXPress already dispatches mousedown, mouseup and click, so pressing again
 					// would apply the action twice.
-					let axVerdict = verdict()
-					if policy == .axOnly || axVerdict.outcome != .didnt { return finish(axVerdict) }
+					let axVerdict = try verdict()
+					if policy == .axOnly || axVerdict.outcome != .didnt { return try finish(axVerdict) }
 					performed.delivery = delivery
 					try executeCoordinates(coordinatePoint())
 				} else {
@@ -410,7 +413,7 @@ extension Platform {
 				if value != text && policy != .foreground {
 					throw ForegroundRequired(message: "The background accessibility value write was accepted but did not take effect")
 				}
-				return finish(ActionReport(
+				return try finish(ActionReport(
 					outcome: value == text ? .worked : .didnt,
 					performed: performed,
 					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
@@ -425,15 +428,18 @@ extension Platform {
 				if focused == .success { performed.focused = true }
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == .hid && !preserveFocus { focusTargetForPhysicalInput() }
+			if delivery == .hid && !preserveFocus { try focusTargetForPhysicalInput() }
 			let text = params.text
 			try postUnicodeText(text, pid: pid, delivery: delivery)
 			performed.grounding = .coordinates
 			if let element, !text.isEmpty {
-				usleep(30_000)
 				let beforeValue = beforeEvidence?["value"] ?? ""
-				let afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
-				return finish(ActionReport(
+				var afterValue = beforeValue
+				_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
+					afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
+					return afterValue != beforeValue
+				}
+				return try finish(ActionReport(
 					outcome: afterValue != beforeValue ? .worked : .didnt,
 					performed: performed,
 					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeValue), to: evidenceExcerpt(afterValue))
@@ -464,7 +470,7 @@ extension Platform {
 				}
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == .hid && !preserveFocus { focusTargetForPhysicalInput() }
+			if delivery == .hid && !preserveFocus { try focusTargetForPhysicalInput() }
 			try postKeyPress(keys: keys, pid: pid, delivery: delivery)
 			performed.grounding = .coordinates
 		} else if let element, action == .scroll {
@@ -481,18 +487,19 @@ extension Platform {
 			} else {
 				try executeCoordinates(coordinatePoint())
 			}
-			// Web content reports the new offset a frame or two after the wheel turn.
-			let deadline = Date().addingTimeInterval(0.3)
+			// Web content reports the new offset a frame or two after the wheel turn. Chromium
+			// announces no scroll in Accessibility, so the offset is read again on an interval.
+			let deadline = Date().addingTimeInterval(Self.scrollTimeout)
 			while before == scrollPositionSignature(element) {
-				guard Date() < deadline else { return finish(ActionReport(outcome: .unknown, performed: performed)) }
-				usleep(20_000)
+				guard Date() < deadline else { return try finish(ActionReport(outcome: .unknown, performed: performed)) }
+				Thread.sleep(forTimeInterval: Self.scrollInterval)
 			}
-			return finish(ActionReport(outcome: .worked, performed: performed, verification: ActEvidence(source: .ax, field: .scroll)))
+			return try finish(ActionReport(outcome: .worked, performed: performed, verification: ActEvidence(source: .ax, field: .scroll)))
 		} else {
 			try executeCoordinates(coordinatePoint())
 		}
 
-		return finish(verdict())
+		return try finish(try verdict())
 	}
 
 	/// Delivers up to 20 actions on one look as a transaction: one resource lock, one root
@@ -505,8 +512,7 @@ extension Platform {
 		guard requests.allSatisfy({ $0.pid == pid }) else {
 			throw BCUError(.invalidArguments, "Batched actions must target one app")
 		}
-		let eventsLive = ensureRootObserver(pid: pid)
-		let eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
+		let eventCursor = try observedApp(pid).cursor
 		let beforeRootSnapshot = rootMetadataSnapshot(pid: pid)
 		let beforeCgSignature = cgRootSignature(pid: pid)
 		let beforeFrontmostPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -532,7 +538,7 @@ extension Platform {
 			}
 		}
 		let outcomes = steps.map(\.outcome)
-		let observed = awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+		let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
 		var result = BatchReport(
 			outcome: outcomes.contains(.didnt) ? .didnt : (outcomes.contains(.unknown) ? .unknown : .worked),
 			steps: steps,

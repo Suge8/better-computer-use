@@ -46,7 +46,7 @@ struct RootObserversTests {
 		defer { app.terminate() }
 		let pid = app.processIdentifier
 		let observers = RootObservers()
-		let starts = Box(0)
+		let starts = Handoff(0)
 		DispatchQueue.concurrentPerform(iterations: 32) { _ in
 			_ = observers.ensure(pid) { _ in
 				starts.value += 1

@@ -6,6 +6,10 @@ import Foundation
 
 private let grantInstructions = "Grant Accessibility and Screen Recording to bcu.app in System Settings → Privacy & Security. Screen Recording lets the agent see the window; Accessibility lets it interact with the window."
 
+/// The grants are read, never asked for, and macOS answers Screen Recording from a cache of
+/// this process's own; a grant changed since the resident started shows after a restart.
+private let staleGrantNote = "A grant changed while bcu was running shows only after 'bcu stop'; the next command starts bcu again."
+
 private let signingMigrationWarning = "If these permissions were enabled before this install/update, macOS invalidated the old grants because bcu.app was re-signed. Re-enable both toggles for the newly signed app. If a toggle is already on, switch it off and on again."
 
 extension Daemon {
@@ -15,14 +19,11 @@ extension Daemon {
 		let status = try await offload { [desktop = self.desktop] in desktop.checkPermissions() }
 		let missing = [status.accessibility ? nil : "accessibility", status.screenRecording ? nil : "screenRecording"].compactMap { $0 }
 		guard !missing.isEmpty else { return }
-		var summary = "Accessibility: \(status.accessibility ? "granted" : "missing"); Screen Recording: \(status.screenRecording ? "granted" : "missing")"
-		if status.screenRecordingPreflight && !status.screenRecording {
-			summary += "; (Screen Recording reads granted in the TCC database but a live capture probe failed — the grant likely belongs to a different app identity, or bcu needs a restart.)"
-		}
+		let summary = "Accessibility: \(status.accessibility ? "granted" : "missing"); Screen Recording: \(status.screenRecording ? "granted" : "missing")"
 		let attribution = status.source.attribution == .caller
 			? "Warning: bcu is not running as the installed bcu.app (executable: \(status.source.executablePath)). Grants made now would attach to the launching app instead. Restart bcu so the installed app is used."
 			: nil
-		let message = ["bcu is missing required macOS permissions.", summary, grantInstructions, "App: bcu.app (\(Bundle.main.bundlePath))", attribution, signingMigrationWarning].compactMap { $0 }.joined(separator: "\n")
+		let message = ["bcu is missing required macOS permissions.", summary, grantInstructions, "App: bcu.app (\(Bundle.main.bundlePath))", attribution, signingMigrationWarning, staleGrantNote].compactMap { $0 }.joined(separator: "\n")
 		throw BCUError(.permissionMissing, "\(message)\nMissing permissions: \(missing.joined(separator: " and ")). Run 'bcu setup' to grant them, then retry.")
 	}
 
@@ -80,15 +81,12 @@ private struct DoctorReport: Encodable {
 	struct Permissions: Encodable {
 		let accessibility: Bool
 		let screenRecording: Bool
-		/// The per-process preflight answer; it disagrees with `screenRecording` when a grant is stale or foreign.
-		let screenRecordingPreflight: Bool
 		/// `bcu-app` when the grants belong to the installed bcu.app, `caller` when to whatever launched it.
 		let attribution: String
 
 		init(_ status: PermissionStatus) {
 			accessibility = status.accessibility
 			screenRecording = status.screenRecording
-			screenRecordingPreflight = status.screenRecordingPreflight
 			attribution = status.source.attribution.rawValue
 		}
 	}

@@ -5,6 +5,14 @@ import BCUCore
 let popupMenuName = "cgmenu:"
 
 extension Platform {
+	/// How much of a root one look describes: apps with slow accessibility servers (Outlook)
+	/// take over 30 s to describe in full, so a look stops at these bounds and marks the cut
+	/// subtrees truncated for expand-ui.
+	static let outlineNodeLimit = 2_000
+	static let outlineTimeout: TimeInterval = 20
+	/// JPEG quality of the look's picture: small enough to hand over, sharp enough to read.
+	static let imageQuality = 0.8
+
 	/// A popup menu Accessibility never exposed still has screen geometry, so callers get a
 	/// picture-only root rather than a failure they cannot act on.
 	func popupMenuLook(windowId: UInt32, capturedAt: Date) -> LookResult {
@@ -44,7 +52,7 @@ extension Platform {
 			guard !isMenuRoot, let windowId else { return nil }
 			let started = Date()
 			defer { captureMs = elapsedMs(started) }
-			return try captureWindow(windowId: windowId)
+			return try captureWindow(windowId: windowId).capture
 		}
 		var capture = includeImage || readText == .always ? try capturedWindow() : nil
 
@@ -100,7 +108,7 @@ extension Platform {
 		var image: LookImage?
 		// OCR nodes are pressed by coordinates, and coordinates need the image they belong to.
 		if let picture = frame.image, includeImage || readsScreen {
-			guard let jpeg = jpegData(image: picture, quality: 0.8) else {
+			guard let jpeg = jpegData(image: picture, quality: Self.imageQuality) else {
 				throw BCUError(.internalError, "Failed to encode look image as JPEG")
 			}
 			image = LookImage(jpeg: jpeg, width: picture.width, height: picture.height)
@@ -173,11 +181,8 @@ extension Platform {
 
 	func buildLookOutline(root: AXUIElement, transform: @escaping (CGRect) -> CGRect) -> LookNode {
 		let rootNode = lookNode(element: root, transform: transform, offscreen: false)
-		let nodeLimit = 2000
-		// Apps with slow AX servers (e.g. Outlook) can take >30s to describe; the
-		// client aborts at 33s, so stop walking well before that and return a
-		// truncated outline instead.
-		let deadline = Date().addingTimeInterval(20.0)
+		let nodeLimit = Self.outlineNodeLimit
+		let deadline = Date().addingTimeInterval(Self.outlineTimeout)
 		var walked = 1
 		var seen = Set<ObjectIdentifier>([ObjectIdentifier(root)])
 		var queue: [(AXUIElement, LookNode)] = [(root, rootNode)]

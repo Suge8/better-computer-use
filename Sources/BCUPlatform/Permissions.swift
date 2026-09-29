@@ -1,6 +1,40 @@
 import AppKit
 import ScreenCaptureKit
 
+/// This process's privacy grants as the system keeps them: reading them never asks the user,
+/// and `request` is the only call that shows the system's authorization prompts.
+protocol PrivacyGrants: Sendable {
+	var accessibility: Bool { get }
+	var screenRecording: Bool { get }
+	func request() -> PermissionRegistration
+}
+
+/// The grants TCC holds for this process.
+struct SystemGrants: PrivacyGrants {
+	var accessibility: Bool { AXIsProcessTrusted() }
+	var screenRecording: Bool { CGPreflightScreenCaptureAccess() }
+
+	/// Whether a ScreenCaptureKit fetch succeeds; for a process without the grant this shows
+	/// the system prompt, and lists the app under Screen Recording.
+	private func probeScreenCapture() -> Bool {
+		let probe = blocking(timeout: captureTimeout) {
+			!(try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)).displays.isEmpty
+		}
+		return (try? probe?.get()) == true
+	}
+
+	/// Registers this process with both privacy panes so bcu is listed there before the user
+	/// is sent to grant it: the Accessibility request adds and prompts for it, and on recent
+	/// macOS an app appears under Screen Recording only after a real ScreenCaptureKit attempt.
+	func request() -> PermissionRegistration {
+		// The value of `kAXTrustedCheckOptionPrompt`, a C global Swift 6 cannot read without isolation.
+		let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+		let accessibility = AXIsProcessTrustedWithOptions(options)
+		_ = CGRequestScreenCaptureAccess()
+		return PermissionRegistration(accessibility: accessibility, screenRecording: probeScreenCapture())
+	}
+}
+
 extension Platform {
 	/// Cheap booleans only: diagnostics doubles as the daemon liveness probe (1s client
 	/// timeout), so it must not run the ScreenCaptureKit capturable check (up to 3s when
@@ -17,8 +51,8 @@ extension Platform {
 		let parentApp = NSRunningApplication(processIdentifier: parentPid)
 		let parentPath = processPath(pid: parentPid)
 		return Diagnostics(
-			accessibility: AXIsProcessTrusted(),
-			screenRecording: CGPreflightScreenCaptureAccess(),
+			accessibility: grants.accessibility,
+			screenRecording: grants.screenRecording,
 			pid: Int32(getpid()),
 			parentPid: parentPid,
 			parentPath: parentPath,
@@ -28,24 +62,6 @@ extension Platform {
 			macOS: ProcessInfo.processInfo.operatingSystemVersionString,
 			arch: arch
 		)
-	}
-
-	/// Live Screen Recording probe. `CGPreflightScreenCaptureAccess()`
-	/// answers from a per-process cache that goes stale after `tccutil
-	/// reset` or a Settings toggle; a ScreenCaptureKit content fetch only
-	/// succeeds when THIS process can genuinely capture right now. When the
-	/// two disagree, the preflight boolean is the one lying.
-	func screenRecordingCapturable() -> Bool {
-		let sema = DispatchSemaphore(value: 0)
-		let capturable = Box<Bool>(false)
-		SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { shareable, error in
-			if let shareable = shareable {
-				capturable.value = !shareable.displays.isEmpty
-			}
-			sema.signal()
-		}
-		guard sema.wait(timeout: .now() + .seconds(5)) == .success else { return false }
-		return capturable.value
 	}
 
 	/// Which TCC identity the permission booleans reflect. macOS attributes
@@ -74,38 +90,15 @@ extension Platform {
 		)
 	}
 
+	/// The grants the system holds for this process, read without asking for them. The Screen
+	/// Recording answer comes from the process's own cache of it, so a grant changed in System
+	/// Settings or reset with `tccutil` shows only in a new resident process.
 	public func checkPermissions() -> PermissionStatus {
-		if let cached = grantedPermissionStatus.withLock({ $0 }) { return cached }
-		let accessibility = AXIsProcessTrusted()
-		let screenRecordingPreflight = CGPreflightScreenCaptureAccess()
-		let capturable = screenRecordingCapturable()
-		let result = PermissionStatus(
-			accessibility: accessibility,
-			screenRecording: capturable,
-			screenRecordingPreflight: screenRecordingPreflight,
-			source: permissionSource()
-		)
-		// A successful TCC grant is process-stable in practice. Cache only the
-		// positive result so missing grants are always rechecked after the user
-		// enables them, while fresh agent processes avoid repeating a multi-second
-		// ScreenCaptureKit probe against the same long-lived resident process.
-		if accessibility && capturable {
-			grantedPermissionStatus.withLock { $0 = result }
-		}
-		return result
+		PermissionStatus(accessibility: grants.accessibility, screenRecording: grants.screenRecording, source: permissionSource())
 	}
 
-	/// Register this process's identity with TCC for both grants so the app
-	/// appears in the Settings panes BEFORE the user is sent there. The AX
-	/// request registers (and prompts for) Accessibility; on recent macOS an
-	/// app only appears under Screen Recording after a real ScreenCaptureKit
-	/// attempt, which the capturable probe performs.
+	/// The system's prompts for both grants; `bcu setup` is the only caller.
 	public func registerPermissions() -> PermissionRegistration {
-		// The value of `kAXTrustedCheckOptionPrompt`, a C global Swift 6 cannot read without isolation.
-		let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-		let accessibility = AXIsProcessTrustedWithOptions(options)
-		_ = CGRequestScreenCaptureAccess()
-		return PermissionRegistration(accessibility: accessibility, screenRecording: screenRecordingCapturable())
+		grants.request()
 	}
 }
-

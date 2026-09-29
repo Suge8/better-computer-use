@@ -12,37 +12,25 @@ extension Platform {
 	/// `pixelsPerPoint` is the capture's resolution; the boxes are in `outputWidth` × `outputHeight`.
 	func recognizeText(in capture: CGImage, pixelsPerPoint: Double, outputWidth: Int, outputHeight: Int) throws -> [OCRBox] {
 		let image = pixelsPerPoint < Self.ocrPixelsPerPoint ? try scaled(capture, by: Self.ocrPixelsPerPoint / pixelsPerPoint) : capture
-		let semaphore = DispatchSemaphore(value: 0)
-		let recognized = Box<[OCRBox]>([])
-		let recognizedError = Box<Error?>(nil)
-		let request = VNRecognizeTextRequest { request, error in
-			defer { semaphore.signal() }
-			if let error {
-				recognizedError.value = error
-				return
-			}
-			let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
-			recognized.value = observations.compactMap { observation in
-				guard let candidate = observation.topCandidates(1).first else { return nil }
-				let box = observation.boundingBox
-				let x = box.origin.x * Double(outputWidth)
-				let y = (1.0 - box.origin.y - box.height) * Double(outputHeight)
-				let w = box.width * Double(outputWidth)
-				let h = box.height * Double(outputHeight)
-				return OCRBox(string: candidate.string, confidence: Double(candidate.confidence), rect: CGRect(x: x, y: y, width: w, height: h))
-			}
-		}
+		let request = VNRecognizeTextRequest()
 		request.recognitionLevel = .accurate
 		request.recognitionLanguages = Self.ocrLanguages
 		request.usesLanguageCorrection = false
-		try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
-		if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
-			throw BCUError(.actionTimeout, "Text recognition timed out")
-		}
-		if let error = recognizedError.value {
+		// `perform` runs the request to completion before it returns.
+		do {
+			try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+		} catch {
 			throw BCUError(.actionFailed, "Text recognition failed: \(error.localizedDescription)")
 		}
-		return recognized.value
+		return (request.results ?? []).compactMap { observation in
+			guard let candidate = observation.topCandidates(1).first else { return nil }
+			let box = observation.boundingBox
+			let x = box.origin.x * Double(outputWidth)
+			let y = (1.0 - box.origin.y - box.height) * Double(outputHeight)
+			let w = box.width * Double(outputWidth)
+			let h = box.height * Double(outputHeight)
+			return OCRBox(string: candidate.string, confidence: Double(candidate.confidence), rect: CGRect(x: x, y: y, width: w, height: h))
+		}
 	}
 
 	/// Vision reports boxes relative to the image, so scaling moves none of them.
@@ -56,7 +44,4 @@ extension Platform {
 		guard let result = context.makeImage() else { throw BCUError(.internalError, "Failed to scale the capture for text recognition") }
 		return result
 	}
-
-	/// Role of a node read from the screen. It is not an accessibility role, and the
-	/// projection shows it as `ocr`.
 }
