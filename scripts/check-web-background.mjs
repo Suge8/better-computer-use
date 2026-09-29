@@ -7,7 +7,8 @@
 // and the action was not delivered as foreground HID input.
 // Elements that show no trace of a press are pressed exactly once and reported as an
 // unverified success, never replayed on a higher rung. A drag over an area that follows
-// pointer events reaches the page as one pointerdown-to-pointerup gesture.
+// pointer events reaches the page as one pointerdown-to-pointerup gesture. Scroll amounts
+// share one rule on both axes: positive scrollY scrolls down, positive scrollX right.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -34,6 +35,7 @@ const FIXTURE_HTML = `<!doctype html>
 <div id="down" role="button" aria-label="Down only" data-n="0" onmousedown="this.dataset.n = Number(this.dataset.n) + 1">Down only</div>
 <div id="clickonly" role="button" aria-label="Click only" data-n="0" onclick="this.dataset.n = Number(this.dataset.n) + 1">Click only</div>
 <div id="scroller" role="region" aria-label="Scroll area" style="height: 80px; overflow: auto"><div style="height: 2000px">Scroll content</div></div>
+<div id="wide" role="region" aria-label="Wide area" style="width: 200px; overflow: auto"><div style="width: 4000px">Wide content</div></div>
 <div id="drag" role="region" aria-label="Drag area" style="width: 320px; height: 60px; background: #ddd; touch-action: none">Drag area</div>
 <script>
 window.keydowns = [];
@@ -58,7 +60,7 @@ function pageUrl(name) {
 /** The DOM's own account of the fixture, independent of anything bcu reads. */
 async function dom(session) {
 	const result = await session.send("Runtime.evaluate", {
-		expression: `({ count: Number(document.getElementById("count").dataset.n), down: Number(document.getElementById("down").dataset.n), clickOnly: Number(document.getElementById("clickonly").dataset.n), scrollTop: document.getElementById("scroller").scrollTop, set: document.getElementById("set").value, type: document.getElementById("type").value, keys: window.keydowns.slice(), dragged: window.dragged.slice(), ready: document.readyState })`,
+		expression: `({ count: Number(document.getElementById("count").dataset.n), down: Number(document.getElementById("down").dataset.n), clickOnly: Number(document.getElementById("clickonly").dataset.n), scrollTop: document.getElementById("scroller").scrollTop, scrollLeft: document.getElementById("wide").scrollLeft, set: document.getElementById("set").value, type: document.getElementById("type").value, keys: window.keydowns.slice(), dragged: window.dragged.slice(), ready: document.readyState })`,
 		returnByValue: true,
 	});
 	return result.result.value;
@@ -187,6 +189,14 @@ try {
 		const result = await act(state.stateId, [{ action: "scroll", ref: found.matches[0].ref, scrollY: 5 }]);
 		const now = await dom(pageA);
 		return { result, effect: { ok: now.scrollTop > 0, detail: `scrollTop ${now.scrollTop}` } };
+	});
+	await cell("scroll a web area to the right", async () => {
+		const state = await observeWindow("A", "Wide area");
+		const found = await bcu(["search-ui", "--state", state.stateId, "--text", "Wide area", "--action", "scroll", "--limit", "1"]);
+		if (!found.matches[0]) throw new Error("the wide area exposes no scroll capability");
+		const result = await act(state.stateId, [{ action: "scroll", ref: found.matches[0].ref, scrollX: 5 }]);
+		const now = await dom(pageA);
+		return { result, effect: { ok: now.scrollLeft > 0, detail: `scrollLeft ${now.scrollLeft}, want it moved right` } };
 	});
 
 	await cell("drag across a pointer-event area", async () => {
