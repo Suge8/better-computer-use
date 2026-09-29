@@ -34,3 +34,23 @@ extension Platform {
 		max(0, Int(Date().timeIntervalSince(start) * 1000.0))
 	}
 }
+
+/// Runs async platform work for a caller that has to block for it. Nil when the work outlasts
+/// `timeout`; it is cancelled then.
+func blocking<T: Sendable>(timeout: TimeInterval, _ operation: @escaping @Sendable () async throws -> T) -> Result<T, any Error>? {
+	let done = DispatchSemaphore(value: 0)
+	let result = Handoff<Result<T, any Error>?>(nil)
+	let task = Task {
+		do {
+			result.value = .success(try await operation())
+		} catch {
+			result.value = .failure(error)
+		}
+		done.signal()
+	}
+	guard done.wait(timeout: .now() + timeout) == .success else {
+		task.cancel()
+		return nil
+	}
+	return result.value
+}

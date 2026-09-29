@@ -3,68 +3,74 @@ import BCUCore
 import ImageIO
 import ScreenCaptureKit
 
+/// How long one ScreenCaptureKit request may take before the capture fails as timed out.
+let captureTimeout: TimeInterval = 8
+
 struct CapturedWindowImage {
 	let image: CGImage
 	let windowId: UInt32
+	/// The window in screen points, as ScreenCaptureKit framed it.
 	let frame: CGRect
 }
 
+/// One window as ScreenCaptureKit sees it, looked up once and captured as often as needed.
+///
+/// Sendable although its filter and configuration are not marked so: both are built in `init`
+/// and never changed afterwards, and a capturer serves one capture at a time — the action it
+/// belongs to captures before delivery and then after it, never concurrently.
+final class WindowCapturer: @unchecked Sendable {
+	let windowId: UInt32
+	let frame: CGRect
+	private let filter: SCContentFilter
+	private let configuration: SCStreamConfiguration
+
+	init(windowId: UInt32, scale: @Sendable (CGRect) -> Double) async throws {
+		let shareable = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+		guard let window = shareable.windows.first(where: { $0.windowID == windowId }) else {
+			throw BCUError(.windowStale, "Window \(windowId) is not available for capture.")
+		}
+		self.windowId = windowId
+		frame = window.frame
+		filter = SCContentFilter(desktopIndependentWindow: window)
+		let configuration = SCStreamConfiguration()
+		// ScreenCaptureKit's default canvas is 1920x1080 whatever the window's size.
+		let pixelsPerPoint = scale(window.frame)
+		configuration.width = max(1, Int((window.frame.width * pixelsPerPoint).rounded()))
+		configuration.height = max(1, Int((window.frame.height * pixelsPerPoint).rounded()))
+		configuration.showsCursor = false
+		configuration.ignoreShadowsSingleWindow = true
+		self.configuration = configuration
+	}
+
+	func capture() async throws -> CGImage {
+		try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+	}
+}
+
 extension Platform {
-	func captureWindow(windowId: UInt32) throws -> CapturedWindowImage {
-		let semaphore = DispatchSemaphore(value: 0)
-		let capturedImage = Handoff<CGImage?>(nil)
-		let capturedError = Handoff<Error?>(nil)
-
-		let task = Task {
-			defer { semaphore.signal() }
-			do {
-				if Task.isCancelled {
-					return
-				}
-				let shareable = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-				guard let window = shareable.windows.first(where: { $0.windowID == windowId }) else {
-					throw BCUError(.windowStale, "Window \(windowId) is not available for capture")
-				}
-
-				let filter = SCContentFilter(desktopIndependentWindow: window)
-				let config = SCStreamConfiguration()
-				// Avoid ScreenCaptureKit's default 1920x1080 canvas for window captures.
-				let scale = displayScaleFactor(for: window.frame)
-				config.width = max(1, Int((window.frame.width * scale).rounded()))
-				config.height = max(1, Int((window.frame.height * scale).rounded()))
-				config.showsCursor = false
-				config.ignoreShadowsSingleWindow = true
-
-				let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
-				capturedImage.value = image
-			} catch {
-				capturedError.value = error
-			}
+	/// Looks the window up and captures it once; the capturer is handed back for later captures.
+	func captureWindow(windowId: UInt32) throws -> (capture: CapturedWindowImage, capturer: WindowCapturer) {
+		try captured(windowId: windowId) { [self] in
+			let capturer = try await WindowCapturer(windowId: windowId) { displayScaleFactor(for: $0) }
+			let image = try await capturer.capture()
+			return (CapturedWindowImage(image: image, windowId: windowId, frame: capturer.frame), capturer)
 		}
+	}
 
-		if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
-			task.cancel()
-			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-				return payload
-			}
-			throw BCUError(.actionTimeout, "Capture timed out while capturing window \(windowId)")
+	/// Captures the window again through a capturer it was already looked up with.
+	func captureAgain(_ capturer: WindowCapturer, within timeout: TimeInterval = captureTimeout) throws -> CGImage {
+		try captured(windowId: capturer.windowId, within: timeout) { try await capturer.capture() }
+	}
+
+	private func captured<T: Sendable>(windowId: UInt32, within timeout: TimeInterval = captureTimeout, _ operation: @escaping @Sendable () async throws -> T) throws -> T {
+		guard let result = blocking(timeout: timeout, operation) else {
+			throw BCUError(.actionTimeout, "Capturing window \(windowId) took longer than \(String(format: "%.1f", timeout)) s.")
 		}
-
-		if let error = capturedError.value {
-			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-				return payload
-			}
+		do {
+			return try result.get()
+		} catch {
 			throw captureError(error, windowId: windowId)
 		}
-
-		guard let image = capturedImage.value else {
-			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
-				return payload
-			}
-			throw BCUError(.actionFailed, "Capture failed")
-		}
-
-		return CapturedWindowImage(image: image, windowId: windowId, frame: currentWindowBounds(windowId: windowId) ?? CGRect(x: 0, y: 0, width: image.width, height: image.height))
 	}
 
 	func jpegData(image: CGImage, quality: Double) -> Data? {
@@ -94,46 +100,6 @@ extension Platform {
 		return context.makeImage()
 	}
 
-	func cgWindowScreenshotFallback(windowId: UInt32) throws -> CapturedWindowImage? {
-		if let payload = try systemScreenshotWindow(windowId: windowId) {
-			return payload
-		}
-		return nil
-	}
-
-	func systemScreenshotWindow(windowId: UInt32) throws -> CapturedWindowImage? {
-		let tempUrl = FileManager.default.temporaryDirectory.appendingPathComponent("pi-cu-\(UUID().uuidString).png")
-		defer { try? FileManager.default.removeItem(at: tempUrl) }
-		// Owner-only perms in case TMPDIR ever resolves to a shared directory.
-		FileManager.default.createFile(atPath: tempUrl.path, contents: nil, attributes: [.posixPermissions: 0o600])
-
-		let process = Process()
-		process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-		process.arguments = ["-x", "-l", String(windowId), tempUrl.path]
-		try process.run()
-		let deadline = Date().addingTimeInterval(5)
-		while process.isRunning && Date() < deadline {
-			Thread.sleep(forTimeInterval: 0.05)
-		}
-		if process.isRunning {
-			process.terminate()
-			Thread.sleep(forTimeInterval: 0.1)
-			if process.isRunning { process.interrupt() }
-			return nil
-		}
-		guard process.terminationStatus == 0 else { return nil }
-		guard let data = try? Data(contentsOf: tempUrl), !data.isEmpty else { return nil }
-		guard let imageRep = NSBitmapImageRep(data: data), let cgImage = imageRep.cgImage else { return nil }
-		return CapturedWindowImage(image: cgImage, windowId: windowId, frame: currentWindowBounds(windowId: windowId) ?? CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-	}
-
-	func currentWindowBounds(windowId: UInt32) -> CGRect? {
-		if let scBounds = currentWindowBoundsViaScreenCaptureKit(windowId: windowId) {
-			return scBounds
-		}
-		return windowInfo(windowId: windowId)?.bounds
-	}
-
 	func windowInfo(windowId: UInt32) -> (pid: Int32, bounds: CGRect)? {
 		func matchingEntry(_ entries: [[String: Any]]?) -> [String: Any]? {
 			entries?.first {
@@ -155,36 +121,17 @@ extension Platform {
 		}
 		return (pid, bounds)
 	}
-
-	func currentWindowBoundsViaScreenCaptureKit(windowId: UInt32) -> CGRect? {
-		let semaphore = DispatchSemaphore(value: 0)
-		let output = Handoff<CGRect?>(nil)
-
-		let task = Task {
-			defer { semaphore.signal() }
-			do {
-				if Task.isCancelled {
-					return
-				}
-				let shareable = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-				if let window = shareable.windows.first(where: { $0.windowID == windowId }) {
-					output.value = window.frame
-				}
-			} catch {
-				output.value = nil
-			}
-		}
-
-		if semaphore.wait(timeout: .now() + .seconds(2)) == .timedOut {
-			task.cancel()
-			return nil
-		}
-		return output.value
-	}
 }
 
 /// The public failure for a capture ScreenCaptureKit refused or could not make.
 func captureError(_ error: any Error, windowId: UInt32) -> BCUError {
 	if let failure = error as? BCUError { return failure }
-	return BCUError(.actionFailed, "Capture failed: \(error.localizedDescription)")
+	switch (error as? SCStreamError)?.code {
+	case .userDeclined:
+		return BCUError(.permissionMissing, "Screen Recording is not granted to bcu, so window \(windowId) cannot be captured.")
+	case .noCaptureSource:
+		return BCUError(.windowStale, "Window \(windowId) is gone and cannot be captured.")
+	default:
+		return BCUError(.actionFailed, "Window \(windowId) could not be captured: \(error.localizedDescription)")
+	}
 }

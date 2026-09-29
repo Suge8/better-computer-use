@@ -32,7 +32,7 @@ extension Platform {
 		var evidenceElement: AXUIElement?
 		var beforeEvidence: [String: String]?
 		var hitVerified = false
-		var screenBefore: CGImage?
+		var screenBefore: ScreenBaseline?
 		let eventsLive = !deferRootDelta && ensureRootObserver(pid: pid)
 		var beforeFrontmostPid: pid_t?
 		var eventCursor: UInt64 = 0
@@ -275,7 +275,7 @@ extension Platform {
 				focusTargetForPhysicalInput()
 				try focusTargetForBackgroundInput()
 			}
-			if screenTarget, let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
+			if screenTarget { screenBefore = screenBaseline(windowId: record.windowId) }
 			if delivery == .hid { try preflight(point) }
 			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
 			switch action {
@@ -337,7 +337,7 @@ extension Platform {
 				verification = ActEvidence(source: .root)
 			}
 			// Weakest evidence, and the slowest to read: only for a subject with no AX fact.
-			if outcome == .unknown, let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
+			if outcome == .unknown, let screenBefore, screenChanged(since: screenBefore) {
 				outcome = .worked
 				verification = ActEvidence(source: .screen, field: .changed)
 			}
@@ -371,7 +371,7 @@ extension Platform {
 				if requiresFrontmost { activateForMenuBar(element) }
 				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String ? try openMenusAbove(element) : nil
 				let cursorPoint = try? coordinatePoint()
-				if !inWebContent, !hasReadableEvidence(element), let before = try? captureWindow(windowId: record.windowId) { screenBefore = before.image }
+				if !inWebContent, !hasReadableEvidence(element) { screenBefore = screenBaseline(windowId: record.windowId) }
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
 				if status != .success, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
 					status = AXUIElementPerformAction(refreshed, kAXPressAction as CFString)

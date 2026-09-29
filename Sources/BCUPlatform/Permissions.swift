@@ -36,16 +36,10 @@ extension Platform {
 	/// succeeds when THIS process can genuinely capture right now. When the
 	/// two disagree, the preflight boolean is the one lying.
 	func screenRecordingCapturable() -> Bool {
-		let sema = DispatchSemaphore(value: 0)
-		let capturable = Handoff<Bool>(false)
-		SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { shareable, error in
-			if let shareable = shareable {
-				capturable.value = !shareable.displays.isEmpty
-			}
-			sema.signal()
+		let probe = blocking(timeout: captureTimeout) {
+			!(try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)).displays.isEmpty
 		}
-		guard sema.wait(timeout: .now() + .seconds(5)) == .success else { return false }
-		return capturable.value
+		return (try? probe?.get()) == true
 	}
 
 	/// Which TCC identity the permission booleans reflect. macOS attributes

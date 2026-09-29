@@ -44,7 +44,7 @@ extension Platform {
 			guard !isMenuRoot, let windowId else { return nil }
 			let started = Date()
 			defer { captureMs = elapsedMs(started) }
-			return try captureWindow(windowId: windowId)
+			return try captureWindow(windowId: windowId).capture
 		}
 		var capture = includeImage || readText == .always ? try capturedWindow() : nil
 
