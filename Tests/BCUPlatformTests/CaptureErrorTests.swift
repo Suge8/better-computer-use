@@ -7,7 +7,10 @@ import Testing
 // a missing Screen Recording grant, a window that is gone, or a window that cannot be captured.
 struct CaptureErrorTests {
 	@Test func aDeclinedGrantIsAMissingPermission() {
-		#expect(captureError(SCStreamError(.userDeclined), windowId: 7).code == .permissionMissing)
+		let failure = captureError(SCStreamError(.userDeclined), windowId: 7)
+		#expect(failure.code == .permissionMissing)
+		// The running resident keeps the grant it read at start, so the way out goes through a new one.
+		#expect(failure.recovery.contains("bcu stop"))
 	}
 
 	@Test func aWindowThatIsGoneIsAStaleWindow() {

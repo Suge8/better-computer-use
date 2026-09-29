@@ -128,7 +128,9 @@ func captureError(_ error: any Error, windowId: UInt32) -> BCUError {
 	if let failure = error as? BCUError { return failure }
 	switch (error as? SCStreamError)?.code {
 	case .userDeclined:
-		return BCUError(.permissionMissing, "Screen Recording is not granted to bcu, so window \(windowId) cannot be captured.")
+		// The resident read the grant once when it started; a grant revoked since then shows up
+		// only here, and only a fresh resident reads it again.
+		return BCUError(.permissionMissing, "Screen Recording is not granted to bcu, so window \(windowId) cannot be captured.", recovery: "Run 'bcu stop', then 'bcu setup' in an interactive terminal, and retry.")
 	case .noCaptureSource:
 		return BCUError(.windowStale, "Window \(windowId) is gone and cannot be captured.")
 	default:
