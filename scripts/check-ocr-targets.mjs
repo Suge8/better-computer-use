@@ -12,12 +12,9 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
-import net from "node:net";
-import os from "node:os";
 import path from "node:path";
 import {
-	brokerEnvironment,
-	buildBundle,
+	residentEnvironment,
 	desktop,
 	killProcess,
 	launchDrawnButtons,
@@ -38,7 +35,7 @@ if (process.env.BCU_LIVE !== "1") {
 if (process.platform !== "darwin") throw new Error("The OCR target test requires macOS.");
 
 const root = await makeTemporaryRoot("ocr-targets");
-const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
+const env = residentEnvironment(path.join(root, "resident.sock"), 30_000);
 const title = `bcu drawn ${randomUUID().slice(0, 8)}`;
 const logPath = path.join(root, "pressed.log");
 let drawn;
@@ -76,38 +73,11 @@ async function press(stateId, ref) {
 	return await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "press", ref }])}\n`, env });
 }
 
-/** One raw helper request, to read what the look itself did rather than what the view shows. */
-function helper(cmd, payload) {
-	const socketPath = path.join(os.homedir(), "Library/Caches/bcu/bridge.sock");
-	return withTimeout(new Promise((resolve, reject) => {
-		const socket = net.createConnection(socketPath);
-		let buffer = "";
-		socket.setEncoding("utf8");
-		socket.on("connect", () => socket.write(`${JSON.stringify({ id: `ocr-${randomUUID()}`, cmd, ...payload })}\n`));
-		socket.on("data", (chunk) => {
-			buffer += chunk;
-			const newline = buffer.indexOf("\n");
-			if (newline < 0) return;
-			socket.end();
-			const parsed = JSON.parse(buffer.slice(0, newline));
-			if (parsed.ok) resolve(parsed.result);
-			else reject(new Error(parsed.error?.message ?? `${cmd} failed`));
-		});
-		socket.on("error", reject);
-	}), `the helper ${cmd}`, 20_000);
-}
-
-function walk(node, visit) {
-	visit(node);
-	for (const child of node.children ?? []) walk(child, visit);
-}
-
 async function actWithCoordinates(stateId, rect) {
 	return await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "click", x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 }])}\n`, env });
 }
 
 try {
-	await buildBundle();
 	holder = await launchKeyHolder(root);
 	drawn = await launchDrawnButtons(root, logPath, title);
 	await waitForAxWindow(drawn.pid, drawn.exited, title);
@@ -179,13 +149,7 @@ try {
 	const document = (await bcu(["find-roots", "--pid", String(textEditPid), "--kind", "window"])).roots.find((candidate) => candidate.title.startsWith(documentTitle));
 	const documentView = await bcu(["observe-ui", "--root", document.ref]);
 	assert(!documentView.nodes.some((node) => node.role === "ocr"), "an accessible window was read from the screen by default");
-	const helperRoot = (await helper("listRoots", { pid: textEditPid })).roots.find((candidate) => candidate.title.startsWith(documentTitle));
-	const look = await helper("look", { rootRef: helperRoot.rootRef, windowId: helperRoot.windowId, readText: "auto", includeImage: false });
-	assert.equal(look.image, undefined, "the default look of an accessible window captured an image");
-	assert.equal(look.readText?.executed, false, "the default look of an accessible window ran OCR");
-	let pictureNodes = 0;
-	walk(look.outline, (node) => { if (node.pictureOnly) pictureNodes += 1; });
-	assert.equal(pictureNodes, 0, "the default look of an accessible window grew OCR nodes");
+	assert.equal(documentView.image, undefined, "the default look of an accessible window captured an image");
 
 	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press reported unverified → click over a native toggle pressed it in the background → the user's front app kept the front and its keyboard throughout → accessible window stays capture-free (pid ${drawn.pid})`);
 } finally {

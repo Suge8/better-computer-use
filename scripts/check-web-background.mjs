@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { launchChrome, pageSession, devtoolsSession, stopChrome } from "./lib/chrome.mjs";
-import { brokerEnvironment, buildBundle, desktop, killProcess, launchKeyHolder, makeTemporaryRoot, runCli, withTimeout } from "./lib/harness.mjs";
+import { residentEnvironment, desktop, killProcess, launchKeyHolder, makeTemporaryRoot, runCli, withTimeout } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP web background matrix (set BCU_LIVE=1)");
@@ -40,7 +40,7 @@ document.title = "bcu web fixture " + new URLSearchParams(location.search).get("
 </body>`;
 
 const root = await makeTemporaryRoot("web-background");
-const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
+const env = residentEnvironment(path.join(root, "resident.sock"), 30_000);
 let chrome;
 let holder;
 
@@ -119,7 +119,6 @@ async function act(stateId, actions) {
 }
 
 try {
-	await buildBundle();
 	holder = await launchKeyHolder(root);
 	await fs.writeFile(path.join(root, "fixture.html"), FIXTURE_HTML);
 	await launchChrome(path.join(root, "profile"), pageUrl("A"), (spawned) => { chrome = spawned; });

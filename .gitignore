@@ -1,10 +1,6 @@
 .DS_Store
 .pi/
 node_modules/
-dist/
-index-*.js
-main.js
-*.tsbuildinfo
 docs/.next/
 docs/.source/
 

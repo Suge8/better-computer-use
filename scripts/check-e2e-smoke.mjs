@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { brokerRequest, buildBundle, launchTextEdit, makeTemporaryRoot, monitorProcess, runCli, sourceAgentRequest, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
+import { launchTextEdit, makeTemporaryRoot, monitorProcess, request, runCli, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP TextEdit smoke (set BCU_LIVE=1)");
@@ -76,9 +76,9 @@ async function cliJson(args) {
 	return JSON.parse(result.stdout);
 }
 
-async function expectBrokerFailure(command, args, code) {
+async function expectFailure(command, args, code) {
 	try {
-		await brokerRequest(command, args);
+		await request(command, args);
 		assert.fail(`${command} unexpectedly succeeded`);
 	} catch (error) {
 		assert.notEqual(error.code, 0, `${command} exited zero`);
@@ -89,22 +89,21 @@ async function expectBrokerFailure(command, args, code) {
 }
 
 try {
-	await buildBundle();
 	await fs.writeFile(fixturePath, initialText);
 	createdPid = await launchTextEdit(fixturePath);
 	processMonitor = await monitorProcess(createdPid);
 	await waitForAxWindow(createdPid, processMonitor.exited, fixtureTitle);
 
-	const found = await brokerRequest("find-roots", { pid: createdPid, kind: "window" });
+	const found = await request("find-roots", { pid: createdPid, kind: "window" });
 	// TextEdit restores earlier documents into a fresh instance, so the fixture window is
 	// the one named after the fixture, not simply the first root of this pid.
 	const window = found.roots.find((candidate) => candidate.pid === createdPid && candidate.title.startsWith(fixtureTitle));
 	assert(window, `TextEdit pid ${createdPid} did not expose a root titled ${fixtureTitle}`);
-	const observed = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
+	const observed = await request("observe-ui", { root: window.ref, mode: "semantic" });
 	assert.equal(observed.root.pid, createdPid, "observe-ui returned another root");
 	assert(observed.nodes.every((node) => !/^ax/i.test(node.role)), "observation leaked raw accessibility roles");
 	assert.equal(observed.image, undefined, "semantic observation produced an image");
-	const editable = await sourceAgentRequest("search-ui", { stateId: observed.stateId, action: "setText", limit: 5 });
+	const editable = await request("search-ui", { stateId: observed.stateId, action: "setText", limit: 5 });
 	const editor = editable.matches.find((match) => match.caps.includes("setText"));
 	assert(editor, "TextEdit observation did not expose an editable element");
 	for (const invalidAction of [
@@ -114,13 +113,13 @@ try {
 		{ action: "scroll", ref: editor.ref, scrollY: "abc" },
 		{ action: "wait", ms: "soon" },
 	]) await expectCliFailure(observed.stateId, invalidAction);
-	const searched = await sourceAgentRequest("search-ui", { stateId: observed.stateId, role: "textarea", limit: 50 });
-	assert.equal(searched.stateId, observed.stateId, "source agent search-ui did not hydrate the shared stateId");
-	assert(searched.matches.length > 0, "source agent search-ui did not return the observed text area");
-	const waited = await brokerRequest("wait-for", { stateId: observed.stateId, role: "AXTextArea", timeoutMs: 1_000 });
+	const searched = await request("search-ui", { stateId: observed.stateId, role: "textarea", limit: 50 });
+	assert.equal(searched.stateId, observed.stateId, "search-ui did not read the observed state");
+	assert(searched.matches.length > 0, "search-ui did not return the observed text area");
+	const waited = await request("wait-for", { stateId: observed.stateId, role: "AXTextArea", timeoutMs: 1_000 });
 	assert.equal(waited.found, true, "wait-for did not find the existing text area");
 	assert.doesNotThrow(() => JSON.stringify(waited), "wait-for returned a circular result");
-	await expectBrokerFailure("wait-for", {
+	await expectFailure("wait-for", {
 		stateId: observed.stateId,
 		text: "__BCU_NEVER_EXISTS__",
 		timeoutMs: 100,
@@ -131,8 +130,8 @@ try {
 		expect: { value: expectedText, scope: editor.ref, timeoutMs: 5_000 },
 	};
 	const concurrent = await Promise.allSettled([
-		brokerRequest("act-ui", action),
-		brokerRequest("act-ui", action),
+		request("act-ui", action),
+		request("act-ui", action),
 	]);
 	const worked = concurrent.filter((result) => result.status === "fulfilled");
 	const stale = concurrent.filter((result) => result.status === "rejected" && result.reason?.stderr?.includes("stale_state:"));
@@ -143,15 +142,15 @@ try {
 	assert.equal(acted.verification.status, "verified", "TextEdit expect did not observe a new value");
 	assert.equal(acted.baseStateId, observed.stateId, "act-ui lost its base state");
 	assert(JSON.stringify(acted.changes ?? acted.nodes ?? []).includes(expectedText), "successor view does not carry the written value");
-	await expectBrokerFailure("act-ui", {
+	await expectFailure("act-ui", {
 		stateId: acted.stateId,
 		actions: [{ action: "wait", ms: 0 }],
 		expect: { text: "__BCU_NEVER_EXISTS__", timeoutMs: 100 },
 	}, "action_failed");
 	// Nothing an agent can read moves when TextEdit ignores a key: it still exits zero, as
 	// unverified. Save succeeds either way, and the file on disk is the witness that it ran.
-	const keyState = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
-	const keyTarget = (await brokerRequest("search-ui", { stateId: keyState.stateId, role: "textarea", limit: 1 })).matches[0];
+	const keyState = await request("observe-ui", { root: window.ref, mode: "semantic" });
+	const keyTarget = (await request("search-ui", { stateId: keyState.stateId, role: "textarea", limit: 1 })).matches[0];
 	assert(keyTarget, "the document exposed no text area to send a key to");
 	const keyLine = (await expectSuccess(keyState.stateId, { action: "keypress", ref: keyTarget.ref, keys: [INERT_KEY] }, `keypress ${INERT_KEY}`)).split("\n")[0];
 	assert.match(keyLine, / · unverified via \w+$/, `keypress ${INERT_KEY} is not reported as unverified: ${keyLine}`);
@@ -172,26 +171,26 @@ try {
 
 	// Evidence: a toggle proves itself by its own value, and a click that only places a
 	// caret proves itself by reaching the element that then holds focus.
-	const formatted = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
-	const toggles = await brokerRequest("search-ui", { stateId: formatted.stateId, role: "segment", limit: 20 });
+	const formatted = await request("observe-ui", { root: window.ref, mode: "semantic" });
+	const toggles = await request("search-ui", { stateId: formatted.stateId, role: "segment", limit: 20 });
 	const toggle = toggles.matches.find((match) => match.caps.includes("toggle") && match.value === "0");
 	assert(toggle, `the TextEdit format bar exposed no clear toggle: ${toggles.matches.map((match) => `${match.role} ${match.name}=${match.value} {${match.caps}}`).join(", ")}`);
-	const toggled = await brokerRequest("act-ui", { stateId: formatted.stateId, actions: [{ action: "press", ref: toggle.ref }] });
+	const toggled = await request("act-ui", { stateId: formatted.stateId, actions: [{ action: "press", ref: toggle.ref }] });
 	assert.equal(toggled.outcome, "worked", `pressing toggle '${toggle.name}' was not reported as worked`);
 	assert.deepEqual(
 		{ source: toggled.verification.evidence?.source, field: toggled.verification.evidence?.field, from: toggled.verification.evidence?.from, to: toggled.verification.evidence?.to },
 		{ source: "ax", field: "value", from: "0", to: "1" },
 		`pressing toggle '${toggle.name}' did not report the value that moved: ${JSON.stringify(toggled.verification.evidence)}`,
 	);
-	const restored = await brokerRequest("act-ui", { stateId: toggled.stateId, actions: [{ action: "press", ref: toggle.ref }] });
+	const restored = await request("act-ui", { stateId: toggled.stateId, actions: [{ action: "press", ref: toggle.ref }] });
 	assert.equal(restored.verification.evidence?.to, "0", `toggle '${toggle.name}' did not return to its original value`);
 
-	const caretState = await brokerRequest("observe-ui", { root: window.ref, mode: "semantic" });
-	const textArea = caretState.nodes.find((node) => node.role === "textarea") ?? (await brokerRequest("search-ui", { stateId: caretState.stateId, role: "textarea", limit: 1 })).matches[0];
+	const caretState = await request("observe-ui", { root: window.ref, mode: "semantic" });
+	const textArea = caretState.nodes.find((node) => node.role === "textarea") ?? (await request("search-ui", { stateId: caretState.stateId, role: "textarea", limit: 1 })).matches[0];
 	assert(textArea, "the RTF document exposed no text area to click into");
-	const firstClick = await brokerRequest("act-ui", { stateId: caretState.stateId, actions: [{ action: "click", ref: textArea.ref }] });
+	const firstClick = await request("act-ui", { stateId: caretState.stateId, actions: [{ action: "click", ref: textArea.ref }] });
 	assert.equal(firstClick.outcome, "worked", "clicking into the text area was not reported as worked");
-	const secondClick = await brokerRequest("act-ui", { stateId: firstClick.stateId, actions: [{ action: "click", ref: textArea.ref }] });
+	const secondClick = await request("act-ui", { stateId: firstClick.stateId, actions: [{ action: "click", ref: textArea.ref }] });
 	assert.equal(secondClick.outcome, "worked", "a repeated click into the focused text area lost its evidence");
 	assert.equal(secondClick.verification.evidence?.source, "focus", `a caret-only click reported ${JSON.stringify(secondClick.verification.evidence)} instead of reaching the focused element`);
 

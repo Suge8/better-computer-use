@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { brokerRequest, buildBundle, launchTextEdit, makeTemporaryRoot, monitorProcess, runCli, runSwiftReadyProbe, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
+import { launchTextEdit, makeTemporaryRoot, monitorProcess, request, runCli, runSwiftReadyProbe, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP transient roots (set BCU_LIVE=1)");
@@ -130,7 +130,7 @@ async function raiseSaveSheet(pid, processExited) {
 }
 
 async function rootsOfKind(pid, kind) {
-	const found = await brokerRequest("find-roots", { pid, kind });
+	const found = await request("find-roots", { pid, kind });
 	return found.roots.filter((candidate) => candidate.pid === pid && candidate.kind === kind);
 }
 
@@ -150,7 +150,7 @@ async function dismissSheets(pid) {
 /** The projection hides raw action names, so the helper's own output is the subject here. */
 async function assertReadableActions(stateId, refs) {
 	for (const ref of refs) {
-		const inspected = await brokerRequest("inspect-ui", { stateId, ref });
+		const inspected = await request("inspect-ui", { stateId, ref });
 		for (const action of inspected.node.actions ?? []) {
 			assert(!action.includes("\n") && !action.includes("Target:0x"), `helper reported an unreadable action name ${JSON.stringify(action)}`);
 		}
@@ -158,7 +158,6 @@ async function assertReadableActions(stateId, refs) {
 }
 
 try {
-	await buildBundle();
 	await fs.writeFile(fixturePath, "bcu transient root fixture\n");
 	createdPid = await launchTextEdit(fixturePath);
 	processMonitor = await monitorProcess(createdPid);
@@ -168,7 +167,7 @@ try {
 	const menuBars = await rootsOfKind(createdPid, "menubar");
 	assert.equal(menuBars.length, 1, `expected exactly one TextEdit menu bar root, got ${menuBars.length}`);
 	assert.equal(menuBars[0].windowId, undefined, "the menu bar root claims a window id it does not have");
-	const barObserved = await brokerRequest("observe-ui", { root: menuBars[0].ref, mode: "semantic" });
+	const barObserved = await request("observe-ui", { root: menuBars[0].ref, mode: "semantic" });
 	const barItems = barObserved.nodes.filter((node) => node.role === "menuitem" && node.depth === 1);
 	assert(barItems.length > FILE_MENU_BAR_INDEX, `expected a populated menu bar, got ${barItems.length} items`);
 	const fileItem = barItems[FILE_MENU_BAR_INDEX];
@@ -176,12 +175,12 @@ try {
 
 	// Pressing it opens a menu root, and the action itself hands that root over: an agent
 	// never has to race find-roots for a root its own action created.
-	const openedMenu = await brokerRequest("act-ui", { stateId: barObserved.stateId, actions: [{ action: "press", ref: fileItem.ref }] });
+	const openedMenu = await request("act-ui", { stateId: barObserved.stateId, actions: [{ action: "press", ref: fileItem.ref }] });
 	assert.equal(openedMenu.outcome, "worked", `pressing menu bar item '${fileItem.name}' did not work`);
 	const menuRoot = (openedMenu.roots ?? []).find((root) => root.kind === "menu");
 	assert(menuRoot, `pressing '${fileItem.name}' reported no menu root: ${JSON.stringify(openedMenu.roots)}`);
 
-	const menuObserved = await brokerRequest("observe-ui", { root: menuRoot.ref, mode: "semantic" });
+	const menuObserved = await request("observe-ui", { root: menuRoot.ref, mode: "semantic" });
 	assert.equal(menuObserved.root.ref, menuRoot.ref, "observe-ui returned another root than the menu the action opened");
 	const menuItems = menuObserved.nodes.filter((node) => node.role === "menuitem" && node.name);
 	assert(menuItems.length >= 5, `expected a populated File menu, got ${menuItems.length} named items`);
@@ -189,7 +188,7 @@ try {
 	assert(newDocumentItem.caps.includes("press"), `the first File menu item '${newDocumentItem.name}' cannot be pressed`);
 	await assertReadableActions(menuObserved.stateId, menuItems.slice(0, 5).map((node) => node.ref));
 
-	const pressed = await brokerRequest("act-ui", {
+	const pressed = await request("act-ui", {
 		stateId: menuObserved.stateId,
 		actions: [{ action: "press", ref: newDocumentItem.ref }],
 	});
@@ -204,7 +203,7 @@ try {
 
 	const sheets = await rootsOfKind(createdPid, "sheet");
 	assert.equal(sheets.length, 1, `expected exactly one TextEdit save sheet root, got ${sheets.length}`);
-	const sheetObserved = await brokerRequest("observe-ui", { root: sheets[0].ref, mode: "semantic" });
+	const sheetObserved = await request("observe-ui", { root: sheets[0].ref, mode: "semantic" });
 	assert.equal(sheetObserved.root.ref, sheets[0].ref, "observe-ui returned another root than the save sheet");
 	const sheetButtons = sheetObserved.nodes.filter((node) => node.role === "button" && node.caps.includes("press"));
 	assert(sheetButtons.length >= 2, `expected the save sheet to expose its buttons, got ${sheetButtons.length}`);
@@ -221,7 +220,7 @@ try {
 	assert.equal(closing.closed?.root?.ref, sheets[0].ref, `the result does not name the closed sheet: ${JSON.stringify(closing.closed)}`);
 	assert.equal(closing.next?.kind, "window", `the result names no window to observe next: ${JSON.stringify(closing.next)}`);
 	assert.deepEqual(await rootsOfKind(createdPid, "sheet"), [], "the sheet is still listed after its Cancel was pressed");
-	const nextObserved = await brokerRequest("observe-ui", { root: closing.next.ref, mode: "semantic" });
+	const nextObserved = await request("observe-ui", { root: closing.next.ref, mode: "semantic" });
 	assert.equal(nextObserved.root.pid, createdPid, "the next root belongs to another app");
 
 	console.log(`PASS menu bar root → press '${fileItem.name}' → menu root from the action → press '${newDocumentItem.name}' → sheet root → Cancel closes it and names the next root in isolated pid ${createdPid}`);

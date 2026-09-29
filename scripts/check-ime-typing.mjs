@@ -15,8 +15,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { launchChrome, pageSession, stopChrome } from "./lib/chrome.mjs";
 import {
-	brokerEnvironment,
-	buildBundle,
+	residentEnvironment,
 	desktop,
 	inputSourceEnabled,
 	killProcess,
@@ -53,7 +52,7 @@ if (sources.length === 0) {
 }
 
 const root = await makeTemporaryRoot("ime-typing");
-const env = brokerEnvironment(path.join(root, "broker.sock"), 30_000);
+const env = residentEnvironment(path.join(root, "resident.sock"), 30_000);
 const cells = [];
 let holder;
 let chrome;
@@ -109,7 +108,6 @@ async function cell(source, name, run) {
 }
 
 try {
-	await buildBundle();
 	holder = await launchKeyHolder(root);
 
 	const documentTitle = `bcu-ime-${randomUUID()}`;
