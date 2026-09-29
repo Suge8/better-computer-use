@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 import os
 
 struct RootAXEvent: Sendable {
@@ -41,6 +42,16 @@ final class AppNotifications: Sendable {
 			if log.events.count > 64 { log.events.removeFirst(log.events.count - 64) }
 			log.generation += 1
 		}
+		broadcast()
+	}
+
+	/// Wakes waiters without a notification of the app's own: another app took the front.
+	func wake() {
+		log.withLock { $0.generation += 1 }
+		broadcast()
+	}
+
+	private func broadcast() {
 		changed.lock()
 		changed.broadcast()
 		changed.unlock()
@@ -50,8 +61,8 @@ final class AppNotifications: Sendable {
 		log.withLock { $0.events.filter { $0.sequence >= cursor } }
 	}
 
-	/// Re-checks `condition` as notifications arrive until it holds or the deadline passes;
-	/// whether it held.
+	/// Re-checks `condition` each time a notification arrives or the front app changes, until
+	/// it holds or the deadline passes; whether it held. Between those events it sleeps.
 	func wait(until deadline: Date, _ condition: () -> Bool) -> Bool {
 		while true {
 			let generation = self.generation
@@ -61,11 +72,11 @@ final class AppNotifications: Sendable {
 		}
 	}
 
-	/// Returns after the next notification, at the deadline, or after 0.2 s, whichever is first.
-	func wait(since generation: UInt64, until deadline: Date) {
+	/// Returns after the next notification or wake, or at the deadline.
+	private func wait(since generation: UInt64, until deadline: Date) {
 		changed.lock()
 		if self.generation == generation {
-			_ = changed.wait(until: min(deadline, Date().addingTimeInterval(0.2)))
+			_ = changed.wait(until: deadline)
 		}
 		changed.unlock()
 	}
@@ -130,6 +141,18 @@ final class RootObservers: Sendable {
 	private let apps = OSAllocatedUnfairLock(initialState: [Int32: Observed]())
 	private let starting = NSLock()
 
+	/// Another app taking the front changes what every observed app's waiters look at: which
+	/// app is frontmost, and a menu bar's geometry, which only the frontmost app has.
+	init() {
+		_ = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: nil) { [weak self] _ in
+			self?.wakeAll()
+		}
+	}
+
+	private func wakeAll() {
+		for observed in apps.withLock({ Array($0.values) }) { observed.app.wake() }
+	}
+
 	subscript(pid: Int32) -> AppNotifications? {
 		apps.withLock { $0[pid]?.app }
 	}
@@ -175,24 +198,42 @@ final class RootObservers: Sendable {
 	}
 }
 
+/// What an app announces that a waiter may be waiting for: roots coming and going, focus and
+/// activation moving, values, titles, selection and text selection changing, and elements
+/// being created or relaid out.
 private let observedNotifications = [
-	"AXWindowCreated",
-	"AXSheetCreated",
-	"AXMenuOpened",
-	"AXMenuClosed",
-	"AXUIElementDestroyed",
-	"AXFocusedWindowChanged",
+	kAXWindowCreatedNotification,
+	kAXSheetCreatedNotification,
+	kAXMenuOpenedNotification,
+	kAXMenuClosedNotification,
+	kAXUIElementDestroyedNotification,
+	kAXFocusedWindowChangedNotification,
+	kAXMainWindowChangedNotification,
+	kAXFocusedUIElementChangedNotification,
+	kAXApplicationActivatedNotification,
+	kAXApplicationDeactivatedNotification,
 	kAXValueChangedNotification,
 	kAXTitleChangedNotification,
 	kAXSelectedChildrenChangedNotification,
+	kAXSelectedRowsChangedNotification,
+	kAXSelectedTextChangedNotification,
+	kAXCreatedNotification,
 	kAXLayoutChangedNotification,
 ]
 
 extension Platform {
-	/// Starts observing the app's root changes unless it already is; false when the app
-	/// accepts no observer.
-	func ensureRootObserver(pid: Int32) -> Bool {
-		rootObservers.ensure(pid, start: startObserver) != nil
+	/// The app's notifications, observing it first if it is not yet.
+	func observedApp(_ pid: Int32) throws -> AppNotifications {
+		guard let app = rootObservers.ensure(pid, start: startObserver) else {
+			throw BCUError(.actionFailed, "The app accepts no accessibility observer, so bcu cannot wait for a change in it.")
+		}
+		return app
+	}
+
+	/// Re-checks `condition` whenever the app posts an accessibility notification or an app
+	/// takes the front, until it holds or `timeout` passes; whether it held.
+	func awaitChange(in pid: Int32, timeout: TimeInterval, _ condition: () -> Bool) throws -> Bool {
+		try observedApp(pid).wait(until: Date().addingTimeInterval(timeout), condition)
 	}
 
 	/// Runs an observer for the app on a thread of its own; nil when it could not register.
@@ -228,28 +269,9 @@ extension Platform {
 		return registered ? observer : nil
 	}
 
-	func rootChangeGeneration(pid: Int32) -> UInt64 {
-		rootObservers[pid]?.generation ?? 0
-	}
 
-	func waitForRootChange(pid: Int32, since generation: UInt64, until deadline: Date) {
-		guard let app = rootObservers[pid] else {
-			Thread.sleep(forTimeInterval: min(0.2, max(0, deadline.timeIntervalSinceNow)))
-			return
-		}
-		app.wait(since: generation, until: deadline)
-	}
-
-	func rootEventCursor(pid: Int32) -> UInt64 {
-		rootObservers[pid]?.cursor ?? 1
-	}
-
-	func rootEvents(pid: Int32, since cursor: UInt64) -> [RootAXEvent] {
-		rootObservers[pid]?.events(since: cursor) ?? []
-	}
-
-	// Onscreen CGWindowList id set for one pid: ~1-2ms per call, so it can be
-	// polled tightly where a full AX enumeration cannot.
+	/// The pid's onscreen window ids: 1–2 ms to read, so it is re-read on every wake where a
+	/// full accessibility enumeration is not.
 	func cgRootSignature(pid: Int32) -> Set<UInt32> {
 		guard let entries = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else { return [] }
 		var ids = Set<UInt32>()

@@ -12,12 +12,8 @@ extension Platform {
 		let current = keyWindow()
 		if isKey() { return false }
 		try SkyLight.makeKeyWithoutRaise(windowId: windowId, currentKey: current.flatMap { pairingForWindow($0, pid: pid).candidate?.windowId })
-		let deadline = Date().addingTimeInterval(0.5)
-		while !isKey() {
-			guard Date() < deadline else {
-				throw ForegroundRequired(message: "Window \(windowId) did not become the key window of its app")
-			}
-			usleep(20_000)
+		guard try awaitChange(in: pid, timeout: Self.activationTimeout, isKey) else {
+			throw ForegroundRequired(message: "Window \(windowId) did not become the key window of its app")
 		}
 		return true
 	}
@@ -32,7 +28,7 @@ extension Platform {
 		// at the session event tap.
 		if let app = NSRunningApplication(processIdentifier: pid), !app.isActive {
 			_ = app.activate()
-			usleep(20_000)
+			_ = try awaitChange(in: pid, timeout: Self.activationTimeout) { NSWorkspace.shared.frontmostApplication?.processIdentifier == pid }
 		}
 		event.post(tap: .cghidEventTap)
 	}

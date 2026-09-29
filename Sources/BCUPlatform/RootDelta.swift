@@ -35,31 +35,35 @@ extension Platform {
 		return delta
 	}
 
-	// The AX snapshot diff is authoritative: macOS emits no AXObserver
-	// notification at all when a sheet appears (verified on macOS 26), so
-	// events can only accelerate the decision, never make it. A cheap
-	// CGWindowList id-set poll detects real-window appearance/closure early;
-	// the AX diff runs once at the first signal or at timeout.
-	func awaitRootDelta(before: [String: Root], beforeFrontmostPid: pid_t?, pid: Int32, eventsLive: Bool, eventCursor: UInt64, beforeCgSignature: Set<UInt32>) -> (source: DeltaSource, delta: [RootChange]) {
-		// AXUIElementDestroyed is deliberately not a signal: it fires for every
-		// rebuilt list row; a genuinely closed root also leaves the CG set.
-		let signalNotifications: Set<String> = ["AXWindowCreated", "AXSheetCreated", "AXMenuOpened", "AXMenuClosed", "AXFocusedWindowChanged"]
-		var source = DeltaSource.snapshot
-		let deadline = Date().addingTimeInterval(0.40)
-		while Date() < deadline {
-			if cgRootSignature(pid: pid) != beforeCgSignature { source = .cgPoll; break }
-			if let beforeFrontmostPid, NSWorkspace.shared.frontmostApplication?.processIdentifier != beforeFrontmostPid { source = .cgPoll; break }
-			if eventsLive && rootEvents(pid: pid, since: eventCursor).contains(where: { signalNotifications.contains($0.notification) }) { source = .events; break }
-			usleep(30_000)
-		}
+	/// How long an action's roots may take to change, and how long the accessibility tree may
+	/// then lag the window server.
+	static let rootChangeTimeout: TimeInterval = 0.4
+	static let rootCatchUpTimeout: TimeInterval = 0.24
 
+	/// The roots the action changed. The accessibility diff decides: macOS posts no
+	/// notification at all when a sheet appears (verified on macOS 26), so notifications and
+	/// the window server's list only say when to diff early. They are read again on every
+	/// notification of the app and every change of front app; with no signal, the diff runs
+	/// at the timeout.
+	func awaitRootDelta(before: [String: Root], beforeFrontmostPid: pid_t?, pid: Int32, eventCursor: UInt64, beforeCgSignature: Set<UInt32>) throws -> (source: DeltaSource, delta: [RootChange]) {
+		// AXUIElementDestroyed is not a signal: it fires for every rebuilt list row; a closed
+		// root also leaves the window list.
+		let signals: Set<String> = [kAXWindowCreatedNotification, kAXSheetCreatedNotification, kAXMenuOpenedNotification, kAXMenuClosedNotification, kAXFocusedWindowChangedNotification]
+		let notifications = try observedApp(pid)
+		var source = DeltaSource.snapshot
+		_ = try awaitChange(in: pid, timeout: Self.rootChangeTimeout) {
+			if cgRootSignature(pid: pid) != beforeCgSignature { source = .windowList }
+			else if let beforeFrontmostPid, NSWorkspace.shared.frontmostApplication?.processIdentifier != beforeFrontmostPid { source = .windowList }
+			else if notifications.events(since: eventCursor).contains(where: { signals.contains($0.notification) }) { source = .events }
+			return source != .snapshot
+		}
 		var delta = rootDelta(before: before, beforeFrontmostPid: beforeFrontmostPid, pid: pid)
 		if delta.isEmpty && source != .snapshot {
-			// A signal fired but the AX tree can lag the CG window; give it a
-			// bounded moment to catch up.
-			for _ in 0..<3 where delta.isEmpty {
-				usleep(80_000)
+			// A signal fired but the accessibility tree can lag the window server; it is
+			// diffed again as the app announces changes.
+			_ = try awaitChange(in: pid, timeout: Self.rootCatchUpTimeout) {
 				delta = rootDelta(before: before, beforeFrontmostPid: beforeFrontmostPid, pid: pid)
+				return !delta.isEmpty
 			}
 		}
 		return (source, delta)

@@ -41,15 +41,17 @@ extension Platform {
 		return nil
 	}
 
-	/// Accessibility facts settle a run loop turn after delivery, so the platform waits for
-	/// the change instead of guessing a sleep. A dead element yields no evidence at all.
-	func evidenceAfterAction(_ element: AXUIElement, before: [String: String], timeout: TimeInterval) -> [String: String]? {
-		let deadline = Date().addingTimeInterval(timeout)
-		while true {
-			guard let after = evidenceSnapshot(element) else { return nil }
-			if evidenceDifference(before: before, after: after) != nil || Date() >= deadline { return after }
-			usleep(20_000)
+	/// Accessibility facts settle a run loop turn after delivery; they are read again as the
+	/// app announces changes, until one moved or the evidence timeout passes. A dead element
+	/// yields no evidence at all.
+	func evidenceAfterAction(_ element: AXUIElement, pid: Int32, before: [String: String]) throws -> [String: String]? {
+		var after = evidenceSnapshot(element)
+		_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
+			after = evidenceSnapshot(element)
+			guard let after else { return true }
+			return evidenceDifference(before: before, after: after) != nil
 		}
+		return after
 	}
 
 	/// Elements whose press flips a value. The projection (BCUCore) promises these the `toggle`

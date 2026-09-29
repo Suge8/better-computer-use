@@ -10,8 +10,7 @@ extension Platform {
 		let role = request.role?.trimmingCharacters(in: .whitespacesAndNewlines)
 		let text = request.text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 		let expectedValue = request.value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-		let timeoutMs = max(100, min(60_000, request.timeoutMs ?? 10_000))
-		let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1000.0)
+		let timeoutMs = max(Self.waitTimeoutRange.lowerBound, min(Self.waitTimeoutRange.upperBound, request.timeoutMs ?? Self.defaultWaitTimeoutMs))
 		guard role?.isEmpty == false || text?.isEmpty == false || expectedValue?.isEmpty == false else {
 			throw BCUError(.invalidArguments, "A wait needs a role, text, or value.")
 		}
@@ -27,8 +26,6 @@ extension Platform {
 		} else {
 			rootElement = window
 		}
-		_ = ensureRootObserver(pid: pid)
-
 		func matches(_ element: AXUIElement) -> Bool {
 			let candidateRole = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 			if let role, !role.isEmpty, candidateRole != role { return false }
@@ -48,14 +45,19 @@ extension Platform {
 			return true
 		}
 
-		repeat {
-			let changeGeneration = rootChangeGeneration(pid: pid)
-			let present = collectDescendants(startingAt: rootElement, maxDepth: 12, maxNodes: 2000).contains(where: matches)
-			if present != request.gone { return request.gone ? .gone : .found }
-			waitForRootChange(pid: pid, since: changeGeneration, until: deadline)
-		} while Date() < deadline
-		return .timedOut
+		let settled = try awaitChange(in: pid, timeout: Double(timeoutMs) / 1000) {
+			collectDescendants(startingAt: rootElement, maxDepth: Self.waitSearchDepth, maxNodes: Self.waitSearchNodes).contains(where: matches) != request.gone
+		}
+		guard settled else { return .timedOut }
+		return request.gone ? .gone : .found
 	}
+
+	/// A wait lasts 10 s unless asked otherwise, and between 0.1 s and 60 s.
+	static let defaultWaitTimeoutMs = 10_000
+	static let waitTimeoutRange = 100...60_000
+	/// How much of the root a wait searches each time it looks.
+	static let waitSearchDepth = 12
+	static let waitSearchNodes = 2_000
 
 	/// A page of an element's text value, counted in characters. Secure fields are refused.
 	public func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage {
