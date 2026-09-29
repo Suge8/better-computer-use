@@ -2170,6 +2170,7 @@ final class Bridge {
 				}
 			}
 			if eventsLive { eventCursor = rootEventCursor(pid: pid) }
+			if opened != nil { performed["openedMenus"] = true }
 			if boolAttribute(item, attribute: kAXEnabledAttribute as CFString) == false {
 				_ = AXUIElementPerformAction(item, kAXCancelAction as CFString)
 				throw BridgeFailure(message: "The menu item '\(title)' is disabled", code: "element_disabled")
@@ -2591,11 +2592,28 @@ final class Bridge {
 			usleep(30_000)
 		}
 
+		if source == "events" {
+			// A focus or menu notification can arrive while the window it concerns is still
+			// animating; the window leaving or joining the window server's list is what closes
+			// or opens a root — dismissing a sheet moves focus first.
+			let settle = Date().addingTimeInterval(0.30)
+			while Date() < settle, cgRootSignature(pid: pid) == beforeCgSignature { usleep(30_000) }
+		}
+		/// A root whose window left the window server's list but that the AX snapshot still lists.
+		func missesDeparture(_ delta: [[String: Any]]) -> Bool {
+			let departed = beforeCgSignature.subtracting(cgRootSignature(pid: pid))
+			guard !departed.isEmpty else { return false }
+			let closed = Set(delta.filter { ($0["change"] as? String) == "closed" }.compactMap { ($0["windowId"] as? Int).map(UInt32.init) })
+			return before.values.contains { root in
+				guard let windowId = (root["windowId"] as? Int).map(UInt32.init) else { return false }
+				return departed.contains(windowId) && !closed.contains(windowId)
+			}
+		}
 		var delta = rootDelta(before: before, beforeFrontmostPid: beforeFrontmostPid, pid: pid)
-		if delta.isEmpty && source != "snapshot" {
+		if (delta.isEmpty && source != "snapshot") || missesDeparture(delta) {
 			// A signal fired but the AX tree can lag the CG window; give it a
 			// bounded moment to catch up.
-			for _ in 0..<3 where delta.isEmpty {
+			for _ in 0..<3 where delta.isEmpty || missesDeparture(delta) {
 				usleep(80_000)
 				delta = rootDelta(before: before, beforeFrontmostPid: beforeFrontmostPid, pid: pid)
 			}

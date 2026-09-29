@@ -127,22 +127,41 @@ function offscreenRefs(nodes: ProjectedNode[]): Set<string> {
 	return offscreen;
 }
 
+/** Menus and everything inside them; a menu bar item is not inside a menu. */
+function menuTreeRefs(nodes: ProjectedNode[]): Set<string> {
+	const inMenu = new Set<string>();
+	for (const node of nodes) {
+		if (node.role === "menu" || (node.parent && inMenu.has(node.parent))) inMenu.add(node.ref);
+	}
+	return inMenu;
+}
+
+export interface TransitionContext {
+	/** What the base view showed. */
+	baseVisible?: Set<string>;
+	/** bcu opened and closed menus to act; what that did to the menu tree is not the action's news. */
+	menusOpenedByBcu?: boolean;
+}
+
 /**
- * Compares two unfolded projections of the same root. `visible` is what the successor view
- * will show and `baseVisible` what the base view showed; an offscreen node outside them is
- * counted, not listed.
+ * Compares two unfolded projections of the same root; `visible` is what the successor view
+ * will show. An offscreen node outside the view on its side of the change is counted, not
+ * listed, and so is the menu tree bcu's own menu opening moved.
  */
-export function changesBetween(base: ProjectedNode[], next: ProjectedNode[], visible?: Set<string>, baseVisible?: Set<string>): Transition {
+export function changesBetween(base: ProjectedNode[], next: ProjectedNode[], visible?: Set<string>, context: TransitionContext = {}): Transition {
+	const { baseVisible, menusOpenedByBcu } = context;
 	const before = new Map(base.map((node) => [node.ref, node]));
 	const after = new Map(next.map((node) => [node.ref, node]));
-	const offscreenAfter = offscreenRefs(next);
-	const offscreenBefore = offscreenRefs(base);
+	const quietAfter = offscreenRefs(next);
+	const quietBefore = offscreenRefs(base);
+	const menuAfter = menusOpenedByBcu ? menuTreeRefs(next) : new Set<string>();
+	const menuBefore = menusOpenedByBcu ? menuTreeRefs(base) : new Set<string>();
 	const changes: Change[] = [];
 	const offscreen = { added: 0, removed: 0 };
 	for (const node of next) {
 		const previous = before.get(node.ref);
 		if (!previous) {
-			if (visible && !visible.has(node.ref) && offscreenAfter.has(node.ref)) offscreen.added += 1;
+			if (menuAfter.has(node.ref) || (visible && !visible.has(node.ref) && quietAfter.has(node.ref))) offscreen.added += 1;
 			else changes.push({ type: "added", ref: node.ref, parent: node.parent, node });
 			continue;
 		}
@@ -152,7 +171,7 @@ export function changesBetween(base: ProjectedNode[], next: ProjectedNode[], vis
 	}
 	for (const node of base) {
 		if (after.has(node.ref)) continue;
-		if (baseVisible && !baseVisible.has(node.ref) && offscreenBefore.has(node.ref)) offscreen.removed += 1;
+		if (menuBefore.has(node.ref) || (baseVisible && !baseVisible.has(node.ref) && quietBefore.has(node.ref))) offscreen.removed += 1;
 		else changes.push({ type: "removed", ref: node.ref, parent: node.parent });
 	}
 

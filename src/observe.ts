@@ -10,7 +10,7 @@ import { ensureTargetWindowId, nativeWindowRequest, matchesTargetSelection, norm
 import { COMMAND_TIMEOUT_MS, currentOutlineOrThrow, currentResourceOrThrow, desktopResourceKey, makeToolExecutor, operationState, persistOperation, resourceScheduler, savedStates, validateStateId } from "./session.ts";
 import type { CurrentCapture } from "./state.ts";
 import { trimOrUndefined } from "./text.ts";
-import { changesBetween, stabilizeRefs } from "./view.ts";
+import { changesBetween, stabilizeRefs, type TransitionContext } from "./view.ts";
 
 const LOOK_TIMEOUT_MS = 33_000;
 export const AUTO_IMAGE_MAX_DIMENSION = 900;
@@ -361,8 +361,8 @@ export function fullView(outline: Outline): SuccessorView {
 }
 
 /** Successor view of a state transition: a diff when identity holds, the full view otherwise. */
-export function successorView(base: Outline, next: Outline): SuccessorView {
-	const transition = changesBetween(project(base, UNFOLDED).nodes, project(next, UNFOLDED).nodes, viewRefs(next), viewRefs(base));
+export function successorView(base: Outline, next: Outline, context: Pick<TransitionContext, "menusOpenedByBcu"> = {}): SuccessorView {
+	const transition = changesBetween(project(base, UNFOLDED).nodes, project(next, UNFOLDED).nodes, viewRefs(next), { ...context, baseVisible: viewRefs(base) });
 	if (transition.useFullView) return fullView(next);
 	const quiet = transition.offscreen.added + transition.offscreen.removed > 0;
 	return { changes: transition.changes, offscreen: quiet ? transition.offscreen : undefined };

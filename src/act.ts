@@ -398,7 +398,9 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 			verification,
 			delivery: execution.performed?.delivery ?? execution.delivery ?? "ax",
 			roots: execution.roots?.flatMap((root) => rootAppearance(root) ?? []),
-			...successorView(baseOutline, capture.outline),
+			...successorView(baseOutline, capture.outline, {
+				menusOpenedByBcu: [execution, ...(execution.steps ?? [])].some((step) => step.performed?.openedMenus),
+			}),
 			image: await imageInfo(capture, imageMode),
 		};
 	});

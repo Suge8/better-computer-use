@@ -116,6 +116,8 @@ export interface HelperActPerformed {
 	transaction?: boolean;
 	actionCount?: number;
 	activated?: boolean;
+	/** bcu opened the menus above a menu item to press it; AppKit may rebuild them meanwhile. */
+	openedMenus?: boolean;
 	raised?: boolean;
 	focused?: boolean;
 }

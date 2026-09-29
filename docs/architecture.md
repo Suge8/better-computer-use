@@ -211,7 +211,7 @@ helper 返回 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证�
 
 动作让它所在的根消失——按 sheet、对话框、popover 或菜单里关掉自己的按钮——本身就是证据：结果是 `worked`，证据为 `{source: "root", field: "closed"}`，文本写作 `root closed`，退出 0。判定根已消失有三条来源：helper 在动作里看到该根关闭；读回该根时 helper 报 `window_not_found`/`root_not_found`（窗口服务器已没有它，而无障碍可能还在列出正在收起的 sheet）；或读回失败后该根已不在根列表里。结果以 `closed: {root}` 写出关掉的根（文本 `- root @r44 sheet "警告"`，紧跟结果行），后继状态改为观察这个应用此刻会被选中的根（排除刚关掉的那个），以 `next` 写出它（文本 `next root @r12 window "…"`）并给出它的完整折叠视图；应用已没有可观察的根时不带 `stateId`，文本写 `no root of <app> remains; run find-roots`。数组里某步关掉了根，后续步骤不再投递，`closed.skipped` 记下跳过几步（文本 `skipped 1 later step: its root closed`）。根关掉后后置条件无处可查：`--expect-gone` 视为满足，其余以 `action_failed` 报出。
 
-视图外的 offscreen 元素增删不逐条列出：一个节点本身或其祖先 offscreen、且不在对应视图里（新增看后继视图，删除看基线视图），就只计入 `offscreen: {added, removed}`，文本用一行 `… offscreen elements outside the view: 30 added` 概括。bcu 为按下菜单项而打开、关上的菜单里的项就是这一类。结果行之后先是 `- root`、`+ root` 这些根的变化，再是元素变化。
+视图外的 offscreen 元素增删不逐条列出：一个节点本身或其祖先 offscreen、且不在对应视图里（新增看后继视图，删除看基线视图），就只计入 `offscreen: {added, removed}`，文本用一行 `… offscreen elements outside the view: 30 added` 概括。bcu 为按下菜单项而打开、关上菜单时（helper 在结果里报 `openedMenus`），AppKit 可能顺手重建菜单（帮助菜单会换成带搜索框的新菜单），这次动作里菜单及其内部节点的增删同样只计数，即使它们的占位行在视图里；菜单栏项本身不在菜单里，照常列出。结果行之后先是 `- root`、`+ root` 这些根的变化，再是元素变化。
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
 
