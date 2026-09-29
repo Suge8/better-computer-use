@@ -18,6 +18,23 @@ Each `npm run test:*` entry maps to one `scripts/check-*.mjs`; the file header s
 behaviour it protects. A change that breaks a gate is either a regression or a contract
 change — in the second case update the gate in the same commit.
 
+## Swift core
+
+`Package.swift` builds `BCUCore`, the pure logic library (outline, projection, successor
+changes, search, contract types, errors, action validation and preparation, CLI parsing and
+rendering), with Swift 6 strict concurrency for macOS 14+. It has no AppKit dependency.
+
+```bash
+swift test                       # also run by npm test as test:swift
+swift test --filter projection   # one golden file: outline, projection, view, actions, errors, cli, queries
+```
+
+`Tests/BCUCoreTests/Golden/` holds the outputs the TS implementation produced on the same
+inputs; every case must match byte for byte. `node scripts/generate-swift-golden.mjs`
+regenerates them from the TS code. Where the Swift core deliberately differs, the generator
+states the difference and writes the Swift expectation: numeric CLI options accept only
+non-negative decimal integers.
+
 ## Native helper
 
 `/Applications/bcu.app` targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:

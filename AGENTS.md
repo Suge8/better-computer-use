@@ -10,6 +10,7 @@
 - `src/act.ts`：动作事务、投递梯子、后置条件校验与后继状态。
 - `src/actions.ts`、`src/view.ts`、`src/state.ts`、`src/runtime.ts`：动作校验与准备、状态间差异、保存状态与资源调度。
 - `src/macos/`：macOS helper 客户端、backend 与 helper 线协议。
+- `Package.swift`、`Sources/BCUCore/`：SwiftPM 包的纯逻辑库（大纲、投影、变化、搜索、契约类型、错误、动作校验与准备、CLI 解析与渲染），不依赖 AppKit，是运行时收口为一个 Swift 进程（ADR 0002）后的唯一实现；`Tests/BCUCoreTests/` 用 `Golden/` 金标逐字节对照，金标由 `scripts/generate-swift-golden.mjs` 从 TS 实现生成。
 - `native/macos/`：Swift helper（Accessibility、ScreenCaptureKit、输入投递、agent 光标）；`skylight.swift` 是后台原始输入所用的 SkyLight 私有接口。
 - `skills/better-computer-use/SKILL.md`：Agent Skill 源文件，`~/.agents/skills/operations/better-computer-use` 软链到它。
 - `scripts/`：构建、打包与行为门；每个 `check-*.mjs` 文件头写明它保护什么，共享脚手架在 `scripts/lib/`，真机 outline fixture 在 `scripts/fixtures/`。
