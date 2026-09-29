@@ -23,6 +23,17 @@ private func observerThread(signalling released: DispatchSemaphore = DispatchSem
 	}
 }
 
+/// Apps to observe: running processes, since an app that is not running is dropped at once.
+private func runningApps(_ count: Int) throws -> [Process] {
+	try (0..<count).map { _ in
+		let process = Process()
+		process.executableURL = URL(filePath: "/bin/sleep")
+		process.arguments = ["60"]
+		try process.run()
+		return process
+	}
+}
+
 /// Waits for the thread's kept object to go; the bound only turns a thread that never stops
 /// into a failure.
 private func stopped(_ signal: DispatchSemaphore) -> Bool {
@@ -30,11 +41,14 @@ private func stopped(_ signal: DispatchSemaphore) -> Bool {
 }
 
 struct RootObserversTests {
-	@Test func concurrentRequestsForOneAppStartOneObserver() {
+	@Test func concurrentRequestsForOneAppStartOneObserver() throws {
+		let app = try runningApps(1)[0]
+		defer { app.terminate() }
+		let pid = app.processIdentifier
 		let observers = RootObservers()
 		let starts = Box(0)
 		DispatchQueue.concurrentPerform(iterations: 32) { _ in
-			_ = observers.ensure(7) { _ in
+			_ = observers.ensure(pid) { _ in
 				starts.value += 1
 				return observerThread()
 			}
@@ -42,26 +56,26 @@ struct RootObserversTests {
 		#expect(starts.value == 1)
 	}
 
-	@Test func aFifthAppDropsTheLeastRecentlyUsedAndStopsItsThread() {
+	@Test func aFifthAppDropsTheLeastRecentlyUsedAndStopsItsThread() throws {
+		let apps = try runningApps(5)
+		defer { apps.forEach { $0.terminate() } }
+		let pids = apps.map(\.processIdentifier)
 		let observers = RootObservers()
-		let released = (1...4).map { _ in DispatchSemaphore(value: 0) }
-		for pid in Int32(1)...4 {
-			_ = observers.ensure(pid) { _ in observerThread(signalling: released[Int(pid) - 1]) }
+		let released = (0..<4).map { _ in DispatchSemaphore(value: 0) }
+		for index in 0..<4 {
+			_ = observers.ensure(pids[index]) { _ in observerThread(signalling: released[index]) }
 			usleep(1_000)
 		}
-		_ = observers.ensure(1) { _ in Issue.record("an observed app was started again"); return nil }
-		_ = observers.ensure(5) { _ in observerThread() }
-		#expect(observers[1] != nil)
-		#expect(observers[2] == nil)
-		#expect([3, 4, 5].allSatisfy { observers[$0] != nil })
+		_ = observers.ensure(pids[0]) { _ in Issue.record("an observed app was started again"); return nil }
+		_ = observers.ensure(pids[4]) { _ in observerThread() }
+		#expect(observers[pids[0]] != nil)
+		#expect(observers[pids[1]] == nil)
+		#expect(pids[2...].allSatisfy { observers[$0] != nil })
 		#expect(stopped(released[1]), "the evicted app's observer thread kept running")
 	}
 
 	@Test func anAppThatQuitsIsDroppedAndItsThreadStopped() throws {
-		let child = Process()
-		child.executableURL = URL(filePath: "/bin/sleep")
-		child.arguments = ["60"]
-		try child.run()
+		let child = try runningApps(1)[0]
 		let observers = RootObservers()
 		let pid = child.processIdentifier
 		let signal = DispatchSemaphore(value: 0)
@@ -71,9 +85,11 @@ struct RootObserversTests {
 		#expect(observers[pid] == nil)
 	}
 
-	@Test func anAppThatRefusesAnObserverIsNotKept() {
+	@Test func anAppThatRefusesAnObserverIsNotKept() throws {
+		let app = try runningApps(1)[0]
+		defer { app.terminate() }
 		let observers = RootObservers()
-		#expect(observers.ensure(9) { _ in nil } == nil)
-		#expect(observers[9] == nil)
+		#expect(observers.ensure(app.processIdentifier) { _ in nil } == nil)
+		#expect(observers[app.processIdentifier] == nil)
 	}
 }
