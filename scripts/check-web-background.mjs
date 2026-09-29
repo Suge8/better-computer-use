@@ -6,7 +6,8 @@
 // in front and never lost its key window or activation, the real pointer did not move,
 // and the action was not delivered as foreground HID input.
 // Elements that show no trace of a press are pressed exactly once and reported as an
-// unverified success, never replayed on a higher rung.
+// unverified success, never replayed on a higher rung. A drag over an area that follows
+// pointer events reaches the page as one pointerdown-to-pointerup gesture.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -33,8 +34,14 @@ const FIXTURE_HTML = `<!doctype html>
 <div id="down" role="button" aria-label="Down only" data-n="0" onmousedown="this.dataset.n = Number(this.dataset.n) + 1">Down only</div>
 <div id="clickonly" role="button" aria-label="Click only" data-n="0" onclick="this.dataset.n = Number(this.dataset.n) + 1">Click only</div>
 <div id="scroller" role="region" aria-label="Scroll area" style="height: 80px; overflow: auto"><div style="height: 2000px">Scroll content</div></div>
+<div id="drag" role="region" aria-label="Drag area" style="width: 320px; height: 60px; background: #ddd; touch-action: none">Drag area</div>
 <script>
 window.keydowns = [];
+window.dragged = [];
+const dragArea = document.getElementById("drag");
+let dragFrom;
+dragArea.addEventListener("pointerdown", (event) => { dragFrom = event.clientX; dragArea.setPointerCapture(event.pointerId); });
+dragArea.addEventListener("pointerup", (event) => { if (dragFrom !== undefined) window.dragged.push(Math.round(event.clientX - dragFrom)); dragFrom = undefined; });
 document.title = "bcu web fixture " + new URLSearchParams(location.search).get("w");
 </script>
 </body>`;
@@ -51,7 +58,7 @@ function pageUrl(name) {
 /** The DOM's own account of the fixture, independent of anything bcu reads. */
 async function dom(session) {
 	const result = await session.send("Runtime.evaluate", {
-		expression: `({ count: Number(document.getElementById("count").dataset.n), down: Number(document.getElementById("down").dataset.n), clickOnly: Number(document.getElementById("clickonly").dataset.n), scrollTop: document.getElementById("scroller").scrollTop, set: document.getElementById("set").value, type: document.getElementById("type").value, keys: window.keydowns.slice(), ready: document.readyState })`,
+		expression: `({ count: Number(document.getElementById("count").dataset.n), down: Number(document.getElementById("down").dataset.n), clickOnly: Number(document.getElementById("clickonly").dataset.n), scrollTop: document.getElementById("scroller").scrollTop, set: document.getElementById("set").value, type: document.getElementById("type").value, keys: window.keydowns.slice(), dragged: window.dragged.slice(), ready: document.readyState })`,
 		returnByValue: true,
 	});
 	return result.result.value;
@@ -180,6 +187,17 @@ try {
 		const result = await act(state.stateId, [{ action: "scroll", ref: found.matches[0].ref, scrollY: 5 }]);
 		const now = await dom(pageA);
 		return { result, effect: { ok: now.scrollTop > 0, detail: `scrollTop ${now.scrollTop}` } };
+	});
+
+	await cell("drag across a pointer-event area", async () => {
+		const state = await bcu(["observe-ui", "--root", observed.root.ref, "--image", "always"]);
+		const found = await bcu(["search-ui", "--state", state.stateId, "--text", "Drag area", "--limit", "1"]);
+		assert(found.matches[0], "the page shows no Drag area");
+		const { node } = await bcu(["inspect-ui", "--state", state.stateId, "--ref", found.matches[0].ref]);
+		const y = node.rect.y + node.rect.h / 2;
+		const result = await act(state.stateId, [{ action: "drag", path: [[node.rect.x + node.rect.w * 0.2, y], [node.rect.x + node.rect.w * 0.8, y]] }]);
+		const now = await dom(pageA);
+		return { result, effect: { ok: now.dragged.length === 1 && now.dragged[0] > 0, detail: `pointerdown-to-pointerup distances ${JSON.stringify(now.dragged)}, want one to the right` } };
 	});
 
 	// A second window of the same process becomes Chrome's key window; typing into the

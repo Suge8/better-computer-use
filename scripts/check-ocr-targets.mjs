@@ -7,8 +7,9 @@
 // changing. A press that changes nothing on screen is reported as unverified and never replayed.
 // A plain click at a point over the window's one native toggle is pressed like its ref and
 // judged on the toggle's value. A wheel turn over the drawn list, given in notches the way
-// an agent asks for 5, scrolls it by whole rows in the background and succeeds on the
-// window's own pixels changing. Throughout, a stand-in for the user's front app keeps the front and its
+// an agent asks for 5, scrolls it by whole rows, and a drag moves the drawn block by the
+// dragged distance; both land in the background and succeed on the window's own pixels
+// changing. Throughout, a stand-in for the user's front app keeps the front and its
 // keyboard. A self-drawn input that shows its search results only while its app is active
 // shows them after a background click and typing, because bcu's background click makes the
 // app believe it is active; `--foreground` delivers the same array in the foreground. A
@@ -174,6 +175,19 @@ try {
 	assert.deepEqual([scrolled.outcome, scrolled.delivery, scrolled.verification.evidence?.source], ["worked", "pid", "screen"], `scrolling the drawn list was ${JSON.stringify([scrolled.outcome, scrolled.delivery, scrolled.verification.evidence])}`);
 	await scrollUntouched("scrolling the drawn list");
 
+	// A drag from the drawn block to a point to its right moves the block by that distance.
+	const block = await located(window.ref, "块");
+	const dragged = { dx: 80, scale: 440 / block.state.image.width };
+	const dragUntouched = await userInFront();
+	const beforeDrag = (await pressedLabels()).length;
+	const dragResult = await act("dragging the drawn block", block.state.stateId, [{ action: "drag", path: [[block.center.x, block.center.y], [block.center.x + dragged.dx, block.center.y]] }]);
+	const drops = await loggedSince(beforeDrag, "drag ");
+	assert.equal(drops.length, 1, `the drawn block logged ${JSON.stringify(drops)} instead of one drop`);
+	const [x, y] = drops[0].slice("drag ".length).split(",").map(Number);
+	const wantX = 250 + dragged.dx * dragged.scale;
+	assert(Math.abs(x - wantX) <= 4 && Math.abs(y - 240) <= 4, `the drawn block landed at ${x},${y}, want about ${wantX},240`);
+	assert.deepEqual([dragResult.outcome, dragResult.delivery, dragResult.verification.evidence?.source], ["worked", "pid", "screen"], `dragging the drawn block was ${JSON.stringify([dragResult.outcome, dragResult.delivery, dragResult.verification.evidence])}`);
+	await dragUntouched("dragging the drawn block");
 
 	// Results that appear only while the app is active appear after a background click and
 	// typing, and the user's app keeps the front. `--foreground` activates the app instead.
@@ -209,7 +223,7 @@ try {
 	assert(!documentView.nodes.some((node) => node.role === "ocr"), "an accessible window was read from the screen by default");
 	assert.equal(documentView.image, undefined, "the default look of an accessible window captured an image");
 
-	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press reported unverified → click over a native toggle pressed it in the background → wheel notches scrolled the drawn list → the user's front app kept the front and its keyboard throughout → results that need an active app appeared after background typing, and --foreground delivered in the foreground → accessible window stays capture-free (pid ${drawn.pid})`);
+	console.log(`PASS drawn window read as ocr nodes → search and inspect agree → background press landed once on screen evidence → silent press reported unverified → click over a native toggle pressed it in the background → wheel notches scrolled the drawn list → a drag moved the drawn block → the user's front app kept the front and its keyboard throughout → results that need an active app appeared after background typing, and --foreground delivered in the foreground → accessible window stays capture-free (pid ${drawn.pid})`);
 } finally {
 	for (const fixture of [drawn, drawnInput]) {
 		if (fixture && killProcess(fixture.pid, "SIGTERM")) await withTimeout(fixture.exited, "the drawn fixture to exit", 5_000).catch(() => killProcess(fixture.pid));
