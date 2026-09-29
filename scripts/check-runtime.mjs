@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 // Pure runtime units the public commands are built on: bounded saved state, per-resource
-// scheduling and stale epochs, action preparation, successor diffs, root selection, and
-// the config and permission decisions no command can observe end to end.
+// scheduling and stale epochs, action preparation, successor diffs, and the config and
+// permission decisions no command can observe end to end.
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
 import { canRetryInForeground, outcomeAfterCheck, outcomeAfterObservedValues, prepareAction } from "../src/actions.ts";
 import { loadComputerUseConfig } from "../src/config.ts";
 import { ensurePermissions } from "../src/macos/permissions.ts";
-import { shouldPreferForegroundModalWindow } from "../src/root-selection.ts";
 import { graftScopedOutline, nodeByRef, parseLookResponse } from "../src/outline.ts";
 import { project } from "../src/projection.ts";
 import { ResourceScheduler, StateStore, StaleResourceStateError } from "../src/runtime.ts";
@@ -235,29 +234,6 @@ await assert.rejects(
 
 await scheduler.close();
 
-const rootFixture = (overrides) => ({
-	windowId: 1,
-	rootRef: "w1",
-	title: "Input",
-	zOrder: 5,
-	isModal: false,
-	isFocused: false,
-	isMain: true,
-	isMinimized: false,
-	isOnscreen: true,
-	...overrides,
-});
-assert.equal(
-	shouldPreferForegroundModalWindow(rootFixture({}), rootFixture({ windowId: 2, rootRef: "w2", title: "Main", zOrder: 20, isModal: true })),
-	false,
-	"a modal root behind the requested one was promoted",
-);
-assert.equal(
-	shouldPreferForegroundModalWindow(rootFixture({}), rootFixture({ windowId: 3, rootRef: "w3", title: "Prompt", zOrder: 2, isModal: true })),
-	true,
-	"a modal root in front of the requested one was not promoted",
-);
-
 assert.throws(
 	() => ensurePermissions({ accessibility: false, screenRecording: true }, ["accessibility", "screenRecording"], "Permissions are required."),
 	(error) => error?.code === "permission_missing" && error.message.includes("bcu setup"),
@@ -277,4 +253,4 @@ try {
 	loadComputerUseConfig();
 }
 
-console.log("PASS runtime units: state store, scheduler epochs, actions, diffs, root selection, config and permissions");
+console.log("PASS runtime units: state store, scheduler epochs, actions, diffs, config and permissions");

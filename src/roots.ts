@@ -3,7 +3,7 @@ import { BcuError } from "./errors.ts";
 import { macosBackend } from "./macos/backend.ts";
 import type { FramePoints, FrontmostResult, HelperApp, HelperRoot, HelperTarget, RootKind } from "./macos/protocol.ts";
 import { rootRefRecord, storeRootRef } from "./root-refs.ts";
-import { scoreWindow, shouldPreferForegroundModalWindow } from "./root-selection.ts";
+import { scoreWindow } from "./root-selection.ts";
 import { CURRENT_TARGET_GONE_ERROR, currentTargetOrThrow, makeToolExecutor, operationState } from "./session.ts";
 import type { CurrentTarget } from "./state.ts";
 import { normalizeText, trimOrUndefined } from "./text.ts";
@@ -373,12 +373,9 @@ export async function resolveCurrentTarget(signal?: AbortSignal): Promise<Resolv
 	}
 
 	if (!match && !hadStableWindowId) match = chooseRankedWindowOrUndefined(windows);
+	// The saved state's refs belong to this root; a modal in front of it is reported as a new
+	// root, never swapped in, or the next action would be judged against the wrong root.
 	if (!match) throw new BcuError("window_stale", CURRENT_TARGET_GONE_ERROR);
-
-	const modal = windows
-		.filter((window) => shouldPreferForegroundModalWindow(match!, window))
-		.sort((a, b) => scoreWindow(b) - scoreWindow(a))[0];
-	if (modal) match = modal;
 
 	const resolved = toResolvedTarget({ appName: current.appName, bundleId: current.bundleId, pid: current.pid }, match);
 	setCurrentTarget(resolved);
@@ -503,7 +500,6 @@ export async function rootIsLive(target: ResolvedTarget, signal?: AbortSignal): 
 
 /** The root bcu would pick in the app of the closed `target` now, if the app still shows one. */
 export async function preferredRootOf(target: ResolvedTarget, signal?: AbortSignal): Promise<ResolvedTarget | undefined> {
-	// Accessibility can still list a root whose window is already gone while it animates away.
 	const selectable = (await listWindows(target.pid, signal)).filter((root) => isSelectableRoot(root) && !isSameRoot(target, root));
 	if (selectable.length === 0) return undefined;
 	return toResolvedTarget({ appName: target.appName, bundleId: target.bundleId, pid: target.pid }, choosePreferredWindow(selectable, target.appName));

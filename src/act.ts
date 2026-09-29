@@ -297,8 +297,6 @@ function actionFailure(execution: ExecutionTrace): BcuError {
 }
 
 const ROOT_CLOSED: ActEvidence = { source: "root", field: "closed" };
-/** Helper codes that say the root itself no longer exists. */
-const ROOT_GONE_CODES = new Set(["window_not_found", "root_not_found"]);
 
 function appearanceOf(target: ResolvedTarget): RootAppearance {
 	return { ref: target.windowRef!, kind: target.kind, app: target.appName, title: target.windowTitle };
@@ -354,14 +352,9 @@ async function performAct(params: ActParams, signal?: AbortSignal): Promise<ActR
 		const execution = await dispatchUiTransaction(actions, target, look, headless, actionNodeResolver(baseNodes), signal).catch((error: unknown) => {
 			throw inFlightActionError(error);
 		});
-		/**
-		 * A failure while reading the root back is the root closing when the root is gone. The
-		 * helper's own "gone" codes are authoritative: Accessibility can still list a root whose
-		 * window the window server has already dropped.
-		 */
+		/** A failure while reading the root back is the root closing when the root is gone. */
 		const rethrowUnlessClosed = async (error: unknown): Promise<void> => {
-			const code = (error as { code?: unknown })?.code;
-			if (!ROOT_GONE_CODES.has(String(code)) && await rootIsLive(target, signal)) throw error;
+			if (await rootIsLive(target, signal)) throw error;
 			execution.rootClosed = true;
 		};
 		if (execution.rootClosed) return await closedRootResult(params, target, execution, baseStateId, imageMode, signal);
