@@ -8,11 +8,13 @@ cares about: the Swift helper's accessibility traversal, capture, grounding, inp
 delivery, and root discovery.
 
 Decision: treat upstream as an engine reference, not a merge parent. When syncing,
-read the diff for the engine surface only and port the relevant hunks by hand:
+read upstream's changes to the engine surface only and port the relevant hunks by hand.
+Upstream keeps the helper under `native/macos`; bcu's port is split across
+`Sources/BCUPlatform`, so read upstream's own history rather than a diff against bcu's tree:
 
 ```bash
 git fetch upstream
-git diff upstream/main -- native/macos src/macos
+git log -p upstream/main -- native/macos src/macos   # newest first, down to the last ported change
 ```
 
 Port what applies to the macOS engine; reimplement fixes that touch bcu-owned layers in

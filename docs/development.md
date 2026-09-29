@@ -25,7 +25,7 @@ changes, search, contract types, errors, action validation and preparation, CLI 
 rendering), with Swift 6 strict concurrency for macOS 14+. It has no AppKit dependency.
 
 ```bash
-swift test                       # also run by npm test as test:swift
+swift test                       # also run by npm test as test:swift, with the helper build
 swift test --filter projection   # one golden file: outline, projection, view, actions, errors, cli, queries
 ```
 
@@ -37,21 +37,27 @@ non-negative decimal integers.
 
 ## Native helper
 
-`/Applications/bcu.app` targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:
+The helper is the SwiftPM `bridge` product: `Sources/bridge` is only its entry point, and
+`BCUPlatform` holds everything it does behind the in-process `Platform` API. The platform
+targets stay in the Swift 5 language mode (see `Package.swift`). `/Applications/bcu.app`
+targets macOS 14+ and uses ScreenCaptureKit. After Swift changes:
 
 ```bash
 npm run build:native && npm run build && node dist/setup-helper.mjs
 ```
 
-`ensureInstalled()` installs or repairs the helper before the first command that uses it. `build:native` compiles `prebuilt/macos/<arch>/bridge`; `dist/setup-helper.mjs` installs that
-binary as the helper app and signs it with a locally generated certificate whose identity is
-stable across rebuilds on this machine, because macOS keys the Accessibility and Screen
-Recording grants to the code-signing identity. Replacing the binary also restarts the helper
-daemon if one is running: it would otherwise keep serving the code it started with, which the
-protocol version alone cannot tell apart from the new build. Compile target, frameworks and
-bundle id come from `scripts/lib/helper-target.mjs`. Bump `HELPER_PROTOCOL_VERSION` when a
-helper request or response changes shape; the Broker refuses a mismatched helper instead
-of degrading.
+`ensureInstalled()` installs or repairs the helper before the first command that uses it.
+`build:native` runs `swift build -c release` for arm64 and x86_64 (`--arch arm64|x64` builds
+one) and places each binary at `prebuilt/macos/<arch>/bridge`; `dist/setup-helper.mjs`
+installs that binary as the helper app and signs it with a locally generated certificate
+whose identity is stable across rebuilds on this machine, because macOS keys the
+Accessibility and Screen Recording grants to the code-signing identity. Replacing the binary
+also restarts the helper daemon if one is running: it would otherwise keep serving the code
+it started with, which the protocol version alone cannot tell apart from the new build.
+Bundle id and deployment target come from `scripts/lib/helper-target.mjs`. Bump
+`helperProtocolVersion` in `Sources/BCUPlatform/WireProtocol.swift` together with
+`HELPER_PROTOCOL_VERSION` in `src/macos/helper.ts` when a helper request or response
+changes shape; the Broker refuses a mismatched helper instead of degrading.
 
 ## Upstream engine
 
