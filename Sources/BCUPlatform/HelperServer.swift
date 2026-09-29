@@ -1,26 +1,50 @@
 import AppKit
 import Darwin
 
-/// The helper daemon: newline-delimited JSON requests over a Unix socket, each answered on
-/// its own thread through the wire protocol. Only one daemon owns a socket path.
+/// The helper: newline-delimited JSON requests answered through the wire protocol, either
+/// as the daemon on a Unix socket (one thread per client, one daemon per socket path) or
+/// one at a time on standard input and output.
 public final class HelperServer {
-	let platform = Platform(showsAgentCursor: true)
-	private let socketPath: String
+	private enum Channel {
+		case socket(Int32)
+		case standardOutput
+	}
+
+	let platform: Platform
 	private let completedRequestLock = NSLock()
 	private var recentCompletedRequestIds: [String] = []
 
-	public init(socketPath: String) {
-		self.socketPath = socketPath
+	/// The agent cursor needs the AppKit run loop that only the daemon runs.
+	public init(showsAgentCursor: Bool) {
+		platform = Platform(showsAgentCursor: showsAgentCursor)
 	}
 
-	/// Serves on a background thread while AppKit owns the main thread; never returns.
-	public func run() -> Never {
-		Thread.detachNewThread { [self] in listen() }
+	/// Serves the socket on a background thread while AppKit owns the main thread.
+	public func serve(socketPath: String) -> Never {
+		Thread.detachNewThread { [self] in listen(socketPath: socketPath) }
 		NSApp.run()
 		exit(0)
 	}
 
-	private func listen() {
+	/// Answers requests from standard input until it closes.
+	public func serveStandardIO() -> Never {
+		var buffer = Data()
+		let newline = Data([0x0A])
+		while true {
+			autoreleasepool {
+				let data = FileHandle.standardInput.availableData
+				if data.isEmpty { exit(0) }
+				buffer.append(data)
+				while let range = buffer.range(of: newline) {
+					let lineData = buffer.subdata(in: 0..<range.lowerBound)
+					buffer.removeSubrange(0..<range.upperBound)
+					if let line = String(data: lineData, encoding: .utf8), !line.isEmpty { handleLine(line, on: .standardOutput) }
+				}
+			}
+		}
+	}
+
+	private func listen(socketPath: String) {
 		_ = signal(SIGPIPE, SIG_IGN)
 		try? FileManager.default.createDirectory(atPath: (socketPath as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
 		// LaunchServices may race multiple `open -n` requests while the first
@@ -68,27 +92,27 @@ public final class HelperServer {
 			while let range = buffer.range(of: newline) {
 				let lineData = buffer.subdata(in: 0..<range.lowerBound)
 				buffer.removeSubrange(0..<range.upperBound)
-				if let line = String(data: lineData, encoding: .utf8), !line.isEmpty { handleLine(line, to: client) }
+				if let line = String(data: lineData, encoding: .utf8), !line.isEmpty { handleLine(line, on: .socket(client)) }
 			}
 		}
 		clientInput.closeFile()
 	}
 
-	private func handleLine(_ line: String, to client: Int32) {
+	private func handleLine(_ line: String, on channel: Channel) {
 		let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
 		guard !trimmed.isEmpty else { return }
 
 		let fallbackId = "invalid"
 		var completionId: String?
 		defer {
-			if let completionId { recordCompletedRequest(completionId) }
+			if case .socket = channel, let completionId { recordCompletedRequest(completionId) }
 		}
 		func failure(_ id: String, _ error: Error) -> [String: Any] {
 			let reported = error as? PlatformError ?? PlatformError(message: error.localizedDescription, code: "internal_error")
 			return ["id": id, "ok": false, "error": ["message": reported.message, "code": reported.code]]
 		}
 		guard let jsonData = trimmed.data(using: .utf8) else {
-			send(failure(fallbackId, PlatformError(message: "Input was not valid UTF-8", code: "invalid_request")), to: client)
+			send(failure(fallbackId, PlatformError(message: "Input was not valid UTF-8", code: "invalid_request")), on: channel)
 			return
 		}
 		let object: [String: Any]
@@ -98,24 +122,28 @@ public final class HelperServer {
 			}
 			object = parsed
 		} catch {
-			send(failure(fallbackId, error), to: client)
+			send(failure(fallbackId, error), on: channel)
 			return
 		}
 		let id = (object["id"] as? String) ?? fallbackId
 		completionId = id
 		do {
-			send(["id": id, "ok": true, "result": try handleRequest(WireRequest(object))], to: client)
+			send(["id": id, "ok": true, "result": try handleRequest(WireRequest(object))], on: channel)
 		} catch {
-			send(failure(id, error), to: client)
+			send(failure(id, error), on: channel)
 		}
 	}
 
-	private func send(_ payload: [String: Any], to client: Int32) {
+	private func send(_ payload: [String: Any], on channel: Channel) {
 		guard JSONSerialization.isValidJSONObject(payload),
 			let data = try? JSONSerialization.data(withJSONObject: payload),
 			let line = String(data: data, encoding: .utf8),
 			let out = (line + "\n").data(using: .utf8)
 		else {
+			return
+		}
+		guard case .socket(let client) = channel else {
+			try? FileHandle.standardOutput.write(contentsOf: out)
 			return
 		}
 		out.withUnsafeBytes { raw in

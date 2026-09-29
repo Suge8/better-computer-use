@@ -114,3 +114,14 @@ extension Platform {
 		return PermissionRegistration(accessibility: accessibility, screenRecording: screenRecordingCapturable())
 	}
 }
+
+extension Platform {
+	/// Opens the privacy pane in System Settings where the user grants `pane`.
+	public func openPermissionPane(_ pane: PermissionPane) -> Bool {
+		let url = switch pane {
+		case .accessibility: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+		case .screenRecording: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+		}
+		return NSWorkspace.shared.open(url)
+	}
+}

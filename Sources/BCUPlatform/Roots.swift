@@ -205,6 +205,11 @@ extension Platform {
 		return roots
 	}
 
+	/// One app's windows and their sheets, without its menus and menu bar.
+	public func listWindows(pid: Int32) -> [Root] {
+		listWindows(pid: pid, appName: processName(pid: pid) ?? "Unknown App", bundleId: nil)
+	}
+
 	/// The app's windows and their sheets, in the app's own window order.
 	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = 1.0) -> [Root] {
 		ensureEnhancedAccessibility(pid: pid)

@@ -467,3 +467,67 @@ public struct ReadTextResult {
 	public let totalChars: Int
 	public let hasMore: Bool
 }
+
+// MARK: Window and focus control
+
+public struct UserContext {
+	public struct Window {
+		public let title: String
+		public let role: String
+		public let subrole: String
+	}
+
+	public struct Element {
+		public let role: String
+		public let subrole: String
+		public let title: String
+		public let description: String
+		public let value: String
+	}
+
+	public let appName: String
+	public let pid: Int32
+	public let bundleId: String?
+	public let window: Window?
+	public let focusedElement: Element?
+}
+
+public struct RestoredFocus {
+	public let appRestored: Bool
+	public let windowRestored: Bool
+	public let appName: String
+	/// The title of the window brought forward, empty when none was.
+	public let windowTitle: String
+
+	public var restored: Bool { appRestored || windowRestored }
+}
+
+public struct WindowFrameResult {
+	public let positionStatus: AXError
+	public let sizeStatus: AXError
+	/// The frame the window reports after the writes.
+	public let framePoints: CGRect
+
+	public var ok: Bool { positionStatus == .success || sizeStatus == .success }
+}
+
+public struct FocusedElement {
+	public let elementRef: String
+	public let role: String
+	public let subrole: String
+	public let isTextInput: Bool
+	public let isSecure: Bool
+	public let canSetValue: Bool
+}
+
+public enum FocusedElementResult {
+	case element(FocusedElement)
+	/// The app reports no focused element.
+	case none
+	case rootNotFound
+	case outsideRoot
+}
+
+public enum PermissionPane: String {
+	case accessibility, screenRecording
+}

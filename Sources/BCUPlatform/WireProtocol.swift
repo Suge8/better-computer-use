@@ -28,12 +28,38 @@ extension HelperServer {
 			// main-queue timer would never fire.
 			DispatchQueue.global().asyncAfter(deadline: .now() + 0.2) { exit(0) }
 			return ["shuttingDown": true]
+		case "openPermissionPane":
+			let kind = try request.string("kind")
+			let pane: PermissionPane
+			switch kind {
+			case "accessibility": pane = .accessibility
+			case "screenRecording", "screenrecording": pane = .screenRecording
+			default: throw PlatformError(message: "Unknown permission pane '\(kind)'", code: "invalid_args")
+			}
+			return ["opened": platform.openPermissionPane(pane)]
 		case "listApps":
 			return platform.listApps().map { $0.wireObject() }
 		case "listRoots":
 			return ["roots": platform.listRoots(pid: request.optionalInt("pid").map { Int32($0) }, title: request.optionalString("title")).map { $0.wireObject() }]
+		case "listWindows":
+			return platform.listWindows(pid: Int32(try request.int("pid"))).map { $0.wireObject(includeApp: false) }
 		case "getFrontmost":
 			return try platform.frontmost().wireObject()
+		case "getUserContext":
+			return try platform.userContext().wireObject()
+		case "beginInputSuppression":
+			try platform.beginInputSuppression()
+			return ["active": true]
+		case "endInputSuppression":
+			platform.endInputSuppression()
+			return ["active": false]
+		case "restoreUserFocus":
+			return try platform.restoreUserFocus(pid: Int32(try request.int("pid")), windowTitle: request.optionalString("windowTitle")).wireObject()
+		case "setWindowFrame":
+			let target = try request.rootTarget()
+			let frame = CGRect(x: try request.double("x"), y: try request.double("y"), width: try request.double("width"), height: try request.double("height"))
+			guard let result = try platform.setWindowFrame(target, frame: frame) else { return ["ok": false, "reason": "window_not_found"] }
+			return ["ok": result.ok, "positionStatus": Int(result.positionStatus.rawValue), "sizeStatus": Int(result.sizeStatus.rawValue), "framePoints": frameObject(result.framePoints)]
 		case "focusWindow":
 			return platform.focusWindow(try request.rootTarget()).wireObject()
 		case "look":
@@ -49,6 +75,11 @@ extension HelperServer {
 			return try platform.hitTest(lookId: try request.string("lookId"), x: try request.double("x"), y: try request.double("y")).wireObject()
 		case "axWaitFor":
 			return try platform.waitFor(try request.waitForRequest()).wireObject()
+		case "focusedElement":
+			return platform.focusedElement(try request.rootTarget()).wireObject()
+		case "getMousePosition":
+			let position = platform.mousePosition()
+			return ["x": position.x, "y": position.y]
 		case "axReadText":
 			return try platform.readText(ReadTextRequest(elementRef: try request.string("elementRef"), offset: request.optionalInt("offset") ?? 0, limit: request.optionalInt("limit") ?? 4_000)).wireObject()
 		default:
@@ -253,7 +284,8 @@ extension RootMetadata {
 }
 
 extension Root {
-	func wireObject() -> [String: Any] {
+	/// `listWindows` answers without the owning app, which its caller already knows.
+	func wireObject(includeApp: Bool = true) -> [String: Any] {
 		var output: [String: Any] = [
 			"kind": kind.rawValue,
 			"rootRef": rootRef,
@@ -268,12 +300,14 @@ extension Root {
 			"isOnscreen": isOnscreen,
 			"isMain": isMain,
 			"isFocused": isFocused,
-			"pid": Int(pid),
-			"appName": appName,
 		]
 		output["windowId"] = windowId.map { Int($0) }
 		output["metadata"] = metadata?.wireObject()
-		output["bundleId"] = bundleId
+		if includeApp {
+			output["pid"] = Int(pid)
+			output["appName"] = appName
+			output["bundleId"] = bundleId
+		}
 		return output
 	}
 }
@@ -477,5 +511,38 @@ extension ElementMatch {
 extension ReadTextResult {
 	func wireObject() -> [String: Any] {
 		["text": text, "offset": offset, "limit": limit, "totalChars": totalChars, "hasMore": hasMore]
+	}
+}
+
+extension UserContext {
+	func wireObject() -> [String: Any] {
+		var output: [String: Any] = ["appName": appName, "pid": Int(pid)]
+		output["bundleId"] = bundleId
+		if let window { output["window"] = ["title": window.title, "role": window.role, "subrole": window.subrole] }
+		if let focusedElement {
+			output["focusedElement"] = ["role": focusedElement.role, "subrole": focusedElement.subrole, "title": focusedElement.title, "description": focusedElement.description, "value": focusedElement.value]
+		}
+		return output
+	}
+}
+
+extension RestoredFocus {
+	func wireObject() -> [String: Any] {
+		["restored": restored, "appRestored": appRestored, "windowRestored": windowRestored, "appName": appName, "windowTitle": windowTitle]
+	}
+}
+
+extension FocusedElementResult {
+	func wireObject() -> [String: Any] {
+		switch self {
+		case .element(let element):
+			return ["exists": true, "elementRef": element.elementRef, "role": element.role, "subrole": element.subrole, "isTextInput": element.isTextInput, "isSecure": element.isSecure, "canSetValue": element.canSetValue]
+		case .none:
+			return ["exists": false]
+		case .rootNotFound:
+			return ["exists": false, "reason": "window_not_found"]
+		case .outsideRoot:
+			return ["exists": false, "reason": "focused_element_outside_window"]
+		}
 	}
 }

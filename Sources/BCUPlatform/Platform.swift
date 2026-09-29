@@ -1,10 +1,12 @@
 import AppKit
 
 /// Everything bcu does to the desktop, callable in process: discovery (`listApps`,
-/// `listRoots`, `frontmost`, `focusWindow`), observation (`look`, `hitTest`), actions
-/// (`act`, `actBatch`), queries (`waitFor`, `readText`) and the process's own state
-/// (`diagnostics`, `checkPermissions`, `registerPermissions`). Methods are safe to call
-/// from concurrent threads; physical input is serialized inside.
+/// `listRoots`, `listWindows`, `frontmost`, `userContext`, `focusedElement`,
+/// `mousePosition`), window control (`focusWindow`, `setWindowFrame`, `restoreUserFocus`,
+/// `beginInputSuppression`, `endInputSuppression`), observation (`look`, `hitTest`),
+/// actions (`act`, `actBatch`), queries (`waitFor`, `readText`) and the process's own state
+/// (`diagnostics`, `checkPermissions`, `registerPermissions`, `openPermissionPane`).
+/// Methods are safe to call from concurrent threads; physical input is serialized inside.
 ///
 /// Root and element refs, and the last looks, live in this object: a ref is only
 /// meaningful to the Platform that issued it.
@@ -16,6 +18,7 @@ public final class Platform {
 	let cgMenuRefPrefix = "cgmenu:"
 	let refStore = AXRefStore()
 	let physicalInputLock = NSRecursiveLock()
+	let inputSuppressionGuard = InputSuppressionGuard()
 	let browserBundleIds: Set<String> = [
 		"com.apple.Safari", "com.google.Chrome", "org.chromium.Chromium", "company.thebrowser.Browser", "com.brave.Browser", "com.microsoft.edgemac", "com.vivaldi.Vivaldi", "net.imput.helium", "org.mozilla.firefox",
 	]
