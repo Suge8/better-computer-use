@@ -84,6 +84,14 @@ struct DiscoveryTests {
 		#expect(await expectCode(.windowStale) { _ = try await harness.run(#"{"command":"observe-ui","params":{"root":"@r1"}}"#) })
 	}
 
+	/// A mistyped --root must never pick a window by a substring of its name; --app and
+	/// --window-title are the named selectors.
+	@Test func aRootThatIsNeitherARefNorAWindowIdIsRefused() async throws {
+		let harness = editor()
+		#expect(await expectCode(.invalidArguments) { _ = try await harness.run(#"{"command":"observe-ui","params":{"root":"Doc"}}"#) })
+		#expect(await expectCode(.invalidArguments) { _ = try await harness.run(#"{"command":"observe-ui","params":{"root":"TextEdit"}}"#) })
+	}
+
 	@Test func missingPermissionsRefuseCommandsButNotDoctor() async throws {
 		let harness = editor()
 		harness.desktop.update { $0.permissions = false }
