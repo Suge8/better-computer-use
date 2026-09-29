@@ -16,7 +16,7 @@ public final class Connection {
 		do {
 			try channel.write(Message.hello(protocolVersion))
 			guard let hello = try channel.read()?["hello"] else {
-				throw BCUError(.brokerUnavailable, "The bcu resident process closed the connection during the handshake.")
+				throw BCUError(.residentUnavailable, "The bcu resident process closed the connection during the handshake.")
 			}
 			status = try JSONCoding.decode(ResidentStatus.self, from: hello)
 		} catch {
@@ -27,7 +27,7 @@ public final class Connection {
 
 	public func send(_ request: Request) throws -> JSONValue {
 		try channel.write(request.json())
-		guard let reply = try channel.read() else { throw BCUError(.brokerUnavailable, "The bcu resident process closed the connection.") }
+		guard let reply = try channel.read() else { throw BCUError(.residentUnavailable, "The bcu resident process closed the connection.") }
 		return try Message.unwrap(reply)
 	}
 
@@ -49,7 +49,7 @@ public enum Client {
 	public static func connectIfRunning(socketPath: String, protocolVersion: Int = wireProtocolVersion) throws -> Connection? {
 		guard let connection = try handshake(socketPath, protocolVersion) else { return nil }
 		guard connection.status.protocolVersion == protocolVersion else {
-			throw BCUError(.brokerUnavailable, "The running bcu resident process (pid \(connection.status.pid)) speaks protocol \(connection.status.protocolVersion); this bcu speaks \(protocolVersion).", recovery: "Run 'bcu stop', then retry.")
+			throw BCUError(.residentUnavailable, "The running bcu resident process (pid \(connection.status.pid)) speaks protocol \(connection.status.protocolVersion); this bcu speaks \(protocolVersion).", recovery: "Run 'bcu stop', then retry.")
 		}
 		return connection
 	}
@@ -68,13 +68,13 @@ public enum Client {
 			do {
 				try launcher()
 			} catch {
-				throw BCUError(.brokerUnavailable, "Could not start the bcu resident process: \(BCUError.normalize(error).message)")
+				throw BCUError(.residentUnavailable, "Could not start the bcu resident process: \(BCUError.normalize(error).message)")
 			}
 			let deadline = DispatchTime.now() + .nanoseconds(Int(readyTimeout.nanoseconds))
 			while true {
 				if let connection = try connectIfRunning(socketPath: socketPath, protocolVersion: protocolVersion) { return connection }
 				guard watcher.waitForChange(until: deadline) else {
-					throw BCUError(.brokerUnavailable, "The bcu resident process did not start listening at \(socketPath) within \(readyTimeout).")
+					throw BCUError(.residentUnavailable, "The bcu resident process did not start listening at \(socketPath) within \(readyTimeout).")
 				}
 			}
 		}

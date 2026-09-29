@@ -133,6 +133,6 @@ struct RuntimeTests {
 		let runtime = Runtime<FakeObservation>()
 		await runtime.close()
 		let error = await #expect(throws: BCUError.self) { try await observed(runtime) }
-		#expect(error?.code == .brokerUnavailable)
+		#expect(error?.code == .residentUnavailable)
 	}
 }

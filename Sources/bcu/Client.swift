@@ -41,7 +41,7 @@ private func connectOrStart(_ settings: Settings) throws -> Connection {
 /// Accessibility and Screen Recording use to bcu.app, not to the terminal that ran `bcu`.
 private func launchResident(appPath: String, forwarded: [String]) throws {
 	guard FileManager.default.fileExists(atPath: appPath) else {
-		throw BCUError(.brokerUnavailable, "bcu.app is not installed at \(appPath). Run scripts/install.sh in the bcu checkout.")
+		throw BCUError(.residentUnavailable, "bcu.app is not installed at \(appPath). Run scripts/install.sh in the bcu checkout.")
 	}
 	let open = Process()
 	open.executableURL = URL(filePath: "/usr/bin/open")
@@ -53,7 +53,7 @@ private func launchResident(appPath: String, forwarded: [String]) throws {
 	let message = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
 	open.waitUntilExit()
 	guard open.terminationStatus == 0 else {
-		throw BCUError(.brokerUnavailable, "open \(appPath) exited \(open.terminationStatus): \(message.trimmingCharacters(in: .whitespacesAndNewlines))")
+		throw BCUError(.residentUnavailable, "open \(appPath) exited \(open.terminationStatus): \(message.trimmingCharacters(in: .whitespacesAndNewlines))")
 	}
 }
 

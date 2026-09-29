@@ -59,7 +59,7 @@ struct IPCTests {
 		let error = await #expect(throws: BCUError.self) {
 			try await blocking { _ = try Client.connectIfRunning(socketPath: path) }
 		}
-		#expect(error?.code == .brokerUnavailable)
+		#expect(error?.code == .residentUnavailable)
 		#expect(error?.message.contains("protocol") == true)
 	}
 

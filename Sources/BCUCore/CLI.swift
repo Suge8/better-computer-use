@@ -6,10 +6,10 @@ public enum PlainCommand: String, CaseIterable, Sendable {
 
 	var summary: String {
 		switch self {
-		case .status: "Report broker status without starting it."
-		case .doctor: "Start and diagnose broker, helper, permissions and config."
+		case .status: "Report resident process status without starting it."
+		case .doctor: "Start and diagnose the resident process, permissions and config."
 		case .setup: "Register and verify macOS permissions."
-		case .stop: "Stop the broker if it is running."
+		case .stop: "Stop the resident process if it is running."
 		}
 	}
 }

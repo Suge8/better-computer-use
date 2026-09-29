@@ -9,7 +9,7 @@ public let wireProtocolVersion = 1
 
 public enum RuntimePaths {
 	private static let caches = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Caches/bcu").path
-	public static let socket = caches + "/broker.sock"
+	public static let socket = caches + "/resident.sock"
 	public static let shots = caches + "/shots"
 }
 
@@ -63,7 +63,7 @@ enum Message {
 	/// The result a reply carries, or the error it reports thrown.
 	static func unwrap(_ reply: JSONValue) throws -> JSONValue {
 		if let error = reply["error"] { throw try JSONCoding.decode(BCUError.self, from: error) }
-		guard let result = reply["result"] else { throw BCUError(.brokerUnavailable, "The bcu resident process sent a malformed reply.") }
+		guard let result = reply["result"] else { throw BCUError(.residentUnavailable, "The bcu resident process sent a malformed reply.") }
 		return result
 	}
 }

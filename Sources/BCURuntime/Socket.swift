@@ -4,7 +4,7 @@ import BCUCore
 import Foundation
 
 func posixFailure(_ what: String, _ code: Int32 = errno) -> BCUError {
-	BCUError(.brokerUnavailable, "\(what): \(String(cString: strerror(code))).")
+	BCUError(.residentUnavailable, "\(what): \(String(cString: strerror(code))).")
 }
 
 func ensurePrivateDirectory(_ path: String) throws {
@@ -36,7 +36,7 @@ private func withAddress<T>(_ path: String, _ body: (UnsafePointer<sockaddr>, so
 	address.sun_family = sa_family_t(AF_UNIX)
 	let bytes = Array(path.utf8)
 	guard bytes.count < MemoryLayout.size(ofValue: address.sun_path) else {
-		throw BCUError(.brokerUnavailable, "Socket path \(path) is longer than a Unix socket address allows.")
+		throw BCUError(.residentUnavailable, "Socket path \(path) is longer than a Unix socket address allows.")
 	}
 	withUnsafeMutableBytes(of: &address.sun_path) { $0.copyBytes(from: bytes) }
 	return withUnsafePointer(to: &address) {

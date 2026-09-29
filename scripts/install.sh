@@ -6,7 +6,7 @@
 #
 #   BCU_APP_PATH           where the app goes (default /Applications/bcu.app)
 #   BCU_BIN_DIR            where the `bcu` link goes (default ~/.local/bin)
-#   BCU_SOCKET_PATH        the resident socket to stop (default ~/Library/Caches/bcu/broker.sock)
+#   BCU_SOCKET_PATH        the resident socket to stop (default ~/Library/Caches/bcu/resident.sock)
 #   BCU_CODESIGN_IDENTITY  sign with this identity instead of the local one
 set -euo pipefail
 
@@ -16,7 +16,7 @@ readonly MINIMUM_MACOS=14.0
 readonly IDENTITY_NAME="bcu Local Signing ($BUNDLE_ID)"
 readonly APP=${BCU_APP_PATH:-/Applications/bcu.app}
 readonly BIN_DIR=${BCU_BIN_DIR:-$HOME/.local/bin}
-readonly SOCKET=${BCU_SOCKET_PATH:-$HOME/Library/Caches/bcu/broker.sock}
+readonly SOCKET=${BCU_SOCKET_PATH:-$HOME/Library/Caches/bcu/resident.sock}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 readonly ROOT
 
@@ -97,19 +97,20 @@ signing_identity() {
 	printf '%s' "$identity"
 }
 
-# The running resident keeps serving the build it started with. The Node Broker and helper
-# that came before it bound their sockets in place, so the exact pid holding each is stopped
-# and waited for; a resident of this design binds under another name and publishes by
-# rename, which hides it from lsof, and is asked to stop over its own protocol instead.
+# The running resident keeps serving the build it started with, and is asked to stop over its
+# own protocol: it binds under another name and publishes its socket by rename, which hides
+# it from lsof. The Node CLI's Broker and helper that bcu.app replaced bound broker.sock and
+# bridge.sock in place beside it, so the exact pid holding either is stopped and waited for.
 stop_running() {
 	local binary=$1 socket pid
-	for socket in "$SOCKET" "$(dirname "$SOCKET")/bridge.sock"; do
+	for socket in "$(dirname "$SOCKET")/broker.sock" "$(dirname "$SOCKET")/bridge.sock"; do
 		[[ -S $socket ]] || continue
 		for pid in $(lsof -t -- "$socket" 2>/dev/null); do
 			log "stopping pid $pid on $socket"
 			kill "$pid" 2>/dev/null || continue
 			caffeinate -w "$pid"
 		done
+		rm -f "$socket"
 	done
 	BCU_SOCKET_PATH=$SOCKET "$binary" stop >&2
 }

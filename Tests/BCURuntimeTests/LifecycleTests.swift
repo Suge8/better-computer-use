@@ -65,7 +65,7 @@ struct LifecycleTests {
 				_ = try Client.connectOrStart(socketPath: path) { throw BCUError(.internalError, "open failed") }
 			}
 		}
-		#expect(error?.code == .brokerUnavailable)
+		#expect(error?.code == .residentUnavailable)
 		#expect(error?.message.contains("open failed") == true)
 	}
 
@@ -76,7 +76,7 @@ struct LifecycleTests {
 				_ = try Client.connectOrStart(socketPath: path, readyTimeout: .milliseconds(200)) {}
 			}
 		}
-		#expect(error?.code == .brokerUnavailable)
+		#expect(error?.code == .residentUnavailable)
 	}
 
 	@Test func statusAndStopDoNotStartAResident() async throws {

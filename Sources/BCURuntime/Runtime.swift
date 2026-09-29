@@ -92,7 +92,7 @@ public actor Runtime<Payload: StatePayload> {
 	}
 
 	private func enqueue<T: Sendable>(_ pid: Int, _ work: @escaping @Sendable () async throws -> T) async throws -> T {
-		guard !closed else { throw BCUError(.brokerUnavailable, "The bcu resident process is shutting down. Retry the command.") }
+		guard !closed else { throw BCUError(.residentUnavailable, "The bcu resident process is shutting down. Retry the command.") }
 		let previous = lanes[pid]?.tail
 		let task = Task {
 			await previous?.value
