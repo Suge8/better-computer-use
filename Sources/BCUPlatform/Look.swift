@@ -111,7 +111,7 @@ extension Platform {
 		if let capture, readsScreen {
 			readTextExecuted = true
 			let textStart = Date()
-			let boxes = try recognizeText(in: capture.image, outputWidth: imageWidth, outputHeight: imageHeight)
+			let boxes = try recognizeText(in: capture.image, pixelsPerPoint: Double(capture.image.width) / capture.frame.width, outputWidth: imageWidth, outputHeight: imageHeight)
 			attachOCR(boxes, to: outline)
 			readTextMs = elapsedMs(textStart)
 		}
