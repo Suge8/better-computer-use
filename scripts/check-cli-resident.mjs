@@ -5,7 +5,8 @@
 // the environment and of the config file, and a resident speaking another protocol is
 // refused. Against a test bundle of this build: status and stop never start a resident, a
 // command starts one through LaunchServices that serves on the caller's socket, and stop
-// ends it.
+// ends it. The bundle holds no grants, so the command is refused as permission_missing: the
+// resident reads the grants without asking for them (only `bcu setup` asks).
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -136,7 +137,10 @@ async function launchedChecks() {
 	assert(!existsSync(socketPath), "status or stop started a resident");
 
 	const started = await Promise.all([cli(["find-roots"]), cli(["find-roots"]), cli(["find-roots"])]);
-	for (const result of started) assert.notEqual(result.code, 10, `a command could not reach the started resident: ${result.stderr}`);
+	for (const result of started) {
+		assert.equal(result.code, 4, `a command on the ungranted bundle was not refused for its permissions: ${result.stderr}`);
+		assert.match(result.stderr, /^error permission_missing: /m);
+	}
 	const status = JSON.parse((await cli(["status"])).stdout);
 	assert.equal(status.running, true, "no resident is running after a command");
 	const { stdout: parent } = await execFile("ps", ["-o", "ppid=,comm=", "-p", String(status.pid)]);
@@ -150,7 +154,7 @@ async function launchedChecks() {
 try {
 	await scriptedChecks();
 	await launchedChecks();
-	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices, stop ends it");
+	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
 } finally {
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });
