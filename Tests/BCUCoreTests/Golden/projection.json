@@ -1,0 +1,2089 @@
+{
+	"cases": [
+		{
+			"name": "textedit-outline.json saved first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "saved"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "文本编辑",
+						"title": "未命名2"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":16,\"roles\":{\"segment\":8,\"button\":3,\"popup\":3,\"combobox\":1,\"menubutton\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":10,\"total\":47,\"truncated\":false}",
+				"text": "@r1 文本编辑 — 未命名2 · state 1a2b3c4d · 47 nodes, 10 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\""
+			}
+		},
+		{
+			"name": "textedit-outline.json fresh first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "文本编辑",
+						"title": "未命名2"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":16,\"roles\":{\"segment\":8,\"button\":3,\"popup\":3,\"combobox\":1,\"menubutton\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":10,\"total\":47,\"truncated\":false}",
+				"text": "@r1 文本编辑 — 未命名2 · state 1a2b3c4d · 47 nodes, 10 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\""
+			}
+		},
+		{
+			"name": "textedit-outline.json unfolded",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 9007199254740991,
+					"maxNodes": 9007199254740991
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e38\",\"role\":\"segment\",\"name\":\"粗体\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e39\",\"role\":\"segment\",\"name\":\"斜体\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e40\",\"role\":\"segment\",\"name\":\"下划线\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e41\",\"role\":\"segment\",\"name\":\"删除线\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"文本颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e15\",\"role\":\"button\",\"name\":\"文本背景颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e16\",\"role\":\"popup\",\"name\":\"字样\",\"value\":\"Helvetica\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e17\",\"role\":\"popup\",\"name\":\"样式\",\"value\":\"常规体\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e42\",\"role\":\"button\",\"name\":\"字体大小\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e18\"},{\"ref\":\"@e43\",\"role\":\"segment\",\"name\":\"左对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e44\",\"role\":\"segment\",\"name\":\"居中对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e45\",\"role\":\"segment\",\"name\":\"右对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e46\",\"role\":\"segment\",\"name\":\"完全对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e20\",\"role\":\"menubutton\",\"name\":\"列表样式\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"popup\",\"name\":\"行距\",\"value\":\"1.0\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":26,\"total\":47,\"truncated\":false}",
+				"text": "@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\"\n    @e38 segment \"粗体\" {toggle}\n    @e39 segment \"斜体\" {toggle}\n    @e40 segment \"下划线\" {toggle}\n    @e41 segment \"删除线\" {toggle}\n    @e14 button \"文本颜色\" =\"透明\" {press}\n    @e15 button \"文本背景颜色\" =\"透明\" {press}\n    @e16 popup \"字样\" =\"Helvetica\" {press,menu}\n    @e17 popup \"样式\" =\"常规体\" {press,menu}\n    @e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu}\n      @e42 button \"字体大小\" {press}\n    @e43 segment \"左对齐\" {toggle}\n    @e44 segment \"居中对齐\" {toggle}\n    @e45 segment \"右对齐\" {toggle}\n    @e46 segment \"完全对齐\" {toggle}\n    @e20 menubutton \"列表样式\" {press,menu}\n    @e21 popup \"行距\" =\"1.0\" {press,menu}\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\""
+			}
+		},
+		{
+			"name": "finder-outline.json saved first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "saved"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "访达",
+						"title": "MacBook Pro"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":14,\"total\":99,\"truncated\":false}",
+				"text": "@r1 访达 — MacBook Pro · state 1a2b3c4d · 99 nodes, 14 shown\n@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e3 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}"
+			}
+		},
+		{
+			"name": "finder-outline.json fresh first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "访达",
+						"title": "MacBook Pro"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":14,\"total\":99,\"truncated\":false}",
+				"text": "@r1 访达 — MacBook Pro · state 1a2b3c4d · 99 nodes, 14 shown\n@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e3 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}"
+			}
+		},
+		{
+			"name": "finder-outline.json unfolded",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 9007199254740991,
+					"maxNodes": 9007199254740991
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e31\",\"role\":\"row\",\"name\":\"图片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e62\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e32\",\"role\":\"row\",\"name\":\"文稿\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e63\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e83\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e32\"},{\"ref\":\"@e33\",\"role\":\"row\",\"name\":\"应用程序\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e64\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e34\",\"role\":\"row\",\"name\":\"位置\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e35\",\"role\":\"row\",\"name\":\"iCloud云盘\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e66\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e36\",\"role\":\"row\",\"name\":\"sugeh\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e67\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e37\",\"role\":\"row\",\"name\":\"MacBook Pro\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e68\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e38\",\"role\":\"row\",\"name\":\"Macintosh HD\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e69\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e39\",\"role\":\"row\",\"name\":\"网络\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e70\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e40\",\"role\":\"row\",\"name\":\"废纸篓\",\"caps\":[\"open\"],\"state\":{\"offscreen\":true},\"owners\":{\"open\":\"@e71\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e19\"},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e20\",\"role\":\"group\",\"name\":\"返回/前进\",\"caps\":[],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":3,\"parent\":\"@e20\"},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":3,\"parent\":\"@e20\"},{\"ref\":\"@e12\",\"role\":\"button\",\"name\":\"隔空投送\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e53\",\"role\":\"button\",\"name\":\"搜索\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e21\"},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":40,\"total\":99,\"truncated\":false}",
+				"text": "@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll}\n    @e23 row \"个人收藏\"\n    @e24 row \"下载\" {open}\n    @e25 row \"Career\" {open}\n    @e26 row \"ANU\" {open}\n    @e27 row \"Project\" {open}\n    @e28 row \"奇点引力\" {open}\n    @e29 row \"MyInfo\" {open}\n    @e30 row \"影片\" {open}\n    @e31 row \"图片\" {open}\n    @e32 row \"文稿\" {open}\n      @e83 button {press}\n    @e33 row \"应用程序\" {open}\n    @e34 row \"位置\"\n    @e35 row \"iCloud云盘\" {open}\n    @e36 row \"sugeh\" {open}\n    @e37 row \"MacBook Pro\" {open}\n    @e38 row \"Macintosh HD\" {open}\n    @e39 row \"网络\" {open}\n    @e40 row \"废纸篓\" {open} offscreen\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu}\n    @e50 text \"MacBook Pro\" {menu,open}\n  @e3 toolbar {menu}\n    @e20 group \"返回/前进\"\n      @e51 segment \"返回\" {toggle,menu}\n      @e52 segment \"前进\" {toggle,menu}\n    @e12 button \"隔空投送\" {press}\n    @e21 searchfield {setText,typeText,menu}\n      @e53 button \"搜索\" {press}\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}"
+			}
+		},
+		{
+			"name": "chrome-outline.json saved first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "saved"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "Google Chrome",
+						"title": "bcu web background"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":4,\"parent\":\"@e29\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":18,\"total\":50,\"truncated\":false}",
+				"text": "@r1 Google Chrome — bcu web background · state 1a2b3c4d · 50 nodes, 18 shown\n@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n  @e2 group \"bcu web fixture A - Google Chrome\"\n    @e6 group {menu}\n      @e15 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n      @e29 webarea \"bcu web fixture A\" focused\n        @e36 button \"Count clicks\" {press}\n        @e45 textfield \"Set field\" {press,setText,typeText}\n        @e46 textfield \"Type field\" {press,setText,typeText}\n        @e47 textfield \"Key log\" {press,setText,typeText}\n        @e40 button \"Down only\" {press}\n        @e41 button \"Click only\" {press}\n        @e42 landmarkregion \"Scroll area\" {scroll} ▸ 1 hidden: text×1\n      @e30 popup \"Tab Search\" {press,menu}\n      @e31 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n      @e20 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
+			"name": "chrome-outline.json fresh first view",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"options": {},
+				"header": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "Google Chrome",
+						"title": "bcu web background"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":4,\"parent\":\"@e29\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":18,\"total\":50,\"truncated\":false}",
+				"text": "@r1 Google Chrome — bcu web background · state 1a2b3c4d · 50 nodes, 18 shown\n@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n  @e2 group \"bcu web fixture A - Google Chrome\"\n    @e6 group {menu}\n      @e15 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n      @e29 webarea \"bcu web fixture A\" focused\n        @e36 button \"Count clicks\" {press}\n        @e45 textfield \"Set field\" {press,setText,typeText}\n        @e46 textfield \"Type field\" {press,setText,typeText}\n        @e47 textfield \"Key log\" {press,setText,typeText}\n        @e40 button \"Down only\" {press}\n        @e41 button \"Click only\" {press}\n        @e42 landmarkregion \"Scroll area\" {scroll} ▸ 1 hidden: text×1\n      @e30 popup \"Tab Search\" {press,menu}\n      @e31 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n      @e20 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
+			"name": "chrome-outline.json unfolded",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 9007199254740991,
+					"maxNodes": 9007199254740991
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"applicationgroup\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e33\",\"role\":\"popup\",\"name\":\"File\",\"caps\":[\"press\",\"menu\"],\"depth\":5,\"parent\":\"@e25\"},{\"ref\":\"@e34\",\"role\":\"textfield\",\"name\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"caps\":[\"press\",\"setText\",\"typeText\",\"menu\"],\"depth\":5,\"parent\":\"@e25\"},{\"ref\":\"@e44\",\"role\":\"button\",\"name\":\"Bookmark this tab\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e25\"},{\"ref\":\"@e26\",\"role\":\"button\",\"name\":\"Sign In to Chrome?\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"popup\",\"name\":\"Chrome\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"Scroll content\",\"caps\":[],\"depth\":5,\"parent\":\"@e42\"},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e43\",\"role\":\"tabbutton\",\"name\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"value\":\"1\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e31\"},{\"ref\":\"@e49\",\"role\":\"button\",\"name\":\"Close\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e43\"},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":30,\"total\":50,\"truncated\":false}",
+				"text": "@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n  @e2 group \"bcu web fixture A - Google Chrome\"\n    @e6 group {menu}\n      @e15 toolbar\n        @e22 button \"Back\" {press,menu}\n        @e23 button \"Forward\" {press,menu}\n        @e24 button \"Reload\" {press,menu}\n        @e25 applicationgroup {menu}\n          @e33 popup \"File\" {press,menu}\n          @e34 textfield \"Address and search bar\" =\"/tmp/bcu-probe/page.html?w=A\" {press,setText,typeText,menu}\n          @e44 button \"Bookmark this tab\" {press}\n        @e26 button \"Sign In to Chrome?\" {press,menu}\n        @e27 popup \"Chrome\" {press,menu}\n      @e29 webarea \"bcu web fixture A\" focused\n        @e36 button \"Count clicks\" {press}\n        @e45 textfield \"Set field\" {press,setText,typeText}\n        @e46 textfield \"Type field\" {press,setText,typeText}\n        @e47 textfield \"Key log\" {press,setText,typeText}\n        @e40 button \"Down only\" {press}\n        @e41 button \"Click only\" {press}\n        @e42 landmarkregion \"Scroll area\" {scroll}\n          @e50 text \"Scroll content\"\n      @e30 popup \"Tab Search\" {press,menu}\n      @e31 tabgroup\n        @e43 tabbutton \"bcu web fixture A - Memory usage - 29.9 MB\" =\"1\" {press,menu}\n          @e49 button \"Close\" {press}\n      @e20 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
+			"name": "finder depth 8",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e31\",\"role\":\"row\",\"name\":\"图片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e62\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e32\",\"role\":\"row\",\"name\":\"文稿\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e63\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e83\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e32\"},{\"ref\":\"@e33\",\"role\":\"row\",\"name\":\"应用程序\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e64\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e34\",\"role\":\"row\",\"name\":\"位置\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e35\",\"role\":\"row\",\"name\":\"iCloud云盘\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e66\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e36\",\"role\":\"row\",\"name\":\"sugeh\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e67\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e37\",\"role\":\"row\",\"name\":\"MacBook Pro\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e68\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e38\",\"role\":\"row\",\"name\":\"Macintosh HD\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e69\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e39\",\"role\":\"row\",\"name\":\"网络\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e70\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e40\",\"role\":\"row\",\"name\":\"废纸篓\",\"caps\":[\"open\"],\"state\":{\"offscreen\":true},\"owners\":{\"open\":\"@e71\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e19\"},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e20\",\"role\":\"group\",\"name\":\"返回/前进\",\"caps\":[],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":3,\"parent\":\"@e20\"},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":3,\"parent\":\"@e20\"},{\"ref\":\"@e12\",\"role\":\"button\",\"name\":\"隔空投送\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e53\",\"role\":\"button\",\"name\":\"搜索\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e21\"},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":40,\"total\":99,\"truncated\":false}",
+				"text": "@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll}\n    @e23 row \"个人收藏\"\n    @e24 row \"下载\" {open}\n    @e25 row \"Career\" {open}\n    @e26 row \"ANU\" {open}\n    @e27 row \"Project\" {open}\n    @e28 row \"奇点引力\" {open}\n    @e29 row \"MyInfo\" {open}\n    @e30 row \"影片\" {open}\n    @e31 row \"图片\" {open}\n    @e32 row \"文稿\" {open}\n      @e83 button {press}\n    @e33 row \"应用程序\" {open}\n    @e34 row \"位置\"\n    @e35 row \"iCloud云盘\" {open}\n    @e36 row \"sugeh\" {open}\n    @e37 row \"MacBook Pro\" {open}\n    @e38 row \"Macintosh HD\" {open}\n    @e39 row \"网络\" {open}\n    @e40 row \"废纸篓\" {open} offscreen\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu}\n    @e50 text \"MacBook Pro\" {menu,open}\n  @e3 toolbar {menu}\n    @e20 group \"返回/前进\"\n      @e51 segment \"返回\" {toggle,menu}\n      @e52 segment \"前进\" {toggle,menu}\n    @e12 button \"隔空投送\" {press}\n    @e21 searchfield {setText,typeText,menu}\n      @e53 button \"搜索\" {press}\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}"
+			}
+		},
+		{
+			"name": "finder depth 2 capped at 10 nodes",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 2,
+					"maxNodes": 10
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":2,\"parent\":\"@e15\"}],\"shown\":10,\"total\":99,\"truncated\":true}",
+				"text": "@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll}\n    @e23 row \"个人收藏\"\n    @e24 row \"下载\" {open}\n    @e25 row \"Career\" {open}\n    @e26 row \"ANU\" {open}\n    @e27 row \"Project\" {open}\n    @e28 row \"奇点引力\" {open}\n    @e29 row \"MyInfo\" {open}\n    @e30 row \"影片\" {open}"
+			}
+		},
+		{
+			"name": "finder unfold one folded ref",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 1,
+					"unfold": [
+						"@e2"
+					]
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":14,\"total\":99,\"truncated\":false}",
+				"text": "@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e3 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}"
+			}
+		},
+		{
+			"name": "chrome depth 12",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 12,
+					"maxNodes": 1000
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"applicationgroup\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e33\",\"role\":\"popup\",\"name\":\"File\",\"caps\":[\"press\",\"menu\"],\"depth\":5,\"parent\":\"@e25\"},{\"ref\":\"@e34\",\"role\":\"textfield\",\"name\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"caps\":[\"press\",\"setText\",\"typeText\",\"menu\"],\"depth\":5,\"parent\":\"@e25\"},{\"ref\":\"@e44\",\"role\":\"button\",\"name\":\"Bookmark this tab\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e25\"},{\"ref\":\"@e26\",\"role\":\"button\",\"name\":\"Sign In to Chrome?\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"popup\",\"name\":\"Chrome\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"Scroll content\",\"caps\":[],\"depth\":5,\"parent\":\"@e42\"},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e43\",\"role\":\"tabbutton\",\"name\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"value\":\"1\",\"caps\":[\"press\",\"menu\"],\"depth\":4,\"parent\":\"@e31\"},{\"ref\":\"@e49\",\"role\":\"button\",\"name\":\"Close\",\"caps\":[\"press\"],\"depth\":5,\"parent\":\"@e43\"},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":30,\"total\":50,\"truncated\":false}",
+				"text": "@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n  @e2 group \"bcu web fixture A - Google Chrome\"\n    @e6 group {menu}\n      @e15 toolbar\n        @e22 button \"Back\" {press,menu}\n        @e23 button \"Forward\" {press,menu}\n        @e24 button \"Reload\" {press,menu}\n        @e25 applicationgroup {menu}\n          @e33 popup \"File\" {press,menu}\n          @e34 textfield \"Address and search bar\" =\"/tmp/bcu-probe/page.html?w=A\" {press,setText,typeText,menu}\n          @e44 button \"Bookmark this tab\" {press}\n        @e26 button \"Sign In to Chrome?\" {press,menu}\n        @e27 popup \"Chrome\" {press,menu}\n      @e29 webarea \"bcu web fixture A\" focused\n        @e36 button \"Count clicks\" {press}\n        @e45 textfield \"Set field\" {press,setText,typeText}\n        @e46 textfield \"Type field\" {press,setText,typeText}\n        @e47 textfield \"Key log\" {press,setText,typeText}\n        @e40 button \"Down only\" {press}\n        @e41 button \"Click only\" {press}\n        @e42 landmarkregion \"Scroll area\" {scroll}\n          @e50 text \"Scroll content\"\n      @e30 popup \"Tab Search\" {press,menu}\n      @e31 tabgroup\n        @e43 tabbutton \"bcu web fixture A - Memory usage - 29.9 MB\" =\"1\" {press,menu}\n          @e49 button \"Close\" {press}\n      @e20 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}"
+			}
+		},
+		{
+			"name": "textedit from a subtree",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"options": {
+					"maxDepth": 3,
+					"from": "@e3"
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":0},{\"ref\":\"@e38\",\"role\":\"segment\",\"name\":\"粗体\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e39\",\"role\":\"segment\",\"name\":\"斜体\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e40\",\"role\":\"segment\",\"name\":\"下划线\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e41\",\"role\":\"segment\",\"name\":\"删除线\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"文本颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e15\",\"role\":\"button\",\"name\":\"文本背景颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e16\",\"role\":\"popup\",\"name\":\"字样\",\"value\":\"Helvetica\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e17\",\"role\":\"popup\",\"name\":\"样式\",\"value\":\"常规体\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e42\",\"role\":\"button\",\"name\":\"字体大小\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e18\"},{\"ref\":\"@e43\",\"role\":\"segment\",\"name\":\"左对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e44\",\"role\":\"segment\",\"name\":\"居中对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e45\",\"role\":\"segment\",\"name\":\"右对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e46\",\"role\":\"segment\",\"name\":\"完全对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e20\",\"role\":\"menubutton\",\"name\":\"列表样式\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"popup\",\"name\":\"行距\",\"value\":\"1.0\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"}],\"shown\":17,\"total\":19,\"truncated\":false}",
+				"text": "@e3 group \"设置格式\"\n  @e38 segment \"粗体\" {toggle}\n  @e39 segment \"斜体\" {toggle}\n  @e40 segment \"下划线\" {toggle}\n  @e41 segment \"删除线\" {toggle}\n  @e14 button \"文本颜色\" =\"透明\" {press}\n  @e15 button \"文本背景颜色\" =\"透明\" {press}\n  @e16 popup \"字样\" =\"Helvetica\" {press,menu}\n  @e17 popup \"样式\" =\"常规体\" {press,menu}\n  @e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu}\n    @e42 button \"字体大小\" {press}\n  @e43 segment \"左对齐\" {toggle}\n  @e44 segment \"居中对齐\" {toggle}\n  @e45 segment \"右对齐\" {toggle}\n  @e46 segment \"完全对齐\" {toggle}\n  @e20 menubutton \"列表样式\" {press,menu}\n  @e21 popup \"行距\" =\"1.0\" {press,menu}"
+			}
+		},
+		{
+			"name": "header without a root ref",
+			"op": "project",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"options": {},
+				"header": {
+					"stateId": "00000000",
+					"root": {
+						"app": "TextEdit",
+						"title": ""
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":16,\"roles\":{\"segment\":8,\"button\":3,\"popup\":3,\"combobox\":1,\"menubutton\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":10,\"total\":47,\"truncated\":false}",
+				"text": "TextEdit —  · state 00000000 · 47 nodes, 10 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\""
+			}
+		},
+		{
+			"name": "menu separators drop",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "menu",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "menu",
+							"role": "AXMenu",
+							"subrole": "",
+							"identifier": "",
+							"title": "",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "new",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "新建",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "sep",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "close",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "关闭",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"menu\",\"name\":\"\",\"caps\":[],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"menuitem\",\"name\":\"新建\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"menuitem\",\"name\":\"关闭\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":3,\"total\":4,\"truncated\":false}",
+				"text": "@e1 menu\n  @e2 menuitem \"新建\" {press}\n  @e4 menuitem \"关闭\" {press}"
+			}
+		},
+		{
+			"name": "menu bar items press only",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "menubar",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "bar",
+							"role": "AXMenuBar",
+							"subrole": "",
+							"identifier": "",
+							"title": "",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "file",
+									"role": "AXMenuBarItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "文件",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick",
+										"AXShowMenu"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e3",
+											"wireRef": "save",
+											"role": "AXMenuItem",
+											"subrole": "",
+											"identifier": "_NS:1",
+											"title": "保存",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXCancel",
+												"AXPress",
+												"AXPick"
+											],
+											"canPress": true,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 200,
+												"h": 20
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"menubar\",\"name\":\"\",\"caps\":[],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"menuitem\",\"name\":\"文件\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e3\",\"role\":\"menuitem\",\"name\":\"保存\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"}],\"shown\":3,\"total\":3,\"truncated\":false}",
+				"text": "@e1 menubar\n  @e2 menuitem \"文件\" {press}\n    @e3 menuitem \"保存\" {press}"
+			}
+		},
+		{
+			"name": "developer strings never name a node",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "internal",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "menu",
+							"role": "AXMenu",
+							"subrole": "",
+							"identifier": "",
+							"title": "",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "i0",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "_SC_SEARCH_FIELD",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "i1",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "SC_SEARCH_FIELD",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "i2",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "searchFieldAction:",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "i3",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "_NS:24",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "i4",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "insertText:replacementRange:",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "i5",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "NSTextViewIdentifier",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "i6",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "FooIdentifier.3",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "real",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "新建",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "colon",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "_NS:1",
+									"title": "File:",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCancel",
+										"AXPress",
+										"AXPick"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "idname",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "saveButton",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "idnoise",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "_NS:9",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"menu\",\"name\":\"\",\"caps\":[],\"depth\":0},{\"ref\":\"@e9\",\"role\":\"menuitem\",\"name\":\"新建\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e10\",\"role\":\"menuitem\",\"name\":\"File:\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e11\",\"role\":\"button\",\"name\":\"saveButton\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e12\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":5,\"total\":12,\"truncated\":false}",
+				"text": "@e1 menu\n  @e9 menuitem \"新建\" {press}\n  @e10 menuitem \"File:\" {press}\n  @e11 button \"saveButton\" {press}\n  @e12 button {press}"
+			}
+		},
+		{
+			"name": "text escaping and truncation",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "escape",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "quote",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "He said \"hi\"\n\tthen\u0001left 🎉 é\\",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "long",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面  tail",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "value",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "Name",
+									"description": "",
+									"value": "v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v end",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": true,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "spaces",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "  wide　gap line﻿ ",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "emoji",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🎉🎉",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"Fixture\",\"caps\":[],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"button\",\"name\":\"He said \\\"hi\\\" then\\u0001left 🎉 é\\\\\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e3\",\"role\":\"text\",\"name\":\"界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面 tail\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"textfield\",\"name\":\"Name\",\"value\":\"v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v …\",\"caps\":[\"setText\",\"typeText\"],\"state\":{\"focused\":true},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"button\",\"name\":\"wide gap line\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"text\",\"name\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🎉🎉\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":6,\"total\":6,\"truncated\":false}",
+				"text": "@e1 window \"Fixture\"\n  @e2 button \"He said \\\"hi\\\" then\\u0001left 🎉 é\\\\\" {press}\n  @e3 text \"界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面界面 tail\"\n  @e4 textfield \"Name\" =\"v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v …\" {setText,typeText} focused\n  @e5 button \"wide gap line\" {press}\n  @e6 text \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🎉🎉\""
+			}
+		},
+		{
+			"name": "capabilities and state words",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "caps",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "check",
+									"role": "AXCheckBox",
+									"subrole": "",
+									"identifier": "",
+									"title": "Bold",
+									"description": "",
+									"value": "1",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "switch",
+									"role": "AXCheckBox",
+									"subrole": "AXSwitch",
+									"identifier": "",
+									"title": "Wi-Fi",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "slider",
+									"role": "AXSlider",
+									"subrole": "",
+									"identifier": "",
+									"title": "Volume",
+									"description": "",
+									"value": "0.5",
+									"actions": [
+										"AXIncrement",
+										"AXDecrement"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": true,
+									"canDecrement": true,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "list",
+									"role": "AXScrollArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": true,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": true,
+									"scrollExtent": {
+										"seen": 3,
+										"total": 10
+									},
+									"children": [
+										{
+											"ref": "@e12",
+											"wireRef": "row",
+											"role": "AXRow",
+											"subrole": "AXOutlineRow",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXOpen",
+												"AXShowMenu",
+												"AXExpand",
+												"AXRaise",
+												"AXCustom"
+											],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": [
+												{
+													"ref": "@e18",
+													"wireRef": "rowtext",
+													"role": "AXStaticText",
+													"subrole": "",
+													"identifier": "",
+													"title": "",
+													"description": "",
+													"value": "Row one",
+													"actions": [],
+													"canPress": false,
+													"canFocus": false,
+													"canSetValue": false,
+													"canScroll": false,
+													"canIncrement": false,
+													"canDecrement": false,
+													"isTextInput": false,
+													"rect": {
+														"x": 0,
+														"y": 0,
+														"w": 0,
+														"h": 0
+													},
+													"focused": false,
+													"offscreen": false,
+													"pictureOnly": false,
+													"truncated": false,
+													"children": []
+												},
+												{
+													"ref": "@e19",
+													"wireRef": "rowimg",
+													"role": "AXImage",
+													"subrole": "",
+													"identifier": "",
+													"title": "",
+													"description": "icon",
+													"value": "",
+													"actions": [],
+													"canPress": false,
+													"canFocus": false,
+													"canSetValue": false,
+													"canScroll": false,
+													"canIncrement": false,
+													"canDecrement": false,
+													"isTextInput": false,
+													"rect": {
+														"x": 0,
+														"y": 0,
+														"w": 0,
+														"h": 0
+													},
+													"focused": false,
+													"offscreen": false,
+													"pictureOnly": false,
+													"truncated": false,
+													"children": []
+												}
+											]
+										},
+										{
+											"ref": "@e13",
+											"wireRef": "disc",
+											"role": "AXDisclosureTriangle",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXPress"
+											],
+											"canPress": true,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "ocr",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "屏幕文字",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": true,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "wrapper",
+									"role": "AXGroup",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e14",
+											"wireRef": "inner",
+											"role": "AXButton",
+											"subrole": "",
+											"identifier": "",
+											"title": "Inner",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXPress"
+											],
+											"canPress": true,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "cellwrap",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e15",
+											"wireRef": "cell",
+											"role": "AXCell",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXShowMenu"
+											],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": [
+												{
+													"ref": "@e20",
+													"wireRef": "celltext",
+													"role": "AXStaticText",
+													"subrole": "",
+													"identifier": "",
+													"title": "",
+													"description": "",
+													"value": "Cell",
+													"actions": [],
+													"canPress": false,
+													"canFocus": false,
+													"canSetValue": false,
+													"canScroll": false,
+													"canIncrement": false,
+													"canDecrement": false,
+													"isTextInput": false,
+													"rect": {
+														"x": 0,
+														"y": 0,
+														"w": 0,
+														"h": 0
+													},
+													"focused": false,
+													"offscreen": false,
+													"pictureOnly": false,
+													"truncated": false,
+													"children": []
+												}
+											]
+										}
+									]
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "unnamedlink",
+									"role": "AXLink",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e16",
+											"wireRef": "lgroup",
+											"role": "AXGroup",
+											"subrole": "",
+											"identifier": "",
+											"title": "Grouped",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXPress"
+											],
+											"canPress": true,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "bar",
+									"role": "AXScrollBar",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXIncrement"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": true,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "sheet",
+									"role": "AXSheet",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e17",
+											"wireRef": "deep",
+											"role": "AXGroup",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": [
+												{
+													"ref": "@e21",
+													"wireRef": "deeper",
+													"role": "AXGroup",
+													"subrole": "",
+													"identifier": "",
+													"title": "",
+													"description": "",
+													"value": "",
+													"actions": [],
+													"canPress": false,
+													"canFocus": false,
+													"canSetValue": false,
+													"canScroll": false,
+													"canIncrement": false,
+													"canDecrement": false,
+													"isTextInput": false,
+													"rect": {
+														"x": 0,
+														"y": 0,
+														"w": 0,
+														"h": 0
+													},
+													"focused": false,
+													"offscreen": false,
+													"pictureOnly": false,
+													"truncated": false,
+													"children": [
+														{
+															"ref": "@e22",
+															"wireRef": "ok",
+															"role": "AXButton",
+															"subrole": "",
+															"identifier": "",
+															"title": "OK",
+															"description": "",
+															"value": "",
+															"actions": [
+																"AXPress"
+															],
+															"canPress": true,
+															"canFocus": false,
+															"canSetValue": false,
+															"canScroll": false,
+															"canIncrement": false,
+															"canDecrement": false,
+															"isTextInput": false,
+															"rect": {
+																"x": 0,
+																"y": 0,
+																"w": 0,
+																"h": 0
+															},
+															"focused": false,
+															"offscreen": false,
+															"pictureOnly": false,
+															"truncated": false,
+															"children": []
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {},
+				"header": {
+					"stateId": "cafebabe",
+					"root": {
+						"ref": "@r7",
+						"app": "Fixture",
+						"title": "Fixture"
+					}
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"Fixture\",\"caps\":[],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"checkbox\",\"name\":\"Bold\",\"value\":\"1\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e3\",\"role\":\"switch\",\"name\":\"Wi-Fi\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"slider\",\"name\":\"Volume\",\"value\":\"0.5\",\"caps\":[\"increment\",\"decrement\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"state\":{\"offscreen\":true,\"truncated\":true,\"scroll\":{\"seen\":3,\"total\":10}},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e12\",\"role\":\"row\",\"name\":\"Row one icon\",\"caps\":[\"menu\",\"open\",\"expand\",\"raise\"],\"depth\":2,\"parent\":\"@e5\"},{\"ref\":\"@e13\",\"role\":\"disclosuretriangle\",\"name\":\"\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e5\"},{\"ref\":\"@e6\",\"role\":\"text\",\"name\":\"屏幕文字\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"Inner\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"button\",\"name\":\"Cell\",\"caps\":[\"press\",\"menu\"],\"owners\":{\"menu\":\"@e15\"},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"link\",\"name\":\"Grouped\",\"caps\":[\"press\"],\"owners\":{\"press\":\"@e16\"},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e11\",\"role\":\"sheet\",\"name\":\"\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"OK\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e11\"}],\"shown\":13,\"total\":22,\"truncated\":false}",
+				"text": "@r7 Fixture — Fixture · state cafebabe · 22 nodes, 13 shown\n@e1 window \"Fixture\"\n  @e2 checkbox \"Bold\" =\"1\" {toggle}\n  @e3 switch \"Wi-Fi\" {toggle}\n  @e4 slider \"Volume\" =\"0.5\" {increment,decrement}\n  @e5 scrollarea {scroll} offscreen truncated scroll 3/10\n    @e12 row \"Row one icon\" {menu,open,expand,raise}\n    @e13 disclosuretriangle {toggle}\n  @e6 text \"屏幕文字\" {press}\n  @e14 button \"Inner\" {press}\n  @e8 button \"Cell\" {press,menu}\n  @e9 link \"Grouped\" {press}\n  @e11 sheet\n    @e22 button \"OK\" {press}"
+			}
+		},
+		{
+			"name": "web content capabilities",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "web",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "tab",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "New Tab",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress",
+										"AXShowMenu"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "web",
+									"role": "AXWebArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Page",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXShowMenu"
+									],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e4",
+											"wireRef": "scroller",
+											"role": "AXGroup",
+											"subrole": "",
+											"identifier": "",
+											"title": "Scroll area",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXShowMenu"
+											],
+											"canPress": false,
+											"canFocus": true,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										},
+										{
+											"ref": "@e5",
+											"wireRef": "field",
+											"role": "AXTextField",
+											"subrole": "",
+											"identifier": "",
+											"title": "Query",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXShowMenu"
+											],
+											"canPress": false,
+											"canFocus": true,
+											"canSetValue": true,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": true,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										},
+										{
+											"ref": "@e6",
+											"wireRef": "go",
+											"role": "AXButton",
+											"subrole": "",
+											"identifier": "",
+											"title": "Go",
+											"description": "",
+											"value": "",
+											"actions": [
+												"AXPress",
+												"AXShowMenu"
+											],
+											"canPress": true,
+											"canFocus": true,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"Fixture\",\"caps\":[],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e3\",\"role\":\"webarea\",\"name\":\"Page\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"group\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e5\",\"role\":\"textfield\",\"name\":\"Query\",\"caps\":[\"setText\",\"typeText\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e6\",\"role\":\"button\",\"name\":\"Go\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"}],\"shown\":6,\"total\":6,\"truncated\":false}",
+				"text": "@e1 window \"Fixture\"\n  @e2 button \"New Tab\" {press,menu}\n  @e3 webarea \"Page\"\n    @e4 group \"Scroll area\" {scroll}\n    @e5 textfield \"Query\" {setText,typeText}\n    @e6 button \"Go\" {press}"
+			}
+		}
+	]
+}

@@ -1,0 +1,4564 @@
+{
+	"cases": [
+		{
+			"name": "TextEdit observe",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "a9326268",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit"
+				]
+			},
+			"output": {
+				"stdout": "@r1 TextEdit — 未命名2 · state a9326268 · 47 nodes, 10 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\"\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit observe --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "54ab0046",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"54ab0046\",\"root\":{\"ref\":\"@r1\",\"app\":\"TextEdit\",\"pid\":101,\"title\":\"未命名2\",\"windowId\":1010,\"frame\":{\"x\":0,\"y\":25.5,\"w\":586,\"h\":488},\"scale\":2},\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":16,\"roles\":{\"segment\":8,\"button\":3,\"popup\":3,\"combobox\":1,\"menubutton\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":10,\"total\":47}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search textarea",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--role",
+					"textarea"
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state ddb89f15\n@e9 textarea \"First Text View\" {setText,typeText,menu} focused in @e2\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search textarea --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--role",
+					"textarea",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]}],\"total\":1}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search AX role name",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--role",
+					"AXButton",
+					"--limit",
+					"3"
+				]
+			},
+			"output": {
+				"stdout": "3 of 6 matches · state ddb89f15\n@e14 button \"文本颜色\" =\"透明\" {press} in @e3\n@e15 button \"文本背景颜色\" =\"透明\" {press} in @e3\n@e42 button \"字体大小\" {press} in @e18\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search AX role name --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--role",
+					"AXButton",
+					"--limit",
+					"3",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"文本颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e15\",\"role\":\"button\",\"name\":\"文本背景颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e42\",\"role\":\"button\",\"name\":\"字体大小\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e18\",\"path\":[\"@e1\",\"@e3\",\"@e18\"]}],\"total\":6}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search setText",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"setText"
+				]
+			},
+			"output": {
+				"stdout": "2 of 2 matches · state ddb89f15\n@e9 textarea \"First Text View\" {setText,typeText,menu} focused in @e2\n@e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu} in @e3\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search setText --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"setText",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]}],\"total\":2}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search scroll",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"SCROLL",
+					"--limit",
+					"50"
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state ddb89f15\n@e2 scrollarea {scroll} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search scroll --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"SCROLL",
+					"--limit",
+					"50",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":1}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search menu",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"menu",
+					"--limit",
+					"50"
+				]
+			},
+			"output": {
+				"stdout": "8 of 8 matches · state ddb89f15\n@e9 textarea \"First Text View\" {setText,typeText,menu} focused in @e2\n@e16 popup \"字样\" =\"Helvetica\" {press,menu} in @e3\n@e17 popup \"样式\" =\"常规体\" {press,menu} in @e3\n@e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu} in @e3\n@e20 menubutton \"列表样式\" {press,menu} in @e3\n@e21 popup \"行距\" =\"1.0\" {press,menu} in @e3\n@e5 fullscreenbutton {press,menu} in @e1\n@e7 menubutton \"文稿操作\" {press,menu} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search menu --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"menu",
+					"--limit",
+					"50",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]},{\"ref\":\"@e16\",\"role\":\"popup\",\"name\":\"字样\",\"value\":\"Helvetica\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e17\",\"role\":\"popup\",\"name\":\"样式\",\"value\":\"常规体\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e20\",\"role\":\"menubutton\",\"name\":\"列表样式\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e21\",\"role\":\"popup\",\"name\":\"行距\",\"value\":\"1.0\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":8}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search text",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--text",
+					"  NEW  "
+				]
+			},
+			"output": {
+				"stdout": "0 of 0 matches · state ddb89f15\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search text --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--text",
+					"  NEW  ",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[],\"total\":0}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search limit clamps",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--text",
+					"a",
+					"--limit",
+					"0.5"
+				]
+			},
+			"output": {
+				"stdout": "1 of 26 matches · state ddb89f15\n@e1 window \"未命名2\" {raise}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search limit clamps --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--text",
+					"a",
+					"--limit",
+					"0.5",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0,\"path\":[]}],\"total\":26}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search limit above 50",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--limit",
+					"500"
+				]
+			},
+			"output": {
+				"stdout": "26 of 26 matches · state ddb89f15\n@e1 window \"未命名2\" {raise}\n@e2 scrollarea {scroll} in @e1\n@e9 textarea \"First Text View\" {setText,typeText,menu} focused in @e2\n@e12 ruler {press} in @e2\n@e3 group \"设置格式\" in @e1\n@e38 segment \"粗体\" {toggle} in @e3\n@e39 segment \"斜体\" {toggle} in @e3\n@e40 segment \"下划线\" {toggle} in @e3\n@e41 segment \"删除线\" {toggle} in @e3\n@e14 button \"文本颜色\" =\"透明\" {press} in @e3\n@e15 button \"文本背景颜色\" =\"透明\" {press} in @e3\n@e16 popup \"字样\" =\"Helvetica\" {press,menu} in @e3\n@e17 popup \"样式\" =\"常规体\" {press,menu} in @e3\n@e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu} in @e3\n@e42 button \"字体大小\" {press} in @e18\n@e43 segment \"左对齐\" {toggle} in @e3\n@e44 segment \"居中对齐\" {toggle} in @e3\n@e45 segment \"右对齐\" {toggle} in @e3\n@e46 segment \"完全对齐\" {toggle} in @e3\n@e20 menubutton \"列表样式\" {press,menu} in @e3\n@e21 popup \"行距\" =\"1.0\" {press,menu} in @e3\n@e4 closebutton {press} in @e1\n@e5 fullscreenbutton {press,menu} in @e1\n@e6 minimizebutton {press} in @e1\n@e7 menubutton \"文稿操作\" {press,menu} in @e1\n@e8 text \"未命名2\" in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search limit above 50 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--limit",
+					"500",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0,\"path\":[]},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e38\",\"role\":\"segment\",\"name\":\"粗体\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e39\",\"role\":\"segment\",\"name\":\"斜体\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e40\",\"role\":\"segment\",\"name\":\"下划线\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e41\",\"role\":\"segment\",\"name\":\"删除线\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"文本颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e15\",\"role\":\"button\",\"name\":\"文本背景颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e16\",\"role\":\"popup\",\"name\":\"字样\",\"value\":\"Helvetica\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e17\",\"role\":\"popup\",\"name\":\"样式\",\"value\":\"常规体\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e42\",\"role\":\"button\",\"name\":\"字体大小\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e18\",\"path\":[\"@e1\",\"@e3\",\"@e18\"]},{\"ref\":\"@e43\",\"role\":\"segment\",\"name\":\"左对齐\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e44\",\"role\":\"segment\",\"name\":\"居中对齐\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e45\",\"role\":\"segment\",\"name\":\"右对齐\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e46\",\"role\":\"segment\",\"name\":\"完全对齐\",\"caps\":[\"toggle\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e20\",\"role\":\"menubutton\",\"name\":\"列表样式\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e21\",\"role\":\"popup\",\"name\":\"行距\",\"value\":\"1.0\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":26}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search no match",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--text",
+					"__nothing__"
+				]
+			},
+			"output": {
+				"stdout": "0 of 0 matches · state ddb89f15\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search no match --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--text",
+					"__nothing__",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"matches\":[],\"total\":0}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit search unknown capability",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"hover"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown capability 'hover'. Use one of: press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "TextEdit search unknown capability --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"ddb89f15",
+					"--action",
+					"hover",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown capability 'hover'. Use one of: press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "TextEdit expand root",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "@e1 · state ddb89f15\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\"\n    @e38 segment \"粗体\" {toggle}\n    @e39 segment \"斜体\" {toggle}\n    @e40 segment \"下划线\" {toggle}\n    @e41 segment \"删除线\" {toggle}\n    @e14 button \"文本颜色\" =\"透明\" {press}\n    @e15 button \"文本背景颜色\" =\"透明\" {press}\n    @e16 popup \"字样\" =\"Helvetica\" {press,menu}\n    @e17 popup \"样式\" =\"常规体\" {press,menu}\n    @e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu}\n      @e42 button \"字体大小\" {press}\n    @e43 segment \"左对齐\" {toggle}\n    @e44 segment \"居中对齐\" {toggle}\n    @e45 segment \"右对齐\" {toggle}\n    @e46 segment \"完全对齐\" {toggle}\n    @e20 menubutton \"列表样式\" {press,menu}\n    @e21 popup \"行距\" =\"1.0\" {press,menu}\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\"\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand root --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"ref\":\"@e1\",\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e38\",\"role\":\"segment\",\"name\":\"粗体\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e39\",\"role\":\"segment\",\"name\":\"斜体\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e40\",\"role\":\"segment\",\"name\":\"下划线\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e41\",\"role\":\"segment\",\"name\":\"删除线\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"文本颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e15\",\"role\":\"button\",\"name\":\"文本背景颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e16\",\"role\":\"popup\",\"name\":\"字样\",\"value\":\"Helvetica\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e17\",\"role\":\"popup\",\"name\":\"样式\",\"value\":\"常规体\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e42\",\"role\":\"button\",\"name\":\"字体大小\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e18\"},{\"ref\":\"@e43\",\"role\":\"segment\",\"name\":\"左对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e44\",\"role\":\"segment\",\"name\":\"居中对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e45\",\"role\":\"segment\",\"name\":\"右对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e46\",\"role\":\"segment\",\"name\":\"完全对齐\",\"caps\":[\"toggle\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e20\",\"role\":\"menubutton\",\"name\":\"列表样式\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"popup\",\"name\":\"行距\",\"value\":\"1.0\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand depth 1",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e2",
+					"--depth",
+					"1"
+				]
+			},
+			"output": {
+				"stdout": "@e2 · state ddb89f15\n@e2 scrollarea {scroll}\n  @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n  @e12 ruler {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand depth 1 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e2",
+					"--depth",
+					"1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"ref\":\"@e2\",\"nodes\":[{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":0},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":1,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e2\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand depth clamps",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e3",
+					"--depth",
+					"99"
+				]
+			},
+			"output": {
+				"stdout": "@e3 · state ddb89f15\n@e3 group \"设置格式\"\n  @e38 segment \"粗体\" {toggle}\n  @e39 segment \"斜体\" {toggle}\n  @e40 segment \"下划线\" {toggle}\n  @e41 segment \"删除线\" {toggle}\n  @e14 button \"文本颜色\" =\"透明\" {press}\n  @e15 button \"文本背景颜色\" =\"透明\" {press}\n  @e16 popup \"字样\" =\"Helvetica\" {press,menu}\n  @e17 popup \"样式\" =\"常规体\" {press,menu}\n  @e18 combobox \"字体大小\" =\"12\" {setText,typeText,menu}\n    @e42 button \"字体大小\" {press}\n  @e43 segment \"左对齐\" {toggle}\n  @e44 segment \"居中对齐\" {toggle}\n  @e45 segment \"右对齐\" {toggle}\n  @e46 segment \"完全对齐\" {toggle}\n  @e20 menubutton \"列表样式\" {press,menu}\n  @e21 popup \"行距\" =\"1.0\" {press,menu}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand depth clamps --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e3",
+					"--depth",
+					"99",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"ref\":\"@e3\",\"nodes\":[{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":0},{\"ref\":\"@e38\",\"role\":\"segment\",\"name\":\"粗体\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e39\",\"role\":\"segment\",\"name\":\"斜体\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e40\",\"role\":\"segment\",\"name\":\"下划线\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e41\",\"role\":\"segment\",\"name\":\"删除线\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e14\",\"role\":\"button\",\"name\":\"文本颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e15\",\"role\":\"button\",\"name\":\"文本背景颜色\",\"value\":\"透明\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e16\",\"role\":\"popup\",\"name\":\"字样\",\"value\":\"Helvetica\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e17\",\"role\":\"popup\",\"name\":\"样式\",\"value\":\"常规体\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e18\",\"role\":\"combobox\",\"name\":\"字体大小\",\"value\":\"12\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e42\",\"role\":\"button\",\"name\":\"字体大小\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e18\"},{\"ref\":\"@e43\",\"role\":\"segment\",\"name\":\"左对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e44\",\"role\":\"segment\",\"name\":\"居中对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e45\",\"role\":\"segment\",\"name\":\"右对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e46\",\"role\":\"segment\",\"name\":\"完全对齐\",\"caps\":[\"toggle\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e20\",\"role\":\"menubutton\",\"name\":\"列表样式\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"popup\",\"name\":\"行距\",\"value\":\"1.0\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand by wire ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"e1311"
+				]
+			},
+			"output": {
+				"stdout": "@e2 · state ddb89f15\n@e2 scrollarea {scroll}\n  @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n  @e12 ruler {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand by wire ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"e1311",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"ref\":\"@e2\",\"nodes\":[{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":0},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":1,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e2\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit expand unknown ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e999"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "TextEdit expand unknown ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e999",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "TextEdit inspect root",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e1\",\n  \"wireRef\": \"e1310\",\n  \"role\": \"AXWindow\",\n  \"subrole\": \"AXStandardWindow\",\n  \"identifier\": \"_NS:31\",\n  \"title\": \"未命名2\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXRaise\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"w\": 586,\n    \"h\": 488\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit inspect root --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"node\":{\"ref\":\"@e1\",\"wireRef\":\"e1310\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"_NS:31\",\"title\":\"未命名2\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":586,\"h\":488},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit inspect unknown ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e999"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "TextEdit inspect unknown ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e999",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "TextEdit inspect editable @e9",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e9"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e9\",\n  \"wireRef\": \"e1318\",\n  \"role\": \"AXTextArea\",\n  \"subrole\": \"\",\n  \"identifier\": \"First Text View\",\n  \"title\": \"\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXShowMenu\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": true,\n  \"canSetValue\": true,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": true,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 100,\n    \"w\": 586,\n    \"h\": 382\n  },\n  \"focused\": true,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "TextEdit inspect editable @e9 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "ddb89f15",
+				"root": {
+					"ref": "@r1",
+					"app": "TextEdit",
+					"pid": 101,
+					"title": "未命名2",
+					"windowId": 1010,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"ddb89f15",
+					"--ref",
+					"@e9",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"ddb89f15\",\"node\":{\"ref\":\"@e9\",\"wireRef\":\"e1318\",\"role\":\"AXTextArea\",\"subrole\":\"\",\"identifier\":\"First Text View\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":0,\"y\":100,\"w\":586,\"h\":382},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder observe",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "05aa3f07",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"observe-ui",
+					"--app",
+					"Finder"
+				]
+			},
+			"output": {
+				"stdout": "@r2 Finder — MacBook Pro · state 05aa3f07 · 99 nodes, 14 shown\n@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e3 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder observe --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "4e6f6c2a",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"observe-ui",
+					"--app",
+					"Finder",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"4e6f6c2a\",\"root\":{\"ref\":\"@r2\",\"app\":\"Finder\",\"pid\":102,\"title\":\"MacBook Pro\",\"windowId\":1020,\"frame\":{\"x\":0,\"y\":25.5,\"w\":586,\"h\":488},\"scale\":2},\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":14,\"total\":99}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search textarea",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--role",
+					"textarea"
+				]
+			},
+			"output": {
+				"stdout": "0 of 0 matches · state 3e2fff90\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search textarea --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--role",
+					"textarea",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[],\"total\":0}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search AX role name",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--role",
+					"AXButton",
+					"--limit",
+					"3"
+				]
+			},
+			"output": {
+				"stdout": "3 of 8 matches · state 3e2fff90\n@e83 button {press} in @e32\n@e51 segment \"返回\" {toggle,menu} in @e20\n@e52 segment \"前进\" {toggle,menu} in @e20\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search AX role name --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--role",
+					"AXButton",
+					"--limit",
+					"3",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e83\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e32\",\"path\":[\"@e1\",\"@e15\",\"@e32\"]},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":0,\"parent\":\"@e20\",\"path\":[\"@e1\",\"@e3\",\"@e20\"]},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":0,\"parent\":\"@e20\",\"path\":[\"@e1\",\"@e3\",\"@e20\"]}],\"total\":8}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search setText",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"setText"
+				]
+			},
+			"output": {
+				"stdout": "3 of 3 matches · state 3e2fff90\n@e97 textfield =\"网络\" {setText,typeText,menu,open} in @e92\n@e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open} in @e92\n@e21 searchfield {setText,typeText,menu} in @e3\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search setText --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"setText",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e92\",\"path\":[\"@e1\",\"@e17\",\"@e92\"]},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e92\",\"path\":[\"@e1\",\"@e17\",\"@e92\"]},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]}],\"total\":3}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search scroll",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"SCROLL",
+					"--limit",
+					"50"
+				]
+			},
+			"output": {
+				"stdout": "2 of 2 matches · state 3e2fff90\n@e15 outline \"边栏\" {menu,scroll} in @e1\n@e92 list {menu,scroll} focused in @e17\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search scroll --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"SCROLL",
+					"--limit",
+					"50",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":0,\"parent\":\"@e17\",\"path\":[\"@e1\",\"@e17\"]}],\"total\":2}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search menu",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"menu",
+					"--limit",
+					"50"
+				]
+			},
+			"output": {
+				"stdout": "12 of 12 matches · state 3e2fff90\n@e15 outline \"边栏\" {menu,scroll} in @e1\n@e17 browser \"分栏视图\" {menu} in @e1\n@e92 list {menu,scroll} focused in @e17\n@e97 textfield =\"网络\" {setText,typeText,menu,open} in @e92\n@e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open} in @e92\n@e19 list \"路径\" {menu} in @e1\n@e50 text \"MacBook Pro\" {menu,open} in @e19\n@e3 toolbar {menu} in @e1\n@e51 segment \"返回\" {toggle,menu} in @e20\n@e52 segment \"前进\" {toggle,menu} in @e20\n@e21 searchfield {setText,typeText,menu} in @e3\n@e5 fullscreenbutton {press,menu} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search menu --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"menu",
+					"--limit",
+					"50",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":0,\"parent\":\"@e17\",\"path\":[\"@e1\",\"@e17\"]},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e92\",\"path\":[\"@e1\",\"@e17\",\"@e92\"]},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e92\",\"path\":[\"@e1\",\"@e17\",\"@e92\"]},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e19\",\"path\":[\"@e1\",\"@e19\"]},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":0,\"parent\":\"@e20\",\"path\":[\"@e1\",\"@e3\",\"@e20\"]},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":0,\"parent\":\"@e20\",\"path\":[\"@e1\",\"@e3\",\"@e20\"]},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":12}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search text",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--text",
+					"下载"
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state 3e2fff90\n@e24 row \"下载\" {open} in @e15\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search text --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--text",
+					"下载",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]}],\"total\":1}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search limit clamps",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--text",
+					"a",
+					"--limit",
+					"0.5"
+				]
+			},
+			"output": {
+				"stdout": "1 of 40 matches · state 3e2fff90\n@e1 window \"MacBook Pro\" {raise}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search limit clamps --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--text",
+					"a",
+					"--limit",
+					"0.5",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0,\"path\":[]}],\"total\":40}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search limit above 50",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--limit",
+					"500"
+				]
+			},
+			"output": {
+				"stdout": "40 of 40 matches · state 3e2fff90\n@e1 window \"MacBook Pro\" {raise}\n@e15 outline \"边栏\" {menu,scroll} in @e1\n@e23 row \"个人收藏\" in @e15\n@e24 row \"下载\" {open} in @e15\n@e25 row \"Career\" {open} in @e15\n@e26 row \"ANU\" {open} in @e15\n@e27 row \"Project\" {open} in @e15\n@e28 row \"奇点引力\" {open} in @e15\n@e29 row \"MyInfo\" {open} in @e15\n@e30 row \"影片\" {open} in @e15\n@e31 row \"图片\" {open} in @e15\n@e32 row \"文稿\" {open} in @e15\n@e83 button {press} in @e32\n@e33 row \"应用程序\" {open} in @e15\n@e34 row \"位置\" in @e15\n@e35 row \"iCloud云盘\" {open} in @e15\n@e36 row \"sugeh\" {open} in @e15\n@e37 row \"MacBook Pro\" {open} in @e15\n@e38 row \"Macintosh HD\" {open} in @e15\n@e39 row \"网络\" {open} in @e15\n@e40 row \"废纸篓\" {open} offscreen in @e15\n@e17 browser \"分栏视图\" {menu} in @e1\n@e92 list {menu,scroll} focused in @e17\n@e97 textfield =\"网络\" {setText,typeText,menu,open} in @e92\n@e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open} in @e92\n@e48 image \"不可编辑\" in @e1\n@e49 text \"2个项目\" in @e1\n@e19 list \"路径\" {menu} in @e1\n@e50 text \"MacBook Pro\" {menu,open} in @e19\n@e3 toolbar {menu} in @e1\n@e20 group \"返回/前进\" in @e3\n@e51 segment \"返回\" {toggle,menu} in @e20\n@e52 segment \"前进\" {toggle,menu} in @e20\n@e12 button \"隔空投送\" {press} in @e3\n@e21 searchfield {setText,typeText,menu} in @e3\n@e53 button \"搜索\" {press} in @e21\n@e4 closebutton {press} in @e1\n@e5 fullscreenbutton {press,menu} in @e1\n@e6 minimizebutton {press} in @e1\n@e7 text \"MacBook Pro\" {press} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search limit above 50 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--limit",
+					"500",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0,\"path\":[]},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e31\",\"role\":\"row\",\"name\":\"图片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e62\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e32\",\"role\":\"row\",\"name\":\"文稿\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e63\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e83\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e32\",\"path\":[\"@e1\",\"@e15\",\"@e32\"]},{\"ref\":\"@e33\",\"role\":\"row\",\"name\":\"应用程序\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e64\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e34\",\"role\":\"row\",\"name\":\"位置\",\"caps\":[],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e35\",\"role\":\"row\",\"name\":\"iCloud云盘\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e66\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e36\",\"role\":\"row\",\"name\":\"sugeh\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e67\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e37\",\"role\":\"row\",\"name\":\"MacBook Pro\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e68\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e38\",\"role\":\"row\",\"name\":\"Macintosh HD\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e69\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e39\",\"role\":\"row\",\"name\":\"网络\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e70\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e40\",\"role\":\"row\",\"name\":\"废纸篓\",\"caps\":[\"open\"],\"state\":{\"offscreen\":true},\"owners\":{\"open\":\"@e71\"},\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e15\"]},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":0,\"parent\":\"@e17\",\"path\":[\"@e1\",\"@e17\"]},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e92\",\"path\":[\"@e1\",\"@e17\",\"@e92\"]},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e92\",\"path\":[\"@e1\",\"@e17\",\"@e92\"]},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":0,\"parent\":\"@e19\",\"path\":[\"@e1\",\"@e19\"]},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e20\",\"role\":\"group\",\"name\":\"返回/前进\",\"caps\":[],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":0,\"parent\":\"@e20\",\"path\":[\"@e1\",\"@e3\",\"@e20\"]},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":0,\"parent\":\"@e20\",\"path\":[\"@e1\",\"@e3\",\"@e20\"]},{\"ref\":\"@e12\",\"role\":\"button\",\"name\":\"隔空投送\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e3\",\"path\":[\"@e1\",\"@e3\"]},{\"ref\":\"@e53\",\"role\":\"button\",\"name\":\"搜索\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e21\",\"path\":[\"@e1\",\"@e3\",\"@e21\"]},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":40}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search no match",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--text",
+					"__nothing__"
+				]
+			},
+			"output": {
+				"stdout": "0 of 0 matches · state 3e2fff90\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search no match --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--text",
+					"__nothing__",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"matches\":[],\"total\":0}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder search unknown capability",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"hover"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown capability 'hover'. Use one of: press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "Finder search unknown capability --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"3e2fff90",
+					"--action",
+					"hover",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown capability 'hover'. Use one of: press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "Finder expand root",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "@e1 · state 3e2fff90\n@e1 window \"MacBook Pro\" {raise}\n  @e15 outline \"边栏\" {menu,scroll}\n    @e23 row \"个人收藏\"\n    @e24 row \"下载\" {open}\n    @e25 row \"Career\" {open}\n    @e26 row \"ANU\" {open}\n    @e27 row \"Project\" {open}\n    @e28 row \"奇点引力\" {open}\n    @e29 row \"MyInfo\" {open}\n    @e30 row \"影片\" {open}\n    @e31 row \"图片\" {open}\n    @e32 row \"文稿\" {open}\n      @e83 button {press}\n    @e33 row \"应用程序\" {open}\n    @e34 row \"位置\"\n    @e35 row \"iCloud云盘\" {open}\n    @e36 row \"sugeh\" {open}\n    @e37 row \"MacBook Pro\" {open}\n    @e38 row \"Macintosh HD\" {open}\n    @e39 row \"网络\" {open}\n    @e40 row \"废纸篓\" {open} offscreen\n  @e17 browser \"分栏视图\" {menu}\n    @e92 list {menu,scroll} focused\n      @e97 textfield =\"网络\" {setText,typeText,menu,open}\n      @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e48 image \"不可编辑\"\n  @e49 text \"2个项目\"\n  @e19 list \"路径\" {menu}\n    @e50 text \"MacBook Pro\" {menu,open}\n  @e3 toolbar {menu}\n    @e20 group \"返回/前进\"\n      @e51 segment \"返回\" {toggle,menu}\n      @e52 segment \"前进\" {toggle,menu}\n    @e12 button \"隔空投送\" {press}\n    @e21 searchfield {setText,typeText,menu}\n      @e53 button \"搜索\" {press}\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 text \"MacBook Pro\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand root --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"ref\":\"@e1\",\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e31\",\"role\":\"row\",\"name\":\"图片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e62\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e32\",\"role\":\"row\",\"name\":\"文稿\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e63\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e83\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e32\"},{\"ref\":\"@e33\",\"role\":\"row\",\"name\":\"应用程序\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e64\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e34\",\"role\":\"row\",\"name\":\"位置\",\"caps\":[],\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e35\",\"role\":\"row\",\"name\":\"iCloud云盘\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e66\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e36\",\"role\":\"row\",\"name\":\"sugeh\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e67\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e37\",\"role\":\"row\",\"name\":\"MacBook Pro\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e68\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e38\",\"role\":\"row\",\"name\":\"Macintosh HD\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e69\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e39\",\"role\":\"row\",\"name\":\"网络\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e70\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e40\",\"role\":\"row\",\"name\":\"废纸篓\",\"caps\":[\"open\"],\"state\":{\"offscreen\":true},\"owners\":{\"open\":\"@e71\"},\"depth\":2,\"parent\":\"@e15\"},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":2,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e19\"},{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e20\",\"role\":\"group\",\"name\":\"返回/前进\",\"caps\":[],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":3,\"parent\":\"@e20\"},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":3,\"parent\":\"@e20\"},{\"ref\":\"@e12\",\"role\":\"button\",\"name\":\"隔空投送\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"parent\":\"@e3\"},{\"ref\":\"@e53\",\"role\":\"button\",\"name\":\"搜索\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e21\"},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand depth 1",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e2",
+					"--depth",
+					"1"
+				]
+			},
+			"output": {
+				"stdout": "@e2 · state 3e2fff90\n@e15 outline \"边栏\" {menu,scroll}\n  @e23 row \"个人收藏\"\n  @e24 row \"下载\" {open}\n  @e25 row \"Career\" {open}\n  @e26 row \"ANU\" {open}\n  @e27 row \"Project\" {open}\n  @e28 row \"奇点引力\" {open}\n  @e29 row \"MyInfo\" {open}\n  @e30 row \"影片\" {open}\n  @e31 row \"图片\" {open}\n  @e32 row \"文稿\" {open} ▸ 1 hidden: button×1\n  @e33 row \"应用程序\" {open}\n  @e34 row \"位置\"\n  @e35 row \"iCloud云盘\" {open}\n  @e36 row \"sugeh\" {open}\n  @e37 row \"MacBook Pro\" {open}\n  @e38 row \"Macintosh HD\" {open}\n  @e39 row \"网络\" {open}\n  @e40 row \"废纸篓\" {open} offscreen\n@e17 browser \"分栏视图\" {menu}\n  @e92 list {menu,scroll} focused\n    @e97 textfield =\"网络\" {setText,typeText,menu,open}\n    @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n@e48 image \"不可编辑\"\n@e49 text \"2个项目\"\n@e19 list \"路径\" {menu}\n  @e50 text \"MacBook Pro\" {menu,open}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand depth 1 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e2",
+					"--depth",
+					"1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"ref\":\"@e2\",\"nodes\":[{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":0},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e31\",\"role\":\"row\",\"name\":\"图片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e62\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e32\",\"role\":\"row\",\"name\":\"文稿\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e63\"},\"depth\":1,\"parent\":\"@e15\",\"hidden\":{\"count\":1,\"roles\":{\"button\":1}}},{\"ref\":\"@e33\",\"role\":\"row\",\"name\":\"应用程序\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e64\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e34\",\"role\":\"row\",\"name\":\"位置\",\"caps\":[],\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e35\",\"role\":\"row\",\"name\":\"iCloud云盘\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e66\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e36\",\"role\":\"row\",\"name\":\"sugeh\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e67\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e37\",\"role\":\"row\",\"name\":\"MacBook Pro\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e68\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e38\",\"role\":\"row\",\"name\":\"Macintosh HD\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e69\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e39\",\"role\":\"row\",\"name\":\"网络\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e70\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e40\",\"role\":\"row\",\"name\":\"废纸篓\",\"caps\":[\"open\"],\"state\":{\"offscreen\":true},\"owners\":{\"open\":\"@e71\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":0},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":1,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":0},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":0},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":0},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":1,\"parent\":\"@e19\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand depth clamps",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e3",
+					"--depth",
+					"99"
+				]
+			},
+			"output": {
+				"stdout": "@e3 · state 3e2fff90\n@e3 toolbar {menu}\n  @e20 group \"返回/前进\"\n    @e51 segment \"返回\" {toggle,menu}\n    @e52 segment \"前进\" {toggle,menu}\n  @e12 button \"隔空投送\" {press}\n  @e21 searchfield {setText,typeText,menu}\n    @e53 button \"搜索\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand depth clamps --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e3",
+					"--depth",
+					"99",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"ref\":\"@e3\",\"nodes\":[{\"ref\":\"@e3\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0},{\"ref\":\"@e20\",\"role\":\"group\",\"name\":\"返回/前进\",\"caps\":[],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e51\",\"role\":\"segment\",\"name\":\"返回\",\"caps\":[\"toggle\",\"menu\"],\"depth\":2,\"parent\":\"@e20\"},{\"ref\":\"@e52\",\"role\":\"segment\",\"name\":\"前进\",\"caps\":[\"toggle\",\"menu\"],\"depth\":2,\"parent\":\"@e20\"},{\"ref\":\"@e12\",\"role\":\"button\",\"name\":\"隔空投送\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e21\",\"role\":\"searchfield\",\"name\":\"\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":1,\"parent\":\"@e3\"},{\"ref\":\"@e53\",\"role\":\"button\",\"name\":\"搜索\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e21\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand by wire ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"e1358"
+				]
+			},
+			"output": {
+				"stdout": "@e2 · state 3e2fff90\n@e15 outline \"边栏\" {menu,scroll}\n  @e23 row \"个人收藏\"\n  @e24 row \"下载\" {open}\n  @e25 row \"Career\" {open}\n  @e26 row \"ANU\" {open}\n  @e27 row \"Project\" {open}\n  @e28 row \"奇点引力\" {open}\n  @e29 row \"MyInfo\" {open}\n  @e30 row \"影片\" {open}\n  @e31 row \"图片\" {open}\n  @e32 row \"文稿\" {open}\n    @e83 button {press}\n  @e33 row \"应用程序\" {open}\n  @e34 row \"位置\"\n  @e35 row \"iCloud云盘\" {open}\n  @e36 row \"sugeh\" {open}\n  @e37 row \"MacBook Pro\" {open}\n  @e38 row \"Macintosh HD\" {open}\n  @e39 row \"网络\" {open}\n  @e40 row \"废纸篓\" {open} offscreen\n@e17 browser \"分栏视图\" {menu}\n  @e92 list {menu,scroll} focused\n    @e97 textfield =\"网络\" {setText,typeText,menu,open}\n    @e99 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n@e48 image \"不可编辑\"\n@e49 text \"2个项目\"\n@e19 list \"路径\" {menu}\n  @e50 text \"MacBook Pro\" {menu,open}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand by wire ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"e1358",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"ref\":\"@e2\",\"nodes\":[{\"ref\":\"@e15\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e8\"},\"depth\":0},{\"ref\":\"@e23\",\"role\":\"row\",\"name\":\"个人收藏\",\"caps\":[],\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"row\",\"name\":\"下载\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e55\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"row\",\"name\":\"Career\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e56\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e26\",\"role\":\"row\",\"name\":\"ANU\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e57\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"row\",\"name\":\"Project\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e58\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e28\",\"role\":\"row\",\"name\":\"奇点引力\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e59\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"row\",\"name\":\"MyInfo\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e60\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e30\",\"role\":\"row\",\"name\":\"影片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e61\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e31\",\"role\":\"row\",\"name\":\"图片\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e62\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e32\",\"role\":\"row\",\"name\":\"文稿\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e63\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e83\",\"role\":\"button\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e32\"},{\"ref\":\"@e33\",\"role\":\"row\",\"name\":\"应用程序\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e64\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e34\",\"role\":\"row\",\"name\":\"位置\",\"caps\":[],\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e35\",\"role\":\"row\",\"name\":\"iCloud云盘\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e66\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e36\",\"role\":\"row\",\"name\":\"sugeh\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e67\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e37\",\"role\":\"row\",\"name\":\"MacBook Pro\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e68\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e38\",\"role\":\"row\",\"name\":\"Macintosh HD\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e69\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e39\",\"role\":\"row\",\"name\":\"网络\",\"caps\":[\"open\"],\"owners\":{\"open\":\"@e70\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e40\",\"role\":\"row\",\"name\":\"废纸篓\",\"caps\":[\"open\"],\"state\":{\"offscreen\":true},\"owners\":{\"open\":\"@e71\"},\"depth\":1,\"parent\":\"@e15\"},{\"ref\":\"@e17\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":0},{\"ref\":\"@e92\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e72\"},\"depth\":1,\"parent\":\"@e17\"},{\"ref\":\"@e97\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e92\"},{\"ref\":\"@e99\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":2,\"parent\":\"@e92\"},{\"ref\":\"@e48\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":0},{\"ref\":\"@e49\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":0},{\"ref\":\"@e19\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":0},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"menu\",\"open\"],\"depth\":1,\"parent\":\"@e19\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder expand unknown ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e999"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Finder expand unknown ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e999",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Finder inspect root",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e1\",\n  \"wireRef\": \"e1357\",\n  \"role\": \"AXWindow\",\n  \"subrole\": \"AXStandardWindow\",\n  \"identifier\": \"FinderWindow\",\n  \"title\": \"MacBook Pro\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXRaise\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"w\": 920,\n    \"h\": 556\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect root --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"node\":{\"ref\":\"@e1\",\"wireRef\":\"e1357\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"FinderWindow\",\"title\":\"MacBook Pro\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":920,\"h\":556},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect unknown ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e999"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Finder inspect unknown ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e999",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Finder inspect owner @e15",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e15"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e15\",\n  \"wireRef\": \"e1371\",\n  \"role\": \"AXOutline\",\n  \"subrole\": \"\",\n  \"identifier\": \"_NS:8\",\n  \"title\": \"\",\n  \"description\": \"边栏\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXShowMenu\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 51,\n    \"w\": 220,\n    \"h\": 505\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect owner @e15 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e15",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"node\":{\"ref\":\"@e15\",\"wireRef\":\"e1371\",\"role\":\"AXOutline\",\"subrole\":\"\",\"identifier\":\"_NS:8\",\"title\":\"\",\"description\":\"边栏\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":51,\"w\":220,\"h\":505},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},\"owners\":{\"scroll\":\"@e8\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect owner @e24",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e24"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e24\",\n  \"wireRef\": \"e1380\",\n  \"role\": \"AXRow\",\n  \"subrole\": \"AXOutlineRow\",\n  \"identifier\": \"\",\n  \"title\": \"\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXShowDefaultUI\",\n    \"AXShowAlternateUI\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 71,\n    \"w\": 219,\n    \"h\": 32\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect owner @e24 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e24",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"node\":{\"ref\":\"@e24\",\"wireRef\":\"e1380\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":71,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},\"owners\":{\"open\":\"@e55\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect owner @e25",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e25"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e25\",\n  \"wireRef\": \"e1381\",\n  \"role\": \"AXRow\",\n  \"subrole\": \"AXOutlineRow\",\n  \"identifier\": \"\",\n  \"title\": \"\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXShowDefaultUI\",\n    \"AXShowAlternateUI\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 103,\n    \"w\": 219,\n    \"h\": 32\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect owner @e25 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e25",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"node\":{\"ref\":\"@e25\",\"wireRef\":\"e1381\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":103,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},\"owners\":{\"open\":\"@e56\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect editable @e97",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e97"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e97\",\n  \"wireRef\": \"e1453\",\n  \"role\": \"AXTextField\",\n  \"subrole\": \"\",\n  \"identifier\": \"\",\n  \"title\": \"\",\n  \"description\": \"\",\n  \"value\": \"网络\",\n  \"actions\": [\n    \"AXOpen\",\n    \"AXShowMenu\",\n    \"AXConfirm\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": true,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": true,\n  \"rect\": {\n    \"x\": 259,\n    \"y\": 60,\n    \"w\": 36,\n    \"h\": 21\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Finder inspect editable @e97 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "3e2fff90",
+				"root": {
+					"ref": "@r2",
+					"app": "Finder",
+					"pid": 102,
+					"title": "MacBook Pro",
+					"windowId": 1020,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"3e2fff90",
+					"--ref",
+					"@e97",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"3e2fff90\",\"node\":{\"ref\":\"@e97\",\"wireRef\":\"e1453\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"网络\",\"actions\":[\"AXOpen\",\"AXShowMenu\",\"AXConfirm\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":259,\"y\":60,\"w\":36,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome observe",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "8e1f1413",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"observe-ui",
+					"--app",
+					"Chrome"
+				]
+			},
+			"output": {
+				"stdout": "@r3 Chrome — bcu web background · state 8e1f1413 · 50 nodes, 18 shown\n@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n  @e2 group \"bcu web fixture A - Google Chrome\"\n    @e6 group {menu}\n      @e15 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n      @e29 webarea \"bcu web fixture A\" focused\n        @e36 button \"Count clicks\" {press}\n        @e45 textfield \"Set field\" {press,setText,typeText}\n        @e46 textfield \"Type field\" {press,setText,typeText}\n        @e47 textfield \"Key log\" {press,setText,typeText}\n        @e40 button \"Down only\" {press}\n        @e41 button \"Click only\" {press}\n        @e42 landmarkregion \"Scroll area\" {scroll} ▸ 1 hidden: text×1\n      @e30 popup \"Tab Search\" {press,menu}\n      @e31 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n      @e20 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome observe --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "45be97da",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"observe-ui",
+					"--app",
+					"Chrome",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"45be97da\",\"root\":{\"ref\":\"@r3\",\"app\":\"Chrome\",\"pid\":103,\"title\":\"bcu web background\",\"windowId\":1030,\"frame\":{\"x\":0,\"y\":25.5,\"w\":586,\"h\":488},\"scale\":2},\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":4,\"parent\":\"@e29\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":18,\"total\":50}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search textarea",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--role",
+					"textarea"
+				]
+			},
+			"output": {
+				"stdout": "0 of 0 matches · state 63a816c5\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search textarea --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--role",
+					"textarea",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[],\"total\":0}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search AX role name",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--role",
+					"AXButton",
+					"--limit",
+					"3"
+				]
+			},
+			"output": {
+				"stdout": "3 of 13 matches · state 63a816c5\n@e22 button \"Back\" {press,menu} in @e15\n@e23 button \"Forward\" {press,menu} in @e15\n@e24 button \"Reload\" {press,menu} in @e15\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search AX role name --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--role",
+					"AXButton",
+					"--limit",
+					"3",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e24\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]}],\"total\":13}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search setText",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"setText"
+				]
+			},
+			"output": {
+				"stdout": "4 of 4 matches · state 63a816c5\n@e34 textfield \"Address and search bar\" =\"/tmp/bcu-probe/page.html?w=A\" {press,setText,typeText,menu} in @e25\n@e45 textfield \"Set field\" {press,setText,typeText} in @e29\n@e46 textfield \"Type field\" {press,setText,typeText} in @e29\n@e47 textfield \"Key log\" {press,setText,typeText} in @e29\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search setText --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"setText",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e34\",\"role\":\"textfield\",\"name\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"caps\":[\"press\",\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e25\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\",\"@e25\"]},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]}],\"total\":4}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search scroll",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"SCROLL",
+					"--limit",
+					"50"
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state 63a816c5\n@e42 landmarkregion \"Scroll area\" {scroll} in @e29\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search scroll --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"SCROLL",
+					"--limit",
+					"50",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]}],\"total\":1}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search menu",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"menu",
+					"--limit",
+					"50"
+				]
+			},
+			"output": {
+				"stdout": "13 of 13 matches · state 63a816c5\n@e6 group {menu} in @e2\n@e22 button \"Back\" {press,menu} in @e15\n@e23 button \"Forward\" {press,menu} in @e15\n@e24 button \"Reload\" {press,menu} in @e15\n@e25 applicationgroup {menu} in @e15\n@e33 popup \"File\" {press,menu} in @e25\n@e34 textfield \"Address and search bar\" =\"/tmp/bcu-probe/page.html?w=A\" {press,setText,typeText,menu} in @e25\n@e26 button \"Sign In to Chrome?\" {press,menu} in @e15\n@e27 popup \"Chrome\" {press,menu} in @e15\n@e30 popup \"Tab Search\" {press,menu} in @e6\n@e43 tabbutton \"bcu web fixture A - Memory usage - 29.9 MB\" =\"1\" {press,menu} in @e31\n@e20 button \"New Tab\" {press,menu} in @e6\n@e4 fullscreenbutton {press,menu} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search menu --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"menu",
+					"--limit",
+					"50",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e24\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e25\",\"role\":\"applicationgroup\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e33\",\"role\":\"popup\",\"name\":\"File\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e25\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\",\"@e25\"]},{\"ref\":\"@e34\",\"role\":\"textfield\",\"name\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"caps\":[\"press\",\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e25\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\",\"@e25\"]},{\"ref\":\"@e26\",\"role\":\"button\",\"name\":\"Sign In to Chrome?\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e27\",\"role\":\"popup\",\"name\":\"Chrome\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e43\",\"role\":\"tabbutton\",\"name\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"value\":\"1\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e31\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e31\"]},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":13}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search text",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--text",
+					"  NEW  "
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state 63a816c5\n@e20 button \"New Tab\" {press,menu} in @e6\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search text --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--text",
+					"  NEW  ",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]}],\"total\":1}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search limit clamps",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--text",
+					"a",
+					"--limit",
+					"0.5"
+				]
+			},
+			"output": {
+				"stdout": "1 of 30 matches · state 63a816c5\n@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search limit clamps --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--text",
+					"a",
+					"--limit",
+					"0.5",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0,\"path\":[]}],\"total\":30}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search limit above 50",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--limit",
+					"500"
+				]
+			},
+			"output": {
+				"stdout": "30 of 30 matches · state 63a816c5\n@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n@e2 group \"bcu web fixture A - Google Chrome\" in @e1\n@e6 group {menu} in @e2\n@e15 toolbar in @e6\n@e22 button \"Back\" {press,menu} in @e15\n@e23 button \"Forward\" {press,menu} in @e15\n@e24 button \"Reload\" {press,menu} in @e15\n@e25 applicationgroup {menu} in @e15\n@e33 popup \"File\" {press,menu} in @e25\n@e34 textfield \"Address and search bar\" =\"/tmp/bcu-probe/page.html?w=A\" {press,setText,typeText,menu} in @e25\n@e44 button \"Bookmark this tab\" {press} in @e25\n@e26 button \"Sign In to Chrome?\" {press,menu} in @e15\n@e27 popup \"Chrome\" {press,menu} in @e15\n@e29 webarea \"bcu web fixture A\" focused in @e6\n@e36 button \"Count clicks\" {press} in @e29\n@e45 textfield \"Set field\" {press,setText,typeText} in @e29\n@e46 textfield \"Type field\" {press,setText,typeText} in @e29\n@e47 textfield \"Key log\" {press,setText,typeText} in @e29\n@e40 button \"Down only\" {press} in @e29\n@e41 button \"Click only\" {press} in @e29\n@e42 landmarkregion \"Scroll area\" {scroll} in @e29\n@e50 text \"Scroll content\" in @e42\n@e30 popup \"Tab Search\" {press,menu} in @e6\n@e31 tabgroup in @e6\n@e43 tabbutton \"bcu web fixture A - Memory usage - 29.9 MB\" =\"1\" {press,menu} in @e31\n@e49 button \"Close\" {press} in @e43\n@e20 button \"New Tab\" {press,menu} in @e6\n@e3 closebutton {press} in @e1\n@e4 fullscreenbutton {press,menu} in @e1\n@e5 minimizebutton {press} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search limit above 50 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--limit",
+					"500",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0,\"path\":[]},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e24\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e25\",\"role\":\"applicationgroup\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e33\",\"role\":\"popup\",\"name\":\"File\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e25\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\",\"@e25\"]},{\"ref\":\"@e34\",\"role\":\"textfield\",\"name\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"caps\":[\"press\",\"setText\",\"typeText\",\"menu\"],\"depth\":0,\"parent\":\"@e25\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\",\"@e25\"]},{\"ref\":\"@e44\",\"role\":\"button\",\"name\":\"Bookmark this tab\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e25\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\",\"@e25\"]},{\"ref\":\"@e26\",\"role\":\"button\",\"name\":\"Sign In to Chrome?\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e27\",\"role\":\"popup\",\"name\":\"Chrome\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e15\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e15\"]},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":0,\"parent\":\"@e29\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\"]},{\"ref\":\"@e50\",\"role\":\"text\",\"name\":\"Scroll content\",\"caps\":[],\"depth\":0,\"parent\":\"@e42\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e29\",\"@e42\"]},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e43\",\"role\":\"tabbutton\",\"name\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"value\":\"1\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e31\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e31\"]},{\"ref\":\"@e49\",\"role\":\"button\",\"name\":\"Close\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e43\",\"path\":[\"@e1\",\"@e2\",\"@e6\",\"@e31\",\"@e43\"]},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e6\",\"path\":[\"@e1\",\"@e2\",\"@e6\"]},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[\"@e1\"]}],\"total\":30}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search no match",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--text",
+					"__nothing__"
+				]
+			},
+			"output": {
+				"stdout": "0 of 0 matches · state 63a816c5\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search no match --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--text",
+					"__nothing__",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"matches\":[],\"total\":0}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome search unknown capability",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"hover"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown capability 'hover'. Use one of: press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "Chrome search unknown capability --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"search-ui",
+					"--state",
+					"63a816c5",
+					"--action",
+					"hover",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown capability 'hover'. Use one of: press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "Chrome expand root",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "@e1 · state 63a816c5\n@e1 window \"bcu web fixture A - Google Chrome\" {raise}\n  @e2 group \"bcu web fixture A - Google Chrome\"\n    @e6 group {menu}\n      @e15 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n      @e29 webarea \"bcu web fixture A\" focused\n        @e36 button \"Count clicks\" {press}\n        @e45 textfield \"Set field\" {press,setText,typeText}\n        @e46 textfield \"Type field\" {press,setText,typeText}\n        @e47 textfield \"Key log\" {press,setText,typeText}\n        @e40 button \"Down only\" {press}\n        @e41 button \"Click only\" {press}\n        @e42 landmarkregion \"Scroll area\" {scroll} ▸ 1 hidden: text×1\n      @e30 popup \"Tab Search\" {press,menu}\n      @e31 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n      @e20 button \"New Tab\" {press,menu}\n  @e3 closebutton {press}\n  @e4 fullscreenbutton {press,menu}\n  @e5 minimizebutton {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand root --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"ref\":\"@e1\",\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":4,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":4,\"parent\":\"@e29\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":3,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e6\"},{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e4\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand depth 1",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e2",
+					"--depth",
+					"1"
+				]
+			},
+			"output": {
+				"stdout": "@e2 · state 63a816c5\n@e2 group \"bcu web fixture A - Google Chrome\"\n  @e6 group {menu}\n    @e15 toolbar ▸ 9 hidden: button×5 popup×2 applicationgroup×1 textfield×1\n    @e29 webarea \"bcu web fixture A\" focused\n      @e36 button \"Count clicks\" {press}\n      @e45 textfield \"Set field\" {press,setText,typeText}\n      @e46 textfield \"Type field\" {press,setText,typeText}\n      @e47 textfield \"Key log\" {press,setText,typeText}\n      @e40 button \"Down only\" {press}\n      @e41 button \"Click only\" {press}\n      @e42 landmarkregion \"Scroll area\" {scroll} ▸ 1 hidden: text×1\n    @e30 popup \"Tab Search\" {press,menu}\n    @e31 tabgroup ▸ 2 hidden: button×1 tabbutton×1\n    @e20 button \"New Tab\" {press,menu}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand depth 1 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e2",
+					"--depth",
+					"1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"ref\":\"@e2\",\"nodes\":[{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":0},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":2,\"parent\":\"@e6\",\"hidden\":{\"count\":9,\"roles\":{\"button\":5,\"applicationgroup\":1,\"popup\":2,\"textfield\":1}}},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":3,\"parent\":\"@e29\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":2,\"parent\":\"@e6\",\"hidden\":{\"count\":2,\"roles\":{\"tabbutton\":1,\"button\":1}}},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e6\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand depth clamps",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e3",
+					"--depth",
+					"99"
+				]
+			},
+			"output": {
+				"stdout": "@e3 · state 63a816c5\n@e3 closebutton {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand depth clamps --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e3",
+					"--depth",
+					"99",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"ref\":\"@e3\",\"nodes\":[{\"ref\":\"@e3\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":0}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand by wire ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"e5930"
+				]
+			},
+			"output": {
+				"stdout": "@e2 · state 63a816c5\n@e2 group \"bcu web fixture A - Google Chrome\"\n  @e6 group {menu}\n    @e15 toolbar\n      @e22 button \"Back\" {press,menu}\n      @e23 button \"Forward\" {press,menu}\n      @e24 button \"Reload\" {press,menu}\n      @e25 applicationgroup {menu} ▸ 3 hidden: button×1 popup×1 textfield×1\n      @e26 button \"Sign In to Chrome?\" {press,menu}\n      @e27 popup \"Chrome\" {press,menu}\n    @e29 webarea \"bcu web fixture A\" focused\n      @e36 button \"Count clicks\" {press}\n      @e45 textfield \"Set field\" {press,setText,typeText}\n      @e46 textfield \"Type field\" {press,setText,typeText}\n      @e47 textfield \"Key log\" {press,setText,typeText}\n      @e40 button \"Down only\" {press}\n      @e41 button \"Click only\" {press}\n      @e42 landmarkregion \"Scroll area\" {scroll} ▸ 1 hidden: text×1\n    @e30 popup \"Tab Search\" {press,menu}\n    @e31 tabgroup\n      @e43 tabbutton \"bcu web fixture A - Memory usage - 29.9 MB\" =\"1\" {press,menu} ▸ 1 hidden: button×1\n    @e20 button \"New Tab\" {press,menu}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand by wire ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"e5930",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"ref\":\"@e2\",\"nodes\":[{\"ref\":\"@e2\",\"role\":\"group\",\"name\":\"bcu web fixture A - Google Chrome\",\"caps\":[],\"depth\":0},{\"ref\":\"@e6\",\"role\":\"group\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e2\"},{\"ref\":\"@e15\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[],\"depth\":2,\"parent\":\"@e6\"},{\"ref\":\"@e22\",\"role\":\"button\",\"name\":\"Back\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e15\"},{\"ref\":\"@e23\",\"role\":\"button\",\"name\":\"Forward\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e15\"},{\"ref\":\"@e24\",\"role\":\"button\",\"name\":\"Reload\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e15\"},{\"ref\":\"@e25\",\"role\":\"applicationgroup\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":3,\"parent\":\"@e15\",\"hidden\":{\"count\":3,\"roles\":{\"popup\":1,\"textfield\":1,\"button\":1}}},{\"ref\":\"@e26\",\"role\":\"button\",\"name\":\"Sign In to Chrome?\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e15\"},{\"ref\":\"@e27\",\"role\":\"popup\",\"name\":\"Chrome\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e15\"},{\"ref\":\"@e29\",\"role\":\"webarea\",\"name\":\"bcu web fixture A\",\"caps\":[],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e6\"},{\"ref\":\"@e36\",\"role\":\"button\",\"name\":\"Count clicks\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e45\",\"role\":\"textfield\",\"name\":\"Set field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e46\",\"role\":\"textfield\",\"name\":\"Type field\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e47\",\"role\":\"textfield\",\"name\":\"Key log\",\"caps\":[\"press\",\"setText\",\"typeText\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e40\",\"role\":\"button\",\"name\":\"Down only\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e41\",\"role\":\"button\",\"name\":\"Click only\",\"caps\":[\"press\"],\"depth\":3,\"parent\":\"@e29\"},{\"ref\":\"@e42\",\"role\":\"landmarkregion\",\"name\":\"Scroll area\",\"caps\":[\"scroll\"],\"depth\":3,\"parent\":\"@e29\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e30\",\"role\":\"popup\",\"name\":\"Tab Search\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e6\"},{\"ref\":\"@e31\",\"role\":\"tabgroup\",\"name\":\"\",\"caps\":[],\"depth\":2,\"parent\":\"@e6\"},{\"ref\":\"@e43\",\"role\":\"tabbutton\",\"name\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"value\":\"1\",\"caps\":[\"press\",\"menu\"],\"depth\":3,\"parent\":\"@e31\",\"hidden\":{\"count\":1,\"roles\":{\"button\":1}}},{\"ref\":\"@e20\",\"role\":\"button\",\"name\":\"New Tab\",\"caps\":[\"press\",\"menu\"],\"depth\":2,\"parent\":\"@e6\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome expand unknown ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e999"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Chrome expand unknown ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"expand-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e999",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Chrome inspect root",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e1\",\n  \"wireRef\": \"e5929\",\n  \"role\": \"AXWindow\",\n  \"subrole\": \"AXStandardWindow\",\n  \"identifier\": \"\",\n  \"title\": \"bcu web fixture A - Google Chrome\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXRaise\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": false,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"w\": 1200,\n    \"h\": 1366\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome inspect root --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e1",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"node\":{\"ref\":\"@e1\",\"wireRef\":\"e5929\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"\",\"title\":\"bcu web fixture A - Google Chrome\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":1200,\"h\":1366},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome inspect unknown ref",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e999"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Chrome inspect unknown ref --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e999",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error element_not_found: Ref '@e999' is not in the current state.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "Chrome inspect editable @e34",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e34"
+				]
+			},
+			"output": {
+				"stdout": "{\n  \"ref\": \"@e34\",\n  \"wireRef\": \"e5962\",\n  \"role\": \"AXTextField\",\n  \"subrole\": \"\",\n  \"identifier\": \"\",\n  \"title\": \"Address and search bar\",\n  \"description\": \"Address and search bar\",\n  \"value\": \"/tmp/bcu-probe/page.html?w=A\",\n  \"actions\": [\n    \"AXPress\",\n    \"AXShowMenu\"\n  ],\n  \"canPress\": true,\n  \"canFocus\": true,\n  \"canSetValue\": true,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": true,\n  \"rect\": {\n    \"x\": 187,\n    \"y\": 51,\n    \"w\": 751,\n    \"h\": 24\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "Chrome inspect editable @e34 --json",
+			"op": "query",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				},
+				"stateId": "63a816c5",
+				"root": {
+					"ref": "@r3",
+					"app": "Chrome",
+					"pid": 103,
+					"title": "bcu web background",
+					"windowId": 1030,
+					"frame": {
+						"x": 0,
+						"y": 25.5,
+						"w": 586,
+						"h": 488
+					},
+					"scale": 2
+				},
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"63a816c5",
+					"--ref",
+					"@e34",
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "{\"stateId\":\"63a816c5\",\"node\":{\"ref\":\"@e34\",\"wireRef\":\"e5962\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Address and search bar\",\"description\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":187,\"y\":51,\"w\":751,\"h\":24},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		}
+	]
+}

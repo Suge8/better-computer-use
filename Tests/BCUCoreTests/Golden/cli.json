@@ -1,0 +1,4499 @@
+{
+	"cases": [
+		{
+			"name": "help (none)",
+			"op": "cli",
+			"input": {
+				"argv": []
+			},
+			"output": {
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report broker status without starting it.\n  doctor          Start and diagnose broker, helper, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the broker if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help --help",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report broker status without starting it.\n  doctor          Start and diagnose broker, helper, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the broker if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help -h",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"-h"
+				]
+			},
+			"output": {
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report broker status without starting it.\n  doctor          Start and diagnose broker, helper, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the broker if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"--json"
+				]
+			},
+			"output": {
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report broker status without starting it.\n  doctor          Start and diagnose broker, helper, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the broker if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help bogus --help",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"bogus",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report broker status without starting it.\n  doctor          Start and diagnose broker, helper, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the broker if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help search-ui --state s --text -h",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					"s",
+					"--text",
+					"-h"
+				]
+			},
+			"output": {
+				"stdout": "bcu search-ui [options]\n\nSearch the saved outline of one state, including elements the view folded away.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --text <value>            substring of any name, value or OCR text\n  --role <value>            role word, e.g. button, textfield, row\n  --action <value>          capability, e.g. press, setText, scroll\n  --limit <n>               maximum matches to return (default 12, max 50)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help find-roots",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu find-roots [options]\n\nList controllable roots: windows, sheets, dialogs and open menus.\n\nOptions:\n  --query <value>           match app name or window title\n  --app <value>             restrict to one app name or bundle id; an exact name excludes longer names containing it\n  --bundle-id <value>       restrict to one exact bundle id\n  --pid <n>                 restrict to one process id\n  --kind window|menubar|menu|sheet|popover|dialog restrict to one root kind; menubar roots are listed only when this or an app names them\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help observe-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu observe-ui [options]\n\nObserve one root and return a stateId with the projected element tree.\n\nOptions:\n  --app <value>             app name or bundle id\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --mode semantic|fused     semantic: accessibility only (default); fused: also capture an image and OCR\n  --image never|always      write a screenshot artifact (default never)\n  --read-text auto|always|never OCR policy; auto (default) reads the screen only when the root exposes almost no accessibility content\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help search-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu search-ui [options]\n\nSearch the saved outline of one state, including elements the view folded away.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --text <value>            substring of any name, value or OCR text\n  --role <value>            role word, e.g. button, textfield, row\n  --action <value>          capability, e.g. press, setText, scroll\n  --limit <n>               maximum matches to return (default 12, max 50)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help expand-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu expand-ui [options]\n\nExpand one element of a saved state, walking the live UI when the subtree was cut short.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             element ref from the same state, e.g. @e12 (required)\n  --depth <n>               levels to unfold below the element (default 3, max 8)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help inspect-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"inspect-ui",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu inspect-ui [options]\n\nPrint every raw accessibility field of one element, including the ones the projection hides.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             element ref from the same state, e.g. @e12 (required)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help act-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu act-ui - [options]\n\nRun a checked action array from stdin against one state and return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --headless                never activate, focus or move the pointer physically\n  --image never|always      write a screenshot artifact (default never)\n  --expect-text <value>     postcondition: this text must appear\n  --expect-role <value>     postcondition: an element with this role must appear\n  --expect-value <value>    postcondition: an element must hold this exact value\n  --expect-gone             invert the postcondition: it must disappear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help read-text",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu read-text [options]\n\nRead the full text of one element, a slice at a time.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             element ref from the same state, e.g. @e12 (required)\n  --offset <n>              first character to read (default 0)\n  --limit <n>               characters to read (default 4000, max 100000)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help wait-for",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu wait-for [options]\n\nWait for text or a role to appear or disappear, then return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --text <value>            text that must appear\n  --role <value>            role word that must appear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --gone                    wait for the condition to disappear instead\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help status",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"status",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu status\n\nReport broker status without starting it.\n\nOptions:\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help doctor",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"doctor",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu doctor\n\nStart and diagnose broker, helper, permissions and config.\n\nOptions:\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help setup",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"setup",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu setup\n\nRegister and verify macOS permissions.\n\nOptions:\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "help stop",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"stop",
+					"--help"
+				]
+			},
+			"output": {
+				"stdout": "bcu stop\n\nStop the broker if it is running.\n\nOptions:\n  --json                    emit one JSON object on stdout\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "find-roots bare",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{}}"
+			}
+		},
+		{
+			"name": "find-roots every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--query",
+					"  Text  ",
+					"--app",
+					"TextEdit",
+					"--bundle-id",
+					"com.apple.TextEdit",
+					"--pid",
+					"42",
+					"--kind",
+					"menubar"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"app\":\"TextEdit\",\"bundleId\":\"com.apple.TextEdit\",\"kind\":\"menubar\",\"pid\":42,\"query\":\"  Text  \"}}"
+			}
+		},
+		{
+			"name": "find-roots options in another order",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"7",
+					"--query",
+					"x",
+					"--json"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":true,\"params\":{\"pid\":7,\"query\":\"x\"}}"
+			}
+		},
+		{
+			"name": "find-roots hex pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"0x10"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":16}}"
+			}
+		},
+		{
+			"name": "find-roots empty pid is zero",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					""
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":0}}"
+			}
+		},
+		{
+			"name": "find-roots padded pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					" 7 "
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":7}}"
+			}
+		},
+		{
+			"name": "find-roots exponent pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"1e3"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":1000}}"
+			}
+		},
+		{
+			"name": "find-roots fractional pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					".5"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":0.5}}"
+			}
+		},
+		{
+			"name": "find-roots signed pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"-3"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":-3}}"
+			}
+		},
+		{
+			"name": "find-roots binary pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"0b101"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"pid\":5}}"
+			}
+		},
+		{
+			"name": "find-roots bad pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"abc"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots infinite pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"Infinity"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots signed hex pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"-0x10"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots underscore pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--pid",
+					"1_000"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--pid' requires a number.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots bad kind",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--kind",
+					"bogus"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--kind' must be one of: window, menubar, menu, sheet, popover, dialog.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots duplicate option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--app",
+					"A",
+					"--app",
+					"B"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--app' may be supplied only once.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots missing value",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--app"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--app' requires a value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots value that is an option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--app",
+					"--pid",
+					"3"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--app' requires a value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots positional",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"extra"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unexpected argument 'extra'.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots unknown option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--nope"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown option '--nope'.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find-roots single dash value",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--app",
+					"-x"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{\"app\":\"-x\"}}"
+			}
+		},
+		{
+			"name": "observe-ui every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit",
+					"--window-title",
+					"未命名",
+					"--root",
+					"@r3",
+					"--mode",
+					"fused",
+					"--image",
+					"always",
+					"--read-text",
+					"never"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\",\"mode\":\"fused\",\"readText\":\"never\",\"root\":\"@r3\",\"windowTitle\":\"未命名\"}}"
+			}
+		},
+		{
+			"name": "observe-ui bad mode",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--mode",
+					"x"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--mode' must be one of: semantic, fused.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "search-ui every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					"abc",
+					"--text",
+					"Save",
+					"--role",
+					"button",
+					"--action",
+					"press",
+					"--limit",
+					"5"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"search-ui\",\"json\":false,\"params\":{\"action\":\"press\",\"limit\":5,\"role\":\"button\",\"stateId\":\"abc\",\"text\":\"Save\"}}"
+			}
+		},
+		{
+			"name": "search-ui keeps raw values",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					" abc ",
+					"--text",
+					"  "
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"search-ui\",\"json\":false,\"params\":{\"stateId\":\" abc \",\"text\":\"  \"}}"
+			}
+		},
+		{
+			"name": "search-ui without a state",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--text",
+					"x"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "search-ui blank state",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					"  "
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expand-ui every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					" s ",
+					"--ref",
+					" @e3 ",
+					"--depth",
+					"2"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"expand-ui\",\"json\":false,\"params\":{\"depth\":2,\"ref\":\"@e3\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "expand-ui without a ref",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					"s"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--ref' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expand-ui checks the ref after the positional",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"x"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unexpected argument 'x'.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "inspect-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"inspect-ui\",\"json\":false,\"params\":{\"ref\":\"@e1\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "inspect-ui without a state",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"inspect-ui",
+					"--ref",
+					"@e1"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "read-text every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"--ref",
+					"@e2",
+					"--offset",
+					"10",
+					"--limit",
+					"20"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"read-text\",\"json\":false,\"params\":{\"limit\":20,\"offset\":10,\"ref\":\"@e2\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "read-text without a ref",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--ref' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "wait-for every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"Saved",
+					"--scope",
+					"@e2",
+					"--gone",
+					"--timeout",
+					"2000"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"gone\":true,\"scope\":\"@e2\",\"stateId\":\"s\",\"text\":\"Saved\",\"timeoutMs\":2000}}"
+			}
+		},
+		{
+			"name": "wait-for role",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--role",
+					"button"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"role\":\"button\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "wait-for without a condition",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: wait-for requires --text or --role.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "wait-for blank role",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--role",
+					"  "
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: wait-for requires --text or --role.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "wait-for without a state",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--text",
+					"x"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui one action",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"click\",\"ref\":\"@e1\"}]\n"
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"click\",\"ref\":\"@e1\"}],\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "act-ui every option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--expect-text",
+					" Done ",
+					"--expect-role",
+					"button",
+					"--expect-value",
+					"1",
+					"--scope",
+					"@e2",
+					"--timeout",
+					"500",
+					"--expect-gone",
+					"--headless",
+					"--image",
+					"always",
+					"-"
+				],
+				"stdin": "[{\"action\":\"click\",\"x\":10,\"y\":20.25,\"button\":\"right\",\"clickCount\":2},{\"action\":\"typeText\",\"text\":\"héllo\\n\"},{\"action\":\"drag\",\"path\":[[1,2],{\"x\":3,\"y\":4}]}]"
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"click\",\"button\":\"right\",\"clickCount\":2,\"x\":10,\"y\":20.25},{\"action\":\"typeText\",\"text\":\"héllo\\n\"},{\"action\":\"drag\",\"path\":[[1,2],{\"x\":3,\"y\":4}]}],\"expect\":{\"gone\":true,\"role\":\"button\",\"scope\":\"@e2\",\"text\":\"Done\",\"timeoutMs\":500,\"value\":\"1\"},\"headless\":true,\"image\":\"always\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "act-ui expect value only",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--expect-value",
+					"x",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]"
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"expect\":{\"value\":\"x\"},\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "act-ui blank expectation is dropped",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--expect-text",
+					"  ",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]"
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "act-ui without the dash",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui requires '-' and reads its JSON action array from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui with two dashes",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"-"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui requires '-' and reads its JSON action array from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui dash checked before state",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui requires '-' and reads its JSON action array from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui without a state",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"-"
+				],
+				"stdin": "[]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui scope without an expectation",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--scope",
+					"@e1",
+					"-"
+				],
+				"stdin": "[]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: --expect-gone, --scope and --timeout require --expect-text, --expect-role, or --expect-value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui timeout without an expectation",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--timeout",
+					"10",
+					"-"
+				],
+				"stdin": "[]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: --expect-gone, --scope and --timeout require --expect-text, --expect-role, or --expect-value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui gone without an expectation",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--expect-gone",
+					"-"
+				],
+				"stdin": "[]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: --expect-gone, --scope and --timeout require --expect-text, --expect-role, or --expect-value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui stdin is not JSON",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "not-json\n"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui stdin must be a JSON action array: <parser detail>\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui stdin is empty",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": ""
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui stdin must be a JSON action array: <parser detail>\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui stdin is not an array",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "{\"action\":\"click\"}"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui stdin must contain a JSON action array.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui item without an action",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"act\":\"click\"}]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Every act-ui item must be an object with a supported action name.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui item with an unknown action",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"hover\"}]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Every act-ui item must be an object with a supported action name.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui null item",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[null]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Every act-ui item must be an object with a supported action name.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "unknown command",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"bogus"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unknown command 'bogus'. Run 'bcu --help'.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "plain command with an option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"status",
+					"extra"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: status accepts no options except --json.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "plain command with json and an option",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"stop",
+					"--json",
+					"--x"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: stop accepts no options except --json.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "render find-roots",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots"
+				],
+				"result": {
+					"roots": [
+						{
+							"ref": "@r1",
+							"app": "TextEdit",
+							"bundleId": "com.apple.TextEdit",
+							"pid": 101,
+							"title": "未命名2",
+							"windowId": 1010,
+							"kind": "window",
+							"frame": {
+								"x": 0,
+								"y": 25,
+								"w": 586,
+								"h": 488
+							},
+							"focused": true,
+							"main": true,
+							"onscreen": true,
+							"minimized": false,
+							"modal": false
+						},
+						{
+							"ref": "@r2",
+							"app": "TextEdit",
+							"pid": 101,
+							"title": "TextEdit \"menu\"",
+							"kind": "menubar",
+							"frame": {
+								"x": 0,
+								"y": 0,
+								"w": 1512,
+								"h": 33
+							},
+							"focused": false,
+							"main": false,
+							"onscreen": true,
+							"minimized": false,
+							"modal": false
+						},
+						{
+							"ref": "@r3",
+							"app": "Finder",
+							"bundleId": "com.apple.finder",
+							"pid": 102,
+							"title": "",
+							"windowId": 7,
+							"kind": "sheet",
+							"frame": {
+								"x": -10,
+								"y": 0,
+								"w": 1,
+								"h": 1
+							},
+							"focused": false,
+							"main": false,
+							"onscreen": false,
+							"minimized": true,
+							"modal": true
+						},
+						{
+							"ref": "@r4",
+							"app": "Idle",
+							"pid": 103,
+							"title": "idle",
+							"windowId": 8,
+							"kind": "window",
+							"frame": {
+								"x": 0,
+								"y": 0,
+								"w": 1,
+								"h": 1
+							},
+							"focused": false,
+							"main": false,
+							"onscreen": false,
+							"minimized": false,
+							"modal": false
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{}}",
+				"stdout": "@r1 window TextEdit \"未命名2\" · pid 101 · id 1010 · 0,25 586x488 · focused main onscreen\n@r2 menubar TextEdit \"TextEdit \\\"menu\\\"\" · pid 101 · no window id · 0,0 1512x33 · onscreen\n@r3 sheet Finder \"\" · pid 102 · id 7 · -10,0 1x1 · modal minimized\n@r4 window Idle \"idle\" · pid 103 · id 8 · 0,0 1x1 ·\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render find-roots --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--json"
+				],
+				"result": {
+					"roots": [
+						{
+							"ref": "@r1",
+							"app": "TextEdit",
+							"bundleId": "com.apple.TextEdit",
+							"pid": 101,
+							"title": "未命名2",
+							"windowId": 1010,
+							"kind": "window",
+							"frame": {
+								"x": 0,
+								"y": 25,
+								"w": 586,
+								"h": 488
+							},
+							"focused": true,
+							"main": true,
+							"onscreen": true,
+							"minimized": false,
+							"modal": false
+						},
+						{
+							"ref": "@r2",
+							"app": "TextEdit",
+							"pid": 101,
+							"title": "TextEdit \"menu\"",
+							"kind": "menubar",
+							"frame": {
+								"x": 0,
+								"y": 0,
+								"w": 1512,
+								"h": 33
+							},
+							"focused": false,
+							"main": false,
+							"onscreen": true,
+							"minimized": false,
+							"modal": false
+						},
+						{
+							"ref": "@r3",
+							"app": "Finder",
+							"bundleId": "com.apple.finder",
+							"pid": 102,
+							"title": "",
+							"windowId": 7,
+							"kind": "sheet",
+							"frame": {
+								"x": -10,
+								"y": 0,
+								"w": 1,
+								"h": 1
+							},
+							"focused": false,
+							"main": false,
+							"onscreen": false,
+							"minimized": true,
+							"modal": true
+						},
+						{
+							"ref": "@r4",
+							"app": "Idle",
+							"pid": 103,
+							"title": "idle",
+							"windowId": 8,
+							"kind": "window",
+							"frame": {
+								"x": 0,
+								"y": 0,
+								"w": 1,
+								"h": 1
+							},
+							"focused": false,
+							"main": false,
+							"onscreen": false,
+							"minimized": false,
+							"modal": false
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":true,\"params\":{}}",
+				"stdout": "{\"roots\":[{\"ref\":\"@r1\",\"app\":\"TextEdit\",\"bundleId\":\"com.apple.TextEdit\",\"pid\":101,\"title\":\"未命名2\",\"windowId\":1010,\"kind\":\"window\",\"frame\":{\"x\":0,\"y\":25,\"w\":586,\"h\":488},\"focused\":true,\"main\":true,\"onscreen\":true,\"minimized\":false,\"modal\":false},{\"ref\":\"@r2\",\"app\":\"TextEdit\",\"pid\":101,\"title\":\"TextEdit \\\"menu\\\"\",\"kind\":\"menubar\",\"frame\":{\"x\":0,\"y\":0,\"w\":1512,\"h\":33},\"focused\":false,\"main\":false,\"onscreen\":true,\"minimized\":false,\"modal\":false},{\"ref\":\"@r3\",\"app\":\"Finder\",\"bundleId\":\"com.apple.finder\",\"pid\":102,\"title\":\"\",\"windowId\":7,\"kind\":\"sheet\",\"frame\":{\"x\":-10,\"y\":0,\"w\":1,\"h\":1},\"focused\":false,\"main\":false,\"onscreen\":false,\"minimized\":true,\"modal\":true},{\"ref\":\"@r4\",\"app\":\"Idle\",\"pid\":103,\"title\":\"idle\",\"windowId\":8,\"kind\":\"window\",\"frame\":{\"x\":0,\"y\":0,\"w\":1,\"h\":1},\"focused\":false,\"main\":false,\"onscreen\":false,\"minimized\":false,\"modal\":false}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render find-roots empty",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots"
+				],
+				"result": {
+					"roots": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":false,\"params\":{}}",
+				"stdout": "no roots are visible to bcu\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render find-roots empty --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"find-roots",
+					"--json"
+				],
+				"result": {
+					"roots": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"find-roots\",\"json\":true,\"params\":{}}",
+				"stdout": "{\"roots\":[]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render observe-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit"
+				],
+				"result": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "TextEdit",
+						"pid": 101,
+						"title": "未命名2",
+						"windowId": 1010,
+						"frame": {
+							"x": 0,
+							"y": 25.5,
+							"w": 586,
+							"h": 488
+						},
+						"scale": 2
+					},
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "未命名2",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 2,
+							"parent": "@e2"
+						},
+						{
+							"ref": "@e12",
+							"role": "ruler",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 2,
+							"parent": "@e2"
+						},
+						{
+							"ref": "@e3",
+							"role": "group",
+							"name": "设置格式",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e1",
+							"hidden": {
+								"count": 16,
+								"roles": {
+									"segment": 8,
+									"button": 3,
+									"popup": 3,
+									"combobox": 1,
+									"menubutton": 1
+								}
+							}
+						},
+						{
+							"ref": "@e4",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e5",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e6",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e7",
+							"role": "menubutton",
+							"name": "文稿操作",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e8",
+							"role": "text",
+							"name": "未命名2",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e1"
+						}
+					],
+					"shown": 10,
+					"total": 47
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\"}}",
+				"stdout": "@r1 TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 10 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\"\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render observe-ui --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit",
+					"--json"
+				],
+				"result": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"ref": "@r1",
+						"app": "TextEdit",
+						"pid": 101,
+						"title": "未命名2",
+						"windowId": 1010,
+						"frame": {
+							"x": 0,
+							"y": 25.5,
+							"w": 586,
+							"h": 488
+						},
+						"scale": 2
+					},
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "未命名2",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 2,
+							"parent": "@e2"
+						},
+						{
+							"ref": "@e12",
+							"role": "ruler",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 2,
+							"parent": "@e2"
+						},
+						{
+							"ref": "@e3",
+							"role": "group",
+							"name": "设置格式",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e1",
+							"hidden": {
+								"count": 16,
+								"roles": {
+									"segment": 8,
+									"button": 3,
+									"popup": 3,
+									"combobox": 1,
+									"menubutton": 1
+								}
+							}
+						},
+						{
+							"ref": "@e4",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e5",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e6",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e7",
+							"role": "menubutton",
+							"name": "文稿操作",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e8",
+							"role": "text",
+							"name": "未命名2",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e1"
+						}
+					],
+					"shown": 10,
+					"total": 47
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"app\":\"TextEdit\"}}",
+				"stdout": "{\"stateId\":\"1a2b3c4d\",\"root\":{\"ref\":\"@r1\",\"app\":\"TextEdit\",\"pid\":101,\"title\":\"未命名2\",\"windowId\":1010,\"frame\":{\"x\":0,\"y\":25.5,\"w\":586,\"h\":488},\"scale\":2},\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e3\",\"role\":\"group\",\"name\":\"设置格式\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\",\"hidden\":{\"count\":16,\"roles\":{\"segment\":8,\"button\":3,\"popup\":3,\"combobox\":1,\"menubutton\":1}}},{\"ref\":\"@e4\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e5\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e6\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e7\",\"role\":\"menubutton\",\"name\":\"文稿操作\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e8\",\"role\":\"text\",\"name\":\"未命名2\",\"caps\":[],\"depth\":1,\"parent\":\"@e1\"}],\"shown\":10,\"total\":47}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render observe-ui with an image",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit",
+					"--image",
+					"always"
+				],
+				"result": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"app": "TextEdit",
+						"pid": 101,
+						"title": "未命名2",
+						"frame": {
+							"x": 0,
+							"y": 25.5,
+							"w": 586,
+							"h": 488
+						},
+						"scale": 2
+					},
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "未命名2",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 2,
+							"parent": "@e2"
+						}
+					],
+					"shown": 3,
+					"total": 47,
+					"image": {
+						"path": "/tmp/shots/1a2b3c4d.jpg",
+						"mime": "image/jpeg",
+						"width": 1172,
+						"height": 976
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\"}}",
+				"stdout": "TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 3 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\nimage /tmp/shots/1a2b3c4d.jpg (1172x976)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render observe-ui with an image --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--app",
+					"TextEdit",
+					"--image",
+					"always",
+					"--json"
+				],
+				"result": {
+					"stateId": "1a2b3c4d",
+					"root": {
+						"app": "TextEdit",
+						"pid": 101,
+						"title": "未命名2",
+						"frame": {
+							"x": 0,
+							"y": 25.5,
+							"w": 586,
+							"h": 488
+						},
+						"scale": 2
+					},
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "未命名2",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 2,
+							"parent": "@e2"
+						}
+					],
+					"shown": 3,
+					"total": 47,
+					"image": {
+						"path": "/tmp/shots/1a2b3c4d.jpg",
+						"mime": "image/jpeg",
+						"width": 1172,
+						"height": 976
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\"}}",
+				"stdout": "{\"stateId\":\"1a2b3c4d\",\"root\":{\"app\":\"TextEdit\",\"pid\":101,\"title\":\"未命名2\",\"frame\":{\"x\":0,\"y\":25.5,\"w\":586,\"h\":488},\"scale\":2},\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"}],\"shown\":3,\"total\":47,\"image\":{\"path\":\"/tmp/shots/1a2b3c4d.jpg\",\"mime\":\"image/jpeg\",\"width\":1172,\"height\":976}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render search-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					"s",
+					"--text",
+					"x"
+				],
+				"result": {
+					"stateId": "s",
+					"matches": [
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 0,
+							"parent": "@e1",
+							"path": []
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 0,
+							"parent": "@e2",
+							"path": [
+								"@e1",
+								"@e2"
+							]
+						}
+					],
+					"total": 5
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"search-ui\",\"json\":false,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "2 of 5 matches · state s\n@e2 scrollarea {scroll}\n@e9 textarea \"First Text View\" {setText,typeText,menu} focused in @e2\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render search-ui --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					"s",
+					"--text",
+					"x",
+					"--json"
+				],
+				"result": {
+					"stateId": "s",
+					"matches": [
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 0,
+							"parent": "@e1",
+							"path": []
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 0,
+							"parent": "@e2",
+							"path": [
+								"@e1",
+								"@e2"
+							]
+						}
+					],
+					"total": 5
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"search-ui\",\"json\":true,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "{\"stateId\":\"s\",\"matches\":[{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":0,\"parent\":\"@e1\",\"path\":[]},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":0,\"parent\":\"@e2\",\"path\":[\"@e1\",\"@e2\"]}],\"total\":5}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render expand-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e1"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e1",
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "未命名2",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 2,
+							"parent": "@e2"
+						},
+						{
+							"ref": "@e12",
+							"role": "ruler",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 2,
+							"parent": "@e2"
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"expand-ui\",\"json\":false,\"params\":{\"ref\":\"@e1\",\"stateId\":\"s\"}}",
+				"stdout": "@e1 · state s\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render expand-ui --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e1",
+					"--json"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e1",
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "未命名2",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "scrollarea",
+							"name": "",
+							"caps": [
+								"scroll"
+							],
+							"depth": 1,
+							"parent": "@e1"
+						},
+						{
+							"ref": "@e9",
+							"role": "textarea",
+							"name": "First Text View",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu"
+							],
+							"state": {
+								"focused": true
+							},
+							"depth": 2,
+							"parent": "@e2"
+						},
+						{
+							"ref": "@e12",
+							"role": "ruler",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 2,
+							"parent": "@e2"
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"expand-ui\",\"json\":true,\"params\":{\"ref\":\"@e1\",\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"s\",\"ref\":\"@e1\",\"nodes\":[{\"ref\":\"@e1\",\"role\":\"window\",\"name\":\"未命名2\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e2\",\"role\":\"scrollarea\",\"name\":\"\",\"caps\":[\"scroll\"],\"depth\":1,\"parent\":\"@e1\"},{\"ref\":\"@e9\",\"role\":\"textarea\",\"name\":\"First Text View\",\"caps\":[\"setText\",\"typeText\",\"menu\"],\"state\":{\"focused\":true},\"depth\":2,\"parent\":\"@e2\"},{\"ref\":\"@e12\",\"role\":\"ruler\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":2,\"parent\":\"@e2\"}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render expand-ui nothing to show",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e9"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e9",
+					"nodes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"expand-ui\",\"json\":false,\"params\":{\"ref\":\"@e9\",\"stateId\":\"s\"}}",
+				"stdout": "@e9 · state s\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render expand-ui nothing to show --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e9",
+					"--json"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e9",
+					"nodes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"expand-ui\",\"json\":true,\"params\":{\"ref\":\"@e9\",\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"s\",\"ref\":\"@e9\",\"nodes\":[]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render inspect-ui",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e2"
+				],
+				"result": {
+					"stateId": "s",
+					"node": {
+						"ref": "@e2",
+						"wireRef": "e1311",
+						"role": "AXScrollArea",
+						"subrole": "",
+						"identifier": "_NS:8",
+						"title": "",
+						"description": "",
+						"value": "",
+						"actions": [
+							"AXScrollLeftByPage",
+							"AXScrollRightByPage",
+							"AXScrollUpByPage",
+							"AXScrollDownByPage"
+						],
+						"canPress": false,
+						"canFocus": true,
+						"canSetValue": false,
+						"canScroll": false,
+						"canIncrement": false,
+						"canDecrement": false,
+						"isTextInput": false,
+						"rect": {
+							"x": 0,
+							"y": 68,
+							"w": 586,
+							"h": 420
+						},
+						"focused": false,
+						"offscreen": false,
+						"pictureOnly": false,
+						"truncated": false,
+						"children": []
+					},
+					"owners": {
+						"press": "@e5",
+						"typeText": "@e6"
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"inspect-ui\",\"json\":false,\"params\":{\"ref\":\"@e2\",\"stateId\":\"s\"}}",
+				"stdout": "{\n  \"ref\": \"@e2\",\n  \"wireRef\": \"e1311\",\n  \"role\": \"AXScrollArea\",\n  \"subrole\": \"\",\n  \"identifier\": \"_NS:8\",\n  \"title\": \"\",\n  \"description\": \"\",\n  \"value\": \"\",\n  \"actions\": [\n    \"AXScrollLeftByPage\",\n    \"AXScrollRightByPage\",\n    \"AXScrollUpByPage\",\n    \"AXScrollDownByPage\"\n  ],\n  \"canPress\": false,\n  \"canFocus\": true,\n  \"canSetValue\": false,\n  \"canScroll\": false,\n  \"canIncrement\": false,\n  \"canDecrement\": false,\n  \"isTextInput\": false,\n  \"rect\": {\n    \"x\": 0,\n    \"y\": 68,\n    \"w\": 586,\n    \"h\": 420\n  },\n  \"focused\": false,\n  \"offscreen\": false,\n  \"pictureOnly\": false,\n  \"truncated\": false,\n  \"children\": []\n}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render inspect-ui --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"inspect-ui",
+					"--state",
+					"s",
+					"--ref",
+					"@e2",
+					"--json"
+				],
+				"result": {
+					"stateId": "s",
+					"node": {
+						"ref": "@e2",
+						"wireRef": "e1311",
+						"role": "AXScrollArea",
+						"subrole": "",
+						"identifier": "_NS:8",
+						"title": "",
+						"description": "",
+						"value": "",
+						"actions": [
+							"AXScrollLeftByPage",
+							"AXScrollRightByPage",
+							"AXScrollUpByPage",
+							"AXScrollDownByPage"
+						],
+						"canPress": false,
+						"canFocus": true,
+						"canSetValue": false,
+						"canScroll": false,
+						"canIncrement": false,
+						"canDecrement": false,
+						"isTextInput": false,
+						"rect": {
+							"x": 0,
+							"y": 68,
+							"w": 586,
+							"h": 420
+						},
+						"focused": false,
+						"offscreen": false,
+						"pictureOnly": false,
+						"truncated": false,
+						"children": []
+					},
+					"owners": {
+						"press": "@e5",
+						"typeText": "@e6"
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"inspect-ui\",\"json\":true,\"params\":{\"ref\":\"@e2\",\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"s\",\"node\":{\"ref\":\"@e2\",\"wireRef\":\"e1311\",\"role\":\"AXScrollArea\",\"subrole\":\"\",\"identifier\":\"_NS:8\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXScrollLeftByPage\",\"AXScrollRightByPage\",\"AXScrollUpByPage\",\"AXScrollDownByPage\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":68,\"w\":586,\"h\":420},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},\"owners\":{\"press\":\"@e5\",\"typeText\":\"@e6\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render read-text",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"--ref",
+					"@e2"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e2",
+					"offset": 10,
+					"limit": 20,
+					"total": 100,
+					"text": "line one\nline two"
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"read-text\",\"json\":false,\"params\":{\"ref\":\"@e2\",\"stateId\":\"s\"}}",
+				"stdout": "@e2 10-27 of 100\nline one\nline two\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render read-text --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"--ref",
+					"@e2",
+					"--json"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e2",
+					"offset": 10,
+					"limit": 20,
+					"total": 100,
+					"text": "line one\nline two"
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"read-text\",\"json\":true,\"params\":{\"ref\":\"@e2\",\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"s\",\"ref\":\"@e2\",\"offset\":10,\"limit\":20,\"total\":100,\"text\":\"line one\\nline two\"}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render read-text empty",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"--ref",
+					"@e2"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e2",
+					"offset": 0,
+					"limit": 4000,
+					"total": 0,
+					"text": ""
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"read-text\",\"json\":false,\"params\":{\"ref\":\"@e2\",\"stateId\":\"s\"}}",
+				"stdout": "@e2 0-0 of 0\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render read-text empty --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"--ref",
+					"@e2",
+					"--json"
+				],
+				"result": {
+					"stateId": "s",
+					"ref": "@e2",
+					"offset": 0,
+					"limit": 4000,
+					"total": 0,
+					"text": ""
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"read-text\",\"json\":true,\"params\":{\"ref\":\"@e2\",\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"s\",\"ref\":\"@e2\",\"offset\":0,\"limit\":4000,\"total\":0,\"text\":\"\"}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for with changes",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "typed"
+							}
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "state t · found\n~ @e9 =\"typed\"\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for with changes --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x",
+					"--json"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "typed"
+							}
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":true,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "{\"stateId\":\"t\",\"found\":true,\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"typed\"}}]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for gone without changes",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x",
+					"--gone"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"gone": true,
+					"changes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"gone\":true,\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "state t · gone\n(no element changes)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for gone without changes --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x",
+					"--gone",
+					"--json"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"gone": true,
+					"changes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":true,\"params\":{\"gone\":true,\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "{\"stateId\":\"t\",\"found\":true,\"gone\":true,\"changes\":[]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for full view",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"nodes": [
+						{
+							"ref": "@e48",
+							"role": "window",
+							"name": "MacBook Pro",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e62",
+							"role": "outline",
+							"name": "边栏",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"owners": {
+								"scroll": "@e55"
+							},
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 19,
+								"roles": {
+									"row": 18,
+									"button": 1
+								}
+							}
+						},
+						{
+							"ref": "@e64",
+							"role": "browser",
+							"name": "分栏视图",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e139",
+							"role": "list",
+							"name": "",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"state": {
+								"focused": true
+							},
+							"owners": {
+								"scroll": "@e119"
+							},
+							"depth": 2,
+							"parent": "@e64"
+						},
+						{
+							"ref": "@e144",
+							"role": "textfield",
+							"name": "",
+							"value": "网络",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e146",
+							"role": "textfield",
+							"name": "",
+							"value": "Macintosh HD",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e95",
+							"role": "image",
+							"name": "不可编辑",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e96",
+							"role": "text",
+							"name": "2个项目",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e66",
+							"role": "list",
+							"name": "路径",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 1,
+								"roles": {
+									"text": 1
+								}
+							}
+						},
+						{
+							"ref": "@e50",
+							"role": "toolbar",
+							"name": "",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 6,
+								"roles": {
+									"group": 1,
+									"segment": 2,
+									"button": 2,
+									"searchfield": 1
+								}
+							}
+						},
+						{
+							"ref": "@e51",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e52",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e53",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e54",
+							"role": "text",
+							"name": "MacBook Pro",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						}
+					],
+					"shown": 14,
+					"total": 99
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "state t · found\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for full view --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x",
+					"--json"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"nodes": [
+						{
+							"ref": "@e48",
+							"role": "window",
+							"name": "MacBook Pro",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e62",
+							"role": "outline",
+							"name": "边栏",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"owners": {
+								"scroll": "@e55"
+							},
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 19,
+								"roles": {
+									"row": 18,
+									"button": 1
+								}
+							}
+						},
+						{
+							"ref": "@e64",
+							"role": "browser",
+							"name": "分栏视图",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e139",
+							"role": "list",
+							"name": "",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"state": {
+								"focused": true
+							},
+							"owners": {
+								"scroll": "@e119"
+							},
+							"depth": 2,
+							"parent": "@e64"
+						},
+						{
+							"ref": "@e144",
+							"role": "textfield",
+							"name": "",
+							"value": "网络",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e146",
+							"role": "textfield",
+							"name": "",
+							"value": "Macintosh HD",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e95",
+							"role": "image",
+							"name": "不可编辑",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e96",
+							"role": "text",
+							"name": "2个项目",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e66",
+							"role": "list",
+							"name": "路径",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 1,
+								"roles": {
+									"text": 1
+								}
+							}
+						},
+						{
+							"ref": "@e50",
+							"role": "toolbar",
+							"name": "",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 6,
+								"roles": {
+									"group": 1,
+									"segment": 2,
+									"button": 2,
+									"searchfield": 1
+								}
+							}
+						},
+						{
+							"ref": "@e51",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e52",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e53",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e54",
+							"role": "text",
+							"name": "MacBook Pro",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						}
+					],
+					"shown": 14,
+					"total": 99
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":true,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "{\"stateId\":\"t\",\"found\":true,\"nodes\":[{\"ref\":\"@e48\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e62\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e55\"},\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e64\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e139\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e119\"},\"depth\":2,\"parent\":\"@e64\"},{\"ref\":\"@e144\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e146\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e95\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e96\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e66\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e50\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e51\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e52\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e53\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e54\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"}],\"shown\":14,\"total\":99}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for offscreen only",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"changes": [],
+					"offscreen": {
+						"added": 0,
+						"removed": 3
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "state t · found\n… offscreen elements outside the view: 3 removed\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render wait-for offscreen only --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--state",
+					"s",
+					"--text",
+					"x",
+					"--json"
+				],
+				"result": {
+					"stateId": "t",
+					"found": true,
+					"changes": [],
+					"offscreen": {
+						"added": 0,
+						"removed": 3
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":true,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
+				"stdout": "{\"stateId\":\"t\",\"found\":true,\"changes\":[],\"offscreen\":{\"added\":0,\"removed\":3}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui verified",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "verified",
+						"evidence": {
+							"source": "ax",
+							"field": "value",
+							"from": "0",
+							"to": "1"
+						},
+						"text": "Done",
+						"scope": "@e2",
+						"timeoutMs": 10000,
+						"preexisting": true
+					},
+					"delivery": "ax",
+					"roots": [
+						{
+							"ref": "@r12",
+							"kind": "menu",
+							"app": "TextEdit",
+							"title": "文件"
+						}
+					],
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "typed"
+							}
+						}
+					],
+					"image": {
+						"path": "/tmp/shots/t.jpg",
+						"mime": "image/jpeg",
+						"width": 10,
+						"height": 20
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · value 0→1 · verified (preexisting)\n+ root @r12 menu \"文件\"\n~ @e9 =\"typed\"\nimage /tmp/shots/t.jpg (10x20)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui verified --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "verified",
+						"evidence": {
+							"source": "ax",
+							"field": "value",
+							"from": "0",
+							"to": "1"
+						},
+						"text": "Done",
+						"scope": "@e2",
+						"timeoutMs": 10000,
+						"preexisting": true
+					},
+					"delivery": "ax",
+					"roots": [
+						{
+							"ref": "@r12",
+							"kind": "menu",
+							"app": "TextEdit",
+							"title": "文件"
+						}
+					],
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "typed"
+							}
+						}
+					],
+					"image": {
+						"path": "/tmp/shots/t.jpg",
+						"mime": "image/jpeg",
+						"width": 10,
+						"height": 20
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"t\",\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"verified\",\"evidence\":{\"source\":\"ax\",\"field\":\"value\",\"from\":\"0\",\"to\":\"1\"},\"text\":\"Done\",\"scope\":\"@e2\",\"timeoutMs\":10000,\"preexisting\":true},\"delivery\":\"ax\",\"roots\":[{\"ref\":\"@r12\",\"kind\":\"menu\",\"app\":\"TextEdit\",\"title\":\"文件\"}],\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"typed\"}}],\"image\":{\"path\":\"/tmp/shots/t.jpg\",\"mime\":\"image/jpeg\",\"width\":10,\"height\":20}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui unverified",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "unknown",
+					"verification": {
+						"status": "none"
+					},
+					"delivery": "pid",
+					"changes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · unverified via pid\n(no element changes)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui unverified --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "unknown",
+					"verification": {
+						"status": "none"
+					},
+					"delivery": "pid",
+					"changes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"t\",\"baseStateId\":\"s\",\"outcome\":\"unknown\",\"verification\":{\"status\":\"none\"},\"delivery\":\"pid\",\"changes\":[]}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui screen evidence with offscreen noise",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "screen",
+							"field": "changed"
+						}
+					},
+					"delivery": "hid",
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "noise on"
+							}
+						}
+					],
+					"offscreen": {
+						"added": 30,
+						"removed": 0
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via hid · screen changed\n~ @e9 =\"noise on\"\n… offscreen elements outside the view: 30 added\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui screen evidence with offscreen noise --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "screen",
+							"field": "changed"
+						}
+					},
+					"delivery": "hid",
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "noise on"
+							}
+						}
+					],
+					"offscreen": {
+						"added": 30,
+						"removed": 0
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"t\",\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"none\",\"evidence\":{\"source\":\"screen\",\"field\":\"changed\"}},\"delivery\":\"hid\",\"changes\":[{\"type\":\"updated\",\"ref\":\"@e9\",\"fields\":{\"value\":\"noise on\"}}],\"offscreen\":{\"added\":30,\"removed\":0}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui focus evidence",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "focus"
+						}
+					},
+					"delivery": "pid",
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e2",
+							"fields": {
+								"value": "open"
+							}
+						}
+					],
+					"offscreen": {
+						"added": 2,
+						"removed": 1
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via pid · focus\n~ @e2 =\"open\"\n… offscreen elements outside the view: 2 added, 1 removed\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui focus evidence --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "focus"
+						}
+					},
+					"delivery": "pid",
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e2",
+							"fields": {
+								"value": "open"
+							}
+						}
+					],
+					"offscreen": {
+						"added": 2,
+						"removed": 1
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"t\",\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"none\",\"evidence\":{\"source\":\"focus\"}},\"delivery\":\"pid\",\"changes\":[{\"type\":\"updated\",\"ref\":\"@e2\",\"fields\":{\"value\":\"open\"}}],\"offscreen\":{\"added\":2,\"removed\":1}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui field evidence",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "verified",
+						"evidence": {
+							"source": "ax",
+							"field": "selected"
+						},
+						"text": "x",
+						"timeoutMs": 100
+					},
+					"delivery": "ax",
+					"nodes": [
+						{
+							"ref": "@e48",
+							"role": "window",
+							"name": "MacBook Pro",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e62",
+							"role": "outline",
+							"name": "边栏",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"owners": {
+								"scroll": "@e55"
+							},
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 19,
+								"roles": {
+									"row": 18,
+									"button": 1
+								}
+							}
+						},
+						{
+							"ref": "@e64",
+							"role": "browser",
+							"name": "分栏视图",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e139",
+							"role": "list",
+							"name": "",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"state": {
+								"focused": true
+							},
+							"owners": {
+								"scroll": "@e119"
+							},
+							"depth": 2,
+							"parent": "@e64"
+						},
+						{
+							"ref": "@e144",
+							"role": "textfield",
+							"name": "",
+							"value": "网络",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e146",
+							"role": "textfield",
+							"name": "",
+							"value": "Macintosh HD",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e95",
+							"role": "image",
+							"name": "不可编辑",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e96",
+							"role": "text",
+							"name": "2个项目",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e66",
+							"role": "list",
+							"name": "路径",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 1,
+								"roles": {
+									"text": 1
+								}
+							}
+						},
+						{
+							"ref": "@e50",
+							"role": "toolbar",
+							"name": "",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 6,
+								"roles": {
+									"group": 1,
+									"segment": 2,
+									"button": 2,
+									"searchfield": 1
+								}
+							}
+						},
+						{
+							"ref": "@e51",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e52",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e53",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e54",
+							"role": "text",
+							"name": "MacBook Pro",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						}
+					],
+					"shown": 14,
+					"total": 99
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · selected · verified\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui field evidence --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "verified",
+						"evidence": {
+							"source": "ax",
+							"field": "selected"
+						},
+						"text": "x",
+						"timeoutMs": 100
+					},
+					"delivery": "ax",
+					"nodes": [
+						{
+							"ref": "@e48",
+							"role": "window",
+							"name": "MacBook Pro",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e62",
+							"role": "outline",
+							"name": "边栏",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"owners": {
+								"scroll": "@e55"
+							},
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 19,
+								"roles": {
+									"row": 18,
+									"button": 1
+								}
+							}
+						},
+						{
+							"ref": "@e64",
+							"role": "browser",
+							"name": "分栏视图",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e139",
+							"role": "list",
+							"name": "",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"state": {
+								"focused": true
+							},
+							"owners": {
+								"scroll": "@e119"
+							},
+							"depth": 2,
+							"parent": "@e64"
+						},
+						{
+							"ref": "@e144",
+							"role": "textfield",
+							"name": "",
+							"value": "网络",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e146",
+							"role": "textfield",
+							"name": "",
+							"value": "Macintosh HD",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e95",
+							"role": "image",
+							"name": "不可编辑",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e96",
+							"role": "text",
+							"name": "2个项目",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e66",
+							"role": "list",
+							"name": "路径",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 1,
+								"roles": {
+									"text": 1
+								}
+							}
+						},
+						{
+							"ref": "@e50",
+							"role": "toolbar",
+							"name": "",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 6,
+								"roles": {
+									"group": 1,
+									"segment": 2,
+									"button": 2,
+									"searchfield": 1
+								}
+							}
+						},
+						{
+							"ref": "@e51",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e52",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e53",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e54",
+							"role": "text",
+							"name": "MacBook Pro",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						}
+					],
+					"shown": 14,
+					"total": 99
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"t\",\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"verified\",\"evidence\":{\"source\":\"ax\",\"field\":\"selected\"},\"text\":\"x\",\"timeoutMs\":100},\"delivery\":\"ax\",\"nodes\":[{\"ref\":\"@e48\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e62\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e55\"},\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e64\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e139\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e119\"},\"depth\":2,\"parent\":\"@e64\"},{\"ref\":\"@e144\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e146\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e95\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e96\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e66\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e50\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e51\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e52\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e53\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e54\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"}],\"shown\":14,\"total\":99}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui root closed",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						}
+					},
+					"delivery": "ax",
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						},
+						"skipped": 1
+					},
+					"next": {
+						"ref": "@r1",
+						"kind": "window",
+						"app": "TextEdit",
+						"title": "未命名2"
+					},
+					"nodes": [
+						{
+							"ref": "@e48",
+							"role": "window",
+							"name": "MacBook Pro",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e62",
+							"role": "outline",
+							"name": "边栏",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"owners": {
+								"scroll": "@e55"
+							},
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 19,
+								"roles": {
+									"row": 18,
+									"button": 1
+								}
+							}
+						},
+						{
+							"ref": "@e64",
+							"role": "browser",
+							"name": "分栏视图",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e139",
+							"role": "list",
+							"name": "",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"state": {
+								"focused": true
+							},
+							"owners": {
+								"scroll": "@e119"
+							},
+							"depth": 2,
+							"parent": "@e64"
+						},
+						{
+							"ref": "@e144",
+							"role": "textfield",
+							"name": "",
+							"value": "网络",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e146",
+							"role": "textfield",
+							"name": "",
+							"value": "Macintosh HD",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e95",
+							"role": "image",
+							"name": "不可编辑",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e96",
+							"role": "text",
+							"name": "2个项目",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e66",
+							"role": "list",
+							"name": "路径",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 1,
+								"roles": {
+									"text": 1
+								}
+							}
+						},
+						{
+							"ref": "@e50",
+							"role": "toolbar",
+							"name": "",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 6,
+								"roles": {
+									"group": 1,
+									"segment": 2,
+									"button": 2,
+									"searchfield": 1
+								}
+							}
+						},
+						{
+							"ref": "@e51",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e52",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e53",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e54",
+							"role": "text",
+							"name": "MacBook Pro",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						}
+					],
+					"shown": 14,
+					"total": 99
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nskipped 1 later step: its root closed\nnext root @r1 window \"未命名2\"\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui root closed --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						}
+					},
+					"delivery": "ax",
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						},
+						"skipped": 1
+					},
+					"next": {
+						"ref": "@r1",
+						"kind": "window",
+						"app": "TextEdit",
+						"title": "未命名2"
+					},
+					"nodes": [
+						{
+							"ref": "@e48",
+							"role": "window",
+							"name": "MacBook Pro",
+							"caps": [
+								"raise"
+							],
+							"depth": 0
+						},
+						{
+							"ref": "@e62",
+							"role": "outline",
+							"name": "边栏",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"owners": {
+								"scroll": "@e55"
+							},
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 19,
+								"roles": {
+									"row": 18,
+									"button": 1
+								}
+							}
+						},
+						{
+							"ref": "@e64",
+							"role": "browser",
+							"name": "分栏视图",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e139",
+							"role": "list",
+							"name": "",
+							"caps": [
+								"menu",
+								"scroll"
+							],
+							"state": {
+								"focused": true
+							},
+							"owners": {
+								"scroll": "@e119"
+							},
+							"depth": 2,
+							"parent": "@e64"
+						},
+						{
+							"ref": "@e144",
+							"role": "textfield",
+							"name": "",
+							"value": "网络",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e146",
+							"role": "textfield",
+							"name": "",
+							"value": "Macintosh HD",
+							"caps": [
+								"setText",
+								"typeText",
+								"menu",
+								"open"
+							],
+							"depth": 3,
+							"parent": "@e139"
+						},
+						{
+							"ref": "@e95",
+							"role": "image",
+							"name": "不可编辑",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e96",
+							"role": "text",
+							"name": "2个项目",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e66",
+							"role": "list",
+							"name": "路径",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 1,
+								"roles": {
+									"text": 1
+								}
+							}
+						},
+						{
+							"ref": "@e50",
+							"role": "toolbar",
+							"name": "",
+							"caps": [
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48",
+							"hidden": {
+								"count": 6,
+								"roles": {
+									"group": 1,
+									"segment": 2,
+									"button": 2,
+									"searchfield": 1
+								}
+							}
+						},
+						{
+							"ref": "@e51",
+							"role": "closebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e52",
+							"role": "fullscreenbutton",
+							"name": "",
+							"caps": [
+								"press",
+								"menu"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e53",
+							"role": "minimizebutton",
+							"name": "",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						},
+						{
+							"ref": "@e54",
+							"role": "text",
+							"name": "MacBook Pro",
+							"caps": [
+								"press"
+							],
+							"depth": 1,
+							"parent": "@e48"
+						}
+					],
+					"shown": 14,
+					"total": 99
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"stateId\":\"t\",\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"none\",\"evidence\":{\"source\":\"root\",\"field\":\"closed\"}},\"delivery\":\"ax\",\"closed\":{\"root\":{\"ref\":\"@r5\",\"kind\":\"sheet\",\"app\":\"TextEdit\",\"title\":\"警告\"},\"skipped\":1},\"next\":{\"ref\":\"@r1\",\"kind\":\"window\",\"app\":\"TextEdit\",\"title\":\"未命名2\"},\"nodes\":[{\"ref\":\"@e48\",\"role\":\"window\",\"name\":\"MacBook Pro\",\"caps\":[\"raise\"],\"depth\":0},{\"ref\":\"@e62\",\"role\":\"outline\",\"name\":\"边栏\",\"caps\":[\"menu\",\"scroll\"],\"owners\":{\"scroll\":\"@e55\"},\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":19,\"roles\":{\"row\":18,\"button\":1}}},{\"ref\":\"@e64\",\"role\":\"browser\",\"name\":\"分栏视图\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e139\",\"role\":\"list\",\"name\":\"\",\"caps\":[\"menu\",\"scroll\"],\"state\":{\"focused\":true},\"owners\":{\"scroll\":\"@e119\"},\"depth\":2,\"parent\":\"@e64\"},{\"ref\":\"@e144\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"网络\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e146\",\"role\":\"textfield\",\"name\":\"\",\"value\":\"Macintosh HD\",\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"parent\":\"@e139\"},{\"ref\":\"@e95\",\"role\":\"image\",\"name\":\"不可编辑\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e96\",\"role\":\"text\",\"name\":\"2个项目\",\"caps\":[],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e66\",\"role\":\"list\",\"name\":\"路径\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":1,\"roles\":{\"text\":1}}},{\"ref\":\"@e50\",\"role\":\"toolbar\",\"name\":\"\",\"caps\":[\"menu\"],\"depth\":1,\"parent\":\"@e48\",\"hidden\":{\"count\":6,\"roles\":{\"group\":1,\"segment\":2,\"button\":2,\"searchfield\":1}}},{\"ref\":\"@e51\",\"role\":\"closebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e52\",\"role\":\"fullscreenbutton\",\"name\":\"\",\"caps\":[\"press\",\"menu\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e53\",\"role\":\"minimizebutton\",\"name\":\"\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"},{\"ref\":\"@e54\",\"role\":\"text\",\"name\":\"MacBook Pro\",\"caps\":[\"press\"],\"depth\":1,\"parent\":\"@e48\"}],\"shown\":14,\"total\":99}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui last root closed",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						}
+					},
+					"delivery": "ax",
+					"roots": [
+						{
+							"ref": "@r9",
+							"kind": "dialog",
+							"app": "TextEdit",
+							"title": ""
+						}
+					],
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						},
+						"skipped": 2
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state none ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\n+ root @r9 dialog \"\"\nskipped 2 later steps: its root closed\nno root of TextEdit remains; run find-roots\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui last root closed --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						}
+					},
+					"delivery": "ax",
+					"roots": [
+						{
+							"ref": "@r9",
+							"kind": "dialog",
+							"app": "TextEdit",
+							"title": ""
+						}
+					],
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						},
+						"skipped": 2
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"none\",\"evidence\":{\"source\":\"root\",\"field\":\"closed\"}},\"delivery\":\"ax\",\"roots\":[{\"ref\":\"@r9\",\"kind\":\"dialog\",\"app\":\"TextEdit\",\"title\":\"\"}],\"closed\":{\"root\":{\"ref\":\"@r5\",\"kind\":\"sheet\",\"app\":\"TextEdit\",\"title\":\"警告\"},\"skipped\":2}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui closed root satisfies expect-gone",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "verified",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						},
+						"gone": true,
+						"scope": "@e4"
+					},
+					"delivery": "ax",
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						}
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state none ← s · worked via ax · root closed · verified\n- root @r5 sheet \"警告\"\nno root of TextEdit remains; run find-roots\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui closed root satisfies expect-gone --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--json",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "verified",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						},
+						"gone": true,
+						"scope": "@e4"
+					},
+					"delivery": "ax",
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						}
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"baseStateId\":\"s\",\"outcome\":\"worked\",\"verification\":{\"status\":\"verified\",\"evidence\":{\"source\":\"root\",\"field\":\"closed\"},\"gone\":true,\"scope\":\"@e4\"},\"delivery\":\"ax\",\"closed\":{\"root\":{\"ref\":\"@r5\",\"kind\":\"sheet\",\"app\":\"TextEdit\",\"title\":\"警告\"}}}\n",
+				"stderr": "",
+				"exitCode": 0
+			},
+			"compare": "canonical-json"
+		}
+	]
+}

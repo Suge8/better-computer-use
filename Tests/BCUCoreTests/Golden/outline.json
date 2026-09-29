@@ -1,0 +1,1294 @@
+{
+	"cases": [
+		{
+			"name": "build textedit-outline.json",
+			"op": "build",
+			"input": {
+				"outline": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look_30\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"e1310\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"_NS:31\",\"title\":\"未命名2\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":586,\"h\":488},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"e1311\",\"role\":\"AXScrollArea\",\"subrole\":\"\",\"identifier\":\"_NS:8\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXScrollLeftByPage\",\"AXScrollRightByPage\",\"AXScrollUpByPage\",\"AXScrollDownByPage\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":68,\"w\":586,\"h\":420},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e9\",\"wireRef\":\"e1318\",\"role\":\"AXTextArea\",\"subrole\":\"\",\"identifier\":\"First Text View\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":0,\"y\":100,\"w\":586,\"h\":382},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e10\",\"wireRef\":\"e1319\",\"role\":\"AXScrollBar\",\"subrole\":\"\",\"identifier\":\"_NS:24\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":6.5,\"y\":470,\"w\":573,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e11\",\"wireRef\":\"e1320\",\"role\":\"AXScrollBar\",\"subrole\":\"\",\"identifier\":\"_NS:27\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":568,\"y\":99,\"w\":18,\"h\":382.5},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e12\",\"wireRef\":\"e1321\",\"role\":\"AXRuler\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":68,\"w\":586,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e23\",\"wireRef\":\"e1332\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":1,\"y\":77,\"w\":9,\"h\":6},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e24\",\"wireRef\":\"e1333\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":577,\"y\":77,\"w\":9,\"h\":6},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e25\",\"wireRef\":\"e1334\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":1,\"y\":73,\"w\":9,\"h\":10},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e26\",\"wireRef\":\"e1335\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":41,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e27\",\"wireRef\":\"e1336\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":77,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e28\",\"wireRef\":\"e1337\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":113,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e29\",\"wireRef\":\"e1338\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":149,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e30\",\"wireRef\":\"e1339\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":185,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e31\",\"wireRef\":\"e1340\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":221,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e32\",\"wireRef\":\"e1341\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":257,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e33\",\"wireRef\":\"e1342\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":293,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e34\",\"wireRef\":\"e1343\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":329,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e35\",\"wireRef\":\"e1344\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":365,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e36\",\"wireRef\":\"e1345\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":401,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e37\",\"wireRef\":\"e1346\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":437,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e3\",\"wireRef\":\"e1312\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"设置格式\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":32,\"w\":586,\"h\":36},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e13\",\"wireRef\":\"e1322\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":7,\"y\":39,\"w\":87,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e38\",\"wireRef\":\"e1347\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"粗体\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":41,\"w\":22,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e39\",\"wireRef\":\"e1348\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"斜体\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":30,\"y\":41,\"w\":22,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e40\",\"wireRef\":\"e1349\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"下划线\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":52,\"y\":41,\"w\":21,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e41\",\"wireRef\":\"e1350\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"删除线\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":73,\"y\":41,\"w\":22,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e14\",\"wireRef\":\"e1323\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"文本颜色\",\"value\":\"透明\",\"actions\":[\"AXPress\",\"Name:显示颜色面板\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":97,\"y\":39,\"w\":22,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e15\",\"wireRef\":\"e1324\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"文本背景颜色\",\"value\":\"透明\",\"actions\":[\"AXPress\",\"Name:显示颜色面板\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":122,\"y\":39,\"w\":22,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e16\",\"wireRef\":\"e1325\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"字样\",\"value\":\"Helvetica\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":147,\"y\":39,\"w\":82,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e17\",\"wireRef\":\"e1326\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"样式\",\"value\":\"常规体\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":232,\"y\":39,\"w\":82,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e18\",\"wireRef\":\"e1327\",\"role\":\"AXComboBox\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"字体大小\",\"value\":\"12\",\"actions\":[\"AXShowMenu\",\"AXConfirm\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":317,\"y\":39,\"w\":52,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e42\",\"wireRef\":\"e1351\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"字体大小\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":345,\"y\":42,\"w\":20,\"h\":15},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e19\",\"wireRef\":\"e1328\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":372,\"y\":39,\"w\":94,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e43\",\"wireRef\":\"e1352\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"左对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":373,\"y\":41,\"w\":24,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e44\",\"wireRef\":\"e1353\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"居中对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":397,\"y\":41,\"w\":23,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e45\",\"wireRef\":\"e1354\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"右对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":420,\"y\":41,\"w\":24,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e46\",\"wireRef\":\"e1355\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"完全对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":444,\"y\":41,\"w\":23,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e20\",\"wireRef\":\"e1329\",\"role\":\"AXMenuButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"列表样式\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":469,\"y\":39,\"w\":48,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e21\",\"wireRef\":\"e1330\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"行距\",\"value\":\"1.0\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":520,\"y\":39,\"w\":53,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e4\",\"wireRef\":\"e1313\",\"role\":\"AXButton\",\"subrole\":\"AXCloseButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":8,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e5\",\"wireRef\":\"e1314\",\"role\":\"AXButton\",\"subrole\":\"AXFullScreenButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXZoomWindow\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":54,\"y\":8,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e22\",\"wireRef\":\"e1331\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":55,\"y\":9,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e47\",\"wireRef\":\"e1356\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":55,\"y\":9,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e6\",\"wireRef\":\"e1315\",\"role\":\"AXButton\",\"subrole\":\"AXMinimizeButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":31,\"y\":8,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e7\",\"wireRef\":\"e1316\",\"role\":\"AXMenuButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"文稿操作\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":134,\"y\":7,\"w\":12,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e8\",\"wireRef\":\"e1317\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"未命名2\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":82,\"y\":8,\"w\":53,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "build finder-outline.json",
+			"op": "build",
+			"input": {
+				"outline": {
+					"fixture": "finder-outline.json",
+					"numbering": "fresh"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look_31\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"e1357\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"FinderWindow\",\"title\":\"MacBook Pro\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":920,\"h\":556},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"e1358\",\"role\":\"AXSplitGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":920,\"h\":556},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e8\",\"wireRef\":\"e1364\",\"role\":\"AXScrollArea\",\"subrole\":\"\",\"identifier\":\"_NS:61\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXScrollLeftByPage\",\"AXScrollRightByPage\",\"AXScrollUpByPage\",\"AXScrollDownByPage\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":52,\"w\":219,\"h\":504},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e15\",\"wireRef\":\"e1371\",\"role\":\"AXOutline\",\"subrole\":\"\",\"identifier\":\"_NS:8\",\"title\":\"\",\"description\":\"边栏\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":51,\"w\":220,\"h\":505},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e23\",\"wireRef\":\"e1379\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":52,\"w\":219,\"h\":19},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e54\",\"wireRef\":\"e1410\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":52,\"w\":199,\"h\":19},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e73\",\"wireRef\":\"e1429\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"xSidebarHeader\",\"title\":\"\",\"description\":\"\",\"value\":\"个人收藏\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":15,\"y\":51,\"w\":201,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e24\",\"wireRef\":\"e1380\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":71,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e55\",\"wireRef\":\"e1411\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":71,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e74\",\"wireRef\":\"e1430\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"下载\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":78,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e25\",\"wireRef\":\"e1381\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":103,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e56\",\"wireRef\":\"e1412\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":103,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e75\",\"wireRef\":\"e1431\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"Career\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":110,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e26\",\"wireRef\":\"e1382\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":135,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e57\",\"wireRef\":\"e1413\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":135,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e76\",\"wireRef\":\"e1432\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"ANU\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":142,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e27\",\"wireRef\":\"e1383\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":167,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e58\",\"wireRef\":\"e1414\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":167,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e77\",\"wireRef\":\"e1433\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"Project\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":174,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e28\",\"wireRef\":\"e1384\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":199,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e59\",\"wireRef\":\"e1415\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":199,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e78\",\"wireRef\":\"e1434\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"奇点引力\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":206,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e29\",\"wireRef\":\"e1385\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":231,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e60\",\"wireRef\":\"e1416\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":231,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e79\",\"wireRef\":\"e1435\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"MyInfo\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":238,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e30\",\"wireRef\":\"e1386\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":263,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e61\",\"wireRef\":\"e1417\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":263,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e80\",\"wireRef\":\"e1436\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"影片\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":270,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e31\",\"wireRef\":\"e1387\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":295,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e62\",\"wireRef\":\"e1418\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":295,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e81\",\"wireRef\":\"e1437\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"图片\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":302,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e32\",\"wireRef\":\"e1388\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":327,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e63\",\"wireRef\":\"e1419\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":327,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e82\",\"wireRef\":\"e1438\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"文稿\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":334,\"w\":139,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e83\",\"wireRef\":\"e1439\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":184,\"y\":333,\"w\":20,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e33\",\"wireRef\":\"e1389\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":359,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e64\",\"wireRef\":\"e1420\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":359,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e84\",\"wireRef\":\"e1440\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"应用程序\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":366,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e34\",\"wireRef\":\"e1390\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":404,\"w\":219,\"h\":19},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e65\",\"wireRef\":\"e1421\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":404,\"w\":199,\"h\":19},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e85\",\"wireRef\":\"e1441\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"xSidebarHeader\",\"title\":\"\",\"description\":\"\",\"value\":\"位置\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":15,\"y\":403,\"w\":201,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e35\",\"wireRef\":\"e1391\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":423,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e66\",\"wireRef\":\"e1422\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":423,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e86\",\"wireRef\":\"e1442\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"iCloud云盘\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":430,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e36\",\"wireRef\":\"e1392\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":455,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e67\",\"wireRef\":\"e1423\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":455,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e87\",\"wireRef\":\"e1443\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"sugeh\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":462,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e37\",\"wireRef\":\"e1393\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":487,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e68\",\"wireRef\":\"e1424\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":487,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e88\",\"wireRef\":\"e1444\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"MacBook Pro\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":494,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e38\",\"wireRef\":\"e1394\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":519,\"w\":219,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e69\",\"wireRef\":\"e1425\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":519,\"w\":199,\"h\":32},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e89\",\"wireRef\":\"e1445\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"Macintosh HD\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":526,\"w\":157,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e39\",\"wireRef\":\"e1395\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":551,\"w\":219,\"h\":5},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e70\",\"wireRef\":\"e1426\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":551,\"w\":199,\"h\":5},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e90\",\"wireRef\":\"e1446\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"网络\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":556,\"w\":157,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e40\",\"wireRef\":\"e1396\",\"role\":\"AXRow\",\"subrole\":\"AXOutlineRow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowDefaultUI\",\"AXShowAlternateUI\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":556,\"w\":219,\"h\":0},\"focused\":false,\"offscreen\":true,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e71\",\"wireRef\":\"e1427\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":556,\"w\":199,\"h\":0},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e91\",\"wireRef\":\"e1447\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"废纸篓\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":45,\"y\":556,\"w\":157,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e41\",\"wireRef\":\"e1397\",\"role\":\"AXColumn\",\"subrole\":\"\",\"identifier\":\"AutomaticTableColumnIdentifier.0\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":10,\"y\":52,\"w\":199,\"h\":504},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e16\",\"wireRef\":\"e1372\",\"role\":\"AXScrollBar\",\"subrole\":\"\",\"identifier\":\"_NS:70\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":201,\"y\":51,\"w\":19,\"h\":505},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e42\",\"wireRef\":\"e1398\",\"role\":\"AXValueIndicator\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":210,\"y\":55,\"w\":6,\"h\":443},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e43\",\"wireRef\":\"e1399\",\"role\":\"AXButton\",\"subrole\":\"AXIncrementArrow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e44\",\"wireRef\":\"e1400\",\"role\":\"AXButton\",\"subrole\":\"AXDecrementArrow\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e45\",\"wireRef\":\"e1401\",\"role\":\"AXButton\",\"subrole\":\"AXIncrementPage\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":210,\"y\":499,\"w\":6,\"h\":54},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e46\",\"wireRef\":\"e1402\",\"role\":\"AXButton\",\"subrole\":\"AXDecrementPage\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e9\",\"wireRef\":\"e1365\",\"role\":\"AXSplitter\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":219,\"y\":52,\"w\":1,\"h\":504},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e10\",\"wireRef\":\"e1366\",\"role\":\"AXSplitGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":920,\"h\":556},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e17\",\"wireRef\":\"e1373\",\"role\":\"AXBrowser\",\"subrole\":\"\",\"identifier\":\"ColumnView\",\"title\":\"\",\"description\":\"分栏视图\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":51,\"w\":920,\"h\":505},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e47\",\"wireRef\":\"e1403\",\"role\":\"AXScrollArea\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXScrollLeftByPage\",\"AXScrollRightByPage\",\"AXScrollUpByPage\",\"AXScrollDownByPage\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":219,\"y\":0,\"w\":701,\"h\":500},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e72\",\"wireRef\":\"e1428\",\"role\":\"AXScrollArea\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXScrollLeftByPage\",\"AXScrollRightByPage\",\"AXScrollUpByPage\",\"AXScrollDownByPage\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":219,\"y\":52,\"w\":176,\"h\":448},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e92\",\"wireRef\":\"e1448\",\"role\":\"AXList\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":218,\"y\":51,\"w\":177,\"h\":450},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e94\",\"wireRef\":\"e1450\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":235,\"y\":57,\"w\":137,\"h\":27},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e96\",\"wireRef\":\"e1452\",\"role\":\"AXImage\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":235,\"y\":60,\"w\":20,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e97\",\"wireRef\":\"e1453\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"网络\",\"actions\":[\"AXOpen\",\"AXShowMenu\",\"AXConfirm\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":259,\"y\":60,\"w\":36,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e95\",\"wireRef\":\"e1451\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXOpen\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":235,\"y\":83,\"w\":137,\"h\":27},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e98\",\"wireRef\":\"e1454\",\"role\":\"AXImage\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":235,\"y\":86,\"w\":20,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e99\",\"wireRef\":\"e1455\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"Macintosh HD\",\"actions\":[\"AXOpen\",\"AXShowMenu\",\"AXConfirm\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":259,\"y\":86,\"w\":103,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e93\",\"wireRef\":\"e1449\",\"role\":\"AXScrollBar\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":376,\"y\":51,\"w\":19,\"h\":450},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]}]},{\"ref\":\"@e18\",\"wireRef\":\"e1374\",\"role\":\"AXUnknown\",\"subrole\":\"\",\"identifier\":\"statusBar\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":219,\"y\":528,\"w\":701,\"h\":28},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e48\",\"wireRef\":\"e1404\",\"role\":\"AXImage\",\"subrole\":\"\",\"identifier\":\"_NS:12\",\"title\":\"\",\"description\":\"不可编辑\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":226,\"y\":536,\"w\":15,\"h\":11},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e49\",\"wireRef\":\"e1405\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"statusBarText\",\"title\":\"\",\"description\":\"\",\"value\":\"2个项目\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":538,\"y\":534,\"w\":52,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e19\",\"wireRef\":\"e1375\",\"role\":\"AXList\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"路径\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":224,\"y\":499,\"w\":687,\"h\":30},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e50\",\"wireRef\":\"e1406\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"MacBook Pro\",\"actions\":[\"AXOpen\",\"AXShowMenu\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":225,\"y\":500,\"w\":98,\"h\":28},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]}]},{\"ref\":\"@e3\",\"wireRef\":\"e1359\",\"role\":\"AXToolbar\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":920,\"h\":52},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e11\",\"wireRef\":\"e1367\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"Name:移到下一项\\nTarget:0x0\\nSelector:(null)\",\"Name:从工具栏移除\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":223,\"y\":0,\"w\":81,\"h\":52},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e20\",\"wireRef\":\"e1376\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"_NS:51\",\"title\":\"\",\"description\":\"返回/前进\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":226,\"y\":7,\"w\":75,\"h\":38},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e51\",\"wireRef\":\"e1407\",\"role\":\"AXButton\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"返回\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":228,\"y\":9,\"w\":36,\"h\":36},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e52\",\"wireRef\":\"e1408\",\"role\":\"AXButton\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"前进\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":264,\"y\":9,\"w\":37,\"h\":36},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e12\",\"wireRef\":\"e1368\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"隔空投送\",\"value\":\"\",\"actions\":[\"AXPress\",\"Name:移到上一项\\nTarget:0x0\\nSelector:(null)\",\"Name:移到下一项\\nTarget:0x0\\nSelector:(null)\",\"Name:从工具栏移除\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":539,\"y\":0,\"w\":44,\"h\":52},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e13\",\"wireRef\":\"e1369\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"Name:移到上一项\\nTarget:0x0\\nSelector:(null)\",\"Name:从工具栏移除\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":583,\"y\":0,\"w\":333,\"h\":52},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e21\",\"wireRef\":\"e1377\",\"role\":\"AXTextField\",\"subrole\":\"AXSearchField\",\"identifier\":\"_NS:122\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXConfirm\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":586,\"y\":7,\"w\":327,\"h\":38},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e53\",\"wireRef\":\"e1409\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"搜索\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":590,\"y\":8,\"w\":29,\"h\":36},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]}]},{\"ref\":\"@e4\",\"wireRef\":\"e1360\",\"role\":\"AXButton\",\"subrole\":\"AXCloseButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":18,\"y\":18,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e5\",\"wireRef\":\"e1361\",\"role\":\"AXButton\",\"subrole\":\"AXFullScreenButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXZoomWindow\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":64,\"y\":18,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e14\",\"wireRef\":\"e1370\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":65,\"y\":19,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e22\",\"wireRef\":\"e1378\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":65,\"y\":19,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e6\",\"wireRef\":\"e1362\",\"role\":\"AXButton\",\"subrole\":\"AXMinimizeButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":41,\"y\":18,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e7\",\"wireRef\":\"e1363\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"MacBook Pro\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":304,\"y\":0,\"w\":235,\"h\":52},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "build chrome-outline.json",
+			"op": "build",
+			"input": {
+				"outline": {
+					"fixture": "chrome-outline.json",
+					"numbering": "fresh"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look_92\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"e5929\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"\",\"title\":\"bcu web fixture A - Google Chrome\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":1200,\"h\":1366},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"e5930\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"bcu web fixture A - Google Chrome\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":1200,\"h\":1366},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e6\",\"wireRef\":\"e5934\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":1200,\"h\":1366},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e8\",\"wireRef\":\"e5936\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":1200,\"h\":1366},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e10\",\"wireRef\":\"e5938\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":1200,\"h\":1366},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e11\",\"wireRef\":\"e5939\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":40,\"w\":1200,\"h\":46},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e15\",\"wireRef\":\"e5943\",\"role\":\"AXToolbar\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":40,\"w\":1200,\"h\":46},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e22\",\"wireRef\":\"e5950\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Back\",\"description\":\"Back\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":6,\"y\":46,\"w\":34,\"h\":34},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e23\",\"wireRef\":\"e5951\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Forward\",\"description\":\"Forward\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":42,\"y\":46,\"w\":34,\"h\":34},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e24\",\"wireRef\":\"e5952\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Reload\",\"description\":\"Reload\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":78,\"y\":46,\"w\":34,\"h\":34},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e25\",\"wireRef\":\"e5953\",\"role\":\"AXGroup\",\"subrole\":\"AXApplicationGroup\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":121,\"y\":46,\"w\":861,\"h\":34},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e33\",\"wireRef\":\"e5961\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"File\",\"description\":\"File\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":126,\"y\":51,\"w\":53,\"h\":24},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e34\",\"wireRef\":\"e5962\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Address and search bar\",\"description\":\"Address and search bar\",\"value\":\"/tmp/bcu-probe/page.html?w=A\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":187,\"y\":51,\"w\":751,\"h\":24},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e35\",\"wireRef\":\"e5963\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":946,\"y\":51,\"w\":24,\"h\":24},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e44\",\"wireRef\":\"e5972\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Bookmark this tab\",\"description\":\"Bookmark this tab\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":946,\"y\":51,\"w\":24,\"h\":24},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e26\",\"wireRef\":\"e5954\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Sign In to Chrome?\",\"description\":\"Sign In to Chrome?\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":991,\"y\":46,\"w\":164,\"h\":34},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e27\",\"wireRef\":\"e5955\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Chrome\",\"description\":\"Chrome\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":1160,\"y\":46,\"w\":34,\"h\":34},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e12\",\"wireRef\":\"e5940\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":86,\"w\":1200,\"h\":1280},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e16\",\"wireRef\":\"e5944\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":87,\"w\":1200,\"h\":1279},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e28\",\"wireRef\":\"e5956\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e29\",\"wireRef\":\"e5957\",\"role\":\"AXWebArea\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"bcu web fixture A\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":87,\"w\":1200,\"h\":1279},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e36\",\"wireRef\":\"e5964\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Count clicks\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":95,\"w\":88,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e37\",\"wireRef\":\"e5965\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":132,\"w\":1184,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e45\",\"wireRef\":\"e5973\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Set field\",\"description\":\"Set field\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":8,\"y\":132,\"w\":153,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e38\",\"wireRef\":\"e5966\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":169,\"w\":1184,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e46\",\"wireRef\":\"e5974\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Type field\",\"description\":\"Type field\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":8,\"y\":169,\"w\":153,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e39\",\"wireRef\":\"e5967\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":206,\"w\":1184,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e47\",\"wireRef\":\"e5975\",\"role\":\"AXTextField\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Key log\",\"description\":\"Key log\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":8,\"y\":206,\"w\":153,\"h\":21},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e40\",\"wireRef\":\"e5968\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Down only\",\"description\":\"Down only\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":243,\"w\":1184,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e41\",\"wireRef\":\"e5969\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Click only\",\"description\":\"Click only\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":261,\"w\":1184,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e42\",\"wireRef\":\"e5970\",\"role\":\"AXGroup\",\"subrole\":\"AXLandmarkRegion\",\"identifier\":\"\",\"title\":\"Scroll area\",\"description\":\"Scroll area\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":279,\"w\":1184,\"h\":80},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e48\",\"wireRef\":\"e5976\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":279,\"w\":1184,\"h\":80},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e50\",\"wireRef\":\"e5978\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"Scroll content\",\"actions\":[\"AXShowMenu\",\"AXScrollToVisible\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":279,\"w\":90,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]}]}]},{\"ref\":\"@e17\",\"wireRef\":\"e5945\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":86,\"w\":1200,\"h\":1},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e13\",\"wireRef\":\"e5941\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":86,\"y\":0,\"w\":1114,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e18\",\"wireRef\":\"e5946\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":92,\"y\":0,\"w\":28,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e30\",\"wireRef\":\"e5958\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Tab Search\",\"description\":\"Tab Search\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":92,\"y\":6,\"w\":28,\"h\":28},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e19\",\"wireRef\":\"e5947\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":114,\"y\":0,\"w\":256,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e31\",\"wireRef\":\"e5959\",\"role\":\"AXTabGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":114,\"y\":0,\"w\":256,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e43\",\"wireRef\":\"e5971\",\"role\":\"AXRadioButton\",\"subrole\":\"AXTabButton\",\"identifier\":\"\",\"title\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"description\":\"bcu web fixture A - Memory usage - 29.9 MB\",\"value\":\"1\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":114,\"y\":0,\"w\":256,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e49\",\"wireRef\":\"e5977\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Close\",\"description\":\"Close\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":328,\"y\":6,\"w\":28,\"h\":28},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e32\",\"wireRef\":\"e5960\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":114,\"y\":0,\"w\":256,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e20\",\"wireRef\":\"e5948\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"New Tab\",\"description\":\"New Tab\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":364,\"y\":0,\"w\":28,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e21\",\"wireRef\":\"e5949\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":404,\"y\":0,\"w\":796,\"h\":41},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e14\",\"wireRef\":\"e5942\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]}]}]},{\"ref\":\"@e3\",\"wireRef\":\"e5931\",\"role\":\"AXButton\",\"subrole\":\"AXCloseButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":12,\"y\":12,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e4\",\"wireRef\":\"e5932\",\"role\":\"AXButton\",\"subrole\":\"AXFullScreenButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXZoomWindow\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":58,\"y\":12,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e7\",\"wireRef\":\"e5935\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":59,\"y\":13,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e9\",\"wireRef\":\"e5937\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":59,\"y\":13,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e5\",\"wireRef\":\"e5933\",\"role\":\"AXButton\",\"subrole\":\"AXMinimizeButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":35,\"y\":12,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "stabilize native refs held",
+			"op": "stabilize",
+			"input": {
+				"base": {
+					"outline": {
+						"lookId": "look-1",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "editor",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"next": {
+					"outline": {
+						"lookId": "look-2",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "inserted",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Status",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "editor",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "hello",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look-2\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"window\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"\",\"title\":\"Fixture\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e4\",\"wireRef\":\"inserted\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"Status\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e2\",\"wireRef\":\"toolbar\",\"role\":\"AXToolbar\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Toolbar\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e3\",\"wireRef\":\"editor\",\"role\":\"AXTextArea\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"hello\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "stabilize native refs regenerated",
+			"op": "stabilize",
+			"input": {
+				"base": {
+					"outline": {
+						"lookId": "look-1",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "editor",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"next": {
+					"outline": {
+						"lookId": "look-3",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar-new",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "editor-new",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "updated",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look-3\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"window\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"\",\"title\":\"Fixture\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"toolbar-new\",\"role\":\"AXToolbar\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Toolbar\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e3\",\"wireRef\":\"editor-new\",\"role\":\"AXTextArea\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"updated\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "stabilize ambiguous structural twins",
+			"op": "stabilize",
+			"input": {
+				"base": {
+					"outline": {
+						"lookId": "look-twins-1",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "a1",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Same",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "a2",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Same",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "u",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Unique",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"next": {
+					"outline": {
+						"lookId": "look-twins-2",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "b1",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Same",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "b2",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Same",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "u2",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Unique",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "n",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "New",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look-twins-2\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"window\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"\",\"title\":\"Fixture\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"b1\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Same\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e3\",\"wireRef\":\"b2\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Same\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e4\",\"wireRef\":\"u2\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Unique\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e5\",\"wireRef\":\"n\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"New\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "stabilize textedit against itself",
+			"op": "stabilize",
+			"input": {
+				"base": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				},
+				"next": {
+					"fixture": "textedit-outline.json",
+					"numbering": "fresh"
+				}
+			},
+			"output": {
+				"json": "{\"lookId\":\"look_30\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"e1310\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"_NS:31\",\"title\":\"未命名2\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXRaise\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":586,\"h\":488},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"e1311\",\"role\":\"AXScrollArea\",\"subrole\":\"\",\"identifier\":\"_NS:8\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXScrollLeftByPage\",\"AXScrollRightByPage\",\"AXScrollUpByPage\",\"AXScrollDownByPage\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":68,\"w\":586,\"h\":420},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e9\",\"wireRef\":\"e1318\",\"role\":\"AXTextArea\",\"subrole\":\"\",\"identifier\":\"First Text View\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXShowMenu\"],\"canPress\":false,\"canFocus\":true,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":0,\"y\":100,\"w\":586,\"h\":382},\"focused\":true,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e10\",\"wireRef\":\"e1319\",\"role\":\"AXScrollBar\",\"subrole\":\"\",\"identifier\":\"_NS:24\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":6.5,\"y\":470,\"w\":573,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e11\",\"wireRef\":\"e1320\",\"role\":\"AXScrollBar\",\"subrole\":\"\",\"identifier\":\"_NS:27\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":568,\"y\":99,\"w\":18,\"h\":382.5},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e12\",\"wireRef\":\"e1321\",\"role\":\"AXRuler\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":68,\"w\":586,\"h\":32},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e23\",\"wireRef\":\"e1332\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":1,\"y\":77,\"w\":9,\"h\":6},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e24\",\"wireRef\":\"e1333\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":577,\"y\":77,\"w\":9,\"h\":6},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e25\",\"wireRef\":\"e1334\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":1,\"y\":73,\"w\":9,\"h\":10},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e26\",\"wireRef\":\"e1335\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":41,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e27\",\"wireRef\":\"e1336\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":77,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e28\",\"wireRef\":\"e1337\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":113,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e29\",\"wireRef\":\"e1338\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":149,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e30\",\"wireRef\":\"e1339\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":185,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e31\",\"wireRef\":\"e1340\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":221,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e32\",\"wireRef\":\"e1341\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":257,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e33\",\"wireRef\":\"e1342\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":293,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e34\",\"wireRef\":\"e1343\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":329,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e35\",\"wireRef\":\"e1344\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":365,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e36\",\"wireRef\":\"e1345\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":401,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e37\",\"wireRef\":\"e1346\",\"role\":\"AXRulerMarker\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXDelete\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":437,\"y\":74,\"w\":6,\"h\":9},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e3\",\"wireRef\":\"e1312\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"设置格式\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":32,\"w\":586,\"h\":36},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e13\",\"wireRef\":\"e1322\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":7,\"y\":39,\"w\":87,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e38\",\"wireRef\":\"e1347\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"粗体\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":41,\"w\":22,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e39\",\"wireRef\":\"e1348\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"斜体\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":30,\"y\":41,\"w\":22,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e40\",\"wireRef\":\"e1349\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"下划线\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":52,\"y\":41,\"w\":21,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e41\",\"wireRef\":\"e1350\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"删除线\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":73,\"y\":41,\"w\":22,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e14\",\"wireRef\":\"e1323\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"文本颜色\",\"value\":\"透明\",\"actions\":[\"AXPress\",\"Name:显示颜色面板\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":97,\"y\":39,\"w\":22,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e15\",\"wireRef\":\"e1324\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"文本背景颜色\",\"value\":\"透明\",\"actions\":[\"AXPress\",\"Name:显示颜色面板\\nTarget:0x0\\nSelector:(null)\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":122,\"y\":39,\"w\":22,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e16\",\"wireRef\":\"e1325\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"字样\",\"value\":\"Helvetica\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":147,\"y\":39,\"w\":82,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e17\",\"wireRef\":\"e1326\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"样式\",\"value\":\"常规体\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":232,\"y\":39,\"w\":82,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e18\",\"wireRef\":\"e1327\",\"role\":\"AXComboBox\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"字体大小\",\"value\":\"12\",\"actions\":[\"AXShowMenu\",\"AXConfirm\"],\"canPress\":false,\"canFocus\":false,\"canSetValue\":true,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":true,\"rect\":{\"x\":317,\"y\":39,\"w\":52,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e42\",\"wireRef\":\"e1351\",\"role\":\"AXButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"字体大小\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":345,\"y\":42,\"w\":20,\"h\":15},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e19\",\"wireRef\":\"e1328\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":372,\"y\":39,\"w\":94,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e43\",\"wireRef\":\"e1352\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"左对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":373,\"y\":41,\"w\":24,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e44\",\"wireRef\":\"e1353\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"居中对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":397,\"y\":41,\"w\":23,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e45\",\"wireRef\":\"e1354\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"右对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":420,\"y\":41,\"w\":24,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e46\",\"wireRef\":\"e1355\",\"role\":\"AXCheckBox\",\"subrole\":\"AXSegment\",\"identifier\":\"\",\"title\":\"\",\"description\":\"完全对齐\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":444,\"y\":41,\"w\":23,\"h\":20},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e20\",\"wireRef\":\"e1329\",\"role\":\"AXMenuButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"列表样式\",\"value\":\"\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":469,\"y\":39,\"w\":48,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e21\",\"wireRef\":\"e1330\",\"role\":\"AXPopUpButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"行距\",\"value\":\"1.0\",\"actions\":[\"AXShowMenu\",\"AXPress\"],\"canPress\":true,\"canFocus\":true,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":520,\"y\":39,\"w\":53,\"h\":22},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]},{\"ref\":\"@e4\",\"wireRef\":\"e1313\",\"role\":\"AXButton\",\"subrole\":\"AXCloseButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":8,\"y\":8,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e5\",\"wireRef\":\"e1314\",\"role\":\"AXButton\",\"subrole\":\"AXFullScreenButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXZoomWindow\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":54,\"y\":8,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e22\",\"wireRef\":\"e1331\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":55,\"y\":9,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e47\",\"wireRef\":\"e1356\",\"role\":\"AXGroup\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":55,\"y\":9,\"w\":14,\"h\":14},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]},{\"ref\":\"@e6\",\"wireRef\":\"e1315\",\"role\":\"AXButton\",\"subrole\":\"AXMinimizeButton\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"\",\"actions\":[\"AXPress\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":31,\"y\":8,\"w\":16,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e7\",\"wireRef\":\"e1316\",\"role\":\"AXMenuButton\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"文稿操作\",\"value\":\"\",\"actions\":[\"AXPress\",\"AXShowMenu\"],\"canPress\":true,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":134,\"y\":7,\"w\":12,\"h\":18},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e8\",\"wireRef\":\"e1317\",\"role\":\"AXStaticText\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"未命名2\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":82,\"y\":8,\"w\":53,\"h\":16},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}}"
+			}
+		},
+		{
+			"name": "graft keeps refs and appends new ones",
+			"op": "graft",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "look-graft",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "list",
+									"role": "AXList",
+									"subrole": "",
+									"identifier": "",
+									"title": "Files",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": true,
+									"children": [
+										{
+											"ref": "@e4",
+											"wireRef": "row-0",
+											"role": "AXRow",
+											"subrole": "",
+											"identifier": "",
+											"title": "zero",
+											"description": "",
+											"value": "",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 1,
+												"y": 2,
+												"w": 3,
+												"h": 4
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"target": "@e3",
+				"scoped": {
+					"outline": {
+						"lookId": "look-graft-scope",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "list",
+							"role": "AXList",
+							"subrole": "",
+							"identifier": "",
+							"title": "Files",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 5,
+								"y": 5,
+								"w": 50,
+								"h": 50
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "row-1",
+									"role": "AXRow",
+									"subrole": "",
+									"identifier": "",
+									"title": "one",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 5,
+										"y": 5,
+										"w": 50,
+										"h": 10
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"scrollExtent": {
+										"seen": 1,
+										"total": 4
+									},
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "row-0",
+									"role": "AXRow",
+									"subrole": "",
+									"identifier": "",
+									"title": "zero again",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e4",
+											"wireRef": "cell",
+											"role": "AXCell",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "c",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				}
+			},
+			"output": {
+				"json": "{\"ref\":\"@e3\",\"outline\":{\"lookId\":\"look-graft\",\"root\":{\"ref\":\"@e1\",\"wireRef\":\"window\",\"role\":\"AXWindow\",\"subrole\":\"AXStandardWindow\",\"identifier\":\"\",\"title\":\"Fixture\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e2\",\"wireRef\":\"toolbar\",\"role\":\"AXToolbar\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Toolbar\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]},{\"ref\":\"@e3\",\"wireRef\":\"list\",\"role\":\"AXList\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"Files\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"rect\":{\"x\":0,\"y\":0,\"w\":0,\"h\":0},\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e5\",\"wireRef\":\"row-1\",\"role\":\"AXRow\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"one\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"scrollExtent\":{\"seen\":1,\"total\":4},\"children\":[]},{\"ref\":\"@e4\",\"wireRef\":\"row-0\",\"role\":\"AXRow\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"zero again\",\"description\":\"\",\"value\":\"\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[{\"ref\":\"@e6\",\"wireRef\":\"cell\",\"role\":\"AXCell\",\"subrole\":\"\",\"identifier\":\"\",\"title\":\"\",\"description\":\"\",\"value\":\"c\",\"actions\":[],\"canPress\":false,\"canFocus\":false,\"canSetValue\":false,\"canScroll\":false,\"canIncrement\":false,\"canDecrement\":false,\"isTextInput\":false,\"focused\":false,\"offscreen\":false,\"pictureOnly\":false,\"truncated\":false,\"children\":[]}]}]}]}}}"
+			}
+		},
+		{
+			"name": "graft on a missing target",
+			"op": "graft",
+			"input": {
+				"outline": {
+					"outline": {
+						"lookId": "look-graft",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "list",
+									"role": "AXList",
+									"subrole": "",
+									"identifier": "",
+									"title": "Files",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": true,
+									"children": [
+										{
+											"ref": "@e4",
+											"wireRef": "row-0",
+											"role": "AXRow",
+											"subrole": "",
+											"identifier": "",
+											"title": "zero",
+											"description": "",
+											"value": "",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 1,
+												"y": 2,
+												"w": 3,
+												"h": 4
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"target": "@e99",
+				"scoped": {
+					"outline": {
+						"lookId": "look-graft-scope",
+						"root": {
+							"ref": "@e1",
+							"wireRef": "list",
+							"role": "AXList",
+							"subrole": "",
+							"identifier": "",
+							"title": "Files",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 5,
+								"y": 5,
+								"w": 50,
+								"h": 50
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "row-1",
+									"role": "AXRow",
+									"subrole": "",
+									"identifier": "",
+									"title": "one",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 5,
+										"y": 5,
+										"w": 50,
+										"h": 10
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"scrollExtent": {
+										"seen": 1,
+										"total": 4
+									},
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "row-0",
+									"role": "AXRow",
+									"subrole": "",
+									"identifier": "",
+									"title": "zero again",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 0,
+										"h": 0
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e4",
+											"wireRef": "cell",
+											"role": "AXCell",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "c",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				}
+			},
+			"output": {
+				"error": {
+					"stderr": "error internal_error: Cannot graft scoped outline: target @e99 is not in the current outline.\nrecovery: Run 'bcu doctor' and retry. If it repeats, report the full error.\n",
+					"exitCode": 1
+				}
+			}
+		}
+	]
+}

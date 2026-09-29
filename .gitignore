@@ -19,3 +19,7 @@ native/windows/bridge-rs/target/
 # Manual run outputs
 results/
 scripts/cubench-results.json
+
+# SwiftPM
+.build/
+.swiftpm/

@@ -1,0 +1,197 @@
+{
+	"cases": [
+		{
+			"name": "invalid_arguments",
+			"op": "error",
+			"input": {
+				"code": "invalid_arguments",
+				"message": "A invalid_arguments failure."
+			},
+			"output": {
+				"stderr": "error invalid_arguments: A invalid_arguments failure.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "stale_state",
+			"op": "error",
+			"input": {
+				"code": "stale_state",
+				"message": "A stale_state failure."
+			},
+			"output": {
+				"stderr": "error stale_state: A stale_state failure.\nrecovery: Run observe-ui again and retry with the new stateId and refs.\n",
+				"exitCode": 3
+			}
+		},
+		{
+			"name": "permission_missing",
+			"op": "error",
+			"input": {
+				"code": "permission_missing",
+				"message": "A permission_missing failure."
+			},
+			"output": {
+				"stderr": "error permission_missing: A permission_missing failure.\nrecovery: Run 'bcu setup' in an interactive terminal, grant both permissions, then retry.\n",
+				"exitCode": 4
+			}
+		},
+		{
+			"name": "app_not_found",
+			"op": "error",
+			"input": {
+				"code": "app_not_found",
+				"message": "A app_not_found failure."
+			},
+			"output": {
+				"stderr": "error app_not_found: A app_not_found failure.\nrecovery: Open the app, then run 'bcu find-roots' to confirm its current name.\n",
+				"exitCode": 5
+			}
+		},
+		{
+			"name": "window_stale",
+			"op": "error",
+			"input": {
+				"code": "window_stale",
+				"message": "A window_stale failure."
+			},
+			"output": {
+				"stderr": "error window_stale: A window_stale failure.\nrecovery: Run 'bcu find-roots', observe a current root, and retry.\n",
+				"exitCode": 6
+			}
+		},
+		{
+			"name": "element_not_found",
+			"op": "error",
+			"input": {
+				"code": "element_not_found",
+				"message": "A element_not_found failure."
+			},
+			"output": {
+				"stderr": "error element_not_found: A element_not_found failure.\nrecovery: Run observe-ui again and use an @e ref from the returned state.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "action_timeout",
+			"op": "error",
+			"input": {
+				"code": "action_timeout",
+				"message": "A action_timeout failure."
+			},
+			"output": {
+				"stderr": "error action_timeout: A action_timeout failure.\nrecovery: Inspect the current UI, then retry with a valid condition or a longer --timeout.\n",
+				"exitCode": 8
+			}
+		},
+		{
+			"name": "action_failed",
+			"op": "error",
+			"input": {
+				"code": "action_failed",
+				"message": "A action_failed failure."
+			},
+			"output": {
+				"stderr": "error action_failed: A action_failed failure.\nrecovery: Observe the current UI before deciding whether the action is safe to retry.\n",
+				"exitCode": 9
+			}
+		},
+		{
+			"name": "broker_unavailable",
+			"op": "error",
+			"input": {
+				"code": "broker_unavailable",
+				"message": "A broker_unavailable failure."
+			},
+			"output": {
+				"stderr": "error broker_unavailable: A broker_unavailable failure.\nrecovery: Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry.\n",
+				"exitCode": 10
+			}
+		},
+		{
+			"name": "helper_unavailable",
+			"op": "error",
+			"input": {
+				"code": "helper_unavailable",
+				"message": "A helper_unavailable failure."
+			},
+			"output": {
+				"stderr": "error helper_unavailable: A helper_unavailable failure.\nrecovery: Run 'bcu doctor', repair the helper it reports, then retry.\n",
+				"exitCode": 11
+			}
+		},
+		{
+			"name": "unsupported_platform",
+			"op": "error",
+			"input": {
+				"code": "unsupported_platform",
+				"message": "A unsupported_platform failure."
+			},
+			"output": {
+				"stderr": "error unsupported_platform: A unsupported_platform failure.\nrecovery: Run bcu in an interactive macOS desktop session.\n",
+				"exitCode": 12
+			}
+		},
+		{
+			"name": "state_too_large",
+			"op": "error",
+			"input": {
+				"code": "state_too_large",
+				"message": "A state_too_large failure."
+			},
+			"output": {
+				"stderr": "error state_too_large: A state_too_large failure.\nrecovery: Observe a smaller root or narrow the UI before retrying.\n",
+				"exitCode": 13
+			}
+		},
+		{
+			"name": "internal_error",
+			"op": "error",
+			"input": {
+				"code": "internal_error",
+				"message": "A internal_error failure."
+			},
+			"output": {
+				"stderr": "error internal_error: A internal_error failure.\nrecovery: Run 'bcu doctor' and retry. If it repeats, report the full error.\n",
+				"exitCode": 1
+			}
+		},
+		{
+			"name": "whitespace collapses",
+			"op": "error",
+			"input": {
+				"code": "stale_state",
+				"message": "  first line\n\tsecond line  "
+			},
+			"output": {
+				"stderr": "error stale_state: first line second line\nrecovery: Run observe-ui again and retry with the new stateId and refs.\n",
+				"exitCode": 3
+			}
+		},
+		{
+			"name": "empty message",
+			"op": "error",
+			"input": {
+				"code": "internal_error",
+				"message": "   "
+			},
+			"output": {
+				"stderr": "error internal_error: Unknown failure.\nrecovery: Run 'bcu doctor' and retry. If it repeats, report the full error.\n",
+				"exitCode": 1
+			}
+		},
+		{
+			"name": "custom recovery",
+			"op": "error",
+			"input": {
+				"code": "helper_unavailable",
+				"message": "Daemon lost.",
+				"recovery": "The action may already have taken effect."
+			},
+			"output": {
+				"stderr": "error helper_unavailable: Daemon lost.\nrecovery: The action may already have taken effect.\n",
+				"exitCode": 11
+			}
+		}
+	]
+}
