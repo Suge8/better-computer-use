@@ -5,7 +5,7 @@ import BCUCore
 import Foundation
 
 /// Bumped whenever a request or result changes shape; client and resident must agree.
-public let wireProtocolVersion = 1
+public let wireProtocolVersion = 2
 
 public enum RuntimePaths {
 	private static let caches = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Caches/bcu").path

@@ -9,7 +9,7 @@
 }
 ```
 
-`headless`（默认 `false`）把动作钉在后台无障碍语义上：禁用原始键鼠、窗口激活和前台回退。代价是很多应用的输入只有真实事件能触发，动作会更容易失败。单次收紧用 `bcu act-ui --headless`；全局开启后没有放宽它的参数。
+`headless`（默认 `false`）把动作钉在后台无障碍语义上：禁用原始键鼠、窗口激活和前台回退。代价是很多应用的输入只有真实事件能触发，动作会更容易失败。单次收紧用 `bcu act-ui --headless`；全局开启后没有放宽它的参数，`act-ui --foreground` 在 `headless` 下以 `invalid_arguments` 拒绝。
 
 `cursor_overlay`（默认 `true`）在指针动作时画一个不接收输入的 agent 光标。它不移动系统指针，也不延迟动作；`headless` 会关掉它。光标由常驻进程画，它启动时读取这项设置，改了之后运行 `bcu stop`，下一条命令按新设置启动。
 

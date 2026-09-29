@@ -137,6 +137,9 @@ public struct ActParams: Codable, Sendable, Equatable {
 	public var actions: [UiAction]
 	/// Prohibits foreground fallback when true. Background is always attempted first.
 	public var headless: Bool?
+	/// Starts the ladder at the foreground rung: the caller knows the app only reacts while
+	/// it is the front app, which bcu cannot tell from the outside.
+	public var foreground: Bool?
 	public var image: ImageMode?
 	public var expect: Expectation?
 }

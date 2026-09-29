@@ -118,6 +118,7 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 	.actUi: CommandSpec(summary: "Run a checked action array from stdin against one state and return the successor state.", arguments: "-", options: [
 		stateOption,
 		OptionSpec(flag: "--headless", key: "headless", kind: .flag, doc: "never activate, focus or move the pointer physically"),
+		OptionSpec(flag: "--foreground", key: "foreground", kind: .flag, doc: "start in the foreground: activate the app and use real input"),
 		imageOption,
 		OptionSpec(flag: "--expect-text", key: "expectText", kind: .string(nil), doc: "postcondition: this text must appear"),
 		OptionSpec(flag: "--expect-role", key: "expectRole", kind: .string(nil), doc: "postcondition: an element with this role must appear"),
@@ -258,6 +259,7 @@ private func actParams(_ parsed: ParsedOptions, stdin: () throws -> String) thro
 		stateId: stateId,
 		actions: try validateActions(readActions(try stdin())),
 		headless: parsed.flag("headless"),
+		foreground: parsed.flag("foreground"),
 		image: parsed.raw("image").flatMap(ImageMode.init(rawValue:)),
 		expect: expects ? Expectation(text: text, role: role, value: value, scope: scope, gone: gone, timeoutMs: timeoutMs) : nil
 	)

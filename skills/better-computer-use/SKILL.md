@@ -39,4 +39,5 @@ state e4441aa2 ← 937572b9 · worked via ax · value →hello · verified
 - 等待写进命令本身：`--expect-text` / `--expect-role` / `--expect-value` 加 `--scope @eN`，或独立用 `wait-for`；后一步不依赖中间 UI 时才把多个动作放进同一数组。
 - 非 0 退出码是失败，stderr 的 `recovery:` 就是下一步；`action_failed` 表示动作被证明无效或后置条件未满足；权限相关只走交互式 `bcu setup`。`action_timeout` 只说明条件没出现，动作可能已经生效——先观察再决定是否重试。
 - 自绘窗口（微信、Qt、游戏）没有无障碍内容时，视图里是 `ocr "文字" {press}` 节点：它们来自屏幕识别，只能 press；画面有变化时结果是 `worked via pid · screen changed`，没有变化时是 `unverified`——不要重按。这类窗口的结果末行 `image <path>` 是 bcu 已截的图，OCR 读不到的地方（空输入框、图标）看图用坐标 `{"action":"click","x":..,"y":..}`。
+- 后台动作到达了却缺了该有的反应（例如微信搜索框里字打进去了，结果下拉却不出现）：有的界面只在应用处于前台时才响应，bcu 看不出来，照常报 `unverified`。确认需要前台时，下一步改用 `bcu act-ui --foreground`，它会激活该应用、抢走用户的前台和键盘并移动真实指针；后台那一次多半已经生效（字已在框里），先看界面再决定做什么，不要原样重做。
 - 浏览器窗口按普通窗口操作；网页里只有认得出的滚动区域标 `{scroll}`，没标的网页元素照样可以 scroll。页面内部的导航、DOM 和 console 交给 `better-browser-use`。

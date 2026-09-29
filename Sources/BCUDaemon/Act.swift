@@ -96,6 +96,10 @@ extension Daemon {
 	func act(_ params: ActParams) async throws -> BCUCore.ActResult {
 		let actions = try validateActions(params.actions.map { try JSONCoding.encode($0) })
 		let headless = params.headless ?? false
+		let foreground = params.foreground ?? false
+		if headless && foreground {
+			throw BCUError(.invalidArguments, "--foreground contradicts headless, which forbids activating the app.")
+		}
 		let image = params.image ?? .never
 		if let expect = params.expect, trimmed(expect.text) == nil, trimmed(expect.role) == nil, trimmed(expect.value) == nil {
 			throw BCUError(.invalidArguments, "act-ui expectations require --expect-text, --expect-role, or --expect-value.")
@@ -159,7 +163,7 @@ extension Daemon {
 
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
 		let target = transaction.target
-		var execution = try await dispatch(transaction, count: actions.count, geometry: transaction.base.geometry, headless: headless)
+		var execution = try await dispatch(transaction, count: actions.count, geometry: transaction.base.geometry, headless: headless, startsInForeground: params.foreground ?? false)
 		if execution.rootClosed { return try await closedRoot(execution, target: target, params: params, image: image, lane: lane) }
 		let executed = Array(actions.prefix(execution.actionCount))
 		var verification = Verification(status: .none, evidence: execution.evidence)
@@ -201,7 +205,7 @@ extension Daemon {
 	/// Strictly headless arrays of platform actions go as one platform batch. Otherwise each
 	/// action climbs the ladder on its own, so a delivered background prefix is never replayed
 	/// in the foreground.
-	private func dispatch(_ transaction: Transaction, count: Int, geometry: LookGeometry, headless: Bool) async throws -> Execution {
+	private func dispatch(_ transaction: Transaction, count: Int, geometry: LookGeometry, headless: Bool, startsInForeground: Bool) async throws -> Execution {
 		let target = transaction.target
 		func request(_ action: ActAction, _ actTarget: ActTarget, _ input: ActionInput, _ policy: ActPolicy) -> ActRequest {
 			ActRequest(geometry: geometry, pid: target.pid, action: action, target: actTarget, params: input.delivered(policy == .foreground ? .hid : .pid), policy: policy)
@@ -268,24 +272,28 @@ extension Daemon {
 		return execution
 
 		/// The ladder of docs/architecture.md: background first; the foreground only after a
-		/// background rung proved it changed nothing (`didnt`) or refused as needing it.
+		/// background rung proved it changed nothing (`didnt`) or refused as needing it, or
+		/// when the caller asked to start there.
 		func climb(_ request: (ActPolicy) -> ActRequest) async throws -> Execution {
-			let first = request(headless ? .axOnly : .background)
 			let foreground = request(.foreground)
-			do {
-				let report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
-				if canRetryInForeground(report.outcome, headless: headless) {
-					return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, closedOut: target, headless: headless)
-				}
-				return Execution(report, closedOut: target, headless: headless)
-			} catch let refusal as ForegroundRequired {
-				guard !headless else { throw BCUError(.actionFailed, refusal.message) }
+			let first = request(headless ? .axOnly : .background)
+			func inForeground() async throws -> Execution {
 				do {
 					return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, closedOut: target, headless: headless)
 				} catch let refusal as ForegroundRequired {
 					throw BCUError(.actionFailed, refusal.message)
 				}
 			}
+			if startsInForeground { return try await inForeground() }
+			let report: ActionReport
+			do {
+				report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
+			} catch let refusal as ForegroundRequired {
+				guard !headless else { throw BCUError(.actionFailed, refusal.message) }
+				return try await inForeground()
+			}
+			if canRetryInForeground(report.outcome, headless: headless) { return try await inForeground() }
+			return Execution(report, closedOut: target, headless: headless)
 		}
 	}
 
