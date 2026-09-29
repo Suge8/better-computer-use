@@ -1284,10 +1284,8 @@
 				}
 			},
 			"output": {
-				"error": {
-					"stderr": "error internal_error: Cannot graft scoped outline: target @e99 is not in the current outline.\nrecovery: Run 'bcu doctor' and retry. If it repeats, report the full error.\n",
-					"exitCode": 1
-				}
+				"stderr": "error internal_error: Cannot graft scoped outline: target @e99 is not in the current outline.\nrecovery: Run 'bcu doctor' and retry. If it repeats, report the full error.\n",
+				"exitCode": 1
 			}
 		}
 	]

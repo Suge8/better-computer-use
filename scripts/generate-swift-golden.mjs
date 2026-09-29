@@ -144,7 +144,7 @@ const graftScoped = inline("look-graft-scope", { ref: "list", role: "AXList", ti
 	const target = outline.wireRefToRef.get("list");
 	const grafted = graftScopedOutline(outline, target, loadOutline(graftScoped));
 	add("outline", "graft keeps refs and appends new ones", "graft", { outline: graftBase, target, scoped: graftScoped }, { json: JSON.stringify({ ref: grafted.ref, outline: serializeOutline(outline) }) });
-	add("outline", "graft on a missing target", "graft", { outline: graftBase, target: "@e99", scoped: graftScoped }, { error: catching(() => graftScopedOutline(loadOutline(graftBase), "@e99", loadOutline(graftScoped))) });
+	add("outline", "graft on a missing target", "graft", { outline: graftBase, target: "@e99", scoped: graftScoped }, catching(() => graftScopedOutline(loadOutline(graftBase), "@e99", loadOutline(graftScoped))));
 }
 
 // projection.json: the agent view of the three real windows and the hand-built edge cases.
