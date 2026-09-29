@@ -1,10 +1,5 @@
 import AppKit
 
-struct AXDescendant {
-	let element: AXUIElement
-	let insideWebArea: Bool
-}
-
 extension Platform {
 	func ensureEnhancedAccessibility(pid: Int32) {
 		enhancedAccessibilityLock.lock()
@@ -30,38 +25,25 @@ extension Platform {
 		return ["chrome", "chromium", "brave", "edge", "vivaldi", "opera", "firefox", "helium"].contains { name.contains($0) }
 	}
 
+	/// The root and its descendants, breadth first, each element once.
 	func collectDescendants(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXUIElement] {
-		collectDescendantsWithContext(startingAt: root, maxDepth: maxDepth, maxNodes: maxNodes).map(\.element)
-	}
-
-	func collectDescendantsWithContext(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXDescendant] {
 		let nodeLimit = max(1, maxNodes)
-		var queue: [(element: AXUIElement, depth: Int, insideWebArea: Bool)] = [(root, 0, false)]
+		var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
 		var seen = Set<ObjectIdentifier>()
 		var index = 0
-		var output: [AXDescendant] = []
+		var output: [AXUIElement] = []
 		while index < queue.count && output.count < nodeLimit {
-			let (element, depth, parentInsideWebArea) = queue[index]
+			let (element, depth) = queue[index]
 			index += 1
-			let identity = ObjectIdentifier(element)
-			if seen.contains(identity) { continue }
-			seen.insert(identity)
-			let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
-			let insideWebArea = parentInsideWebArea || role == "AXWebArea"
-			output.append(AXDescendant(element: element, insideWebArea: insideWebArea))
+			guard seen.insert(ObjectIdentifier(element)).inserted else { continue }
+			output.append(element)
 			if depth >= maxDepth { continue }
 			for child in axElementArray(element, attribute: kAXChildrenAttribute as CFString) {
 				if queue.count >= nodeLimit { break }
-				queue.append((child, depth + 1, insideWebArea))
+				queue.append((child, depth + 1))
 			}
 		}
 		return output
-	}
-
-	func axSource(role: String, insideWebArea: Bool, isBrowser: Bool, containsWebArea: Bool) -> ElementSource {
-		if insideWebArea || role == "AXWebArea" { return .webContent }
-		if isBrowser || containsWebArea { return .browserChrome }
-		return .desktop
 	}
 
 	func frameForElement(_ element: AXUIElement) -> CGRect? {

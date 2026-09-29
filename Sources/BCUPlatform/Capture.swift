@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 import ImageIO
 import ScreenCaptureKit
 
@@ -22,7 +23,7 @@ extension Platform {
 				}
 				let shareable = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
 				guard let window = shareable.windows.first(where: { $0.windowID == windowId }) else {
-					throw PlatformError(message: "Window \(windowId) is not available for capture", code: "window_not_found")
+					throw BCUError(.windowStale, "Window \(windowId) is not available for capture")
 				}
 
 				let filter = SCContentFilter(desktopIndependentWindow: window)
@@ -46,24 +47,24 @@ extension Platform {
 			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
 				return payload
 			}
-			throw PlatformError(message: "Capture timed out while capturing window \(windowId)", code: "capture_timeout")
+			throw BCUError(.actionTimeout, "Capture timed out while capturing window \(windowId)")
 		}
 
 		if let error = capturedError.value {
 			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
 				return payload
 			}
-			if let failure = error as? PlatformError {
+			if let failure = error as? BCUError {
 				throw failure
 			}
-			throw PlatformError(message: "Capture failed: \(error.localizedDescription)", code: "capture_failed")
+			throw BCUError(.actionFailed, "Capture failed: \(error.localizedDescription)")
 		}
 
 		guard let image = capturedImage.value else {
 			if let payload = try cgWindowScreenshotFallback(windowId: windowId) {
 				return payload
 			}
-			throw PlatformError(message: "Capture failed", code: "capture_failed")
+			throw BCUError(.actionFailed, "Capture failed")
 		}
 
 		return CapturedWindowImage(image: image, windowId: windowId, frame: currentWindowBounds(windowId: windowId) ?? CGRect(x: 0, y: 0, width: image.width, height: image.height))

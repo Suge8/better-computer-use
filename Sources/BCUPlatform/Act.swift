@@ -1,17 +1,16 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	/// Delivers one action on the look's root and judges its outcome from the evidence; see
 	/// "投递梯子" and "Action transaction" in docs/architecture.md.
-	public func act(_ request: ActRequest) throws -> ActResult {
+	public func act(_ request: ActRequest) throws -> ActionReport {
 		try act(request, deferRootDelta: false)
 	}
 
 	/// `deferRootDelta` leaves the root changes to the batch that runs this step.
-	func act(_ request: ActRequest, deferRootDelta: Bool) throws -> ActResult {
-		guard let record = lookRecord(for: request.lookId) else {
-			throw PlatformError(message: "Look id '\(request.lookId)' is no longer available", code: "stale_look")
-		}
+	func act(_ request: ActRequest, deferRootDelta: Bool) throws -> ActionReport {
+		let record = request.geometry
 		let pid = request.pid
 		let action = request.action
 		let params = request.params
@@ -56,7 +55,7 @@ extension Platform {
 			if let subject = element ?? evidenceElement { beforeEvidence = evidenceSnapshot(subject) }
 		}
 		takeBaseline()
-		func finish(_ response: ActResult) -> ActResult {
+		func finish(_ response: ActionReport) -> ActionReport {
 			if deferRootDelta { return response }
 			var result = response
 			let observed = awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
@@ -79,9 +78,9 @@ extension Platform {
 		}
 
 		switch request.target {
-		case .ref(let ref):
+		case .element(let handle):
 			var refound = false
-			let cached = refStore.element(for: ref)
+			let cached = handle.elementRecord?.element.element
 			let cachedIsLive = cached.map {
 				stringAttribute($0, attribute: kAXRoleAttribute as CFString) != nil && frameForElement($0) != nil
 			} ?? false
@@ -89,7 +88,7 @@ extension Platform {
 			if cachedIsLive {
 				resolved = cached
 			} else {
-				resolved = refindElement(ref: ref, pid: pid, windowId: record.windowId)
+				resolved = handle.elementRecord.flatMap { refindElement($0.snapshot, pid: pid, windowId: record.windowId) }
 				refound = resolved != nil
 				// Geometry is missing for whole families of live elements — the menu bar of a
 				// background app draws nothing — so an element that still answers accessibility
@@ -97,7 +96,7 @@ extension Platform {
 				if resolved == nil, let cached, stringAttribute(cached, attribute: kAXRoleAttribute as CFString) != nil { resolved = cached }
 			}
 			guard let stored = resolved else {
-				throw PlatformError(message: "Element reference is stale", code: "stale_ref")
+				throw BCUError(.elementNotFound, "Element reference is stale")
 			}
 			if refound { performed.refound = true }
 			element = stored
@@ -105,9 +104,9 @@ extension Platform {
 			beforeEvidence = evidenceSnapshot(stored)
 		case .point(let x, let y):
 			guard record.hasImage else {
-				throw PlatformError(message: "Coordinate targeting is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
+				throw BCUError(.actionFailed, "Coordinate targeting is unavailable for this outline-only root")
 			}
-			let point = lookPoint(record: record, x: x, y: y)
+			let point = lookPoint(record, x: x, y: y)
 			rawPoint = point
 			// A plain click over a native discrete control takes the same ladder as its ref,
 			// starting from a background AXPress. Web content keeps the pointer: Chromium's own
@@ -129,7 +128,7 @@ extension Platform {
 			if let element, let frame = frameForElement(element) {
 				return CGPoint(x: frame.midX, y: frame.midY)
 			}
-			throw PlatformError(message: "No coordinate grounding is available", code: "coordinate_unavailable")
+			throw BCUError(.actionFailed, "No coordinate grounding is available")
 		}
 
 		func animateCursor(at point: CGPoint) {
@@ -179,7 +178,7 @@ extension Platform {
 				let observed = ensureRootObserver(pid: pid)
 				let cursor = rootEventCursor(pid: pid)
 				guard AXUIElementPerformAction(opener, kAXPressAction as CFString) == .success else {
-					throw PlatformError(message: "The menu holding '\(title)' did not open", code: "input_failed")
+					throw BCUError(.actionFailed, "The menu holding '\(title)' did not open")
 				}
 				// AppKit posts AXMenuOpened once the menu is validated and tracking; the menu's
 				// geometry can appear before that, so it is only the signal without an observer.
@@ -191,7 +190,7 @@ extension Platform {
 				let deadline = Date().addingTimeInterval(1.0)
 				while !isOpen() {
 					guard Date() < deadline else {
-						throw PlatformError(message: "The menu holding '\(title)' did not open", code: "input_failed")
+						throw BCUError(.actionFailed, "The menu holding '\(title)' did not open")
 					}
 					usleep(20_000)
 				}
@@ -200,7 +199,7 @@ extension Platform {
 			if opened != nil { performed.openedMenus = true }
 			if boolAttribute(item, attribute: kAXEnabledAttribute as CFString) == false {
 				_ = AXUIElementPerformAction(item, kAXCancelAction as CFString)
-				throw PlatformError(message: "The menu item '\(title)' is disabled", code: "element_disabled")
+				throw BCUError(.actionFailed, "The menu item '\(title)' is disabled")
 			}
 			return opened
 		}
@@ -244,13 +243,14 @@ extension Platform {
 					usleep(20_000)
 					continue
 				}
-				throw PlatformError(message: "Target is occluded by \(describedNode(hit).wireObject())", code: "occluded_target")
+				let label = stringAttribute(hit, attribute: kAXTitleAttribute as CFString) ?? ""
+				throw BCUError(.actionFailed, "Target is occluded by \(role.isEmpty ? "an element" : role)\(label.isEmpty ? "" : " '\(label)'")")
 			}
 		}
 
 		func executeCoordinates(_ point: CGPoint) throws {
 			guard element != nil || record.hasImage else {
-				throw PlatformError(message: "Coordinate grounding is unavailable for this outline-only root", code: "coordinate_unavailable_for_root")
+				throw BCUError(.actionFailed, "Coordinate grounding is unavailable for this outline-only root")
 			}
 			performed.grounding = .coordinates
 			if delivery == .pid { performed.callerMustVerify = true }
@@ -290,18 +290,19 @@ extension Platform {
 				try postScrollWheel(at: point, deltaX: params.scrollX, deltaY: params.scrollY, pid: pid, route: route, delivery: delivery)
 			case .drag:
 				guard let path = params.path, path.count >= 2 else {
-					throw PlatformError(message: "drag requires path", code: "invalid_args")
+					throw BCUError(.invalidArguments, "drag requires path")
 				}
 				animateCursor(at: point)
-				try postMouseDrag(points: path.map { lookPoint(record: record, x: $0.x, y: $0.y) }, pid: pid, delivery: delivery)
+				try postMouseDrag(points: path.map { lookPoint(record, x: $0.x, y: $0.y) }, pid: pid, delivery: delivery)
 			case .setText, .typeText, .keypress:
-				throw PlatformError(message: "Action \(action.rawValue) cannot use coordinate grounding", code: "invalid_args")
+				throw BCUError(.invalidArguments, "Action \(action.rawValue) cannot use coordinate grounding")
 			}
 		}
 
 		func refreshElement() -> AXUIElement? {
-			guard case .ref(let ref) = request.target,
-				let refreshed = refindElement(ref: ref, pid: pid, windowId: record.windowId)
+			guard case .element(let handle) = request.target,
+				let snapshot = handle.elementRecord?.snapshot,
+				let refreshed = refindElement(snapshot, pid: pid, windowId: record.windowId)
 			else { return nil }
 			element = refreshed
 			performed.refound = true
@@ -309,7 +310,7 @@ extension Platform {
 		}
 
 		/// Judges the outcome on the evidence rules; see docs/architecture.md.
-		func verdict() -> ActResult {
+		func verdict() -> ActionReport {
 			let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
 			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
 			var outcome = ActOutcome.unknown
@@ -325,10 +326,10 @@ extension Platform {
 					// The pointer provably reached this element and it now holds keyboard focus:
 					// a click that only places a caret leaves no other trace.
 					outcome = .worked
-					verification = ActEvidence(source: .focus, field: "focused")
+					verification = ActEvidence(source: .focus, field: .focused)
 				} else if pressLike, after != nil, before["value"] != nil, isToggleLike(subject) {
 					outcome = .didnt
-					verification = ActEvidence(source: .ax, field: "value", from: evidenceExcerpt(before["value"] ?? ""), to: evidenceExcerpt(before["value"] ?? ""))
+					verification = ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(before["value"] ?? ""), to: evidenceExcerpt(before["value"] ?? ""))
 				}
 			}
 			if outcome == .unknown, windowChanged {
@@ -338,9 +339,9 @@ extension Platform {
 			// Weakest evidence, and the slowest to read: only for a subject with no AX fact.
 			if outcome == .unknown, let screenBefore, screenChanged(before: screenBefore, windowId: record.windowId) {
 				outcome = .worked
-				verification = ActEvidence(source: .screen, field: "changed")
+				verification = ActEvidence(source: .screen, field: .changed)
 			}
-			return ActResult(outcome: outcome, performed: performed, verification: verification)
+			return ActionReport(outcome: outcome, performed: performed, verification: verification)
 		}
 
 		if let element, pressLike {
@@ -358,13 +359,13 @@ extension Platform {
 			// Headless (`ax_only`) may not activate, so it gets the refusal as well instead of a
 			// press that silently does nothing.
 			if requiresFrontmost && policy != .foreground {
-				throw PlatformError(message: "The menu bar only answers in the frontmost app", code: "foreground_required")
+				throw ForegroundRequired(message: "The menu bar only answers in the frontmost app")
 			}
 			if requiresPointerFocus && policy != .axOnly {
 				if policy == .foreground {
 					try executeCoordinates(coordinatePoint())
 				} else {
-					throw PlatformError(message: "Text input needs the real pointer to place its caret", code: "foreground_required")
+					throw ForegroundRequired(message: "Text input needs the real pointer to place its caret")
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { activateForMenuBar(element) }
@@ -407,12 +408,12 @@ extension Platform {
 				performed.delivery = .ax
 				let value = stringAttribute(targetElement, attribute: kAXValueAttribute as CFString) ?? ""
 				if value != text && policy != .foreground {
-					throw PlatformError(message: "The background accessibility value write was accepted but did not take effect", code: "foreground_required")
+					throw ForegroundRequired(message: "The background accessibility value write was accepted but did not take effect")
 				}
-				return finish(ActResult(
+				return finish(ActionReport(
 					outcome: value == text ? .worked : .didnt,
 					performed: performed,
-					verification: ActEvidence(source: .ax, field: "value", from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
+					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
 				))
 			}
 			try executeCoordinates(coordinatePoint())
@@ -432,17 +433,17 @@ extension Platform {
 				usleep(30_000)
 				let beforeValue = beforeEvidence?["value"] ?? ""
 				let afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
-				return finish(ActResult(
+				return finish(ActionReport(
 					outcome: afterValue != beforeValue ? .worked : .didnt,
 					performed: performed,
-					verification: ActEvidence(source: .ax, field: "value", from: evidenceExcerpt(beforeValue), to: evidenceExcerpt(afterValue))
+					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeValue), to: evidenceExcerpt(afterValue))
 				))
 			}
 		} else if action == .keypress {
 			let preserveFocus = params.preserveFocus
 			let keys = params.keys
 			guard !keys.isEmpty else {
-				throw PlatformError(message: "keypress requires keys", code: "invalid_args")
+				throw BCUError(.invalidArguments, "keypress requires keys")
 			}
 			try focusTargetForBackgroundInput()
 			if let element {
@@ -483,10 +484,10 @@ extension Platform {
 			// Web content reports the new offset a frame or two after the wheel turn.
 			let deadline = Date().addingTimeInterval(0.3)
 			while before == scrollPositionSignature(element) {
-				guard Date() < deadline else { return finish(ActResult(outcome: .unknown, performed: performed)) }
+				guard Date() < deadline else { return finish(ActionReport(outcome: .unknown, performed: performed)) }
 				usleep(20_000)
 			}
-			return finish(ActResult(outcome: .worked, performed: performed, verification: ActEvidence(source: .ax, field: "scroll")))
+			return finish(ActionReport(outcome: .worked, performed: performed, verification: ActEvidence(source: .ax, field: .scroll)))
 		} else {
 			try executeCoordinates(coordinatePoint())
 		}
@@ -496,16 +497,13 @@ extension Platform {
 
 	/// Delivers up to 20 actions on one look as a transaction: one resource lock, one root
 	/// baseline, and a stop at the first step that provably did nothing or failed.
-	public func actBatch(_ requests: [ActRequest]) throws -> ActBatchResult {
+	public func actBatch(_ requests: [ActRequest]) throws -> BatchReport {
 		guard let first = requests.first, requests.count <= 20 else {
-			throw PlatformError(message: "actBatch requires 1...20 actions", code: "invalid_args")
+			throw BCUError(.invalidArguments, "A batch needs 1 to 20 actions")
 		}
 		let pid = first.pid
 		guard requests.allSatisfy({ $0.pid == pid }) else {
-			throw PlatformError(message: "actBatch actions must target one pid", code: "invalid_args")
-		}
-		guard requests.allSatisfy({ $0.lookId == first.lookId }) else {
-			throw PlatformError(message: "actBatch actions must belong to one look", code: "invalid_args")
+			throw BCUError(.invalidArguments, "Batched actions must target one app")
 		}
 		let eventsLive = ensureRootObserver(pid: pid)
 		let eventCursor = eventsLive ? rootEventCursor(pid: pid) : 0
@@ -523,15 +521,19 @@ extension Platform {
 				let step = try act(request, deferRootDelta: true)
 				steps.append(.completed(step))
 				if step.outcome == .didnt { stoppedAt = index; break }
-			} catch let failure as PlatformError {
-				steps.append(.failed(failure))
+			} catch let failure as BCUError {
+				steps.append(.failed(message: failure.message))
+				stoppedAt = index
+				break
+			} catch let refusal as ForegroundRequired {
+				steps.append(.failed(message: refusal.message))
 				stoppedAt = index
 				break
 			}
 		}
 		let outcomes = steps.map(\.outcome)
 		let observed = awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventsLive: eventsLive, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
-		var result = ActBatchResult(
+		var result = BatchReport(
 			outcome: outcomes.contains(.didnt) ? .didnt : (outcomes.contains(.unknown) ? .unknown : .worked),
 			steps: steps,
 			stoppedAt: stoppedAt,

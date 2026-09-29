@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	/// The facts an element tells about itself, in the order they are reported.
@@ -35,7 +36,7 @@ extension Platform {
 			let from = before[entry.field] ?? ""
 			let to = after[entry.field] ?? ""
 			guard from != to else { continue }
-			return ActEvidence(source: .ax, field: entry.field, from: evidenceExcerpt(from), to: evidenceExcerpt(to))
+			return ActEvidence(source: .ax, field: ActEvidence.Field(rawValue: entry.field), from: evidenceExcerpt(from), to: evidenceExcerpt(to))
 		}
 		return nil
 	}

@@ -1,4 +1,5 @@
 import Vision
+import BCUCore
 
 extension Platform {
 	/// Without languages Vision reads Latin script only, and a Chinese interface comes back empty.
@@ -30,10 +31,10 @@ extension Platform {
 		request.usesLanguageCorrection = false
 		try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
 		if semaphore.wait(timeout: .now() + .seconds(8)) == .timedOut {
-			throw PlatformError(message: "Text recognition timed out", code: "text_recognition_timeout")
+			throw BCUError(.actionTimeout, "Text recognition timed out")
 		}
 		if let error = recognizedError.value {
-			throw PlatformError(message: "Text recognition failed: \(error.localizedDescription)", code: "text_recognition_failed")
+			throw BCUError(.actionFailed, "Text recognition failed: \(error.localizedDescription)")
 		}
 		return recognized.value
 	}

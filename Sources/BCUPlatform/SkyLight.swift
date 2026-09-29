@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 import CoreGraphics
 import Darwin
 
@@ -52,7 +53,7 @@ enum SkyLight {
 
 	private static func require() throws -> Symbols {
 		guard let symbols else {
-			throw PlatformError(message: "Background input is unavailable: SkyLight entry points did not resolve on this macOS", code: "foreground_required")
+			throw ForegroundRequired(message: "Background input is unavailable: SkyLight entry points did not resolve on this macOS")
 		}
 		return symbols
 	}
@@ -132,7 +133,7 @@ enum SkyLight {
 		let (down, up) = mouseTypes(button)
 		func send(_ type: CGEventType, at location: CGPoint, phase: Int64, clickState: Int64) throws {
 			guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: location, mouseButton: button) else {
-				throw PlatformError(message: "Failed to create mouse event", code: "input_failed")
+				throw BCUError(.actionFailed, "Failed to create mouse event")
 			}
 			post(event, along: route, at: location, fields: [
 				(Field.phase, phase), (Field.clickState, clickState), (Field.buttonNumber, Int64(button.rawValue)),
@@ -159,7 +160,7 @@ enum SkyLight {
 		let symbols = try require()
 		guard let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left),
 			let wheel = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2, wheel1: Int32(-deltaY), wheel2: Int32(deltaX), wheel3: 0)
-		else { throw PlatformError(message: "Failed to create scroll event", code: "input_failed") }
+		else { throw BCUError(.actionFailed, "Failed to create scroll event") }
 		wheel.location = point
 		post(move, along: route, at: point, fields: [], symbols: symbols)
 		usleep(15_000)
@@ -181,14 +182,14 @@ enum SkyLight {
 		var psn = ProcessSerialNumber()
 		guard symbols.windowOwner(symbols.mainConnection(), windowId, &owner) == 0,
 			symbols.connectionPSN(owner, &psn) == 0
-		else { throw PlatformError(message: "Could not resolve the process of window \(windowId)", code: "foreground_required") }
+		else { throw ForegroundRequired(message: "Could not resolve the process of window \(windowId)") }
 		var record = [UInt8](repeating: 0, count: 0xF8)
 		record[0x04] = 0xF8
 		record[0x08] = kind
 		withUnsafeBytes(of: window.littleEndian) { record.replaceSubrange(0x3C..<0x40, with: $0) }
 		fill(&record)
 		guard symbols.postEventRecord(&psn, record) == 0 else {
-			throw PlatformError(message: "WindowServer refused to focus window \(windowId)", code: "foreground_required")
+			throw ForegroundRequired(message: "WindowServer refused to focus window \(windowId)")
 		}
 	}
 

@@ -299,6 +299,13 @@ public struct ActEvidence: Codable, Sendable, Equatable {
 	public var field: Field?
 	public var from: String?
 	public var to: String?
+
+	public init(source: Source, field: Field? = nil, from: String? = nil, to: String? = nil) {
+		self.source = source
+		self.field = field
+		self.from = from
+		self.to = to
+	}
 }
 
 public struct Verification: Codable, Sendable, Equatable {

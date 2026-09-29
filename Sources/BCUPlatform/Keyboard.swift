@@ -1,4 +1,5 @@
 import AppKit
+import BCUCore
 
 extension Platform {
 	func modifierFlag(_ key: String) -> CGEventFlags? {
@@ -79,12 +80,12 @@ extension Platform {
 				try postUnicodeText(key, pid: pid, delivery: delivery)
 				return
 			}
-			throw PlatformError(message: "Unsupported key '\(key)'", code: "invalid_args")
+			throw BCUError(.invalidArguments, "Unsupported key '\(key)'")
 		}
 		guard let down = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true),
 			let up = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: false)
 		else {
-			throw PlatformError(message: "Failed to create key event", code: "input_failed")
+			throw BCUError(.actionFailed, "Failed to create key event")
 		}
 		down.flags = flags
 		up.flags = flags
@@ -102,7 +103,7 @@ extension Platform {
 			guard let down = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: true),
 				let up = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: false)
 			else {
-				throw PlatformError(message: "Failed to create unicode key event", code: "input_failed")
+				throw BCUError(.actionFailed, "Failed to create unicode key event")
 			}
 			for event in [down, up] {
 				setUnicodeString(event: event, text: String(character))

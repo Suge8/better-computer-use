@@ -7,7 +7,7 @@ import Testing
 // the element that holds them.
 struct LookOutlineTests {
 	private func node(_ ref: String, role: String, subrole: String = "", title: String = "", value: String = "", rect: CGRect, children: [LookNode] = []) -> LookNode {
-		let node = LookNode(element: nil, ref: ref, role: role, subrole: subrole, identifier: "", title: title, description: "", value: value, actions: [], canPress: role == "AXButton", canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: rect)
+		let node = LookNode(handle: nil, name: ref, role: role, subrole: subrole, identifier: "", title: title, description: "", value: value, actions: [], canPress: role == "AXButton", canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: rect)
 		node.children = children
 		return node
 	}
