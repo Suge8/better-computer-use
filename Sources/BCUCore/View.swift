@@ -221,6 +221,16 @@ public func fullView(_ outline: Outline) -> SuccessorView {
 	return SuccessorView(nodes: folded.nodes, shown: folded.shown, total: folded.total)
 }
 
+/// An act-ui result carries the view of a root it opened, so the view is held to this many
+/// nodes; search-ui over the root's stateId reaches what it leaves out.
+private let openedViewMaxNodes = 60
+
+/// The view of a root an action opened: the observe-ui view under a node budget.
+public func openedView(_ outline: Outline) -> SuccessorView {
+	let folded = project(outline, ProjectOptions(maxNodes: openedViewMaxNodes))
+	return SuccessorView(nodes: folded.nodes, shown: folded.shown, total: folded.total)
+}
+
 /// Successor view of a state transition: a diff when identity holds, the full view otherwise.
 /// `menusOpenedByBcu`: bcu opened and closed menus to act, so the menu tree it moved is not news.
 public func successorView(base: Outline, next: Outline, menusOpenedByBcu: Bool = false) -> SuccessorView {
