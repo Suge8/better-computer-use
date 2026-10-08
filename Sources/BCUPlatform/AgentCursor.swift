@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+/// `bcu serve` selects the motion once, before it serves: the overlay is one per process.
+@MainActor
+public func selectAgentCursorMotion(_ motion: CursorMotion) {
+	AgentCursorRenderer.shared.motion = motion
+}
+
 /// Visual-only cursor; native action delivery remains authoritative.
 @MainActor
 final class AgentCursor {
@@ -17,7 +23,10 @@ final class AgentCursor {
         self.scheduleIdleHide = scheduleIdleHide
     }
 
-    func animate(to point: CGPoint, above windowId: UInt32) {
+    /// Never waits for the motion: the action is delivered while the cursor travels. `target`
+    /// is the element's frame when known (Fitts timing, adaptive dispatch and the magnet glow
+    /// assume a 24 pt box without it); a press or click plays the click effects on arrival.
+    func animate(to point: CGPoint, above windowId: UInt32, action: ActAction? = nil, target: CGRect? = nil) {
         idleHideTask?.cancel()
         idleHideTask = nil
         idleGeneration &+= 1
@@ -27,14 +36,19 @@ final class AgentCursor {
         window.order(.above, relativeTo: Int(windowId))
 
         let renderer = AgentCursorRenderer.shared
-        if renderer.position.x < -100 {
+        if !renderer.isPlaced {
             let frame = NSScreen.main?.frame ?? .zero
             renderer.setInitialPosition(CGPoint(
                 x: min(max(point.x - 140, frame.minX + 2), frame.maxX - 2),
                 y: min(max(point.y - 140, frame.minY + 2), frame.maxY - 2)
             ))
         }
-        renderer.moveTo(point: point)
+        renderer.moveTo(
+            point: point,
+            target: target,
+            clicks: action == .press || action == .click,
+            reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        )
 
         let generation = idleGeneration
         idleHideTask = scheduleIdleHide { [weak self, weak window] in
@@ -105,21 +119,84 @@ private struct AgentCursorView: View {
     }
 
     private func drawCursor(in graphics: GraphicsContext) {
-        let point = renderer.position
-        guard point.x > -100 else { return }
+        guard renderer.isPlaced else { return }
+        let effects = renderer.effects
+        drawEffectsUnder(effects, in: graphics)
+        drawArrow(in: graphics, squish: effects.squish)
+        if let ripple = effects.ripple {
+            let circle = Path(ellipseIn: CGRect(x: ripple.center.x - ripple.radius, y: ripple.center.y - ripple.radius, width: ripple.radius * 2, height: ripple.radius * 2))
+            graphics.stroke(circle, with: .color(Self.effectColor.opacity(ripple.alpha)), lineWidth: ripple.width)
+        }
+    }
 
-        let bloom = Color(nsColor: NSColor(red: 1, green: 0x78 / 255, blue: 0x18 / 255, alpha: 1))
-        let radius: CGFloat = 22
+    private static let fill = Color(red: 1, green: 0x78 / 255, blue: 0x18 / 255)
+    /// The fill lifted 45% toward white, like cua's effect colour.
+    private static let effectColor = Color(red: 1, green: 0xB5 / 255, blue: 0x80 / 255)
+
+    private func drawEffectsUnder(_ effects: CursorEffectFrame, in graphics: GraphicsContext) {
+        if let glow = effects.glow {
+            graphics.fill(
+                Path(ellipseIn: CGRect(x: glow.center.x - glow.radius, y: glow.center.y - glow.radius, width: glow.radius * 2, height: glow.radius * 2)),
+                with: .radialGradient(Gradient(colors: [Self.effectColor.opacity(glow.alpha), Self.effectColor.opacity(0)]), center: glow.center, startRadius: 0, endRadius: glow.radius)
+            )
+        }
+        for segment in effects.trail {
+            var line = Path()
+            line.move(to: segment.from)
+            line.addLine(to: segment.to)
+            graphics.stroke(line, with: .color(Self.effectColor.opacity(segment.alpha)), style: StrokeStyle(lineWidth: segment.width, lineCap: .round))
+        }
+        if let magnet = effects.magnet {
+            let rect = magnet.rect.insetBy(dx: -magnetInflate, dy: -magnetInflate)
+            let outline = Path(roundedRect: rect, cornerRadius: min(8, rect.width / 2, rect.height / 2))
+            // Wide faint strokes stand in for a blur.
+            for (width, alpha) in [(14.0, 0.10), (8.0, 0.22), (3.0, 0.9)] {
+                graphics.stroke(outline, with: .color(Self.effectColor.opacity(alpha * magnet.strength)), lineWidth: width)
+            }
+        }
+    }
+
+    /// The arrow is drawn around its body point, 16 pt behind the hotspot; a squish scales it
+    /// about the hotspot.
+    private func drawArrow(in graphics: GraphicsContext, squish: Double) {
+        let scale = 1 - squish
+        let hotspot = renderer.hotspot
+        let body = anchor(hotspot, heading: renderer.heading)
+        let point = CGPoint(x: hotspot.x + (body.x - hotspot.x) * scale, y: hotspot.y + (body.y - hotspot.y) * scale)
+
+        let radius = 22 * scale
         graphics.fill(
             Path(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)),
             with: .radialGradient(
-                Gradient(colors: [bloom.opacity(0.55), bloom.opacity(0.15), bloom.opacity(0)]),
+                Gradient(colors: [Self.fill.opacity(0.55), Self.fill.opacity(0.15), Self.fill.opacity(0)]),
                 center: point,
                 startRadius: 0,
                 endRadius: radius
             )
         )
 
+        let transformed = Self.arrow.applying(
+            CGAffineTransform(translationX: point.x, y: point.y)
+                .rotated(by: CGFloat(renderer.heading + .pi))
+                .scaledBy(x: scale, y: scale)
+        )
+        graphics.fill(
+            transformed,
+            with: .linearGradient(
+                Gradient(colors: [
+                    Color(red: 1, green: 0xD0 / 255, blue: 0x76 / 255),
+                    Self.fill,
+                    Color(red: 0xE8 / 255, green: 0x4A / 255, blue: 0x0C / 255),
+                ]),
+                startPoint: CGPoint(x: point.x + 14, y: point.y - 9),
+                endPoint: CGPoint(x: point.x - 8, y: point.y + 9)
+            )
+        )
+        graphics.stroke(transformed, with: .color(.white), lineWidth: 2)
+    }
+
+    /// Tip at (14, 0), body at the origin, corners rounded.
+    private static let arrow: Path = {
         let points = [
             CGPoint(x: 14, y: 0),
             CGPoint(x: -8, y: -9),
@@ -137,23 +214,6 @@ private struct AgentCursorView: View {
             shape.addQuadCurve(to: exit, control: current)
         }
         shape.closeSubpath()
-
-        let transformed = shape.applying(
-            CGAffineTransform(translationX: point.x, y: point.y)
-                .rotated(by: CGFloat(renderer.heading + .pi))
-        )
-        graphics.fill(
-            transformed,
-            with: .linearGradient(
-                Gradient(colors: [
-                    Color(red: 1, green: 0xD0 / 255, blue: 0x76 / 255),
-                    Color(red: 1, green: 0x78 / 255, blue: 0x18 / 255),
-                    Color(red: 0xE8 / 255, green: 0x4A / 255, blue: 0x0C / 255),
-                ]),
-                startPoint: CGPoint(x: point.x + 14, y: point.y - 9),
-                endPoint: CGPoint(x: point.x - 8, y: point.y + 9)
-            )
-        )
-        graphics.stroke(transformed, with: .color(.white), lineWidth: 2)
-    }
+        return shape
+    }()
 }

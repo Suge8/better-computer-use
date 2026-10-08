@@ -19,7 +19,7 @@ let package = Package(
 		.target(name: "BCURuntime", dependencies: ["BCUCore"]),
 		.target(name: "BCUPlatform", dependencies: ["BCUCore"]),
 		.target(name: "BCUDaemon", dependencies: ["BCUCore", "BCURuntime", "BCUPlatform"]),
-		.executableTarget(name: "bcu", dependencies: ["BCUDaemon", "BCURuntime", "BCUCore"]),
+		.executableTarget(name: "bcu", dependencies: ["BCUDaemon", "BCUPlatform", "BCURuntime", "BCUCore"]),
 		.target(name: "BCUTestSupport", path: "Tests/Support"),
 		.testTarget(name: "BCUDaemonTests", dependencies: ["BCUDaemon", "BCUPlatform", "BCUTestSupport"]),
 		.testTarget(name: "BCUCoreTests", dependencies: ["BCUCore"], exclude: ["Golden"]),
