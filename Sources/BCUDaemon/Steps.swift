@@ -19,7 +19,7 @@ enum Step: Sendable {
 	case wait(ms: Int)
 	case deliver(ResolvedStep)
 	/// Names its element; found in a fresh look of its root when it runs.
-	case locate(UiAction)
+	case locate(UiAction, Locator)
 }
 
 struct PlannedStep: Sendable {
@@ -62,13 +62,11 @@ extension Daemon {
 
 	/// Looks at the root the locator names until it holds exactly one match, and prepares the
 	/// action on it. A miss is awaited; ambiguity is not.
-	func locateStep(_ action: UiAction, index: Int, count: Int, base: Target, trail: Trail, headless: Bool) async throws -> ResolvedStep {
-		guard let locator = action.find else { throw BCUError(.internalError, "Step \(index + 1) has no locator.") }
-		let timeoutMs = locator.timeoutMs ?? defaultLocateTimeoutMs
-		let clock = Countdown(timeoutMs: timeoutMs)
+	func locateStep(_ action: UiAction, _ locator: Locator, index: Int, count: Int, base: Target, trail: Trail, headless: Bool) async throws -> ResolvedStep {
+		let clock = Countdown(timeoutMs: locator.timeoutMs ?? defaultLocateTimeoutMs)
+		var miss: BCUError?
 		return try await inStep(index, count) {
-			while true {
-				let watch = await self.watch(base.pid)
+			try await self.awaiting(pid: base.pid, clock, timeout: { miss ?? BCUError(.elementNotFound, "Locator matched nothing.") }) {
 				let root = try await self.rootTarget(locator.root ?? .state, base: base, trail: trail, timeoutMs: clock.remainingMs)
 				let observation = try await self.capture(root).observation
 				let outline = observation.outline.outline()
@@ -81,8 +79,8 @@ extension Daemon {
 					return try self.resolvedStep(prepared, outline: outline, observation: observation, root: root)
 				case .ambiguous(let error): throw error
 				case .missing(let error):
-					guard clock.remainingMs > 0 else { throw error }
-					try await self.settle(watch, pid: base.pid, ms: min(clock.remainingMs, lookCapMs))
+					miss = error
+					return nil
 				}
 			}
 		}
@@ -139,40 +137,41 @@ extension Daemon {
 	}
 
 	private func openedRoot(base: Target, trail: Trail, timeoutMs: Int) async throws -> Target {
-		let clock = Countdown(timeoutMs: timeoutMs)
-		while true {
-			let watch = await self.watch(base.pid)
+		let missing = BCUError(.elementNotFound, "No root was opened by the earlier steps of this array.", recovery: "Check that the earlier step opens a dialog, menu or window, or raise the timeoutMs of this step.")
+		return try await awaiting(pid: base.pid, Countdown(timeoutMs: timeoutMs), timeout: { missing }) {
 			let live = try await roots(pid: base.pid)
 			let reported = trail.appeared.reversed().lazy.compactMap { step in mostProminent(live.filter { root in step.contains { $0.handle == root.handle } }) }.first
-			if let opened = reported ?? mostProminent(live.filter { !trail.known.contains($0.handle) }) {
-				return target(opened, appName: base.appName, bundleId: base.bundleId)
-			}
-			guard clock.remainingMs > 0 else {
-				throw BCUError(.elementNotFound, "No root was opened by the earlier steps of this array.", recovery: "Check that the earlier step opens a dialog, menu or window, or raise the timeoutMs of this step.")
-			}
-			try await settle(watch, pid: base.pid, ms: min(clock.remainingMs, lookCapMs))
+			return (reported ?? mostProminent(live.filter { !trail.known.contains($0.handle) })).map { target($0, appName: base.appName, bundleId: base.bundleId) }
 		}
 	}
 
 	// MARK: waiting between looks
 
-	struct Watch: Sendable {
-		let mark: ChangeMark?
-		let failure: BCUError?
-	}
-
-	/// Taken before a look; an app that accepts no observer fails only when a wait is needed.
-	func watch(_ pid: Int32) async -> Watch {
-		do {
-			return Watch(mark: try await offload { [desktop = self.desktop] in try desktop.changeMark(pid: pid) }, failure: nil)
-		} catch {
-			return Watch(mark: nil, failure: BCUError.normalize(error))
+	/// Tries `attempt` until it gives something, looking again after the app's next change; the
+	/// error of `timeout` ends the wait. The change mark is taken before each attempt, so a
+	/// change made during it ends the wait at once. An app that accepts no observer fails only
+	/// when a wait is needed.
+	private func awaiting<T: Sendable>(pid: Int32, _ clock: Countdown, timeout: () -> BCUError, _ attempt: () async throws -> T?) async throws -> T {
+		while true {
+			let mark: Result<ChangeMark, BCUError>
+			do {
+				mark = .success(try await offload { [desktop = self.desktop] in try desktop.changeMark(pid: pid) })
+			} catch {
+				mark = .failure(BCUError.normalize(error))
+			}
+			if let found = try await attempt() { return found }
+			guard clock.remainingMs > 0 else { throw timeout() }
+			let ms = min(clock.remainingMs, lookCapMs)
+			let since = try mark.get()
+			try await offload { [desktop = self.desktop] in try desktop.waitForChange(pid: pid, since: since, timeoutMs: ms) }
 		}
 	}
 
-	func settle(_ watch: Watch, pid: Int32, ms: Int) async throws {
-		guard let mark = watch.mark else { throw watch.failure ?? BCUError(.internalError, "A watch has neither a mark nor a failure.") }
-		try await offload { [desktop = self.desktop] in try desktop.waitForChange(pid: pid, since: mark, timeoutMs: ms) }
+	/// Whether the condition holds in `root` within the timeout, waited for on the app's notifications.
+	func conditionHolds(_ expect: Expectation, in root: Target, scope: Handle? = nil, timeoutMs: Int) async throws -> Bool {
+		let request = WaitForRequest(pid: root.pid, root: root.root.handle, role: trimmed(expect.role), text: trimmed(expect.text), value: trimmed(expect.value), gone: expect.gone == true, scope: scope, timeoutMs: timeoutMs)
+		let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
+		return outcome == .found || outcome == .gone
 	}
 
 	// MARK: a step's own postcondition
@@ -190,9 +189,7 @@ extension Daemon {
 				}
 				return
 			}
-			let request = WaitForRequest(pid: root.pid, root: root.root.handle, role: trimmed(expect.role), text: trimmed(expect.text), value: trimmed(expect.value), gone: expect.gone == true, timeoutMs: timeoutMs)
-			let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
-			guard outcome == .found || outcome == .gone else {
+			guard try await self.conditionHolds(expect, in: root, timeoutMs: timeoutMs) else {
 				throw BCUError(.actionFailed, "The step was delivered but its postcondition was not satisfied within \(timeoutMs)ms.", recovery: "Observe the current UI before deciding whether the step is safe to retry.")
 			}
 		}

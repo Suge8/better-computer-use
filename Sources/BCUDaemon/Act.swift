@@ -127,10 +127,10 @@ extension Daemon {
 		var steps: [PlannedStep] = []
 		for (index, action) in actions.enumerated() {
 			let step: Step
-			if action.find != nil {
+			if let locator = action.find {
 				step = index == 0
-					? .deliver(try await locateStep(action, index: 0, count: actions.count, base: target, trail: Trail(known: known), headless: headless))
-					: .locate(action)
+					? .deliver(try await locateStep(action, locator, index: 0, count: actions.count, base: target, trail: Trail(known: known), headless: headless))
+					: .locate(action, locator)
 			} else {
 				let prepared = try prepareAction(action, state: focus, environment: environment)
 				if prepared.establishesFocus { focus.currentFocus = true }
@@ -247,8 +247,8 @@ extension Daemon {
 				case .deliver(let step):
 					acted = step.root
 					result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
-				case .locate(let action):
-					let step = try await locateStep(action, index: index, count: count, base: target, trail: trail, headless: headless)
+				case .locate(let action, let locator):
+					let step = try await locateStep(action, locator, index: index, count: count, base: target, trail: trail, headless: headless)
 					acted = step.root
 					result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
 				}
@@ -320,10 +320,7 @@ extension Daemon {
 		let presentBefore = searchOutline(outline, text: text, role: role).contains { match in
 			inScope.contains(ObjectIdentifier(match)) && (value == nil || normalized(match.value) == normalized(value))
 		}
-		let target = transaction.target
-		let request = WaitForRequest(pid: target.pid, root: target.root.handle, role: role, text: text, value: value, gone: gone, scope: transaction.scope, timeoutMs: timeoutMs)
-		let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
-		guard outcome == .found || outcome == .gone else {
+		guard try await conditionHolds(expect, in: transaction.target, scope: transaction.scope, timeoutMs: timeoutMs) else {
 			execution.outcome = outcomeAfterCheck(execution.outcome, .failed)
 			throw BCUError(.actionFailed, "The action was delivered but its postcondition was not satisfied within \(timeoutMs)ms\(scope.map { " inside \($0)" } ?? ""). Observe the root again before retrying.")
 		}
