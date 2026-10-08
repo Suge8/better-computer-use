@@ -5,8 +5,7 @@
 - `Sources/BCURuntime/`：常驻进程与客户端的运行时核心，不碰平台：socket 线协议、connect-or-start、状态库、按 pid 的调度与 epoch、根注册表、截图 artifact；测试在 `Tests/BCURuntimeTests/`。
 - `Sources/BCUPlatform/`：全部平台能力（Accessibility、ScreenCaptureKit、OCR、输入投递、agent 光标），`Platform` 是进程内门面，请求与结果类型在 `API.swift`，元素与根以 `Handle`（`Handle.swift`）交给调用方保存；`Act.swift` 是单个动作的投递与判定，`SkyLight.swift` 是后台原始输入所用的私有接口，`LookOutline.swift` 是 look 大纲节点与 OCR 行挂载规则，`RemoteWindows.swift` 与 `Spaces.swift` 补回 AXWindows 不列的其他 Space 窗口，`TypedText.swift` 是打字的投递拆分与判定，`PointerToolkit.swift` 认出从硬件指针取位置、丢弃后台指针事件的 Tk，`FinderName.swift` 认出写值不改名的 Finder 文件名框，`AgentCursor*.swift` 是 agent 光标的覆盖层、运动规划、样式与效果；单元测试在 `Tests/BCUPlatformTests/`。
 - `Sources/BCUDaemon/`：常驻进程的命令处理（`makeRequestHandler` 是交给 `bcu serve` 的接缝）。`Roots.swift` 根发现与选择、`Observe.swift` 观察与缓存查询、`Act.swift` 动作事务与投递梯子、`Steps.swift` 跨界面的步骤（按名称定位、选根、步骤后置条件、新根视图）、`Readiness.swift` 权限与 doctor/setup；观察连同平台句柄存进状态库（`Observation.swift`）；`Desktop.swift` 是处理器依赖的平台接缝，`Tests/BCUDaemonTests/` 用假平台测结果契约。
-- `Sources/bcu/`：唯一的可执行文件。客户端解析参数、连接或经 `open` 启动 `bcu.app`、打印结果；`bcu serve` 在 AppKit 主运行循环里运行常驻进程；配置文件与 `BCU_*` 环境变量在这里解析。
+- `Sources/bcu/`：唯一的可执行文件。客户端解析参数、连接或经 `open` 启动 `bcu.app`、打印结果；`bcu serve` 在 AppKit 主运行循环里运行常驻进程；配置文件与 `BCU_*` 环境变量在这里解析；`AppBundle.swift` 决定客户端启动哪个 app 并从其 Info.plist 读版本（版本规则见 architecture.md）。
 - `Tests/Support/`：测试共用的 `TemporaryRoot`，套件加上 `.temporaryRoot` 后每个测试在 /tmp 下有自己的目录，结束即删。
-- `scripts/install.sh`：构建、组装、签名并安装 `bcu.app`，链接 `bcu`。
+- `scripts/install.sh`：开发安装，构建、签名并替换 `/Applications/bcu.app`；`scripts/release.sh`：本机发版（打 tag、公证、GitHub release、更新 tap）；两者共用 `scripts/lib/package.sh`（版本取自 git tag、Developer ID 签名）。
 - `scripts/check-*.mjs`：黑盒门，每个文件头写明它保护什么；共享脚手架在 `scripts/lib/`，真机 fixture 与金标用的 outline fixture 在 `scripts/fixtures/`。
-- `skills/better-computer-use/SKILL.md`：Agent Skill 源文件，`~/.agents/skills/operations/better-computer-use` 软链到它。

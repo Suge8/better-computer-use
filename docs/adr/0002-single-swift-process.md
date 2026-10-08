@@ -13,7 +13,7 @@
 - CLI 只解析参数、连接或按需启动常驻进程（`open -n -g bcu.app --args serve`，保留 TCC 授权绑定的 bundle 身份）、打印结果。请求与结果类型只在 Swift 里定义一份（Codable），客户端与常驻进程共用。
 - 用 SwiftPM 构建：纯逻辑（大纲模型、投影、搜索、变化、契约类型、错误、CLI 解析与渲染）是一个不依赖 AppKit 的库目标，用 swift-testing 测；平台部分（AX、截图、OCR、SkyLight 投递、agent 光标）按职责拆文件，不再是单个大文件。
 - 真机门保留为 Node 脚本，只通过 CLI 黑盒调用，收口前后必须同样全绿；白盒的 TS 单元门随对应 TS 模块一起换成 Swift 测试。Node 从运行时依赖降为只在跑真机门时需要的开发依赖。
-- 分发从 npm link 改为仓库内安装脚本：`swift build -c release`、装进 `/Applications/bcu.app`、用本机稳定证书签名、把 `bcu` 链接到 PATH。
+- 分发从 npm link 改为签名并公证的 `bcu.app`，经 Homebrew cask 安装，`bcu` 是 cask 指向 app 内可执行文件的链接。
 
 分两步落地，每步独立可验收：
 

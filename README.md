@@ -13,30 +13,18 @@
 支持环境：
 
 - macOS 14 或更高版本
-- 从源码安装需要 Swift 6.2 工具链（Xcode 或 Command Line Tools）
+- 从源码构建需要 Swift 6.2 工具链（Xcode 或 Command Line Tools）
 
 ## 安装
 
 ```bash
-git clone https://github.com/Suge8/better-computer-use ~/Project/better-computer-use
-~/Project/better-computer-use/scripts/install.sh
-```
-
-安装脚本构建 arm64 与 x86_64 通用二进制，装成 `/Applications/bcu.app`，用本机生成的固定签名身份签名，停掉仍在运行的旧常驻进程，再把 `bcu` 链接到 `~/.local/bin`。签名身份每台 Mac 只生成一次，重装后辅助功能与屏幕录制授权仍然有效。更新时在仓库里 `git pull && scripts/install.sh`。
-
-仓库里的 `skills/better-computer-use` 是 agent skill，接进所有 agent 共用的目录：
-
-```bash
-ln -s ~/Project/better-computer-use/skills/better-computer-use ~/.agents/skills/operations/better-computer-use
-```
-
-首次使用前运行：
-
-```bash
+brew install --cask suge8/tap/bcu
 bcu setup
 ```
 
-按提示在“系统设置 → 隐私与安全性”中为 `/Applications/bcu.app` 打开：
+`bcu.app` 经过 Developer ID 签名和公证；`brew upgrade` 之后下一条命令会自动换成新版本的常驻进程，授权不需要重新打开。
+
+`bcu setup` 会按提示在“系统设置 → 隐私与安全性”中为 `/Applications/bcu.app` 打开：
 
 - 辅助功能
 - 屏幕录制（新版 macOS 显示为“屏幕与系统音频录制”）
@@ -82,6 +70,10 @@ bcu observe-ui --app TextEdit --image always   # 或 --mode fused
 截图写入 `~/Library/Caches/bcu/shots/`，stdout 只返回文件路径和尺寸，不输出 base64。
 
 窗口几乎没有无障碍内容时（微信、Qt、游戏这类自绘界面），`observe-ui` 自动识别屏幕文字（中英文），每行文字成为一个 `ocr` 节点，可以直接 press；这次截的图也随结果返回路径，没有文字的区域（例如空输入框）看图按坐标点。
+
+## 开发者构建
+
+`scripts/install.sh` 用 Developer ID 签名构建 `/Applications/bcu.app` 并替换旧的常驻进程。命令行入口 `bcu` 由 brew 的链接提供；没装 brew 版时自己链一个：`ln -s /Applications/bcu.app/Contents/MacOS/bcu ~/.local/bin/bcu`。详见 [开发](./docs/development.md)。
 
 ## 诊断与服务状态
 

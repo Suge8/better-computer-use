@@ -32,6 +32,6 @@
 
 - `BCU_SOCKET_PATH`：常驻进程的 socket，默认 `~/Library/Caches/bcu/resident.sock`；不同路径各自一个常驻进程。
 - `BCU_IDLE_MS`：空闲多少毫秒后退出，默认 600000。
-- `BCU_APP_PATH`：按需启动的 app，默认 `/Applications/bcu.app`。
+- `BCU_APP_PATH`：按需启动的 app，仅用于开发与测试；默认是 `bcu` 自己所在的 app，不在 app 里的 `bcu`（调试构建）必须设置它。
 
-运行时路径：常驻进程 socket `~/Library/Caches/bcu/resident.sock`，截图 `~/Library/Caches/bcu/shots/`，app `/Applications/bcu.app`。常驻进程按需启动，空闲 10 分钟退出。
+运行时路径：常驻进程 socket `~/Library/Caches/bcu/resident.sock`，截图 `~/Library/Caches/bcu/shots/`。常驻进程按需启动，空闲 10 分钟退出。

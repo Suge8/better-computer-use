@@ -1,140 +1,28 @@
 #!/bin/bash
-# Builds bcu for arm64 and x86_64 and installs it as bcu.app: signed with this Mac's stable
-# local identity, because macOS keys the Accessibility and Screen Recording grants to the
-# signing identity and bundle id; the resident process that is still running the previous
-# build is stopped with `bcu stop`, which honours BCU_SOCKET_PATH; `bcu` is linked into PATH.
-#
-#   BCU_APP_PATH           where the app goes (default /Applications/bcu.app, which is also
-#                          where the client launches it from when BCU_APP_PATH is unset)
-#   BCU_BIN_DIR            where the `bcu` link goes (default ~/.local/bin)
-#   BCU_CODESIGN_IDENTITY  sign with this identity instead of the local one
+# Development install: builds bcu.app for arm64 and x86_64, signs it with the Developer ID
+# identity, stops the resident process that is still running the previous build, and replaces
+# /Applications/bcu.app. The `bcu` command is the brew cask's link to the executable inside the
+# app, so it runs this build at once; without the cask, link it yourself (see the README).
 set -euo pipefail
 
-readonly BUNDLE_ID=com.sugeh.bcu
-readonly VERSION=0.2.0
-readonly IDENTITY_NAME="bcu Local Signing ($BUNDLE_ID)"
-readonly APP=${BCU_APP_PATH:-/Applications/bcu.app}
-readonly BIN_DIR=${BCU_BIN_DIR:-$HOME/.local/bin}
-ROOT=$(cd "$(dirname "$0")/.." && pwd)
-readonly ROOT
-# The deployment target is the one Package.swift builds for.
-MINIMUM_MACOS=$(swift package --package-path "$ROOT" describe --type json | plutil -extract platforms.0.version raw -o - -)
-readonly MINIMUM_MACOS
+source "$(dirname "$0")/lib/package.sh"
 
-log() { printf '[bcu] %s\n' "$*" >&2; }
-
-build() {
-	local build=(swift build -c release --product bcu --arch arm64 --arch x86_64 --package-path "$ROOT")
-	"${build[@]}" >&2
-	printf '%s/bcu' "$("${build[@]}" --show-bin-path)"
-}
-
-assemble() {
-	local binary=$1 app=$2
-	mkdir -p "$app/Contents/MacOS"
-	cp "$binary" "$app/Contents/MacOS/bcu"
-	cat >"$app/Contents/Info.plist" <<-PLIST
-	<?xml version="1.0" encoding="UTF-8"?>
-	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-	<plist version="1.0"><dict>
-	<key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
-	<key>CFBundleName</key><string>bcu</string>
-	<key>CFBundleDisplayName</key><string>bcu</string>
-	<key>CFBundleExecutable</key><string>bcu</string>
-	<key>CFBundlePackageType</key><string>APPL</string>
-	<key>CFBundleShortVersionString</key><string>$VERSION</string>
-	<key>CFBundleVersion</key><string>$VERSION</string>
-	<key>LSMinimumSystemVersion</key><string>$MINIMUM_MACOS</string>
-	<key>LSUIElement</key><true/>
-	</dict></plist>
-	PLIST
-}
-
-# Self-signed identities are untrusted, so `find-identity -v` hides them; codesign still
-# accepts them by fingerprint.
-local_identity() {
-	security find-identity -p codesigning | awk -v name="\"$IDENTITY_NAME\"" 'index($0, name) { print $2; exit }'
-}
-
-# A self-signed code-signing certificate in the login keychain. It is created once per Mac
-# and reused by every later install, which keeps the grants valid across rebuilds.
-create_identity() {
-	local keychain=$HOME/Library/Keychains/login.keychain-db work password
-	[[ -f $keychain ]] || keychain=$HOME/Library/Keychains/login.keychain
-	work=$(mktemp -d)
-	password=bcu-$$-$RANDOM
-	cat >"$work/req.cnf" <<-CNF
-	[req]
-	distinguished_name=dn
-	x509_extensions=ext
-	prompt=no
-	[dn]
-	CN=$IDENTITY_NAME
-	[ext]
-	basicConstraints=critical,CA:FALSE
-	keyUsage=critical,digitalSignature
-	extendedKeyUsage=critical,codeSigning
-	CNF
-	openssl req -x509 -newkey rsa:2048 -keyout "$work/key.pem" -out "$work/cert.pem" -days 3650 -nodes -config "$work/req.cnf" 2>/dev/null
-	openssl pkcs12 -export -legacy -inkey "$work/key.pem" -in "$work/cert.pem" -out "$work/id.p12" -passout "pass:$password" -name "$IDENTITY_NAME" 2>/dev/null ||
-		openssl pkcs12 -export -inkey "$work/key.pem" -in "$work/cert.pem" -out "$work/id.p12" -passout "pass:$password" -name "$IDENTITY_NAME"
-	security import "$work/id.p12" -k "$keychain" -P "$password" -A -T /usr/bin/codesign >&2
-	rm -rf "$work"
-}
-
-signing_identity() {
-	if [[ -n ${BCU_CODESIGN_IDENTITY:-} ]]; then
-		printf '%s' "$BCU_CODESIGN_IDENTITY"
-		return
-	fi
-	local identity
-	identity=$(local_identity)
-	if [[ -z $identity ]]; then
-		log "creating the local signing identity \"$IDENTITY_NAME\""
-		create_identity
-		identity=$(local_identity)
-	fi
-	[[ -n $identity ]] || { log "could not create a signing identity; set BCU_CODESIGN_IDENTITY"; exit 1; }
-	printf '%s' "$identity"
-}
-
-install_app() {
-	local staged=$1
-	mkdir -p "$(dirname "$APP")"
-	rm -rf "$APP.new"
-	ditto "$staged" "$APP.new"
-	rm -rf "$APP"
-	mv "$APP.new" "$APP"
-	/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"
-}
-
-link_cli() {
-	mkdir -p "$BIN_DIR"
-	ln -sfn "$APP/Contents/MacOS/bcu" "$BIN_DIR/bcu"
-	case ":$PATH:" in
-	*":$BIN_DIR:"*) ;;
-	*) log "add $BIN_DIR to PATH to run bcu" ;;
-	esac
-	local found
-	found=$(command -v bcu || true)
-	if [[ -n $found && $found != "$BIN_DIR/bcu" ]]; then log "$found comes first in PATH and is not this install; remove it"; fi
-}
+readonly APP=/Applications/bcu.app
 
 main() {
-	[[ $(uname -s) == Darwin ]] || { log "bcu runs on macOS only"; exit 1; }
-	local binary identity
-	binary=$(build)
+	[[ $(uname -s) == Darwin ]] || die "bcu runs on macOS only"
 	# Global: the EXIT trap runs after main has returned.
 	staging=$(mktemp -d)
 	trap 'rm -rf "$staging"' EXIT
-	assemble "$binary" "$staging/bcu.app"
-	identity=$(signing_identity)
-	codesign --force --sign "$identity" -i "$BUNDLE_ID" --timestamp=none "$staging/bcu.app"
-	# The running resident keeps serving the build it started with.
-	"$binary" stop >&2
-	install_app "$staging/bcu.app"
-	link_cli
-	log "installed $APP, signed by $identity; bcu → $BIN_DIR/bcu"
+	make_app "$staging/bcu.app"
+	# The installed build stops its own resident; `BCU_SOCKET_PATH` is honoured.
+	if [[ -x $APP/Contents/MacOS/bcu ]]; then "$APP/Contents/MacOS/bcu" stop >&2; fi
+	rm -rf "$APP.new"
+	ditto "$staging/bcu.app" "$APP.new"
+	rm -rf "$APP"
+	mv "$APP.new" "$APP"
+	/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"
+	log "installed $APP $("$APP/Contents/MacOS/bcu" --version)"
 	log "run 'bcu doctor'; if it reports missing permissions, run 'bcu setup'"
 }
 
