@@ -89,7 +89,7 @@ try {
 	await finder(`set w to make new Finder window to (POSIX file ${JSON.stringify(files)} as alias)\nset current view of w to list view`);
 
 	await assertRefused(await folderWindow(), "alpha.txt");
-	await renameByKeyboard(await folderWindow(), "alpha.txt", "beta.txt", [{ action: "keypress", keys: ["Return"] }]);
+	await renameByKeyboard(await folderWindow(), "alpha.txt", "beta.txt", [{ action: "keypress", keys: ["Return"] }, { action: "wait", ms: 400 }]);
 	assert.deepEqual(await names(), ["beta.txt"], "the keyboard route did not rename the file in the list view");
 	console.log("PASS the list view name cell refuses a value write; Return, cmd+a, the name, Return rename");
 
@@ -102,7 +102,7 @@ try {
 	// Only the windows this run opened; the user's own stay.
 	if (windowsBefore !== undefined) {
 		const kept = windowsBefore.split(", ").map(Number).filter(Number.isInteger);
-		await finder(`repeat with w in (every window)\nif {${kept.join(", ")}} does not contain (id of w) then close w\nend repeat`).catch(() => undefined);
+		await finder(`set windowIds to id of every window\nrepeat with entry in windowIds\nset windowId to contents of entry\nif {${kept.join(", ")}} does not contain windowId then close (first window whose id is windowId)\nend repeat`);
 	}
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });
