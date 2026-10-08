@@ -43,6 +43,10 @@ private final class Notes: @unchecked Sendable {
 	func isOpen(_ root: Root) -> Bool { lock.withLock { _extra.contains { $0.handle == root.handle } } }
 }
 
+private func fontItems(handle: String) -> LookNode {
+	node(handle, role: "AXMenu", children: fonts.map { node("item-\($0)", role: "AXMenuItem", title: $0, canPress: true) })
+}
+
 private func notesApp(_ notes: Notes) -> Harness {
 	var scene = FakeDesktop.Scene()
 	scene.apps = [notesApp]
@@ -66,8 +70,10 @@ private func notesApp(_ notes: Notes) -> Harness {
 		scene.look = { request in
 			switch request.root {
 			case Handle("nw"):
+				// An open popup menu hangs under the popup in the window's own tree.
+				let menu = notes.isOpen(fontMenu) ? [fontItems(handle: "font-menu")] : []
 				let children = [
-					node("popup", role: "AXPopUpButton", title: "Font", value: notes.font, canPress: true),
+					node("popup", role: "AXPopUpButton", title: "Font", value: notes.font, canPress: true, children: menu),
 					node("new", role: "AXButton", title: "New", canPress: true),
 					node("both", role: "AXButton", title: "Both", canPress: true),
 					node("another", role: "AXButton", title: "Another", canPress: true),
@@ -78,7 +84,7 @@ private func notesApp(_ notes: Notes) -> Harness {
 				return lookResult(node("nw-el", role: "AXWindow", title: "Notes", children: children), frame: notesWindow.framePoints, windowId: 7101)
 			case Handle("font-menu"):
 				guard notes.isOpen(fontMenu) else { throw BCUError(.windowStale, "The menu is gone") }
-				return lookResult(node("font-menu-el", role: "AXMenu", children: fonts.map { node("item-\($0)", role: "AXMenuItem", title: $0, canPress: true) }), frame: fontMenu.framePoints, kind: .menu)
+				return lookResult(fontItems(handle: "font-menu-el"), frame: fontMenu.framePoints, kind: .menu)
 			case Handle("name-sheet"):
 				guard notes.isOpen(nameSheet) else { throw BCUError(.windowStale, "The sheet is gone") }
 				var children = [node("name", role: "AXTextField", title: "Name", value: notes.name, canSetValue: true), node("cancel", role: "AXButton", title: "Cancel", canPress: true)]
@@ -140,6 +146,7 @@ struct BatchTests {
 		#expect(opened.root.kind == .menu && opened.root.title == "Font")
 		#expect(opened.nodes.compactMap { $0.role == "menuitem" ? $0.name : nil } == fonts)
 		#expect(opened.shown == opened.nodes.count && opened.total == opened.nodes.count)
+		#expect(pressed.changes == [], "the menu is reported once, as opened, not again as changes of the window")
 
 		// The view is what observe-ui would have shown of that root.
 		let observed = try await harness.observe(#"{"root":"\#(opened.root.ref)"}"#)
