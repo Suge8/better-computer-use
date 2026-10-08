@@ -255,6 +255,9 @@ extension Platform {
 			guard element != nil || record.hasImage else {
 				throw BCUError(.actionFailed, "Coordinate grounding is unavailable for this outline-only root")
 			}
+			if delivery == .pid, let toolkit = PointerToolkit.detect(pid: pid) {
+				throw ForegroundRequired(message: "\(toolkit.rawValue) drops pointer events sent to a background app, so this needs the real pointer")
+			}
 			performed.grounding = .coordinates
 			if delivery == .pid { performed.callerMustVerify = true }
 			let subject = element ?? coordinateSubject(at: point, pid: pid, windowId: record.windowId)
@@ -376,10 +379,15 @@ extension Platform {
 				let cursorPoint = try? coordinatePoint()
 				if !inWebContent, !hasReadableEvidence(element) { screenBefore = screenBaseline(windowId: record.windowId) }
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
-				if status != .success, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
+				if status == .invalidUIElement, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
 					status = AXUIElementPerformAction(refreshed, kAXPressAction as CFString)
 				}
-				if status == .success {
+				// An error is not a non-delivery: a press that blocks its app until the message
+				// times out (a button running a modal dialog) is still being handled, and
+				// pressing or clicking again would run it twice. Only an error that proves the
+				// request never arrived leaves the press undone; any other is judged on the
+				// evidence, like a press that succeeded.
+				if !Self.pressNeverArrived(status) {
 					performed.grounding = .description
 					performed.delivery = .ax
 					if let openedMenu { try awaitMenuClosed(openedMenu) }
@@ -400,6 +408,9 @@ extension Platform {
 			}
 		} else if let element, action == .setText {
 			let text = params.text
+			if let route = finderRenameRoute(for: element, pid: pid) {
+				throw BCUError(.actionFailed, "Writing a Finder file name changes what Finder shows, not the file's name.", recovery: route)
+			}
 			var targetElement = element
 			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
 			if status != .success, let refreshed = refreshElement() {
@@ -433,17 +444,8 @@ extension Platform {
 			try postUnicodeText(text, pid: pid, delivery: delivery)
 			performed.grounding = .coordinates
 			if let element, !text.isEmpty {
-				let beforeValue = beforeEvidence?["value"] ?? ""
-				var afterValue = beforeValue
-				_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
-					afterValue = stringAttribute(element, attribute: kAXValueAttribute as CFString) ?? ""
-					return afterValue != beforeValue
-				}
-				return try finish(ActionReport(
-					outcome: afterValue != beforeValue ? .worked : .didnt,
-					performed: performed,
-					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeValue), to: evidenceExcerpt(afterValue))
-				))
+				let judged = try judgeTyped(text, in: element, pid: pid, valueBefore: beforeEvidence?["value"])
+				return try finish(ActionReport(outcome: judged.outcome, performed: performed, verification: judged.evidence))
 			}
 		} else if action == .keypress {
 			let preserveFocus = params.preserveFocus
