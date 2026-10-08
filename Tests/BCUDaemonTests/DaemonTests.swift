@@ -253,23 +253,21 @@ struct ActionTests {
 		#expect(harness.desktop.scene.acts.isEmpty && harness.desktop.scene.batches.isEmpty)
 	}
 
-	@Test func anActionThatClosesItsRootReportsTheRootTheAppShowsNext() async throws {
+	@Test func anActionThatClosesTheAppsLastRootLeavesNothingToObserve() async throws {
 		let harness = editor()
 		harness.desktop.update { $0.roots[101] = [editorSheet(), editorWindow(focused: false)] }
 		let state = try await harness.observe(#"{"app":"TextEdit"}"#)
 		#expect(state.root.title == "Save")
 		harness.desktop.update { scene in
 			scene.answer = { _ in
-				harness.desktop.update { $0.roots[101] = [editorWindow()] }
+				harness.desktop.update { $0.roots[101] = [] }
 				return reported(.worked, delta: [.root(.closed, editorSheet())])
 			}
 		}
 		let result = try await harness.act(state.stateId, #"[{"action":"press","ref":"@e2"}]"#)
 		#expect(result.closed?.first?.title == "Save")
-		#expect(result.next?.title == "Doc")
+		#expect(result.next == nil && result.stateId == nil)
 		#expect(result.verification.evidence == ActEvidence(source: .root, field: .closed))
-		#expect(result.stateId != nil)
-		#expect(harness.desktop.scene.acts.count == 1)
 	}
 
 	@Test func aPostconditionDecidesTheTransaction() async throws {

@@ -12,6 +12,8 @@ struct ResolvedStep: Sendable {
 	let target: ActTarget
 	let input: ActionInput
 	let root: Target
+	/// The element the root is, when it has one: the root as seen inside another root's tree.
+	let rootElement: Handle?
 	let geometry: LookGeometry
 }
 
@@ -105,7 +107,7 @@ extension Daemon {
 		guard let action = ActAction(rawValue: prepared.action.rawValue) else {
 			throw BCUError(.invalidArguments, "Action \(prepared.action.rawValue) cannot be delivered.")
 		}
-		return ResolvedStep(action: action, target: target, input: actionInput(prepared.params, preserveFocus: preserveFocus), root: root, geometry: observation.geometry)
+		return ResolvedStep(action: action, target: target, input: actionInput(prepared.params, preserveFocus: preserveFocus), root: root, rootElement: observation.outline.rootElement, geometry: observation.geometry)
 	}
 
 	private func actionInput(_ params: PreparedParams, preserveFocus: Bool) -> ActionInput {
@@ -126,7 +128,12 @@ extension Daemon {
 	/// for when nothing has opened yet), or what the app would be observed at now.
 	func rootTarget(_ choice: RootChoice, base: Target, trail: Trail, timeoutMs: Int) async throws -> Target {
 		switch choice {
-		case .state: return try await current(base)
+		case .state:
+			do {
+				return try await current(base)
+			} catch let error as BCUError where error.code == .windowStale {
+				throw BCUError(.windowStale, "The state's own root is gone, so 'state' names nothing.", recovery: "Name the root with root \"app\" or \"opened\".")
+			}
 		case .opened: return try await openedRoot(base: base, trail: trail, timeoutMs: timeoutMs)
 		case .app:
 			guard let best = mostProminent(try await roots(pid: base.pid)) else {
@@ -200,10 +207,22 @@ extension Daemon {
 	private func inStep<T: Sendable>(_ index: Int, _ count: Int, _ body: () async throws -> T) async throws -> T {
 		do {
 			return try await body()
-		} catch let error as BCUError where count > 1 {
-			let delivered = index == 0 ? "" : index == 1 ? " Step 1 was already delivered and is not replayed." : " Steps 1–\(index) were already delivered and are not replayed."
-			throw BCUError(error.code, "Step \(index + 1) of \(count): \(error.message)", recovery: error.recovery + delivered)
+		} catch let error as BCUError {
+			throw stepFailure(error, index: index, count: count)
 		}
+	}
+
+	func stepFailure(_ error: BCUError, index: Int, count: Int) -> BCUError {
+		guard count > 1 else { return error }
+		let delivered = index == 0 ? "" : index == 1 ? " Step 1 was already delivered and is not replayed." : " Steps 1–\(index) were already delivered and are not replayed."
+		return BCUError(error.code, "Step \(index + 1) of \(count): \(error.message)", recovery: error.recovery + delivered)
+	}
+
+	/// A step that acts by ref or coordinates cannot be delivered once the root they belong to
+	/// is gone; a locator names what is there now instead.
+	func requireLive(_ root: Target, index: Int, count: Int) async throws {
+		guard try await !isLive(root) else { return }
+		throw stepFailure(BCUError(.windowStale, "The root this step acts in is gone.", recovery: "Name the element with a locator (find) and root \"app\" or \"opened\" instead of a ref or coordinates."), index: index, count: count)
 	}
 
 	// MARK: a root left open

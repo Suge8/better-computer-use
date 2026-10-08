@@ -542,11 +542,11 @@ extension Platform {
 				steps.append(.completed(step))
 				if step.outcome == .didnt { stoppedAt = index; break }
 			} catch let failure as BCUError {
-				steps.append(.failed(message: failure.message))
+				steps.append(.failed(failure))
 				stoppedAt = index
 				break
 			} catch let refusal as ForegroundRequired {
-				steps.append(.failed(message: refusal.message))
+				steps.append(.failed(BCUError(.actionFailed, refusal.message)))
 				stoppedAt = index
 				break
 			}

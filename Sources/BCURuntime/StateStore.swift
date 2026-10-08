@@ -98,6 +98,14 @@ public final class StateStore<Payload: StatePayload>: Sendable {
 		}
 	}
 
+	/// The most recently saved live state of `pid` whose observation `matches`.
+	public func latest(pid: Int, where matches: @Sendable (Payload) -> Bool) -> StoredState<Payload>? {
+		let at = now()
+		return contents.withLock { contents in
+			contents.entries.last { at - $0.storedAt < limits.ttl && $0.state.pid == pid && matches($0.state.payload) }?.state
+		}
+	}
+
 	public var count: Int { contents.withLock { $0.entries.count } }
 
 	public var byteCount: Int { contents.withLock { $0.bytes } }

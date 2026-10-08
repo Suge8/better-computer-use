@@ -85,7 +85,7 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 				rootDelta += step.rootDelta
 				if step.outcome == .didnt { break }
 			} catch let error as BCUError {
-				steps.append(.failed(message: error.message))
+				steps.append(.failed(error))
 				break
 			}
 		}

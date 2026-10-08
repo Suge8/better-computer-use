@@ -6,7 +6,9 @@
 // find the sheet's Name field and fill it, find Create and press it, and check the window's
 // label afterwards, each element found in the root it lives in when its step runs. The
 // popup's menu hangs under the popup in the window's own tree, yet the result reports it once,
-// as the opened root. Wait-for reads three periods as the ellipsis the button's title ends in.
+// as the opened root, and choosing an option reports the window as what changed (the popup's
+// new value), not folded whole. A step that closes the state's own root (the sheet's button)
+// does not end the array: the next step types into the window the app shows now. Wait-for reads three periods as the ellipsis the button's title ends in.
 // Throughout, a stand-in for the user's front app keeps the front and its keyboard. Refusal of
 // ambiguous locators and the rules of matching are held by the golden files and the daemon tests.
 import assert from "node:assert/strict";
@@ -84,6 +86,9 @@ try {
 	assert.deepEqual(await logged(), ["font Times"], "choosing the option did not reach the app");
 	assert.equal(chosen.closed?.[0]?.ref, pressed.opened.root.ref, "choosing the option did not report the menu closing");
 	assert.equal(chosen.next?.ref, window.ref, "the window is not the root to continue in");
+	assert.equal(chosen.nodes, undefined, "the window was folded whole although it was seen before");
+	assert(chosen.changes.some((change) => change.type === "updated" && change.fields?.value === "Times"), `the popup's new value is not among the changes: ${JSON.stringify(chosen.changes)}`);
+	assert.deepEqual(chosen.changes.filter((change) => change.type !== "updated"), [], "the closed menu was reported as nodes added or removed");
 	await untouched("choosing a dropdown option", { menuOpen: true });
 
 	// A dialog in one array.
@@ -98,11 +103,26 @@ try {
 	assert.equal(filled.verification.status, "verified");
 	await untouched("filling in a dialog");
 
+	// The state's own root closes in the middle of the array; the array goes on in the window the app shows now.
+	untouched = await userInFront();
+	await act((await windowState(window.ref)).stateId, [{ action: "press", find: { name: "New note…" } }]);
+	const sheet = (await bcu(["find-roots", "--pid", String(form.pid), "--kind", "sheet"])).roots[0];
+	assert(sheet, "the sheet is not listed");
+	const sheetState = await windowState(sheet.ref);
+	const typed = await act(sheetState.stateId, [
+		{ action: "press", ref: sheetState.nodes.find((node) => node.name === "Open document").ref },
+		{ action: "typeText", text: "hello", find: { role: "textarea", name: "Body", root: "opened" } },
+	]);
+	assert.equal(typed.closed?.[0]?.ref, sheet.ref, "the sheet closing was not reported");
+	assert.match(typed.next?.title ?? "", /note$/, `the result does not follow the document window: ${JSON.stringify(typed.next)}`);
+	assert.equal((await logged()).at(-1), "typed hello", "the text did not reach the window the sheet's button opened");
+	await untouched("typing into the window opened by a closing sheet");
+
 	// Wait-for reads three periods as the ellipsis.
 	const final = await windowState(window.ref);
 	await bcu(["wait-for", "--state", final.stateId, "--text", "New note...", "--timeout", "2000"]);
 
-	console.log(`PASS popup press returned its menu, option chosen in the next command → a dialog opened, filled and confirmed in one array → the menu reported once → three periods match the ellipsis in wait-for → the user's front app kept the front throughout (pid ${form.pid})`);
+	console.log(`PASS popup press returned its menu, option chosen in the next command → a dialog opened, filled and confirmed in one array → a step closing the state's root, the next typing in the window that opened → the menu reported once → three periods match the ellipsis in wait-for → the user's front app kept the front throughout (pid ${form.pid})`);
 } finally {
 	if (form && killProcess(form.pid, "SIGTERM")) await withTimeout(form.exited, "the form to exit", 5_000).catch(() => killProcess(form.pid));
 	if (holder && killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));

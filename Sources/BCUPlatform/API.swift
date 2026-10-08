@@ -319,7 +319,8 @@ public struct ActionReport: Sendable {
 
 public enum ActStep: Sendable {
 	case completed(ActionReport)
-	case failed(message: String)
+	/// The step could not be delivered; nothing after it was tried.
+	case failed(BCUError)
 
 	public var outcome: ActOutcome {
 		if case .completed(let result) = self { return result.outcome }

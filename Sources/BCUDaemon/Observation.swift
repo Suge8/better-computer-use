@@ -78,6 +78,12 @@ final class ObservedOutline: Sendable {
 		}
 	}
 
+	/// The element the outline's root is, when it has one.
+	var rootElement: Handle? {
+		let contents = current
+		return contents.outline.root.wireRef.flatMap { contents.handles[$0] }
+	}
+
 	/// Refs of the nodes that are the element `handle`: a root seen from inside another root's tree.
 	func refs(of handle: Handle) -> Set<String> {
 		let contents = current

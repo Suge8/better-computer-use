@@ -207,7 +207,9 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 动作打开且结果返回时仍开着的菜单、sheet、popover、对话框（新窗口不算，由 `observe-ui` 按需看），其视图随结果一起返回：`opened: {root, stateId, nodes, shown, total}`，文本视图末尾是与 `observe-ui --root @rN` 相同的块。`stateId` 和里面的 ref 直接用于下一次 `act-ui`，所以选下拉框的选项是两条命令：按下拉框，再按返回视图里的选项。几个根同时打开时只附带最突出的一个（模态优先，同 `observe-ui` 选根的打分），其余只在 `roots` 里。这次观察与后继状态在同一 epoch 保存：两个 `stateId` 都有效，从其中一个动作之后另一个按常规过期。下拉框的菜单同时挂在窗口的无障碍树下（根的句柄与它的元素的句柄不是同一个，按元素句柄认），后继状态的变化与完整视图略去这棵子树，所以同一批选项只以 `opened` 里的一套 ref 出现，也不会因为菜单很大让变化退成完整视图。视图的预算：不读屏、不截图，最多 60 个节点（`openedView`），更长的菜单用它的 `stateId` 做 `search-ui`。没有照 cua 在 `set_value` 里一步选中选项：那只覆盖 popup，这里菜单、popover、sheet 都适用，选哪一项仍由 agent 决定。
 
-动作让它所在的根消失——按 sheet、对话框、popover 或菜单里关掉自己的按钮——本身就是证据：结果是 `worked`，证据为 `{source: "root", field: "closed"}`，文本写作 `root closed`，退出 0。判定根已消失有两条来源：平台在动作里看到该根关闭，或读回该根失败后它已不在应用的根列表里。动作针对的根始终是保存状态里的那个根，前面冒出来的模态根作为新根报告，不会替换它，否则判定会落到别的根上。结果以 `closed: {root}` 写出关掉的根（文本 `- root @r44 sheet "警告"`，紧跟结果行），后继状态改为观察这个应用此刻会被选中的根（排除刚关掉的那个），以 `next` 写出它（文本 `next root @r12 window "…"`）并给出它的完整折叠视图；应用已没有可观察的根时不带 `stateId`，文本写 `no root of <app> remains; run find-roots`。数组里某步关掉了根，后续步骤不再投递，`closed.skipped` 记下跳过几步（文本 `skipped 1 later step: its root closed`）。根关掉后后置条件无处可查：`--expect-gone` 视为满足，其余以 `action_failed` 报出。
+一个根关掉是事实，不是终止条件。数组跑完后，`act-ui` 查一次应用此刻的根：状态的根和数组里动作过的根已不在的，以 `closed: [{ref, kind, app, title}]` 列出（文本 `- root @r44 sheet "警告"`，紧跟结果行）。关闭本身就是证据：outcome 是 `unknown` 时记为 `worked`，证据为 `{source: "root", field: "closed"}`，文本 `root closed`，退出 0。步骤不因此停止：某步轮到时，用 ref 或坐标而它的根已不在，这一步无法投递，以 `window_stale` 按“Step N of M”失败（前面的已投递，不重放）；用定位器的步骤照常现找，所以“关掉面板，接着在新窗口打字”是同一个数组。`didnt` 仍然停止数组。
+
+后继状态是一条规则：后继根是状态的根（还在时），否则是应用此刻会被 `observe-ui` 选中的根；它不是状态的根时以 `next` 写出（文本 `next root @r12 window "…"`）。视图相对该根上次被看到的样子：状态的根相对状态本身，别的根相对状态库里同一应用最新的那次观察（取最近保存的，不另记一份）；从未观察过或已被淘汰的才给完整折叠视图。挂在后继根树里的别的根的子树（下拉菜单挂在 popup 下）在两侧都略去。应用已没有可观察的根时不带 `stateId`，文本写 `no root of <app> remains; run find-roots`。动作针对的根始终是保存状态里的那个根，前面冒出来的模态根作为新根报告，不会替换它。状态的根关掉后后置条件无处可查：`--expect-gone` 视为满足，其余以 `action_failed` 报出。
 
 视图外的 offscreen 元素增删不逐条列出：一个节点本身或其祖先 offscreen、且不在对应视图里（新增看后继视图，删除看基线视图），就只计入 `offscreen: {added, removed}`，文本用一行 `… offscreen elements outside the view: 30 added` 概括。bcu 为按下菜单项而打开、关上菜单时（平台在结果里报 `openedMenus`），AppKit 可能顺手重建菜单（帮助菜单会换成带搜索框的新菜单），这次动作里菜单及其内部节点的增删同样只计数，即使它们的占位行在视图里；菜单栏项本身不在菜单里，照常列出。结果行之后先是 `- root`、`+ root` 这些根的变化，再是元素变化。
 
@@ -221,7 +223,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 每个动作项可带 `expect: {text?, role?, value?, gone?, timeoutMs?, root?}`（至少给 text、role 或 value；没有 `scope`，ref 属于状态，步骤的根不一定是它的根），语义同 `--expect-*`：在该步投递之后、下一步之前检查，默认在该步所在的根，`root` 同上；不满足以 `action_failed` 失败，后面的步骤不投递；满足时把该步的 `unknown` 记为 `worked`，结果的 `verification` 写最后一个满足的条件。该步关掉了它要检查的那个根时，只有 `gone` 满足。全局 `--expect-*` 仍检查状态所在的根，在所有步骤之后。
 
-结果的后继状态始终观察状态所在的根。数组里某步关掉的是别的根（确认按钮关掉对话框）时，`closed` 报告它、后面的步骤不再投递，`stateId` 仍是状态的根的后继，没有 `next`；关掉的是状态的根时同上一节。
+`headless` 且全部是同一个根上的后台无障碍动作（没有步骤条件）时，整组交给平台在一把锁下投递，只在最后看一次根的变化，而不是每步等一次：实测 4 个 setText 步骤 0.5 s，逐步 1.9 s（每步要等根变化的通知或 400 ms 上限）。这是仅有的第二条投递路径，投递失败与逐步路径一样以 “Step N of M” 报出。
 
 ## 已知局限
 

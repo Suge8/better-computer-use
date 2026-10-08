@@ -24,11 +24,19 @@ private struct Transaction: Sendable {
 	var outline: SerializedOutline { base.outline.current.outline }
 }
 
+/// A root the actions acted in, and the element it is seen as inside another root's tree.
+struct ActedRoot: Sendable {
+	let target: Target
+	let element: Handle?
+}
+
 /// What happened while the actions were delivered.
 private struct Execution {
 	var outcome: ActOutcome
 	var evidence: BCUCore.ActEvidence?
 	var appeared: [Root] = []
+	/// The roots the steps acted in, each once.
+	var acted: [ActedRoot] = []
 	/// How the last step was delivered: `ax`, `pid` or `hid`.
 	var delivery: String?
 	/// The platform already waited for the UI to settle.
@@ -39,9 +47,6 @@ private struct Execution {
 	var actionCount: Int
 	/// The step closed the root it acted in.
 	var rootClosed = false
-	/// The root that was closed, once the array stopped because of it.
-	var closedTarget: Target?
-	var skipped = 0
 	/// The postcondition of the last step that had one and met it.
 	var verified: Expectation?
 
@@ -51,6 +56,7 @@ private struct Execution {
 		outcome = outcomes.contains(.didnt) ? .didnt : outcomes.contains(.unknown) ? .unknown : .worked
 		evidence = steps.last { $0.evidence != nil }?.evidence
 		appeared = merged(steps.flatMap(\.appeared))
+		acted = distinct(steps.flatMap(\.acted))
 		delivery = steps.last?.delivery
 		quiet = steps.allSatisfy(\.quiet)
 		openedMenus = steps.contains(where: \.openedMenus)
@@ -59,26 +65,21 @@ private struct Execution {
 	}
 
 	/// One step, as the platform reported it.
-	init(_ report: ActionReport, closedOut target: Target, headless: Bool) {
+	init(_ report: ActionReport, in step: ResolvedStep, headless: Bool) {
 		outcome = report.outcome
 		evidence = report.verification
 		appeared = report.rootDelta.compactMap { if case .root(.appeared, let root) = $0 { root } else { nil } }
+		acted = [ActedRoot(target: step.root, element: step.rootElement)]
 		delivery = report.performed.delivery.rawValue
 		settled = report.performed.deltaSource != nil
 		quiet = headless || report.performed.delivery == .ax
 		openedMenus = report.performed.openedMenus
 		actionCount = 1
-		rootClosed = report.rootDelta.contains { if case .root(.closed, let root) = $0 { root.handle == target.root.handle } else { false } }
+		rootClosed = report.rootDelta.contains { if case .root(.closed, let root) = $0 { root.handle == step.root.root.handle } else { false } }
 	}
 
 	init(waited: Void) {
 		outcome = .worked
-		quiet = true
-		actionCount = 1
-	}
-
-	init(failed: Void) {
-		outcome = .didnt
 		quiet = true
 		actionCount = 1
 	}
@@ -93,6 +94,13 @@ private func merged(_ roots: [Root]) -> [Root] {
 		latest[root.handle] = root
 	}
 	return order.map { latest[$0]! }
+}
+
+/// One entry per root.
+private func distinct(_ roots: [ActedRoot]) -> [ActedRoot] {
+	roots.reduce(into: []) { kept, root in
+		if !kept.contains(where: { $0.target.root.handle == root.target.root.handle }) { kept.append(root) }
+	}
 }
 
 extension Daemon {
@@ -144,48 +152,97 @@ extension Daemon {
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
 		let target = transaction.target
 		var execution = try await dispatch(transaction, count: actions.count, headless: headless, startsInForeground: params.foreground ?? false)
-		var baseClosed = execution.closedTarget?.root.handle == target.root.handle
-		if baseClosed { return try await closedRoot(execution, target: target, params: params, image: image, lane: lane) }
-		// Another root the array acted in closed: its closing is the proof, and the state's own root carries on.
-		if execution.closedTarget != nil { execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed) }
-		let executed = Array(actions.prefix(execution.actionCount))
-		var verification = recordedVerification(execution)
-		if let expect = params.expect {
-			do {
-				verification = try await verify(expect, transaction: transaction, execution: &execution)
-			} catch {
-				if try await isLive(target) { throw error }
-				baseClosed = true
-			}
-		} else if !execution.settled {
-			try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput)
+		if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
+		// A root that is gone is a fact like any other; the roots the array touched are checked once, here.
+		let live = Set(try await roots(pid: target.pid).map(\.handle))
+		let touched = distinct([ActedRoot(target: target, element: transaction.base.outline.rootElement)] + execution.acted)
+		var gone = touched.filter { !live.contains($0.target.root.handle) }
+		if !gone.isEmpty {
+			execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed)
+			if execution.outcome == .unknown { execution.outcome = .worked }
 		}
-		var successor: (observation: Observation, image: LookImage?)?
-		if !baseClosed {
-			do {
-				successor = try await capture(target, image: image, base: transaction.base)
-			} catch {
-				if try await isLive(target) { throw error }
-			}
+		let verification = try await verification(params.expect, transaction: transaction, execution: &execution, baseLive: live.contains(target.root.handle))
+		let successor = try await successor(of: transaction, baseLive: live.contains(target.root.handle), image: image)
+		if let successor, successor.root.root.handle != target.root.handle, !gone.contains(where: { $0.target.root.handle == target.root.handle }) {
+			gone.append(touched[0])
 		}
-		guard let successor else { return try await closedRoot(execution, target: target, params: params, image: image, lane: lane) }
+		let stillOpen = execution.appeared.filter { opened in !gone.contains { $0.target.root.handle == opened.handle } }
+		let roots = stillOpen.compactMap(appearance)
+		let closed = gone.isEmpty ? nil : gone.map(\.target.appearance)
+		guard let successor else {
+			if execution.outcome == .didnt { throw failure(execution) }
+			return BCUCore.ActResult(stateId: nil, baseStateId: params.stateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed)
+		}
 		let saved = try lane.save(successor.observation)
 		let next = saved.payload.outline.outline()
-		let outcome = outcomeAfterObservedValues(execution.outcome, actions: executed) { next.node($0)?.value }
+		let outcome = outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
 		if outcome == .didnt { throw failure(execution) }
-		let stillOpen = execution.appeared.filter { $0.handle != execution.closedTarget?.root.handle }
 		let attached = try await attachOpened(stillOpen, base: target, lane: lane)
-		// A menu hanging under its popup is in this window's tree too; it is reported once, as opened.
-		let view = successorView(base: Outline(restoring: transaction.outline), next: next, menusOpenedByBcu: execution.openedMenus, omitting: attached?.element.map(saved.payload.outline.refs(of:)) ?? [])
-		let roots = stillOpen.compactMap(appearance)
+		// A root hanging under another root's tree is reported as itself, in neither tree's changes.
+		let elsewhere = touched.filter { $0.target.root.handle != successor.root.root.handle }.compactMap(\.element) + (attached?.element.map { [$0] } ?? [])
+		let omitting = elsewhere.reduce(into: Set<String>()) { $0.formUnion(saved.payload.outline.refs(of: $1)) }
+		let view: SuccessorView
+		if let reference = successor.reference {
+			let baseOmitting = elsewhere.reduce(into: Set<String>()) { $0.formUnion(reference.outline.refs(of: $1)) }
+			view = successorView(base: reference.outline.outline(), next: next, menusOpenedByBcu: execution.openedMenus, omitting: omitting, baseOmitting: baseOmitting)
+		} else {
+			view = fullView(next, omitting: omitting)
+		}
 		return BCUCore.ActResult(
 			stateId: saved.stateId, baseStateId: params.stateId, outcome: outcome, verification: verification,
-			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots,
-			closed: execution.closedTarget.map { [$0.appearance] },
+			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed,
+			next: successor.root.root.handle == target.root.handle ? nil : successor.root.appearance,
 			opened: attached?.opened,
 			changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
 			image: try await artifact(successor.image, for: saved.stateId)
 		)
+	}
+
+	/// What the array is called verified: its own evidence, or the condition the caller put on
+	/// it, which is checked in the state's root. A root that is gone cannot be checked; only
+	/// its disappearance is a condition that holds.
+	private func verification(_ expect: Expectation?, transaction: Transaction, execution: inout Execution, baseLive: Bool) async throws -> Verification {
+		guard let expect else { return recordedVerification(execution) }
+		if baseLive {
+			do {
+				return try await verify(expect, transaction: transaction, execution: &execution)
+			} catch {
+				if try await isLive(transaction.target) { throw error }
+			}
+		}
+		guard expect.gone == true else {
+			let delivered = execution.delivery.map { " It was delivered via \($0)." } ?? ""
+			throw BCUError(.actionFailed, "The root the action ran in closed, so its postcondition could not be checked.\(delivered)")
+		}
+		return Verification(status: .verified, evidence: BCUCore.ActEvidence(source: .root, field: .closed), scope: trimmed(expect.scope), gone: true)
+	}
+
+	/// The root the result follows and its observation: the state's own root while it is there,
+	/// else the root the app would be observed at now. The view is relative to the last time
+	/// that root was seen (for the state's own, the state itself); a root never seen, or seen
+	/// too long ago to be kept, has no reference and gets its whole folded view.
+	private struct Successor {
+		let root: Target
+		let observation: Observation
+		let image: LookImage?
+		let reference: Observation?
+	}
+
+	private func successor(of transaction: Transaction, baseLive: Bool, image: ImageMode) async throws -> Successor? {
+		var root = baseLive ? transaction.target : try await preferredRoot(after: transaction.target)
+		while let candidate = root {
+			let handle = candidate.root.handle
+			let reference = handle == transaction.target.root.handle ? transaction.base : runtime.states.latest(pid: Int(candidate.pid)) { $0.target.root.handle == handle }?.payload
+			do {
+				let captured = try await capture(candidate, image: image, base: reference)
+				return Successor(root: candidate, observation: captured.observation, image: captured.image, reference: reference)
+			} catch {
+				// The root went away between looking for it and looking at it: the next one follows.
+				if try await isLive(candidate) { throw error }
+				root = try await preferredRoot(after: candidate)
+			}
+		}
+		return nil
 	}
 
 	/// The array's own evidence, and the last step condition it met.
@@ -202,63 +259,33 @@ extension Daemon {
 
 	/// Strictly headless arrays of platform actions go as one platform batch. Otherwise each
 	/// action climbs the ladder on its own, so a delivered background prefix is never replayed
-	/// in the foreground; a step that names its element is found just before its turn.
+	/// in the foreground; a step that names its element is found just before its turn. A root
+	/// a step acts in must still be there when its turn comes; a root that closed is no reason
+	/// to stop, and the steps after it go where they say.
 	private func dispatch(_ transaction: Transaction, count: Int, headless: Bool, startsInForeground: Bool) async throws -> Execution {
 		let target = transaction.target
-		let deliveries = transaction.steps.compactMap { planned -> ActRequest? in
+		let batch = transaction.steps.compactMap { planned -> ResolvedStep? in
 			guard planned.expect == nil, case .deliver(let step) = planned.step, step.root.root.handle == target.root.handle else { return nil }
-			return request(step, .axOnly)
+			return step
 		}
-		if headless && deliveries.count == transaction.steps.count {
-			let report = try await offload { [desktop = self.desktop] in try desktop.actBatch(deliveries) }
-			guard !report.steps.isEmpty else { throw BCUError(.internalError, "The platform returned no checked steps for the transaction.") }
-			var execution = Execution(report.steps.map { step in
-				switch step {
-				case .completed(let result): Execution(result, closedOut: target, headless: true)
-				case .failed: Execution(failed: ())
-				}
-			})
-			execution.outcome = report.outcome
-			execution.settled = true
-			execution.evidence = report.verification ?? execution.evidence
-			let appeared = report.rootDelta.compactMap { if case .root(.appeared, let root) = $0 { root } else { nil } }
-			if !appeared.isEmpty { execution.appeared = merged(appeared) }
-			let closed = report.rootDelta.contains { if case .root(.closed, let root) = $0 { root.handle == target.root.handle } else { false } }
-			if closed {
-				// The step that failed on the closed root was never delivered to it.
-				let failedAt = report.stoppedAt.flatMap { if case .failed = report.steps[$0] { $0 } else { nil } }
-				execution.closedTarget = target
-				execution.skipped = count - (failedAt ?? report.steps.count)
-			}
-			return execution
-		}
+		if headless && batch.count == transaction.steps.count { return try await deliverAsBatch(batch, count: count) }
 		var done: [Execution] = []
 		var trail = Trail(known: transaction.known)
-		var lastActed = target
-		var closed: Target?
 		for (index, planned) in transaction.steps.enumerated() {
 			var acted = target
 			var result: Execution
-			do {
-				switch planned.step {
-				case .wait(let ms):
-					try await pause(.milliseconds(ms))
-					result = Execution(waited: ())
-				case .deliver(let step):
-					acted = step.root
-					result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
-				case .locate(let action, let locator):
-					let step = try await locateStep(action, locator, index: index, count: count, base: target, trail: trail, headless: headless)
-					acted = step.root
-					result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
-				}
-			} catch {
-				// The platform saw no closure, but an earlier step may still have closed the root it acted in.
-				if index > 0, try await !isLive(lastActed) {
-					closed = lastActed
-					break
-				}
-				throw error
+			switch planned.step {
+			case .wait(let ms):
+				try await pause(.milliseconds(ms))
+				result = Execution(waited: ())
+			case .deliver(let step):
+				acted = step.root
+				if index > 0 { try await requireLive(step.root, index: index, count: count) }
+				result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
+			case .locate(let action, let locator):
+				let step = try await locateStep(action, locator, index: index, count: count, base: target, trail: trail, headless: headless)
+				acted = step.root
+				result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
 			}
 			trail.appeared.append(result.appeared)
 			if result.outcome != .didnt, let expect = planned.expect {
@@ -267,18 +294,27 @@ extension Daemon {
 				result.verified = expect
 			}
 			done.append(result)
-			lastActed = acted
 			if result.outcome == .didnt { break }
-			if result.rootClosed {
-				closed = acted
-				break
-			}
 		}
-		var execution = Execution(done)
-		if let closed {
-			execution.closedTarget = closed
-			execution.skipped = count - done.count
-		}
+		return Execution(done)
+	}
+
+	/// The platform delivers the steps under one lock and looks at the roots once, after the
+	/// last: an array of background accessibility actions then waits for the UI to settle once
+	/// instead of once per step (measured: four setText steps take 0.5 s, against 1.9 s step by step).
+	private func deliverAsBatch(_ steps: [ResolvedStep], count: Int) async throws -> Execution {
+		let requests = steps.map { request($0, .axOnly) }
+		let report = try await offload { [desktop = self.desktop] in try desktop.actBatch(requests) }
+		guard !report.steps.isEmpty else { throw BCUError(.internalError, "The platform returned no checked steps for the transaction.") }
+		if let stopped = report.stoppedAt, case .failed(let error) = report.steps[stopped] { throw stepFailure(error, index: stopped, count: count) }
+		var execution = Execution(zip(report.steps, steps).compactMap { step, resolved in
+			if case .completed(let result) = step { Execution(result, in: resolved, headless: true) } else { nil }
+		})
+		execution.outcome = report.outcome
+		execution.settled = true
+		execution.evidence = report.verification ?? execution.evidence
+		let appeared = report.rootDelta.compactMap { if case .root(.appeared, let root) = $0 { root } else { nil } }
+		if !appeared.isEmpty { execution.appeared = merged(appeared) }
 		return execution
 	}
 
@@ -290,7 +326,7 @@ extension Daemon {
 		let first = request(step, headless ? .axOnly : .background)
 		func inForeground() async throws -> Execution {
 			do {
-				return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, closedOut: step.root, headless: headless)
+				return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, in: step, headless: headless)
 			} catch let refusal as ForegroundRequired {
 				throw BCUError(.actionFailed, refusal.message)
 			}
@@ -304,7 +340,7 @@ extension Daemon {
 			return try await inForeground()
 		}
 		if canRetryInForeground(report.outcome, headless: headless) { return try await inForeground() }
-		return Execution(report, closedOut: step.root, headless: headless)
+		return Execution(report, in: step, headless: headless)
 	}
 
 	// MARK: postconditions
@@ -338,39 +374,6 @@ extension Daemon {
 		return BCUError(.actionFailed, "The action did not produce the requested result.\(unchanged)\(delivered)")
 	}
 
-	// MARK: a closed root
-
-	/// The actions closed the root they ran in — a sheet's button, a dialog's OK. That is the
-	/// proof they landed, and the successor observes the root the app now shows instead.
-	private func closedRoot(_ execution: Execution, target: Target, params: ActParams, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
-		let closedEvidence = BCUCore.ActEvidence(source: .root, field: .closed)
-		let verification: Verification
-		switch params.expect {
-		case nil: verification = Verification(status: .none, evidence: closedEvidence)
-		case let expect? where expect.gone == true: verification = Verification(status: .verified, evidence: closedEvidence, scope: trimmed(expect.scope), gone: true)
-		case _?:
-			let delivered = execution.delivery.map { " It was delivered via \($0)." } ?? ""
-			throw BCUError(.actionFailed, "The root the action ran in closed, so its postcondition could not be checked.\(delivered)")
-		}
-		let next = try await preferredRoot(after: target)
-		var saved: StoredState<Observation>?
-		var picture: LookImage?
-		if let next {
-			let captured = try await capture(next, image: image)
-			saved = try lane.save(captured.observation)
-			picture = captured.image
-		}
-		let view = saved.map { fullView($0.payload.outline.outline()) }
-		let roots = execution.appeared.compactMap(appearance)
-		let artifact = if let saved { try await artifact(picture, for: saved.stateId) } else { ImageInfo?.none }
-		return BCUCore.ActResult(
-			stateId: saved?.stateId, baseStateId: params.stateId, outcome: .worked, verification: verification,
-			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots,
-			closed: [target.appearance],
-			next: next?.appearance, changes: view?.changes, offscreen: view?.offscreen, nodes: view?.nodes, shown: view?.shown, total: view?.total,
-			image: artifact
-		)
-	}
 }
 
 private extension ActionInput {

@@ -31,10 +31,10 @@ state e4441aa2 ← 937572b9 · worked via ax · value →hello · verified
 ~ @e9 ="hello"
 ```
 
-- **投递梯子**：语义后台优先、失败自动升级前台、坐标兜底，由 bcu 自己走完；你只给 ref 和动作。结果行的 `· value 0→1` 是判定生效的依据，`+ root @rN` 是动作刚打开的根（新窗口用 `observe-ui --root @rN` 看，菜单、sheet 等见下面的 `opened`）；`- root @rN … · root closed` 表示动作关掉了它所在的 sheet/对话框，下面的 `next root @rM` 及其视图就是接下来要操作的根。
+- **投递梯子**：语义后台优先、失败自动升级前台、坐标兜底，由 bcu 自己走完；你只给 ref 和动作。结果行的 `· value 0→1` 是判定生效的依据，`+ root @rN` 是动作刚打开的根（新窗口用 `observe-ui --root @rN` 看，菜单、sheet 等见下面的 `opened`）；`- root @rN … · root closed` 表示动作关掉了它所在的 sheet/对话框/菜单；状态的根没了，就看 `next root @rM`：结果相对你上次看到的这个根给变化（没看过才整体给视图），`stateId` 就是它的。
 - `worked` 有证据；`unverified` 是已投递但没有可读证据（菜单命令、快捷键、自绘窗口常见），多半已经生效，照常继续，不要重做；后续步骤依赖它时用 `--expect-*` 确认。
 - 动作打开的菜单、sheet、popover、对话框，其视图随结果返回（`opened`：末尾一块，格式同 `observe-ui`，带自己的 `stateId` 与 ref）。选下拉框选项是两条命令：按下拉框，再用 `opened` 的 `stateId` 按选项。只附带最突出的一个根，新窗口不附带，其余见 `+ root` 行。
-- 后一步要用前面打开的界面时，用 `find` 代替 ref，该步执行时才现找：`{"action":"press","find":{"role":"button","name":"Create","root":"opened"},"expect":{"text":"Saved","root":"state"}}`。`root` 取 `state`（默认）/`opened`（前面步骤最近打开的）/`app`（应用此刻会选中的）；名称不分大小写，`...` 与 `…` 相同；重名用 `nth`（从 0 起，失败时列出候选），没找到会等 `timeoutMs`（默认 3000）。每步的 `expect` 在该步之后检查，不满足就停在这一步；前面的步骤已投递，不要整组重发。按钮把对话框关掉后，后面的步骤不再投递，确认放最后。
+- 后一步要用前面打开的界面时，用 `find` 代替 ref，该步执行时才现找：`{"action":"press","find":{"role":"button","name":"Create","root":"opened"},"expect":{"text":"Saved","root":"state"}}`。`root` 取 `state`（默认）/`opened`（前面步骤最近打开的）/`app`（应用此刻会选中的）；名称不分大小写，`...` 与 `…` 相同；重名用 `nth`（从 0 起，失败时列出候选），没找到会等 `timeoutMs`（默认 3000）。每步的 `expect` 在该步之后检查，不满足就停在这一步；前面的步骤已投递，不要整组重发。某步关掉了根不会停下数组：后面用 `find` 的步骤去现在的根找（打开面板的按钮关掉面板后，`root: "app"` 找新窗口）；仍用 ref 的步骤，它的根已关就以 `Step N of M` 失败。
 - 菜单从 `find-roots --app X --kind menubar` 的根进入：observe 它之后 search 到目标菜单项就能直接 press，不用先打开父菜单。
 - `find-roots` 里没标 `onscreen` 的窗口可能在别的桌面空间（含全屏应用），后台操作照常可用；`--foreground` 会把用户的桌面切过去。
 - `@e` ref 属于生成它的 `stateId`。act-ui 返回新 `stateId`，下一步用它；`stale_state`、`window_stale`、`element_not_found` 都表示重新 `observe-ui` 取新状态。

@@ -1,8 +1,10 @@
 // A notes window as an app with dropdowns and dialogs shows it: a font popup whose menu exists
 // only while open, a "New note…" button that raises a sheet with a Name field and Create and
-// Cancel buttons, and labels showing the last font and note. It appends `font <name>` and
-// `created <name>` to the log file given as the first argument, takes the window title from
-// the second, and prints `ready` once the window is on screen, without taking the front.
+// Cancel buttons, and labels showing the last font and note. The sheet's "Open document" button
+// closes it and raises a second window holding a text area. It appends `font <name>`,
+// `created <name>` and `typed <text of the area>` to the log file given as the first argument,
+// takes the window title from the second, and prints `ready` once the window is on screen,
+// without taking the front.
 import AppKit
 
 let app = NSApplication.shared
@@ -17,7 +19,29 @@ func append(_ line: String) {
 	try! handle.close()
 }
 
+final class Notepad: NSObject, NSTextViewDelegate {
+	let window = NSWindow(contentRect: NSRect(x: 820, y: 420, width: 360, height: 200), styleMask: [.titled], backing: .buffered, defer: false)
+	let area: NSTextView
+
+	override init() {
+		let scroll = NSTextView.scrollableTextView()
+		area = scroll.documentView as! NSTextView
+		super.init()
+		window.title = CommandLine.arguments[2] + " note"
+		scroll.frame = window.contentView!.bounds
+		scroll.autoresizingMask = [.width, .height]
+		area.setAccessibilityLabel("Body")
+		area.delegate = self
+		window.contentView!.addSubview(scroll)
+	}
+
+	func textDidChange(_ notification: Notification) {
+		append("typed \(area.string)")
+	}
+}
+
 final class Form: NSObject {
+	var pad: Notepad?
 	let window = NSWindow(contentRect: NSRect(x: 760, y: 320, width: 420, height: 200), styleMask: [.titled], backing: .buffered, defer: false)
 	let fontLabel = NSTextField(labelWithString: "font: Helvetica")
 	let docLabel = NSTextField(labelWithString: "note: none")
@@ -45,7 +69,9 @@ final class Form: NSObject {
 		create.frame = NSRect(x: 250, y: 20, width: 90, height: 28)
 		let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancel))
 		cancel.frame = NSRect(x: 150, y: 20, width: 90, height: 28)
-		for view in [nameField, create, cancel] { sheetContent.addSubview(view) }
+		let document = NSButton(title: "Open document", target: self, action: #selector(openDocument))
+		document.frame = NSRect(x: 20, y: 20, width: 120, height: 28)
+		for view in [nameField, create, cancel, document] { sheetContent.addSubview(view) }
 	}
 
 	@objc func fontChosen(_ sender: NSPopUpButton) {
@@ -67,6 +93,13 @@ final class Form: NSObject {
 
 	@objc func cancel() {
 		window.endSheet(sheet)
+	}
+
+	@objc func openDocument() {
+		window.endSheet(sheet)
+		let pad = Notepad()
+		self.pad = pad
+		pad.window.orderFrontRegardless()
 	}
 }
 
