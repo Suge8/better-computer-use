@@ -162,6 +162,15 @@ export async function launchDrawnInput(directory, logPath, title, eventsPath) {
 	return { pid, exited };
 }
 
+/**
+ * Starts scripts/fixtures/delivery-fields.swift: a chat-style text field that clears on
+ * Return, a secure field, and a button that runs an NSAlert modally.
+ */
+export async function launchDeliveryFields(directory, logPath, title) {
+	const { pid, exited } = await launchSwiftFixture(directory, "delivery-fields", [logPath, title], "the delivery fields window");
+	return { pid, exited };
+}
+
 /** Front application and real pointer, read by a process that is not bcu. */
 export async function desktop() {
 	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", [
