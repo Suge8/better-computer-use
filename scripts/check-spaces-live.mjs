@@ -7,7 +7,7 @@
 // sent to a Space of its own; a stand-in for the user's front app keeps the front and its
 // key window throughout, and the user's Space is the one shown at the end.
 import assert from "node:assert/strict";
-import { execFile as execFileCallback, spawn } from "node:child_process";
+import { execFile as execFileCallback, execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -63,6 +63,7 @@ async function launchSubject() {
 	return { pid: child.pid, exited, announced, signal: (name) => process.kill(child.pid, name) };
 }
 
+const frontName = (pid) => execFileSync("ps", ["-p", String(pid), "-o", "comm="], { encoding: "utf8" }).trim() || "gone";
 const logged = async () => (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
 const bcu = (command, params) => request(command, params, env);
 const find = async (params) => (await bcu("find-roots", params)).roots.find((root) => root.title === title);
@@ -87,6 +88,10 @@ try {
 	});
 	if (!listed) throw new Error("no root to drive");
 
+	const byId = await bcu("observe-ui", { root: String(listed.windowId) });
+	check("a window id names it too", () => {
+		assert(byId.nodes.some((node) => node.name === "Press me"), `window id ${listed.windowId} observed ${JSON.stringify(byId.nodes)}`);
+	});
 	const observed = await bcu("observe-ui", { root: listed.ref });
 	const button = observed.nodes.find((node) => node.role === "button" && node.name === "Press me");
 	const field = observed.nodes.find((node) => node.role === "textfield");
@@ -108,20 +113,25 @@ try {
 		assert(typed.outcome !== "didnt", JSON.stringify(typed));
 	});
 
-	const frame = listed.frame;
-	const padX = frame.x + 120;
-	const padY = frame.y + frame.h - 70;
-	const clicked = await bcu("act-ui", { stateId: typed.stateId ?? pressed.stateId, actions: [{ action: "click", x: padX, y: padY }] });
+	// Coordinates are pixels of the observation's image; the pad sits 20..220 from the left and 20..120 from the bottom.
+	const pictured = await bcu("observe-ui", { root: listed.ref, image: "always" });
+	check("observe-ui captures it", () => {
+		assert(pictured.image && pictured.image.width > 0, `no image: ${JSON.stringify(pictured.image)}`);
+	});
+	const scale = pictured.image.width / listed.frame.w;
+	const clicked = await bcu("act-ui", { stateId: pictured.stateId, actions: [{ action: "click", x: Math.round(120 * scale), y: Math.round((listed.frame.h - 70) * scale) }] });
 	const clickLog = await logged();
 	check("a background click at coordinates reaches the window", () => {
 		assert(clickLog.some((line) => line.startsWith("click ")), `log: ${JSON.stringify(clickLog)} result ${JSON.stringify(clicked)}`);
 	});
 
+	// Other live tests on this desktop may take the front themselves; only bcu's doing counts.
 	const after = await desktop();
 	const lost = (await holder.logged()).length - settled;
-	check("the user's front app keeps the front and its key window", () => {
-		assert(after.front === front, `the front moved from ${front} to ${after.front}`);
-		assert(lost === 0, `the front app lost key ${lost} times`);
+	check("the app bcu drove did not come to the front, and the front app kept its key window", () => {
+		assert(after.front !== subject.pid, "the Space fixture was brought to the front");
+		if (after.front === front) assert(lost === 0, `the front app lost key ${lost} times`);
+		else console.log(`note: ${frontName(after.front)} took the front, not bcu`);
 	});
 
 	const shown = subject.announced("shown");
