@@ -1,4 +1,5 @@
 import BCUCore
+import BCUPlatform
 import BCURuntime
 import Foundation
 
@@ -28,7 +29,7 @@ struct Settings {
 		} else {
 			idleTimeout = Server.defaultIdleTimeout
 		}
-		config = LoadedConfig(environment: environment)
+		config = try LoadedConfig(environment: environment)
 		forwarded = environment.filter { $0.key.hasPrefix("BCU_") }.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
 	}
 
@@ -46,27 +47,125 @@ struct Settings {
 struct Config: Codable {
 	var headless = false
 	var cursor_overlay = true
+	var cursor_motion = CursorMotion()
 }
 
 struct PartialConfig: Codable {
 	var headless: Bool?
 	var cursor_overlay: Bool?
+	var cursor_motion: PartialCursorMotion?
 
-	/// A config object, or its `computer_use` member when it has one; unreadable values are ignored.
-	init(_ raw: JSONValue) {
+	/// A config object, or its `computer_use` member when it has one. Unreadable `headless` and
+	/// `cursor_overlay` values are ignored; a wrong `cursor_motion` is refused, naming the
+	/// values it accepts.
+	init(_ raw: JSONValue, path: String) throws {
 		let source = raw["computer_use"].flatMap { if case .object = $0 { $0 } else { nil } } ?? raw
 		headless = source["headless"].flatMap(parseBoolean)
 		cursor_overlay = source["cursor_overlay"].flatMap(parseBoolean)
+		cursor_motion = try source["cursor_motion"].map { try PartialCursorMotion($0, path: path) }
 	}
 
-	init(headless: String?, cursorOverlay: String?) {
-		self.headless = headless.flatMap { parseBoolean(.string($0)) }
-		self.cursor_overlay = cursorOverlay.flatMap { parseBoolean(.string($0)) }
+	init(environment: [String: String]) throws {
+		headless = environment["BCU_HEADLESS"].flatMap { parseBoolean(.string($0)) }
+		cursor_overlay = environment["BCU_CURSOR_OVERLAY"].flatMap { parseBoolean(.string($0)) }
+		cursor_motion = try PartialCursorMotion(environment: environment)
+	}
+
+	private init() {}
+
+	static let empty = PartialConfig()
+
+	/// `other`'s fields over this source's.
+	func overridden(by other: PartialConfig) -> PartialConfig {
+		var merged = other
+		merged.headless = other.headless ?? headless
+		merged.cursor_overlay = other.cursor_overlay ?? cursor_overlay
+		merged.cursor_motion = cursor_motion.map { $0.overridden(by: other.cursor_motion) } ?? other.cursor_motion
+		return merged
 	}
 
 	func applied(to config: Config) -> Config {
-		Config(headless: headless ?? config.headless, cursor_overlay: cursor_overlay ?? config.cursor_overlay)
+		Config(
+			headless: headless ?? config.headless,
+			cursor_overlay: cursor_overlay ?? config.cursor_overlay,
+			cursor_motion: cursor_motion?.applied(to: config.cursor_motion) ?? config.cursor_motion
+		)
 	}
+}
+
+/// The fields of `cursor_motion` that a source sets. Effects no source sets keep the default
+/// of the style in effect, whichever source chose it.
+struct PartialCursorMotion: Codable {
+	var style: CursorMotionStyle?
+	var timing: CursorMotionTiming?
+	var effects: [String: Bool]?
+
+	init(_ raw: JSONValue, path: String) throws {
+		guard case .object(let members) = raw else { throw motionError("cursor_motion in \(path) is not an object; it takes style, timing and effects.") }
+		for key in members.keys where !["style", "timing", "effects"].contains(key) {
+			throw motionError("cursor_motion.\(key) in \(path) is not a setting; use style, timing or effects.")
+		}
+		style = try members["style"].map { try parse($0, as: CursorMotionStyle.self, name: "cursor_motion.style in \(path)") }
+		timing = try members["timing"].map { try parse($0, as: CursorMotionTiming.self, name: "cursor_motion.timing in \(path)") }
+		guard let raw = members["effects"] else { return }
+		guard case .object(let flags) = raw else { throw motionError("cursor_motion.effects in \(path) is not an object of effect names to booleans.") }
+		effects = try flags.reduce(into: [:]) { effects, flag in
+			effects[flag.key] = try parseEffect(flag.key, flag.value, name: "cursor_motion.effects.\(flag.key) in \(path)")
+		}
+	}
+
+	/// `BCU_CURSOR_MOTION_STYLE`, `BCU_CURSOR_MOTION_TIMING`, and `BCU_CURSOR_MOTION_EFFECTS` as
+	/// `name=on,name=off`; nil when none is set.
+	init?(environment: [String: String]) throws {
+		let style = environment["BCU_CURSOR_MOTION_STYLE"], timing = environment["BCU_CURSOR_MOTION_TIMING"], effects = environment["BCU_CURSOR_MOTION_EFFECTS"]
+		guard style != nil || timing != nil || effects != nil else { return nil }
+		self.style = try style.map { try parse(.string($0), as: CursorMotionStyle.self, name: "BCU_CURSOR_MOTION_STYLE") }
+		self.timing = try timing.map { try parse(.string($0), as: CursorMotionTiming.self, name: "BCU_CURSOR_MOTION_TIMING") }
+		self.effects = try effects.map { list in
+			try list.split(separator: ",").reduce(into: [:]) { effects, item in
+				let parts = item.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+				guard parts.count == 2 else { throw motionError("BCU_CURSOR_MOTION_EFFECTS takes name=on|off items separated by commas, not '\(item)'.") }
+				effects[parts[0]] = try parseEffect(parts[0], .string(parts[1]), name: "BCU_CURSOR_MOTION_EFFECTS \(parts[0])")
+			}
+		}
+	}
+
+	func overridden(by other: PartialCursorMotion?) -> PartialCursorMotion {
+		guard let other else { return self }
+		var merged = other
+		merged.style = other.style ?? style
+		merged.timing = other.timing ?? timing
+		merged.effects = (effects ?? [:]).merging(other.effects ?? [:]) { $1 }
+		return merged
+	}
+
+	func applied(to motion: CursorMotion) -> CursorMotion {
+		let style = style ?? motion.style
+		var effects = style.defaultEffects
+		for (name, value) in self.effects ?? [:] { _ = effects.set(name, to: value) }
+		return CursorMotion(style: style, timing: timing ?? motion.timing, effects: effects)
+	}
+}
+
+private func parse<T: RawRepresentable & CaseIterable>(_ value: JSONValue, as _: T.Type, name: String) throws -> T where T.RawValue == String {
+	let allowed = T.allCases.map(\.rawValue).joined(separator: ", ")
+	guard let text = value.string else { throw motionError("\(name) is \(value.serialized()), not one of \(allowed).") }
+	guard let parsed = T(rawValue: text) else { throw motionError("\(name) is '\(text)', not one of \(allowed).") }
+	return parsed
+}
+
+private func parseEffect(_ name: String, _ value: JSONValue, name origin: String) throws -> Bool {
+	guard CursorEffects.names.contains(name) else {
+		throw motionError("\(origin): '\(name)' is not an effect; use \(CursorEffects.names.joined(separator: ", ")).")
+	}
+	guard let flag = parseBoolean(value) else {
+		throw motionError("\(origin) is \(value.string.map { "'\($0)'" } ?? value.serialized()), not a boolean (true/false, on/off, yes/no, 1/0).")
+	}
+	return flag
+}
+
+private func motionError(_ message: String) -> BCUError {
+	BCUError(.invalidArguments, message, recovery: "Correct cursor_motion in ~/.config/bcu/config.json or the BCU_CURSOR_MOTION_* variables, then retry; 'bcu stop' makes the next command start the resident with it.")
 }
 
 struct ConfigSource: Codable {
@@ -83,22 +182,23 @@ struct LoadedConfig: Codable {
 	var sources: [ConfigSource]
 	var env: PartialConfig
 
-	init(environment: [String: String]) {
+	init(environment: [String: String]) throws {
 		let home = environment["HOME"] ?? NSHomeDirectory()
-		let file = Self.read("\(home)/.config/bcu/config.json")
-		env = PartialConfig(headless: environment["BCU_HEADLESS"], cursorOverlay: environment["BCU_CURSOR_OVERLAY"])
+		let file = try Self.read("\(home)/.config/bcu/config.json")
+		env = try PartialConfig(environment: environment)
 		sources = [file]
-		config = env.applied(to: (file.values ?? PartialConfig(.null)).applied(to: Config()))
+		config = (file.values ?? .empty).overridden(by: env).applied(to: Config())
 	}
 
-	private static func read(_ path: String) -> ConfigSource {
+	private static func read(_ path: String) throws -> ConfigSource {
 		guard FileManager.default.fileExists(atPath: path) else { return ConfigSource(path: path, exists: false) }
+		let json: JSONValue
 		do {
-			let text = try String(contentsOfFile: path, encoding: .utf8)
-			return ConfigSource(path: path, exists: true, values: PartialConfig(try JSONValue(parsing: text)))
+			json = try JSONValue(parsing: try String(contentsOfFile: path, encoding: .utf8))
 		} catch {
 			return ConfigSource(path: path, exists: true, error: "\(error)")
 		}
+		return ConfigSource(path: path, exists: true, values: try PartialConfig(json, path: path))
 	}
 }
 

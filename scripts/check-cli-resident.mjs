@@ -2,8 +2,9 @@
 // The CLI's side of the resident process, black box against the bcu executable built from
 // this checkout. Against a scripted resident on the socket: status and stop report it,
 // doctor shows its permissions and the local config, act-ui carries the headless setting of
-// the environment and of the config file, and a resident speaking another protocol is
-// refused. Against a test bundle of this build: status and stop never start a resident, a
+// the environment and of the config file, the agent cursor motion is chosen in the config
+// file and overridden per field by BCU_CURSOR_MOTION_* (an unknown value is refused with the
+// allowed ones), and a resident speaking another protocol is refused. Against a test bundle of this build: status and stop never start a resident, a
 // command starts one through LaunchServices that serves on the caller's socket, and stop
 // ends it. The bundle holds no grants, so the command is refused as permission_missing: the
 // resident reads the grants without asking for them (only `bcu setup` asks).
@@ -22,6 +23,8 @@ const root = await makeTemporaryRoot("cli-resident");
 const socketPath = path.join(root, "resident.sock");
 const home = path.join(root, "home");
 const env = { ...process.env, HOME: home, BCU_SOCKET_PATH: socketPath, BCU_APP_PATH: path.join(root, "missing.app") };
+
+const DEFAULT_MOTION = { style: "signature_arc", timing: "native", effects: { trail: false, glow: true, magnet: false, ripple: true, squish: true } };
 
 const ACT_RESULT = { stateId: "bbbbbbbb", baseStateId: "abcd1234", outcome: "worked", verification: { status: "none" }, delivery: "ax", changes: [] };
 
@@ -89,7 +92,7 @@ async function scriptedChecks() {
 	assert.equal(await text(["doctor"]), `resident ok · pid ${process.pid} · protocol ${PROTOCOL}\npermissions: accessibility=true screenRecording=false\n`);
 	const doctor = await json(["doctor"]);
 	assert.deepEqual(doctor.permissions, { accessibility: true, screenRecording: false }, "doctor --json lost the resident's permissions");
-	assert.deepEqual(doctor.config.config, { headless: false, cursor_overlay: true }, "doctor --json does not report the default config");
+	assert.deepEqual(doctor.config.config, { headless: false, cursor_overlay: true, cursor_motion: DEFAULT_MOTION }, "doctor --json does not report the default config");
 	assert.equal(await text(["stop"]), `resident stopped · pid ${process.pid}\n`);
 	await resident.closed;
 
@@ -101,6 +104,8 @@ async function scriptedChecks() {
 	assert.equal(await headlessSent({ BCU_HEADLESS: "0" }), false, "BCU_HEADLESS=0 did not override the config file");
 	await fs.rm(path.join(home, ".config"), { recursive: true });
 
+	await cursorMotionChecks();
+
 	const foreign = await scriptedResident(PROTOCOL + 1);
 	try {
 		const refused = await runCli(["find-roots"], { env });
@@ -110,6 +115,40 @@ async function scriptedChecks() {
 		foreign.close();
 		await foreign.closed;
 	}
+}
+
+async function cursorMotion(extraEnv) {
+	const resident = await scriptedResident();
+	try {
+		return (await json(["doctor"], extraEnv)).config.config.cursor_motion;
+	} finally {
+		resident.close();
+		await resident.closed;
+	}
+}
+
+async function refusedMotion(extraEnv, pattern) {
+	const result = await runCli(["status"], { env: { ...env, ...extraEnv } });
+	assert.equal(result.code, 2, `an invalid cursor motion was not refused: ${result.stderr}`);
+	assert.match(result.stderr, pattern);
+}
+
+async function cursorMotionChecks() {
+	await fs.mkdir(path.join(home, ".config", "bcu"), { recursive: true });
+	const config = path.join(home, ".config", "bcu", "config.json");
+	await fs.writeFile(config, JSON.stringify({ cursor_motion: { style: "comet_swoop", timing: "fitts", effects: { glow: true } } }));
+	assert.deepEqual(await cursorMotion({}), { style: "comet_swoop", timing: "fitts", effects: { trail: true, glow: true, magnet: false, ripple: true, squish: false } }, "the config file's cursor motion is not in effect");
+	assert.deepEqual(
+		await cursorMotion({ BCU_CURSOR_MOTION_STYLE: "magnetic", BCU_CURSOR_MOTION_EFFECTS: "ripple=off,squish=on" }),
+		{ style: "magnetic", timing: "fitts", effects: { trail: false, glow: true, magnet: true, ripple: false, squish: true } },
+		"BCU_CURSOR_MOTION_* did not override the config file field by field",
+	);
+	await refusedMotion({ BCU_CURSOR_MOTION_STYLE: "zigzag" }, /^error invalid_arguments: .*zigzag.*signature_arc, spring_settle, magnetic, comet_swoop, adaptive, classic/m);
+	await refusedMotion({ BCU_CURSOR_MOTION_TIMING: "slow" }, /^error invalid_arguments: .*slow.*native, fitts, fixed/m);
+	await refusedMotion({ BCU_CURSOR_MOTION_EFFECTS: "sparkle=on" }, /^error invalid_arguments: .*sparkle.*trail, glow, magnet, ripple, squish/m);
+	await fs.writeFile(config, JSON.stringify({ cursor_motion: { effects: { trail: "maybe" } } }));
+	await refusedMotion({}, /^error invalid_arguments: .*trail.*maybe/m);
+	await fs.rm(path.join(home, ".config"), { recursive: true });
 }
 
 /** A throwaway bundle of this build, launched through LaunchServices like bcu.app. */
@@ -154,7 +193,7 @@ async function launchedChecks() {
 try {
 	await scriptedChecks();
 	await launchedChecks();
-	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
+	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, cursor motion from config and env, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
 } finally {
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });
