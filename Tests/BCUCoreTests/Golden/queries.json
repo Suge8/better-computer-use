@@ -6004,6 +6004,176 @@
 				"stderr": "",
 				"exitCode": 0
 			}
+		},
+		{
+			"name": "search reads three periods as the ellipsis",
+			"op": "query",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Doc",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"stateId": "s1",
+				"argv": [
+					"search-ui",
+					"--state",
+					"s1",
+					"--text",
+					"Save As..."
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state s1\n@e2 menuitem \"Save As…\" {press} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "search reads the ellipsis as three periods",
+			"op": "query",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Doc",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As...",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"stateId": "s2",
+				"argv": [
+					"search-ui",
+					"--state",
+					"s2",
+					"--text",
+					"save as…"
+				]
+			},
+			"output": {
+				"stdout": "1 of 1 matches · state s2\n@e2 menuitem \"Save As...\" {press} in @e1\n",
+				"stderr": "",
+				"exitCode": 0
+			}
 		}
 	]
 }
