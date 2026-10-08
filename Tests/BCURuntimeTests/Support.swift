@@ -4,6 +4,8 @@ import os
 import BCUTestSupport
 import Testing
 
+let residentVersion = "1.0.0"
+
 func temporarySocketPath() -> String {
 	TemporaryRoot.path("socket") + "/resident.sock"
 }

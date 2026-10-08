@@ -3,16 +3,18 @@
 // this checkout. Against a scripted resident on the socket: status and stop report it,
 // doctor shows its permissions and the local config, act-ui carries the headless setting of
 // the environment and of the config file, the agent cursor motion is chosen in the config
-// file and overridden per field by BCU_CURSOR_MOTION_*, a config that is not valid JSON, has
+// file and overridden per field by BCU_CURSOR_MOTION_*, and a config that is not valid JSON, has
 // an unknown key or a wrong value, or a BCU_* variable with a wrong value, refuses every
-// command with the allowed values, and a resident speaking another protocol is refused.
+// command with the allowed values.
 // Against a test bundle of this build: status and stop never start a resident, a
-// command starts one through LaunchServices that serves on the caller's socket, and stop
-// ends it. The bundle holds no grants, so the command is refused as permission_missing: the
+// command starts one through LaunchServices that serves on the caller's socket, stop
+// ends it, a client run from inside the bundle starts that bundle, --version reports the
+// bundle's version, and a resident of another version than the bundle on disk (an upgrade
+// replaced the app) is stopped and replaced by the next command. The bundle holds no grants, so the command is refused as permission_missing: the
 // resident reads the grants without asking for them (only `bcu setup` asks).
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
@@ -24,19 +26,18 @@ const binary = await useBuiltCli();
 const root = await makeTemporaryRoot("cli-resident");
 const socketPath = path.join(root, "resident.sock");
 const home = path.join(root, "home");
-const env = { ...process.env, HOME: home, BCU_SOCKET_PATH: socketPath, BCU_APP_PATH: path.join(root, "missing.app") };
+const SCRIPTED_VERSION = "1.2.3";
+const env = { ...process.env, HOME: home, BCU_SOCKET_PATH: socketPath };
 
 const DEFAULT_MOTION = { style: "signature_arc", timing: "native", effects: { trail: false, glow: true, magnet: false, ripple: true, squish: true } };
 
 const ACT_RESULT = { stateId: "bbbbbbbb", baseStateId: "abcd1234", outcome: "worked", verification: { status: "none" }, delivery: "ax", changes: [] };
 
-/** The wire protocol this bcu speaks, read from its one definition. */
-const PROTOCOL = Number(/wireProtocolVersion = (\d+)/.exec(readFileSync(new URL("../Sources/BCURuntime/Wire.swift", import.meta.url), "utf8"))?.[1]);
-
 /** A resident that speaks the wire protocol from a script and records what it was asked. */
-async function scriptedResident(protocolVersion = PROTOCOL) {
+async function scriptedResident() {
 	const requests = [];
 	const server = net.createServer((socket) => {
+		socket.write(`${JSON.stringify({ hello: status })}\n`);
 		let buffer = "";
 		socket.setEncoding("utf8");
 		socket.on("data", (chunk) => {
@@ -50,9 +51,8 @@ async function scriptedResident(protocolVersion = PROTOCOL) {
 		});
 		socket.on("error", () => undefined);
 	});
-	const status = { pid: process.pid, protocolVersion };
+	const status = { pid: process.pid, version: SCRIPTED_VERSION };
 	function reply(message) {
-		if ("hello" in message) return { hello: status };
 		requests.push(message);
 		if (message.command === "stop") return { result: status };
 		if (message.command === "doctor") return { result: { permissions: { accessibility: true, screenRecording: false } } };
@@ -88,10 +88,11 @@ async function headlessSent(extraEnv) {
 }
 
 async function scriptedChecks() {
+	env.BCU_APP_PATH = await testBundle("scripted", SCRIPTED_VERSION);
 	const resident = await scriptedResident();
-	assert.equal(await text(["status"]), `resident running · pid ${process.pid} · protocol ${PROTOCOL}\n`);
-	assert.deepEqual(await json(["status"]), { running: true, pid: process.pid, protocolVersion: PROTOCOL });
-	assert.equal(await text(["doctor"]), `resident ok · pid ${process.pid} · protocol ${PROTOCOL}\npermissions: accessibility=true screenRecording=false\n`);
+	assert.equal(await text(["status"]), `resident running · pid ${process.pid} · version ${SCRIPTED_VERSION}\n`);
+	assert.deepEqual(await json(["status"]), { running: true, pid: process.pid, version: SCRIPTED_VERSION });
+	assert.equal(await text(["doctor"]), `resident ok · pid ${process.pid} · version ${SCRIPTED_VERSION}\npermissions: accessibility=true screenRecording=false\n`);
 	const doctor = await json(["doctor"]);
 	assert.deepEqual(doctor.permissions, { accessibility: true, screenRecording: false }, "doctor --json lost the resident's permissions");
 	assert.deepEqual(doctor.config.config, { headless: false, cursor_overlay: true, cursor_motion: DEFAULT_MOTION }, "doctor --json does not report the default config");
@@ -107,16 +108,6 @@ async function scriptedChecks() {
 	await cursorMotionChecks();
 	await refusedConfigChecks();
 	await fs.rm(path.join(home, ".config"), { recursive: true });
-
-	const foreign = await scriptedResident(PROTOCOL + 1);
-	try {
-		const refused = await runCli(["find-roots"], { env });
-		assert.equal(refused.code, 10, `a resident of protocol ${PROTOCOL + 1} was not refused: ${refused.stderr}`);
-		assert.match(refused.stderr, new RegExp(`^error resident_unavailable: .*protocol ${PROTOCOL + 1}`, "m"));
-	} finally {
-		foreign.close();
-		await foreign.closed;
-	}
 }
 
 async function cursorMotion(extraEnv) {
@@ -166,9 +157,9 @@ async function refusedConfigChecks() {
 	}
 }
 
-/** A throwaway bundle of this build, launched through LaunchServices like bcu.app. */
-async function testBundle() {
-	const app = path.join(root, "bcu-gate.app");
+/** A throwaway bundle of this build at `version`, launched through LaunchServices like bcu.app. */
+async function testBundle(name, version) {
+	const app = path.join(root, `${name}.app`);
 	await fs.mkdir(path.join(app, "Contents", "MacOS"), { recursive: true });
 	await fs.copyFile(binary, path.join(app, "Contents", "MacOS", "bcu"));
 	await fs.writeFile(path.join(app, "Contents", "Info.plist"), `<?xml version="1.0" encoding="UTF-8"?>
@@ -176,6 +167,7 @@ async function testBundle() {
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>com.sugeh.bcu.gate</string>
 <key>CFBundleExecutable</key><string>bcu</string>
+<key>CFBundleShortVersionString</key><string>${version}</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>LSUIElement</key><true/>
 </dict></plist>
@@ -184,7 +176,8 @@ async function testBundle() {
 }
 
 async function launchedChecks() {
-	const bundleEnv = { ...env, BCU_APP_PATH: await testBundle(), BCU_IDLE_MS: "60000" };
+	const app = await testBundle("bcu-gate", "1.0.0");
+	const bundleEnv = { ...env, BCU_APP_PATH: app, BCU_IDLE_MS: "60000" };
 	const cli = (args) => runCli([...args, "--json"], { env: bundleEnv });
 	assert.deepEqual(JSON.parse((await cli(["status"])).stdout), { running: false });
 	assert.deepEqual(JSON.parse((await cli(["stop"])).stdout), { stopped: true, alreadyStopped: true });
@@ -199,16 +192,41 @@ async function launchedChecks() {
 	assert.equal(status.running, true, "no resident is running after a command");
 	const { stdout: parent } = await execFile("ps", ["-o", "ppid=,comm=", "-p", String(status.pid)]);
 	assert.match(parent.trim(), /^1 .*bcu-gate\.app\/Contents\/MacOS\/bcu$/, `the resident was not launched from the bundle by LaunchServices: ${parent}`);
-	const monitor = await monitorProcess(status.pid);
-	assert.deepEqual(JSON.parse((await cli(["stop"])).stdout), { stopped: true, pid: status.pid });
+	assert.equal(status.version, "1.0.0", "the resident does not report its bundle's version");
+	assert.equal((await runCli(["--version"], { env: bundleEnv })).stdout, "1.0.0\n");
+
+	// An upgrade replaced the app on disk: the next command swaps the resident for the new one.
+	await bumpVersion(app, "2.0.0");
+	const old = await monitorProcess(status.pid);
+	const refused = await cli(["find-roots"]);
+	assert.match(refused.stderr, /^error permission_missing: /m);
+	await withTimeout(old.exited, "the resident of the old version to exit", 5_000);
+	const upgraded = JSON.parse((await cli(["status"])).stdout);
+	assert.equal(upgraded.version, "2.0.0", "the command did not start the resident of the new version");
+	assert.notEqual(upgraded.pid, status.pid);
+
+	// A client inside the bundle starts its own app; BCU_APP_PATH is only an override.
+	const { BCU_APP_PATH: _unused, ...inside } = bundleEnv;
+	const installed = path.join(app, "Contents", "MacOS", "bcu");
+	await execFile(installed, ["stop"], { env: inside });
+	const own = await execFile(installed, ["find-roots"], { env: inside }).catch((failure) => failure);
+	assert.match(own.stderr, /^error permission_missing: /m, "a client inside the bundle did not start the bundle's resident");
+	const ownStatus = JSON.parse((await execFile(installed, ["status", "--json"], { env: inside })).stdout);
+	const monitor = await monitorProcess(ownStatus.pid);
+	assert.deepEqual(JSON.parse((await cli(["stop"])).stdout), { stopped: true, pid: ownStatus.pid });
 	await withTimeout(monitor.exited, "the stopped resident to exit", 5_000);
 	assert.deepEqual(JSON.parse((await cli(["status"])).stdout), { running: false });
+}
+
+async function bumpVersion(app, version) {
+	const plist = path.join(app, "Contents", "Info.plist");
+	await fs.writeFile(plist, (await fs.readFile(plist, "utf8")).replace(/(<key>CFBundleShortVersionString<\/key><string>)[^<]*/, `$1${version}`));
 }
 
 try {
 	await scriptedChecks();
 	await launchedChecks();
-	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, cursor motion from config and env, wrong config refused, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
+	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, cursor motion from config and env, wrong config refused, launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
 } finally {
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });

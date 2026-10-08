@@ -3,8 +3,8 @@
 // resident able to start: every command documents itself, malformed arguments and action
 // payloads are rejected as invalid_arguments before anything is started or connected, a
 // valid payload gets as far as starting the resident, a resident that cannot start is
-// reported as resident_unavailable, and setup refuses a terminal nobody can answer. Failures
-// write nothing to stdout and name their code and recovery on stderr.
+// reported as resident_unavailable (so is a client that sits in no app and has no
+// BCU_APP_PATH), and setup refuses a terminal nobody can answer. Failures write nothing to stdout and name their code and recovery on stderr.
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
@@ -91,6 +91,11 @@ try {
 	const unstartable = await run(["find-roots"]);
 	assertFailure(unstartable, "resident_unavailable", "a command whose resident cannot start");
 	assert(unstartable.stderr.includes(missingApp), `the failure does not name the missing app: ${unstartable.stderr}`);
+
+	const { BCU_APP_PATH: _override, ...outsideApp } = env;
+	const bare = await runCli(["find-roots"], { env: outsideApp });
+	assertFailure(bare, "resident_unavailable", "a client outside bcu.app without BCU_APP_PATH");
+	assert(bare.stderr.includes("BCU_APP_PATH"), `the failure does not name BCU_APP_PATH: ${bare.stderr}`);
 
 	assertFailure(await run(["setup"]), "permission_missing", "setup without a terminal");
 	console.log(`CLI error checks passed (${publicCommands.length} help screens, ${invalidActions.length + 7} rejected payloads, unstartable resident, non-interactive setup).`);

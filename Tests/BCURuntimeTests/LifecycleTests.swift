@@ -9,8 +9,11 @@ private let noHandler: RequestHandler = { _ in .null }
 /// Starting, finding and stopping the resident process.
 @Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct LifecycleTests {
-	@Test func concurrentClientsStartOneResident() async throws {
+	/// A resident left over from an older install is replaced, once, by whichever client gets there first.
+	@Test(arguments: [false, true]) func concurrentClientsStartOneResident(afterAnOlderVersion: Bool) async throws {
 		let path = temporarySocketPath()
+		let older = Server(socketPath: path, version: "0.9.0", handler: noHandler)
+		if afterAnOlderVersion { #expect(try older.start()) }
 		let launches = Counter()
 		let servers = Log()
 		let launcher: Launcher = {
@@ -18,7 +21,7 @@ struct LifecycleTests {
 			// Like `open -g bcu.app --args serve`: the launch returns before the resident listens.
 			Task.detached {
 				do {
-					if try Server(socketPath: path, handler: noHandler).start() { servers.append(path) }
+					if try Server(socketPath: path, version: residentVersion, handler: noHandler).start() { servers.append(path) }
 				} catch {
 					Issue.record(error)
 				}
@@ -28,7 +31,7 @@ struct LifecycleTests {
 			for _ in 0..<8 {
 				group.addTask {
 					try await blocking {
-						let connection = try Client.connectOrStart(socketPath: path, launcher: launcher)
+						let connection = try Client.connectOrStart(socketPath: path, version: residentVersion, launcher: launcher)
 						defer { connection.close() }
 						return connection.status.pid
 					}
@@ -40,6 +43,22 @@ struct LifecycleTests {
 		#expect(servers.all.count == 1)
 		#expect(Set(pids) == [Int(getpid())])
 		#expect(try await blocking { try Client.stop(socketPath: path) } != nil)
+		if afterAnOlderVersion { await older.stopped() }
+	}
+
+	@Test func residentOfTheCurrentVersionIsKept() async throws {
+		let path = temporarySocketPath()
+		let running = Server(socketPath: path, version: residentVersion, handler: noHandler)
+		#expect(try running.start())
+		defer { running.stop() }
+		let launches = Counter()
+		let pid = try await blocking {
+			let connection = try Client.connectOrStart(socketPath: path, version: residentVersion) { launches.increment() }
+			defer { connection.close() }
+			return connection.status.pid
+		}
+		#expect(pid == Int(getpid()))
+		#expect(launches.current == 0)
 	}
 
 	@Test func staleSocketFileIsReplaced() async throws {
@@ -47,15 +66,15 @@ struct LifecycleTests {
 		try leaveStaleSocket(at: path)
 		let launches = Counter()
 		let status = try await blocking {
-			let connection = try Client.connectOrStart(socketPath: path) {
+			let connection = try Client.connectOrStart(socketPath: path, version: residentVersion) {
 				launches.increment()
-				Task.detached { #expect(throws: Never.self) { try Server(socketPath: path, handler: noHandler).start() } }
+				Task.detached { #expect(throws: Never.self) { try Server(socketPath: path, version: residentVersion, handler: noHandler).start() } }
 			}
 			defer { connection.close() }
 			return connection.status
 		}
 		#expect(launches.current == 1)
-		#expect(status.protocolVersion == wireProtocolVersion)
+		#expect(status.version == residentVersion)
 		_ = try await blocking { try Client.stop(socketPath: path) }
 	}
 
@@ -63,7 +82,7 @@ struct LifecycleTests {
 		let path = temporarySocketPath()
 		let error = await #expect(throws: BCUError.self) {
 			try await blocking {
-				_ = try Client.connectOrStart(socketPath: path) { throw BCUError(.internalError, "open failed") }
+				_ = try Client.connectOrStart(socketPath: path, version: residentVersion) { throw BCUError(.internalError, "open failed") }
 			}
 		}
 		#expect(error?.code == .residentUnavailable)
@@ -74,7 +93,7 @@ struct LifecycleTests {
 		let path = temporarySocketPath()
 		let error = await #expect(throws: BCUError.self) {
 			try await blocking {
-				_ = try Client.connectOrStart(socketPath: path, readyTimeout: .milliseconds(200)) {}
+				_ = try Client.connectOrStart(socketPath: path, version: residentVersion, readyTimeout: .milliseconds(200)) {}
 			}
 		}
 		#expect(error?.code == .residentUnavailable)
@@ -89,10 +108,10 @@ struct LifecycleTests {
 
 	@Test func stopEndsTheRunningResident() async throws {
 		let path = temporarySocketPath()
-		let server = Server(socketPath: path, handler: noHandler)
+		let server = Server(socketPath: path, version: residentVersion, handler: noHandler)
 		#expect(try server.start())
 		let status = try await blocking { try Client.stop(socketPath: path) }
-		#expect(status == ResidentStatus(pid: Int(getpid()), protocolVersion: wireProtocolVersion))
+		#expect(status == ResidentStatus(pid: Int(getpid()), version: residentVersion))
 		await server.stopped()
 		#expect(!FileManager.default.fileExists(atPath: path))
 		#expect(try await blocking { try Client.connectIfRunning(socketPath: path) == nil })
@@ -100,16 +119,16 @@ struct LifecycleTests {
 
 	@Test func secondResidentDefersToTheRunningOne() async throws {
 		let path = temporarySocketPath()
-		let first = Server(socketPath: path, handler: noHandler)
+		let first = Server(socketPath: path, version: residentVersion, handler: noHandler)
 		#expect(try first.start())
 		defer { first.stop() }
-		#expect(try Server(socketPath: path, handler: noHandler).start() == false)
+		#expect(try Server(socketPath: path, version: residentVersion, handler: noHandler).start() == false)
 		#expect(try await blocking { try Client.connectIfRunning(socketPath: path)?.status.pid } == Int(getpid()))
 	}
 
 	@Test func idleResidentExits() async throws {
 		let path = temporarySocketPath()
-		let server = Server(socketPath: path, idleTimeout: .milliseconds(100), handler: noHandler)
+		let server = Server(socketPath: path, version: residentVersion, idleTimeout: .milliseconds(100), handler: noHandler)
 		#expect(try server.start())
 		await server.stopped()
 		#expect(!FileManager.default.fileExists(atPath: path))
@@ -127,7 +146,7 @@ struct LifecycleTests {
 			let started = Gate()
 			let connected = Gate()
 			let connections = Counter()
-			let server = Server(socketPath: path, idleTimeout: idle) { _ in
+			let server = Server(socketPath: path, version: residentVersion, idleTimeout: idle) { _ in
 				started.open()
 				await gate.wait()
 				return .string("done")

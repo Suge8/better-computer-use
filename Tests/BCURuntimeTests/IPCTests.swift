@@ -7,8 +7,8 @@ import Testing
 /// The CLI ↔ resident wire: JSON lines over a private Unix socket, typed by the BCUCore contract.
 @Suite(.timeLimit(.minutes(1)), .temporaryRoot)
 struct IPCTests {
-	private func findRootsServer(_ path: String, version: Int = wireProtocolVersion) throws -> Server {
-		let server = Server(socketPath: path, protocolVersion: version) { request in
+	private func findRootsServer(_ path: String) throws -> Server {
+		let server = Server(socketPath: path, version: residentVersion) { request in
 			guard case .command(.findRoots(let params)) = request else { throw BCUError(.invalidArguments, "unexpected request") }
 			return try JSONValue(parsing: #"{"roots":[{"ref":"@r1","app":"\#(params.app ?? "")","pid":42,"title":"Doc","kind":"window","frame":{"x":0,"y":0,"w":10,"h":10},"focused":true,"main":true,"onscreen":true,"minimized":false,"modal":false}]}"#)
 		}
@@ -40,7 +40,7 @@ struct IPCTests {
 
 	@Test func handlerErrorReachesTheClientWithItsCode() async throws {
 		let path = temporarySocketPath()
-		let server = Server(socketPath: path) { _ in throw BCUError(.elementNotFound, "Ref '@e9' is gone.") }
+		let server = Server(socketPath: path, version: residentVersion) { _ in throw BCUError(.elementNotFound, "Ref '@e9' is gone.") }
 		#expect(try server.start())
 		defer { server.stop() }
 		let error = await #expect(throws: BCUError.self) {
@@ -51,25 +51,5 @@ struct IPCTests {
 			}
 		}
 		#expect(error == BCUError(.elementNotFound, "Ref '@e9' is gone."))
-	}
-
-	@Test func protocolMismatchIsReportedNotIgnored() async throws {
-		let path = temporarySocketPath()
-		let server = try findRootsServer(path, version: wireProtocolVersion + 1)
-		defer { server.stop() }
-		let error = await #expect(throws: BCUError.self) {
-			try await blocking { _ = try Client.connectIfRunning(socketPath: path) }
-		}
-		#expect(error?.code == .residentUnavailable)
-		#expect(error?.message.contains("protocol") == true)
-	}
-
-	@Test func residentOfAnotherProtocolCanStillBeStopped() async throws {
-		let path = temporarySocketPath()
-		let server = try findRootsServer(path, version: wireProtocolVersion + 1)
-		let status = try await blocking { try Client.stop(socketPath: path) }
-		#expect(status?.pid == Int(getpid()))
-		await server.stopped()
-		#expect(!FileManager.default.fileExists(atPath: path))
 	}
 }
