@@ -3,48 +3,49 @@ import AppKit
 import CoreGraphics
 import Testing
 
-// The agent cursor animates toward the latest target and settles, and its overlay window
-// lives only between an action and the idle timeout that belongs to that action.
+// Every motion style and timing lands the cursor's hotspot on the latest target and then
+// goes idle; reduced motion is a short straight glide. The overlay window lives only between
+// an action and the idle timeout that belongs to that action.
 @MainActor
 struct AgentCursorTests {
-	@Test func motionSettlesAndFollowsTheLatestTarget() {
-		let renderer = AgentCursorRenderer()
+	@Test(arguments: CursorMotionStyle.allCases, CursorMotionTiming.allCases)
+	func motionLandsOnTheLatestTargetAndSettles(style: CursorMotionStyle, timing: CursorMotionTiming) {
+		let renderer = AgentCursorRenderer(motion: CursorMotion(style: style, timing: timing))
 		renderer.setInitialPosition(CGPoint(x: 100, y: 100))
 		#expect(!renderer.isAnimating, "renderer should start idle")
 
-		renderer.moveTo(point: CGPoint(x: 500, y: 400))
-		#expect(renderer.isAnimating, "renderer should become active when motion starts")
-
 		var now: CFTimeInterval = 0
-		for _ in 0..<12_000 where renderer.isAnimating {
-			now += 1.0 / 120.0
-			renderer.tick(now: now)
-		}
-		#expect(!renderer.isAnimating, "renderer should become idle after motion settles")
-
-		renderer.moveTo(point: CGPoint(x: 800, y: 600))
-		renderer.tick(now: now + 1.0 / 120.0)
-		let stoppedPosition = renderer.position
-		renderer.cancelAnimation()
-		#expect(!renderer.isAnimating, "cancelled motion should become idle")
-		renderer.tick(now: now + 1)
-		#expect(renderer.position == stoppedPosition, "idle ticks should not change the cancelled position")
-
-		renderer.setInitialPosition(CGPoint(x: 100, y: 100))
-		renderer.moveTo(point: CGPoint(x: 300, y: 300))
+		renderer.moveTo(point: CGPoint(x: 300, y: 300), target: nil, clicks: true, reducedMotion: false)
 		for _ in 0..<12 {
 			now += 1.0 / 120.0
 			renderer.tick(now: now)
 		}
-		let latestTarget = CGPoint(x: 900, y: 700)
-		renderer.moveTo(point: latestTarget)
+		let latest = CGPoint(x: 900, y: 700)
+		renderer.moveTo(point: latest, target: CGRect(x: 880, y: 690, width: 40, height: 20), clicks: true, reducedMotion: false)
+		#expect(renderer.isAnimating, "a move should start rendering")
 		for _ in 0..<12_000 where renderer.isAnimating {
 			now += 1.0 / 120.0
 			renderer.tick(now: now)
 		}
-		let endpointOffset = CGFloat(cos(Double.pi / 4) * 16)
-		let expected = CGPoint(x: latestTarget.x + endpointOffset, y: latestTarget.y + endpointOffset)
-		#expect(hypot(renderer.position.x - expected.x, renderer.position.y - expected.y) < 0.001, "latest target should supersede in-flight motion")
+		#expect(!renderer.isAnimating, "\(style)/\(timing) should go idle after the move and its effects")
+		#expect(hypot(renderer.hotspot.x - latest.x, renderer.hotspot.y - latest.y) < 0.001, "\(style)/\(timing) should land the hotspot on the latest target, not \(renderer.hotspot)")
+	}
+
+	@Test func reducedMotionIsAShortStraightGlide() {
+		let renderer = AgentCursorRenderer(motion: CursorMotion(style: .cometSwoop))
+		let start = CGPoint(x: 100, y: 100), end = CGPoint(x: 900, y: 500)
+		renderer.setInitialPosition(start)
+		renderer.moveTo(point: end, target: nil, clicks: true, reducedMotion: true)
+		var now: CFTimeInterval = 0
+		for _ in 0..<16 where renderer.isAnimating {
+			now += 1.0 / 120.0
+			renderer.tick(now: now)
+			let p = renderer.hotspot
+			let cross = (end.x - start.x) * (p.y - start.y) - (end.y - start.y) * (p.x - start.x)
+			#expect(abs(cross) / hypot(end.x - start.x, end.y - start.y) < 0.5, "reduced motion should stay on the straight line, not pass \(p)")
+		}
+		#expect(!renderer.isAnimating, "reduced motion should finish within about 120 ms")
+		#expect(renderer.hotspot == end)
 	}
 
 	@Test func overlayHidesOnlyOnItsOwnIdleTimeout() throws {
