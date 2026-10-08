@@ -83,7 +83,9 @@ extension Platform {
 	}
 
 	/// Scrolls with the element's own scroll actions, or those of the nearest ancestor of the
-	/// same process that has them. False when nothing in the chain scrolled.
+	/// same process that has them. False when no action in the chain was delivered; one that
+	/// errored without proof of non-delivery (a timeout) counts as delivered, since trying the
+	/// ancestor or a wheel turn as well could scroll twice.
 	func performScrollActionOrAncestor(startingAt element: AXUIElement, targetPid: Int32, scrollX: Int, scrollY: Int) -> Bool {
 		let actions = scrollActionNames(scrollX: scrollX, scrollY: scrollY)
 		guard !actions.isEmpty else { return false }
@@ -94,7 +96,7 @@ extension Platform {
 			if let pid = pidForElement(candidate), pid != targetPid { return false }
 			var didScroll = false
 			for action in actions where supportsAction(candidate, action: action) {
-				if AXUIElementPerformAction(candidate, action) == .success { didScroll = true }
+				if !Self.actionNeverArrived(AXUIElementPerformAction(candidate, action)) { didScroll = true }
 			}
 			if didScroll { return true }
 			current = parentElement(candidate)

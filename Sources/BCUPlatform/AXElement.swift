@@ -124,6 +124,14 @@ extension Platform {
 		return actionsArray.compactMap { ($0 as? String).flatMap(readableActionName) }
 	}
 
+	/// Errors of AXUIElementPerformAction that prove the request never reached the app. Others
+	/// (a timeout while the app is busy handling it, a generic failure Finder's own toolbar
+	/// returns for presses that landed) say nothing about whether it ran, and doing it again
+	/// could run it twice.
+	static func actionNeverArrived(_ status: AXError) -> Bool {
+		[.invalidUIElement, .illegalArgument, .notImplemented].contains(status)
+	}
+
 	func supportsAction(_ element: AXUIElement, action: CFString) -> Bool {
 		actionNames(element).contains(action as String)
 	}
