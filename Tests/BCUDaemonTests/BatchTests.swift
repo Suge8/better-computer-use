@@ -198,23 +198,17 @@ struct BatchTests {
 		#expect(harness.desktop.scene.waits.last?.root == Handle("nw"), "the step's condition was checked in the root it named")
 	}
 
+	/// The button exists only in the sheet, so finding it in the root the app would pick is
+	/// finding the sheet, and it is awaited until it appears.
 	@Test func aFoundElementIsAwaitedUntilItAppears() async throws {
 		let notes = Notes()
 		notes.createAppearsAtLook = 4
 		let harness = notesApp(notes)
 		let window = try await harness.observe(#"{"app":"Notes"}"#)
-		let steps = #"[{"action":"press","find":{"name":"New"}},{"action":"press","find":{"name":"Create","root":"opened","timeoutMs":5000}}]"#
+		let steps = #"[{"action":"press","find":{"name":"New"}},{"action":"press","find":{"name":"Create","root":"app","timeoutMs":5000}}]"#
 		_ = try await harness.act(window.stateId, steps)
 		#expect(delivered(harness).last == Handle("create"))
 		#expect(notes.sheetLooks >= 4)
-	}
-
-	@Test func theRootTheAppWouldPickIsALookupRoot() async throws {
-		let harness = notesApp(Notes())
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
-		let result = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(try ref(window.nodes, "New"))"},{"action":"press","find":{"name":"Cancel","root":"app"}}]"#)
-		#expect(delivered(harness) == [Handle("new"), Handle("cancel")])
-		#expect(result.closed?.root.kind == .sheet)
 	}
 
 	/// Twins are a failure with their descriptions, found before anything is delivered, so the
