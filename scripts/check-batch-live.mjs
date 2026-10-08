@@ -4,10 +4,11 @@
 // press that opens the popup returns the menu it opened, already observed, and the next
 // act-ui presses the option in that view. A whole dialog is one array: press the button,
 // find the sheet's Name field and fill it, find Create and press it, and check the window's
-// label afterwards, each element found in the root it lives in when its step runs. An
-// ambiguous locator refuses before anything is delivered and leaves the state usable. Search
-// and wait-for read three periods as the ellipsis the button's title ends in. Throughout, a
-// stand-in for the user's front app keeps the front and its keyboard.
+// label afterwards, each element found in the root it lives in when its step runs. The
+// popup's menu hangs under the popup in the window's own tree, yet the result reports it once,
+// as the opened root. Wait-for reads three periods as the ellipsis the button's title ends in.
+// Throughout, a stand-in for the user's front app keeps the front and its keyboard. Refusal of
+// ambiguous locators and the rules of matching are held by the golden files and the daemon tests.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -76,6 +77,7 @@ try {
 	const pressed = await act(closedForm.stateId, [{ action: "press", find: { role: "popup", name: "Font" } }]);
 	assert(pressed.opened, `the press that opened the popup did not return its menu: ${JSON.stringify(pressed)}`);
 	assert.equal(pressed.opened.root.kind, "menu");
+	assert.deepEqual(pressed.changes, [], "the menu under the popup was reported again as changes of the window");
 	assert.deepEqual(pressed.opened.nodes.filter((node) => node.role === "menuitem").map((node) => node.name), ["Helvetica", "Times", "Courier"]);
 	const times = pressed.opened.nodes.find((node) => node.name === "Times");
 	const chosen = await act(pressed.opened.stateId, [{ action: "press", ref: times.ref }]);
@@ -84,16 +86,8 @@ try {
 	assert.equal(chosen.next?.ref, window.ref, "the window is not the root to continue in");
 	await untouched("choosing a dropdown option", { menuOpen: true });
 
-	// A dialog in one array; an ambiguous locator refuses first and leaves the state usable.
+	// A dialog in one array.
 	untouched = await userInFront();
-	const idle = await windowState(window.ref);
-	const ambiguous = await runCli(["act-ui", "--state", idle.stateId, "-", "--json"], { input: JSON.stringify([{ action: "press", find: { role: "text" } }]), env });
-	assert.equal(ambiguous.code, 7, `an ambiguous locator exited ${ambiguous.code}: ${ambiguous.stderr}`);
-	assert.match(ambiguous.stderr, /matches 3 elements: nth 0: text/, ambiguous.stderr);
-	const cancelled = await act(idle.stateId, [{ action: "press", find: { name: "New note..." } }, { action: "press", find: { role: "button", name: "Cancel", root: "opened" } }]);
-	assert.equal(cancelled.closed?.root.kind, "sheet", "Cancel did not report the sheet closing");
-	assert.deepEqual(await logged(), ["font Times"], "Cancel created a note");
-
 	const filled = await act((await windowState(window.ref)).stateId, [
 		{ action: "press", find: { role: "button", name: "New note…" } },
 		{ action: "setText", text: "Report", find: { role: "textfield", name: "Name", root: "opened" } },
@@ -104,13 +98,11 @@ try {
 	assert.equal(filled.verification.status, "verified");
 	await untouched("filling in a dialog");
 
-	// Search and wait-for read three periods as the ellipsis.
+	// Wait-for reads three periods as the ellipsis.
 	const final = await windowState(window.ref);
-	const searched = await bcu(["search-ui", "--state", final.stateId, "--text", "New note..."]);
-	assert.equal(searched.matches.length, 1, "three periods did not find the title ending in the ellipsis");
 	await bcu(["wait-for", "--state", final.stateId, "--text", "New note...", "--timeout", "2000"]);
 
-	console.log(`PASS popup press returned its menu, option chosen in the next command → a dialog opened, filled and confirmed in one array → ambiguity refused first and left the state usable → three periods match the ellipsis → the user's front app kept the front throughout (pid ${form.pid})`);
+	console.log(`PASS popup press returned its menu, option chosen in the next command → a dialog opened, filled and confirmed in one array → the menu reported once → three periods match the ellipsis in wait-for → the user's front app kept the front throughout (pid ${form.pid})`);
 } finally {
 	if (form && killProcess(form.pid, "SIGTERM")) await withTimeout(form.exited, "the form to exit", 5_000).catch(() => killProcess(form.pid));
 	if (holder && killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));

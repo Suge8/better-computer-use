@@ -99,6 +99,21 @@ private func withoutParserDetail(_ stderr: String) -> String {
 	return stderr.replacingCharacters(in: range.upperBound..<lineEnd, with: "<parser detail>")
 }
 
+private func members(_ value: JSONValue?) -> [String: JSONValue] {
+	if case .object(let members)? = value { return members }
+	return [:]
+}
+
+/// What running `body` prints to stderr when it fails; "ok" when it does not.
+private func failure(_ body: () throws -> Void) -> String {
+	do {
+		try body()
+		return "ok"
+	} catch {
+		return BCUError.normalize(error).formatted
+	}
+}
+
 private func failure(_ error: any Error) -> [String: JSONValue] {
 	let normalized = BCUError.normalize(error)
 	return ["stdout": .string(""), "stderr": .string(withoutParserDetail(normalized.formatted)), "exitCode": .number(Double(normalized.exitCode))]
@@ -138,7 +153,7 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		let base = try loadOutline(input["base"]!)
 		let next = try loadOutline(input["next"]!)
 		next.stabilizeRefs(against: base)
-		let view = successorView(base: base, next: next, menusOpenedByBcu: input["menusOpenedByBcu"]?.bool ?? false)
+		let view = successorView(base: base, next: next, menusOpenedByBcu: input["menusOpenedByBcu"]?.bool ?? false, omitting: refs(input["omitting"]) ?? [])
 		return ["json": .string(try JSONCoding.string(view))]
 	case "validate":
 		let actions = try validateActions(input["actions"]!.array!)
@@ -155,9 +170,13 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		return ["request": .string(try JSONCoding.string(Delivered(action: prepared.action, target: prepared.target, params: prepared.params)))]
 	case "locate":
 		return try locateCase(input)
+	case "validateEach":
+		return Dictionary(uniqueKeysWithValues: members(input["cases"]).map { name, actions in
+			(name, JSONValue.string(failure { _ = try validateActions(actions.array ?? []) }))
+		})
 	case "opened":
-		let view = openedView(try loadOutline(input["outline"]!))
-		return ["counts": .string("\(view.shown ?? 0)/\(view.total ?? 0)"), "text": .string(renderNodes(view.nodes ?? []))]
+		let view = openedView(menu(items: Int(input["items"]!.number!)))
+		return ["counts": .string("\(view.shown ?? 0)/\(view.total ?? 0)"), "last": .string(view.nodes.map { renderNode($0.last!) } ?? "")]
 	case "outcome":
 		return ["result": .string(try outcomeCase(input))]
 	case "observedValues":
@@ -221,14 +240,30 @@ private func changesCase(_ input: JSONValue) throws -> [String: JSONValue] {
 	]
 }
 
+/// One lookup per entry of `finds`, all in the same outline.
 private func locateCase(_ input: JSONValue) throws -> [String: JSONValue] {
-	let action = ActionName(rawValue: input["action"]!.string!)!
-	let locator = try JSONCoding.decode(Locator.self, from: input["find"]!)
-	switch locate(locator, for: action, in: try loadOutline(input["outline"]!)) {
-	case .found(let ref): return ["found": .string(ref)]
-	case .missing(let error): return ["kind": .string("missing")].merging(failure(error)) { $1 }
-	case .ambiguous(let error): return ["kind": .string("ambiguous")].merging(failure(error)) { $1 }
+	let outline = try loadOutline(input["outline"]!)
+	return try Dictionary(uniqueKeysWithValues: members(input["finds"]).map { name, lookup in
+		let action = ActionName(rawValue: lookup["action"]!.string!)!
+		let locator = try JSONCoding.decode(Locator.self, from: lookup["find"]!)
+		func refused(_ kind: String, _ error: BCUError) -> JSONValue {
+			.object(["kind": .string(kind), "stderr": .string(error.formatted), "exitCode": .number(Double(error.exitCode))])
+		}
+		switch locate(locator, for: action, in: outline) {
+		case .found(let ref): return (name, .object(["found": .string(ref)]))
+		case .missing(let error): return (name, refused("missing", error))
+		case .ambiguous(let error): return (name, refused("ambiguous", error))
+		}
+	})
+}
+
+/// A menu of `items` pressable items, the way an app lists a long dropdown.
+private func menu(items: Int) -> Outline {
+	func node(_ ref: String, role: String, title: String, children: [SerializedOutlineNode] = []) -> SerializedOutlineNode {
+		SerializedOutlineNode(ref: ref, wireRef: String(ref.dropFirst()), role: role, subrole: "", identifier: "", title: title, description: "", value: "", actions: role == "AXMenuItem" ? ["AXPress"] : [], canPress: role == "AXMenuItem", canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, focused: false, offscreen: false, pictureOnly: false, truncated: false, children: children)
 	}
+	let entries = (1...items).map { node("@e\($0 + 1)", role: "AXMenuItem", title: "Item \($0)") }
+	return Outline(restoring: SerializedOutline(root: node("@e1", role: "AXMenu", title: "", children: entries)))
 }
 
 private func outcomeCase(_ input: JSONValue) throws -> String {

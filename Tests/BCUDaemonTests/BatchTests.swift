@@ -43,6 +43,12 @@ private final class Notes: @unchecked Sendable {
 	func isOpen(_ root: Root) -> Bool { lock.withLock { _extra.contains { $0.handle == root.handle } } }
 }
 
+/// The menu's own element: a root's handle is not the handle of its element, which is how the
+/// popup's tree and the menu's own look both reach it.
+private func fontItems() -> LookNode {
+	node("font-menu-el", role: "AXMenu", children: fonts.map { node("item-\($0)", role: "AXMenuItem", title: $0, canPress: true) })
+}
+
 private func notesApp(_ notes: Notes) -> Harness {
 	var scene = FakeDesktop.Scene()
 	scene.apps = [notesApp]
@@ -66,8 +72,10 @@ private func notesApp(_ notes: Notes) -> Harness {
 		scene.look = { request in
 			switch request.root {
 			case Handle("nw"):
+				// An open popup menu hangs under the popup in the window's own tree.
+				let menu = notes.isOpen(fontMenu) ? [fontItems()] : []
 				let children = [
-					node("popup", role: "AXPopUpButton", title: "Font", value: notes.font, canPress: true),
+					node("popup", role: "AXPopUpButton", title: "Font", value: notes.font, canPress: true, children: menu),
 					node("new", role: "AXButton", title: "New", canPress: true),
 					node("both", role: "AXButton", title: "Both", canPress: true),
 					node("another", role: "AXButton", title: "Another", canPress: true),
@@ -78,7 +86,7 @@ private func notesApp(_ notes: Notes) -> Harness {
 				return lookResult(node("nw-el", role: "AXWindow", title: "Notes", children: children), frame: notesWindow.framePoints, windowId: 7101)
 			case Handle("font-menu"):
 				guard notes.isOpen(fontMenu) else { throw BCUError(.windowStale, "The menu is gone") }
-				return lookResult(node("font-menu-el", role: "AXMenu", children: fonts.map { node("item-\($0)", role: "AXMenuItem", title: $0, canPress: true) }), frame: fontMenu.framePoints, kind: .menu)
+				return lookResult(fontItems(), frame: fontMenu.framePoints, kind: .menu)
 			case Handle("name-sheet"):
 				guard notes.isOpen(nameSheet) else { throw BCUError(.windowStale, "The sheet is gone") }
 				var children = [node("name", role: "AXTextField", title: "Name", value: notes.name, canSetValue: true), node("cancel", role: "AXButton", title: "Cancel", canPress: true)]
@@ -140,6 +148,7 @@ struct BatchTests {
 		#expect(opened.root.kind == .menu && opened.root.title == "Font")
 		#expect(opened.nodes.compactMap { $0.role == "menuitem" ? $0.name : nil } == fonts)
 		#expect(opened.shown == opened.nodes.count && opened.total == opened.nodes.count)
+		#expect(pressed.changes == [], "the menu is reported once, as opened, not again as changes of the window")
 
 		// The view is what observe-ui would have shown of that root.
 		let observed = try await harness.observe(#"{"root":"\#(opened.root.ref)"}"#)
@@ -189,23 +198,17 @@ struct BatchTests {
 		#expect(harness.desktop.scene.waits.last?.root == Handle("nw"), "the step's condition was checked in the root it named")
 	}
 
+	/// The button exists only in the sheet, so finding it in the root the app would pick is
+	/// finding the sheet, and it is awaited until it appears.
 	@Test func aFoundElementIsAwaitedUntilItAppears() async throws {
 		let notes = Notes()
 		notes.createAppearsAtLook = 4
 		let harness = notesApp(notes)
 		let window = try await harness.observe(#"{"app":"Notes"}"#)
-		let steps = #"[{"action":"press","find":{"name":"New"}},{"action":"press","find":{"name":"Create","root":"opened","timeoutMs":5000}}]"#
+		let steps = #"[{"action":"press","find":{"name":"New"}},{"action":"press","find":{"name":"Create","root":"app","timeoutMs":5000}}]"#
 		_ = try await harness.act(window.stateId, steps)
 		#expect(delivered(harness).last == Handle("create"))
 		#expect(notes.sheetLooks >= 4)
-	}
-
-	@Test func theRootTheAppWouldPickIsALookupRoot() async throws {
-		let harness = notesApp(Notes())
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
-		let result = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(try ref(window.nodes, "New"))"},{"action":"press","find":{"name":"Cancel","root":"app"}}]"#)
-		#expect(delivered(harness) == [Handle("new"), Handle("cancel")])
-		#expect(result.closed?.root.kind == .sheet)
 	}
 
 	/// Twins are a failure with their descriptions, found before anything is delivered, so the
