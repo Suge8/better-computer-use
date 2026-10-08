@@ -29,6 +29,12 @@ bcu setup
 - 辅助功能
 - 屏幕录制（新版 macOS 显示为“屏幕与系统音频录制”）
 
+给 agent 装上用法 skill（[friedbun](https://github.com/Suge8/friedbun) 里的 `better-computer-use`）：
+
+```bash
+npx skills add Suge8/friedbun --skill better-computer-use
+```
+
 ## 快速开始
 
 已知目标应用且窗口唯一时直接观察：
