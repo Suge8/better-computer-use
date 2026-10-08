@@ -50,12 +50,16 @@ public struct ProjectOptions {
 	public var unfold: [String] = []
 	/// Projects this subtree instead of the whole root.
 	public var from: OutlineNode?
+	/// Refs of nodes that belong to another state's view, such as a menu hanging under its popup
+	/// that the result carries as a root of its own: they and everything under them are left out.
+	public var omitting: Set<String> = []
 
-	public init(maxDepth: Int? = nil, maxNodes: Int? = nil, unfold: [String] = [], from: OutlineNode? = nil) {
+	public init(maxDepth: Int? = nil, maxNodes: Int? = nil, unfold: [String] = [], from: OutlineNode? = nil, omitting: Set<String> = []) {
 		self.maxDepth = maxDepth
 		self.maxNodes = maxNodes
 		self.unfold = unfold
 		self.from = from
+		self.omitting = omitting
 	}
 
 	/// Diffs and cached queries compare complete projections; only the rendered view is folded.
@@ -304,11 +308,11 @@ private func foldTextLines(_ children: [Tree]) -> (children: [Tree], lines: Int,
 	return folded
 }
 
-private func buildTrees(_ node: OutlineNode, insideWeb: Bool) -> [Tree] {
+private func buildTrees(_ node: OutlineNode, insideWeb: Bool, omitting: Set<String>) -> [Tree] {
 	let role = roleWord(node)
-	if droppedRoles.contains(role) { return [] }
+	if droppedRoles.contains(role) || omitting.contains(node.ref) { return [] }
 	let web = insideWeb || node.role == "AXWebArea"
-	let children = node.children.flatMap { buildTrees($0, insideWeb: web) }
+	let children = node.children.flatMap { buildTrees($0, insideWeb: web, omitting: omitting) }
 	let caps = capabilitiesOf(node, role: role, web: web)
 	let state = stateOf(node)
 	let value = clean(node.value, maxValueCharacters)
@@ -451,8 +455,9 @@ private func subtreeSize(_ node: OutlineNode) -> Int {
 
 public func project(_ outline: Outline, _ options: ProjectOptions = ProjectOptions()) -> Projection {
 	let start = options.from ?? outline.root
-	let trees = buildTrees(start, insideWeb: insideWebArea(start.parent))
-	let total = start === outline.root ? outline.nodes.count : subtreeSize(start)
+	let trees = buildTrees(start, insideWeb: insideWebArea(start.parent), omitting: options.omitting)
+	let left = outline.nodes.filter { options.omitting.contains($0.ref) }.reduce(0) { $0 + subtreeSize($1) }
+	let total = (start === outline.root ? outline.nodes.count : subtreeSize(start)) - left
 	let limit = options.maxNodes ?? maxNodes
 	let unfolded = defaultUnfolded(outline, options.unfold)
 	let represents = representation(trees)

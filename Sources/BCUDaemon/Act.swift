@@ -173,14 +173,16 @@ extension Daemon {
 		let next = saved.payload.outline.outline()
 		let outcome = outcomeAfterObservedValues(execution.outcome, actions: executed) { next.node($0)?.value }
 		if outcome == .didnt { throw failure(execution) }
-		let view = successorView(base: Outline(restoring: transaction.outline), next: next, menusOpenedByBcu: execution.openedMenus)
 		let stillOpen = execution.appeared.filter { $0.handle != execution.closedTarget?.root.handle }
+		let attached = try await attachOpened(stillOpen, base: target, lane: lane)
+		// A menu hanging under its popup is in this window's tree too; it is reported once, as opened.
+		let view = successorView(base: Outline(restoring: transaction.outline), next: next, menusOpenedByBcu: execution.openedMenus, omitting: attached.map { saved.payload.outline.refs(of: $0.handle) } ?? [])
 		let roots = stillOpen.compactMap(appearance)
 		return BCUCore.ActResult(
 			stateId: saved.stateId, baseStateId: params.stateId, outcome: outcome, verification: verification,
 			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots,
 			closed: execution.closedTarget.map { ClosedRoot(root: $0.appearance, skipped: execution.skipped > 0 ? execution.skipped : nil) },
-			opened: try await attachOpened(stillOpen, base: target, lane: lane),
+			opened: attached?.opened,
 			changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
 			image: try await artifact(successor.image, for: saved.stateId)
 		)

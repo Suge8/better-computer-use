@@ -78,6 +78,13 @@ final class ObservedOutline: Sendable {
 		}
 	}
 
+	/// Refs of the nodes that are the element `handle`: a root seen from inside another root's tree.
+	func refs(of handle: Handle) -> Set<String> {
+		let contents = current
+		let outline = Outline(restoring: contents.outline)
+		return Set(contents.handles.filter { $0.value == handle }.compactMap { outline.node($0.key)?.ref })
+	}
+
 	/// The element behind a node; nodes read from the screen have none.
 	func handle(of node: OutlineNode) throws -> Handle {
 		let wireRef = try node.accessibilityRef()

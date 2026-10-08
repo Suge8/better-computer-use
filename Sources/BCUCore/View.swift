@@ -211,13 +211,13 @@ public struct SuccessorView: Codable, Sendable, Equatable {
 	public var total: Int?
 }
 
-private func viewRefs(_ outline: Outline) -> Set<String> {
-	Set(project(outline).nodes.map(\.ref))
+private func viewRefs(_ outline: Outline, omitting: Set<String> = []) -> Set<String> {
+	Set(project(outline, ProjectOptions(omitting: omitting)).nodes.map(\.ref))
 }
 
 /// The whole folded view of a root, for a successor that is not a diff of its base.
-public func fullView(_ outline: Outline) -> SuccessorView {
-	let folded = project(outline)
+public func fullView(_ outline: Outline, omitting: Set<String> = []) -> SuccessorView {
+	let folded = project(outline, ProjectOptions(omitting: omitting))
 	return SuccessorView(nodes: folded.nodes, shown: folded.shown, total: folded.total)
 }
 
@@ -233,15 +233,18 @@ public func openedView(_ outline: Outline) -> SuccessorView {
 
 /// Successor view of a state transition: a diff when identity holds, the full view otherwise.
 /// `menusOpenedByBcu`: bcu opened and closed menus to act, so the menu tree it moved is not news.
-public func successorView(base: Outline, next: Outline, menusOpenedByBcu: Bool = false) -> SuccessorView {
+/// `omitting`: refs of `next` that the result carries as a root of its own; they are not news here.
+public func successorView(base: Outline, next: Outline, menusOpenedByBcu: Bool = false, omitting: Set<String> = []) -> SuccessorView {
+	var nextOptions = ProjectOptions.unfolded
+	nextOptions.omitting = omitting
 	let transition = changesBetween(
 		project(base, .unfolded).nodes,
-		project(next, .unfolded).nodes,
-		visible: viewRefs(next),
+		project(next, nextOptions).nodes,
+		visible: viewRefs(next, omitting: omitting),
 		baseVisible: viewRefs(base),
 		menusOpenedByBcu: menusOpenedByBcu
 	)
-	if transition.useFullView { return fullView(next) }
+	if transition.useFullView { return fullView(next, omitting: omitting) }
 	let quiet = transition.offscreen.added + transition.offscreen.removed > 0
 	return SuccessorView(changes: transition.changes, offscreen: quiet ? transition.offscreen : nil)
 }
