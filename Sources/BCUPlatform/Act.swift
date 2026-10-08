@@ -387,7 +387,7 @@ extension Platform {
 				// pressing or clicking again would run it twice. Only an error that proves the
 				// request never arrived leaves the press undone; any other is judged on the
 				// evidence, like a press that succeeded.
-				if !Self.pressNeverArrived(status) {
+				if !Self.actionNeverArrived(status) {
 					performed.grounding = .description
 					performed.delivery = .ax
 					if let openedMenu { try awaitMenuClosed(openedMenu) }

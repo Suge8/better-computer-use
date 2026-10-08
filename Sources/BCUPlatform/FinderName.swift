@@ -23,11 +23,4 @@ extension Platform {
 			&& stringAttribute(element, attribute: kAXIdentifierAttribute as CFString) == "Name"
 		return isInfoName ? "Rename it from the keyboard: \(steps)click the field, \(edit)." : nil
 	}
-
-	/// Errors of AXPerformAction that prove the request never reached the app. Others (a
-	/// timeout while the app is busy with the press, a generic failure Finder's own toolbar
-	/// returns for presses that landed) say nothing about whether it ran.
-	static func pressNeverArrived(_ status: AXError) -> Bool {
-		[.invalidUIElement, .illegalArgument, .notImplemented].contains(status)
-	}
 }
