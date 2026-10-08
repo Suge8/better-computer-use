@@ -37,8 +37,8 @@ extension Platform {
 			if layer != 0 || seen.contains(ownerPid) { continue }
 			guard let boundsDict = entry[kCGWindowBounds as String] as? [String: Any],
 				let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary),
-				bounds.width >= 100,
-				bounds.height >= 80
+				bounds.width >= minimumWindowSize.width,
+				bounds.height >= minimumWindowSize.height
 			else {
 				continue
 			}
@@ -75,7 +75,7 @@ extension Platform {
 			}
 
 			let title = (entry[kCGWindowName as String] as? String) ?? ""
-			let isOnscreen = (entry[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue ?? true
+			let isOnscreen = (entry[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue ?? false
 			candidates.append(
 				CGWindowCandidate(
 					windowId: windowNumber,
@@ -104,8 +104,8 @@ extension Platform {
 			} else {
 				guard let boundsDict = entry[kCGWindowBounds as String] as? [String: Any],
 					let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary),
-					bounds.width >= 100,
-					bounds.height >= 80
+					bounds.width >= minimumWindowSize.width,
+					bounds.height >= minimumWindowSize.height
 				else { return nil }
 			}
 			guard seen.insert(pid).inserted else { return nil }

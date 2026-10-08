@@ -32,12 +32,19 @@ enum SkyLight {
 		let postEventRecord: PostEventRecord
 	}
 
-	private static let symbols: Symbols? = {
+	private static let loaded: Void = {
 		_ = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY | RTLD_GLOBAL)
-		func resolve<T>(_ name: String, as _: T.Type) -> T? {
-			guard let pointer = dlsym(UnsafeMutableRawPointer(bitPattern: -2), name) else { return nil }
-			return unsafeBitCast(pointer, to: T.self)
-		}
+	}()
+
+	/// A C function by name from anything the process has loaded (SkyLight, HIServices), nil
+	/// when this macOS no longer has it.
+	static func resolve<T>(_ name: String, as _: T.Type) -> T? {
+		_ = loaded
+		guard let pointer = dlsym(UnsafeMutableRawPointer(bitPattern: -2), name) else { return nil }
+		return unsafeBitCast(pointer, to: T.self)
+	}
+
+	private static let symbols: Symbols? = {
 		guard let postToPid = resolve("SLEventPostToPid", as: PostToPid.self),
 			let setIntegerField = resolve("SLEventSetIntegerValueField", as: SetIntegerField.self),
 			let setWindowLocation = resolve("CGEventSetWindowLocation", as: SetWindowLocation.self),

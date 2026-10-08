@@ -1,6 +1,9 @@
 import AppKit
 import BCUCore
 
+/// The pairing score of a window whose WindowServer id its accessibility element reported itself.
+private let recoveredPairingScore = 100.0
+
 extension Platform {
 	public func listApps() -> [RunningApp] {
 		listApps(cgEntries: nil)
@@ -143,12 +146,13 @@ extension Platform {
 		} else {
 			owners = broadRootOwners(entries: entries)
 		}
+		let spaces = SpaceView()
 		var roots: [Root] = []
 		for owner in owners {
 			let appPid = owner.pid
 			let appName = owner.appName ?? processName(pid: appPid) ?? "Unknown App"
 			let bundleId = owner.bundleId
-			roots += listWindows(pid: appPid, appName: appName, bundleId: bundleId, cgEntries: entries, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
+			roots += listWindows(pid: appPid, appName: appName, bundleId: bundleId, cgEntries: entries, spaces: spaces, includingStaleViews: !isBroadDiscovery, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
 			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries)
 			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
 			for candidate in popupCandidates {
@@ -181,16 +185,22 @@ extension Platform {
 	}
 
 	/// The app's windows and their sheets, in the app's own window order.
-	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, messagingTimeout: Float = messagingTimeout) -> [Root] {
+	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, spaces: SpaceView? = SpaceView(), includingStaleViews: Bool = true, messagingTimeout: Float = messagingTimeout) -> [Root] {
 		ensureEnhancedAccessibility(pid: pid)
 		let appElement = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
 		let windows = Array(axElementArray(appElement, attribute: kAXWindowsAttribute as CFString).prefix(128))
 		let candidates = cgWindowCandidates(pid: pid, entries: cgEntries)
-		let pairings = windowPairings(windows: windows, candidates: candidates)
+		let recovered = recoverUnlistedWindows(pid: pid, listed: windows, candidates: candidates, spaces: spaces, includingStaleViews: includingStaleViews, timeout: messagingTimeout)
+		let recoveredIds = Set(recovered.map(\.candidate.windowId))
+		var pairings = windowPairings(windows: windows, candidates: candidates.filter { !recoveredIds.contains($0.windowId) })
+		for window in recovered {
+			pairings[ObjectIdentifier(window.element)] = WindowPairing(candidate: window.candidate, score: recoveredPairingScore, confidence: .exact)
+		}
+		let elsewhereIds = Set(recovered.filter(\.isElsewhere).map(\.candidate.windowId))
 
 		var output: [Root] = []
-		for (zIndex, window) in windows.enumerated() {
+		for (zIndex, window) in (windows + recovered.map(\.element)).enumerated() {
 			let axTitle = stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? ""
 			let axRole = stringAttribute(window, attribute: kAXRoleAttribute as CFString) ?? ""
 			let axSubrole = stringAttribute(window, attribute: kAXSubroleAttribute as CFString) ?? ""
@@ -199,7 +209,7 @@ extension Platform {
 			let candidate = pairing.candidate
 
 			let effectiveFrame = axFrame.width > 1 && axFrame.height > 1 ? axFrame : (candidate?.bounds ?? axFrame)
-			if effectiveFrame.width < 100 || effectiveFrame.height < 80 { continue }
+			if effectiveFrame.width < minimumWindowSize.width || effectiveFrame.height < minimumWindowSize.height { continue }
 			let hasUsableAXFrame = axFrame.width > 1 && axFrame.height > 1
 			let title = hasUsableAXFrame && !axTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? axTitle : (candidate?.title.isEmpty == false ? candidate!.title : axTitle)
 			let isMinimized = boolAttribute(window, attribute: kAXMinimizedAttribute as CFString) ?? false
@@ -220,7 +230,7 @@ extension Platform {
 				framePoints: effectiveFrame,
 				scaleFactor: displayScaleFactor(for: effectiveFrame),
 				isMinimized: isMinimized,
-				isOnscreen: candidate?.isOnscreen ?? !isMinimized,
+				isOnscreen: (candidate?.isOnscreen ?? !isMinimized) && !elsewhereIds.contains(candidate?.windowId ?? 0),
 				isMain: isMain,
 				isFocused: isFocused,
 				metadata: rootMetadata(pairing: pairing, sheetCount: sheetCount),
@@ -272,7 +282,6 @@ extension Platform {
 		let appElement = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
 		let windows = Array(axElementArray(appElement, attribute: kAXWindowsAttribute as CFString).prefix(128))
-		guard !windows.isEmpty else { return nil }
 		guard let windowId else {
 			return windows.first
 		}
@@ -288,7 +297,7 @@ extension Platform {
 				}
 			}
 		}
-		return nil
+		return recoverUnlistedWindows(pid: pid, listed: windows, candidates: candidates.filter { $0.windowId == windowId }, spaces: SpaceView(), timeout: messagingTimeout).first?.element
 	}
 
 	/// AXMenu elements exist for every closed submenu too; only an open menu reports a frame,
