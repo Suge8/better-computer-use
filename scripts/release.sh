@@ -100,8 +100,20 @@ write_cask() {
 	CASK
 }
 
+# A tag nobody published is removed again, locally and, once pushed, on origin together with
+# its release, so a failed run can be repeated as it was.
+abandon_tag() {
+	[[ $published == true ]] && return
+	if [[ $pushed == true ]]; then
+		gh release delete "$tag" --repo "$REPO" --yes >/dev/null 2>&1 || true
+		git -C "$ROOT" push origin ":refs/tags/$tag" >/dev/null 2>&1 || log "could not delete $tag on origin: git push origin :refs/tags/$tag"
+	fi
+	git -C "$ROOT" tag -d "$tag" >/dev/null
+}
+
 publish() {
 	git -C "$ROOT" push origin "refs/tags/$tag"
+	pushed=true
 	gh release create "$tag" "$zip" --repo "$REPO" --title "$tag" --generate-notes --verify-tag
 	local tap
 	tap=$(mktemp -d)
@@ -118,8 +130,8 @@ main() {
 	preflight
 	# Global: the EXIT trap runs after main has returned.
 	published=false
-	# A tag nobody published is removed again, so a failed run can be repeated.
-	trap '[[ $published == true ]] || git -C "$ROOT" tag -d "$tag" >/dev/null' EXIT
+	pushed=false
+	trap abandon_tag EXIT
 	git -C "$ROOT" tag "$tag"
 	[[ $(app_version) == "$release_version" ]] || die "the build would be version $(app_version), not $release_version"
 	rm -rf "$DIST"

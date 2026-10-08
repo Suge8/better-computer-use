@@ -18,8 +18,8 @@ The resident process must run as `bcu.app`, launched through LaunchServices
 the app that way, and keys the grants to its bundle id and code-signing identity. The
 install script therefore signs with the Developer ID identity from the keychain, with the
 hardened runtime, the same as a release; it does not touch the `bcu` command, which is the
-brew cask's link to the executable inside the app (without the cask, link it yourself:
-`ln -s /Applications/bcu.app/Contents/MacOS/bcu ~/.local/bin/bcu`).
+brew cask's link to the executable inside the app (without the cask, link it yourself, see the
+README's developer build section).
 
 The version comes from the git tag and nowhere else: `scripts/lib/package.sh` derives it with
 `git describe` and writes it into the app's Info.plist, which `bcu --version`, the client and
