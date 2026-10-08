@@ -14730,6 +14730,243 @@
 				"counts": "60/61",
 				"last": "  @e60 menuitem \"Item 59\" {press}"
 			}
+		},
+		{
+			"name": "a root hanging in the reference that has closed is not reported as removed",
+			"op": "successor",
+			"input": {
+				"base": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Doc",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "Helvetica",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e19",
+											"wireRef": "menu",
+											"role": "AXMenu",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 50,
+												"h": 20
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": [
+												{
+													"ref": "@e20",
+													"wireRef": "item0",
+													"role": "AXMenuItem",
+													"subrole": "",
+													"identifier": "",
+													"title": "Helvetica",
+													"description": "",
+													"value": "",
+													"actions": [
+														"AXPress"
+													],
+													"canPress": true,
+													"canFocus": false,
+													"canSetValue": false,
+													"canScroll": false,
+													"canIncrement": false,
+													"canDecrement": false,
+													"isTextInput": false,
+													"rect": {
+														"x": 0,
+														"y": 0,
+														"w": 50,
+														"h": 20
+													},
+													"focused": false,
+													"offscreen": false,
+													"pictureOnly": false,
+													"truncated": false,
+													"children": []
+												},
+												{
+													"ref": "@e21",
+													"wireRef": "item1",
+													"role": "AXMenuItem",
+													"subrole": "",
+													"identifier": "",
+													"title": "Times",
+													"description": "",
+													"value": "",
+													"actions": [
+														"AXPress"
+													],
+													"canPress": true,
+													"canFocus": false,
+													"canSetValue": false,
+													"canScroll": false,
+													"canIncrement": false,
+													"canDecrement": false,
+													"isTextInput": false,
+													"rect": {
+														"x": 0,
+														"y": 0,
+														"w": 50,
+														"h": 20
+													},
+													"focused": false,
+													"offscreen": false,
+													"pictureOnly": false,
+													"truncated": false,
+													"children": []
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"next": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Doc",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "Times",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"omittingBase": [
+					"@e19"
+				]
+			},
+			"output": {
+				"json": "{\"changes\":[{\"fields\":{\"value\":\"Times\"},\"ref\":\"@e2\",\"type\":\"updated\"}]}"
+			}
 		}
 	]
 }

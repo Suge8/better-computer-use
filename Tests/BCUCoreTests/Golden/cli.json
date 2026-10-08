@@ -3863,15 +3863,14 @@
 						}
 					},
 					"delivery": "ax",
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
-						},
-						"skipped": 1
-					},
+						}
+					],
 					"next": {
 						"ref": "@r1",
 						"kind": "window",
@@ -4063,7 +4062,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nskipped 1 later step: its root closed\nnext root @r1 window \"未命名2\"\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nnext root @r1 window \"未命名2\"\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -4092,15 +4091,14 @@
 						}
 					},
 					"delivery": "ax",
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
-						},
-						"skipped": 1
-					},
+						}
+					],
 					"next": {
 						"ref": "@r1",
 						"kind": "window",
@@ -4292,7 +4290,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "{\"baseStateId\":\"s\",\"closed\":{\"root\":{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"},\"skipped\":1},\"delivery\":\"ax\",\"next\":{\"app\":\"TextEdit\",\"kind\":\"window\",\"ref\":\"@r1\",\"title\":\"未命名2\"},\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"outcome\":\"worked\",\"shown\":14,\"stateId\":\"t\",\"total\":99,\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"status\":\"none\"}}\n",
+				"stdout": "{\"baseStateId\":\"s\",\"closed\":[{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"}],\"delivery\":\"ax\",\"next\":{\"app\":\"TextEdit\",\"kind\":\"window\",\"ref\":\"@r1\",\"title\":\"未命名2\"},\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"outcome\":\"worked\",\"shown\":14,\"stateId\":\"t\",\"total\":99,\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"status\":\"none\"}}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -4327,20 +4325,19 @@
 							"title": ""
 						}
 					],
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
-						},
-						"skipped": 2
-					}
+						}
+					]
 				}
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "state none ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\n+ root @r9 dialog \"\"\nskipped 2 later steps: its root closed\nno root of TextEdit remains; run find-roots\n",
+				"stdout": "state none ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\n+ root @r9 dialog \"\"\nno root of TextEdit remains; run find-roots\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -4376,20 +4373,19 @@
 							"title": ""
 						}
 					],
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
-						},
-						"skipped": 2
-					}
+						}
+					]
 				}
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "{\"baseStateId\":\"s\",\"closed\":{\"root\":{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"},\"skipped\":2},\"delivery\":\"ax\",\"outcome\":\"worked\",\"roots\":[{\"app\":\"TextEdit\",\"kind\":\"dialog\",\"ref\":\"@r9\",\"title\":\"\"}],\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"status\":\"none\"}}\n",
+				"stdout": "{\"baseStateId\":\"s\",\"closed\":[{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"}],\"delivery\":\"ax\",\"outcome\":\"worked\",\"roots\":[{\"app\":\"TextEdit\",\"kind\":\"dialog\",\"ref\":\"@r9\",\"title\":\"\"}],\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"status\":\"none\"}}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -4418,14 +4414,14 @@
 						"scope": "@e4"
 					},
 					"delivery": "ax",
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
 						}
-					}
+					]
 				}
 			},
 			"output": {
@@ -4460,19 +4456,19 @@
 						"scope": "@e4"
 					},
 					"delivery": "ax",
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
 						}
-					}
+					]
 				}
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "{\"baseStateId\":\"s\",\"closed\":{\"root\":{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"}},\"delivery\":\"ax\",\"outcome\":\"worked\",\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"gone\":true,\"scope\":\"@e4\",\"status\":\"verified\"}}\n",
+				"stdout": "{\"baseStateId\":\"s\",\"closed\":[{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"}],\"delivery\":\"ax\",\"outcome\":\"worked\",\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"gone\":true,\"scope\":\"@e4\",\"status\":\"verified\"}}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -4667,15 +4663,14 @@
 						}
 					},
 					"delivery": "ax",
-					"closed": {
-						"root": {
+					"closed": [
+						{
 							"ref": "@r5",
 							"kind": "sheet",
 							"app": "TextEdit",
 							"title": "警告"
-						},
-						"skipped": 1
-					},
+						}
+					],
 					"changes": [
 						{
 							"type": "updated",
@@ -4689,7 +4684,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nskipped 1 later step: its root closed\n~ @e9 =\"typed\"\n",
+				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\n~ @e9 =\"typed\"\n",
 				"stderr": "",
 				"exitCode": 0
 			}
