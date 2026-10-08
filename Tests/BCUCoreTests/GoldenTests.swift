@@ -153,6 +153,11 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: false)
 		let prepared = try prepareAction(actions[0], state: ActionState(currentFocus: false), environment: environment)
 		return ["request": .string(try JSONCoding.string(Delivered(action: prepared.action, target: prepared.target, params: prepared.params)))]
+	case "locate":
+		return try locateCase(input)
+	case "opened":
+		let view = openedView(try loadOutline(input["outline"]!))
+		return ["counts": .string("\(view.shown ?? 0)/\(view.total ?? 0)"), "text": .string(renderNodes(view.nodes ?? []))]
 	case "outcome":
 		return ["result": .string(try outcomeCase(input))]
 	case "observedValues":
@@ -214,6 +219,16 @@ private func changesCase(_ input: JSONValue) throws -> [String: JSONValue] {
 		"text": .string(renderChanges(transition.changes)),
 		"offscreen": .string(renderOffscreen(transition.offscreen)),
 	]
+}
+
+private func locateCase(_ input: JSONValue) throws -> [String: JSONValue] {
+	let action = ActionName(rawValue: input["action"]!.string!)!
+	let locator = try JSONCoding.decode(Locator.self, from: input["find"]!)
+	switch locate(locator, for: action, in: try loadOutline(input["outline"]!)) {
+	case .found(let ref): return ["found": .string(ref)]
+	case .missing(let error): return ["kind": .string("missing")].merging(failure(error)) { $1 }
+	case .ambiguous(let error): return ["kind": .string("ambiguous")].merging(failure(error)) { $1 }
+	}
 }
 
 private func outcomeCase(_ input: JSONValue) throws -> String {

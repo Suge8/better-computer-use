@@ -362,6 +362,10 @@ public struct WaitForRequest: Sendable {
 	}
 }
 
+public struct ChangeMark: Sendable {
+	let generation: UInt64
+}
+
 public enum WaitOutcome: Sendable {
 	case found
 	case gone

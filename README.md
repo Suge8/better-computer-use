@@ -62,6 +62,15 @@ echo '[{"action":"press","ref":"@e12"}]' |
 
 `act-ui` 返回的新 `stateId` 是下一次操作的输入，并只列出相对上一状态的变化。结果行的 `worked` 表示有证据证明动作生效；`unverified` 表示动作已投递但没有可读的证据（菜单命令、快捷键常见），退出码仍为 0，需要确认时加 `--expect-*`。只有被证明无效或后置条件未满足时才以 `action_failed` 失败。状态过期时重新执行 `observe-ui`。
 
+动作打开的菜单、sheet、popover、对话框连同视图随结果返回（`opened`，带 `stateId` 与 ref），选下拉框的选项就是两条命令：按下拉框，再按返回视图里的选项。动作项也可以不写 ref，用 `find`（角色和名称，可加 `nth`、`root`）在该步执行时现找，并带自己的 `expect`，一次数组走完“打开对话框 → 填写 → 确认”：
+
+```bash
+echo '[{"action":"press","find":{"role":"button","name":"New note..."}},
+       {"action":"setText","text":"Report","find":{"role":"textfield","name":"Name","root":"opened"}},
+       {"action":"press","find":{"role":"button","name":"Create","root":"opened"},"expect":{"text":"note: Report","root":"state"}}]' |
+  bcu act-ui --state <stateId> -
+```
+
 每条命令的完整参数用 `bcu <命令> --help` 查看，`--json` 返回同一份结果的结构化形式。
 
 默认不取图（自动读屏的窗口除外，见下文）。需要截图时显式请求：

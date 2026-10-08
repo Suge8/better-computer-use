@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+// act-ui across user interface, on a real app. The subject is a window with a font popup and a
+// "New note…" button that raises a sheet. Choosing a dropdown option takes two commands: the
+// press that opens the popup returns the menu it opened, already observed, and the next
+// act-ui presses the option in that view. A whole dialog is one array: press the button,
+// find the sheet's Name field and fill it, find Create and press it, and check the window's
+// label afterwards, each element found in the root it lives in when its step runs. An
+// ambiguous locator refuses before anything is delivered and leaves the state usable. Search
+// and wait-for read three periods as the ellipsis the button's title ends in. Throughout, a
+// stand-in for the user's front app keeps the front and its keyboard.
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { desktop, killProcess, launchBatchForm, launchKeyHolder, makeTemporaryRoot, residentEnvironment, runCli, waitForAxWindow, withTimeout } from "./lib/harness.mjs";
+
+if (process.env.BCU_LIVE !== "1") {
+	console.log("SKIP batch (set BCU_LIVE=1)");
+	process.exit(0);
+}
+if (process.platform !== "darwin") throw new Error("The batch test requires macOS.");
+
+const root = await makeTemporaryRoot("batch");
+const env = residentEnvironment(path.join(root, "resident.sock"), 30_000);
+const title = `bcu batch ${randomUUID().slice(0, 8)}`;
+const logPath = path.join(root, "form.log");
+let form;
+let holder;
+
+async function bcu(args, input) {
+	const result = await runCli([...args, "--json"], { input, env });
+	if (result.code !== 0) throw new Error(`bcu ${args[0]} exited ${result.code}: ${result.stderr.trim()}`);
+	return JSON.parse(result.stdout);
+}
+
+async function act(stateId, actions) {
+	return await bcu(["act-ui", "--state", stateId, "-"], JSON.stringify(actions));
+}
+
+async function logged() {
+	return (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
+}
+
+async function windowState(rootRef) {
+	return await bcu(["observe-ui", "--root", rootRef]);
+}
+
+/**
+ * Hands the front to the key holder and returns a check that it still holds it after the cell.
+ * An open popup menu takes the key window while it is open (AppKit menu tracking, the same
+ * for a plain ref press), so a cell that leaves a menu open passes `menuOpen` and is held to
+ * the front app and the pointer only.
+ */
+async function userInFront() {
+	const seen = (await holder.takeFront()).length;
+	const before = await desktop();
+	assert.equal(before.front, holder.pid, "the key holder did not take the front");
+	return async (cell, { menuOpen = false } = {}) => {
+		const after = await desktop();
+		assert.equal(after.front, holder.pid, `${cell} changed the front app`);
+		assert.deepEqual([after.x, after.y], [before.x, before.y], `${cell} moved the real pointer`);
+		if (!menuOpen) assert.deepEqual((await holder.logged()).slice(seen), [], `${cell} made the user's front app lose its key window or activation`);
+	};
+}
+
+try {
+	holder = await launchKeyHolder(root);
+	form = await launchBatchForm(root, logPath, title);
+	await waitForAxWindow(form.pid, form.exited, title);
+	const window = (await bcu(["find-roots", "--pid", String(form.pid), "--kind", "window"])).roots.find((candidate) => candidate.title === title);
+	assert(window, "the form window is not listed");
+
+	// A dropdown option in two commands.
+	let untouched = await userInFront();
+	const closedForm = await windowState(window.ref);
+	const pressed = await act(closedForm.stateId, [{ action: "press", find: { role: "popup", name: "Font" } }]);
+	assert(pressed.opened, `the press that opened the popup did not return its menu: ${JSON.stringify(pressed)}`);
+	assert.equal(pressed.opened.root.kind, "menu");
+	assert.deepEqual(pressed.opened.nodes.filter((node) => node.role === "menuitem").map((node) => node.name), ["Helvetica", "Times", "Courier"]);
+	const times = pressed.opened.nodes.find((node) => node.name === "Times");
+	const chosen = await act(pressed.opened.stateId, [{ action: "press", ref: times.ref }]);
+	assert.deepEqual(await logged(), ["font Times"], "choosing the option did not reach the app");
+	assert.equal(chosen.closed?.root.ref, pressed.opened.root.ref, "choosing the option did not report the menu closing");
+	assert.equal(chosen.next?.ref, window.ref, "the window is not the root to continue in");
+	await untouched("choosing a dropdown option", { menuOpen: true });
+
+	// A dialog in one array; an ambiguous locator refuses first and leaves the state usable.
+	untouched = await userInFront();
+	const idle = await windowState(window.ref);
+	const ambiguous = await runCli(["act-ui", "--state", idle.stateId, "-", "--json"], { input: JSON.stringify([{ action: "press", find: { role: "text" } }]), env });
+	assert.equal(ambiguous.code, 7, `an ambiguous locator exited ${ambiguous.code}: ${ambiguous.stderr}`);
+	assert.match(ambiguous.stderr, /matches 3 elements: nth 0: text/, ambiguous.stderr);
+	const cancelled = await act(idle.stateId, [{ action: "press", find: { name: "New note..." } }, { action: "press", find: { role: "button", name: "Cancel", root: "opened" } }]);
+	assert.equal(cancelled.closed?.root.kind, "sheet", "Cancel did not report the sheet closing");
+	assert.deepEqual(await logged(), ["font Times"], "Cancel created a note");
+
+	const filled = await act((await windowState(window.ref)).stateId, [
+		{ action: "press", find: { role: "button", name: "New note…" } },
+		{ action: "setText", text: "Report", find: { role: "textfield", name: "Name", root: "opened" } },
+		{ action: "press", find: { role: "button", name: "Create", root: "opened" }, expect: { text: "note: Report", root: "state" } },
+	]);
+	assert.deepEqual((await logged()).slice(1), ["created Report"], "the dialog did not run to its end");
+	assert.equal(filled.closed?.root.kind, "sheet");
+	assert.equal(filled.verification.status, "verified");
+	await untouched("filling in a dialog");
+
+	// Search and wait-for read three periods as the ellipsis.
+	const final = await windowState(window.ref);
+	const searched = await bcu(["search-ui", "--state", final.stateId, "--text", "New note..."]);
+	assert.equal(searched.matches.length, 1, "three periods did not find the title ending in the ellipsis");
+	await bcu(["wait-for", "--state", final.stateId, "--text", "New note...", "--timeout", "2000"]);
+
+	console.log(`PASS popup press returned its menu, option chosen in the next command → a dialog opened, filled and confirmed in one array → ambiguity refused first and left the state usable → three periods match the ellipsis → the user's front app kept the front throughout (pid ${form.pid})`);
+} finally {
+	if (form && killProcess(form.pid, "SIGTERM")) await withTimeout(form.exited, "the form to exit", 5_000).catch(() => killProcess(form.pid));
+	if (holder && killProcess(holder.pid, "SIGTERM")) await withTimeout(holder.exited, "the key holder to exit", 5_000).catch(() => killProcess(holder.pid));
+	await runCli(["stop"], { env }).catch(() => undefined);
+	await fs.rm(root, { recursive: true, force: true });
+}

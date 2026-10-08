@@ -4476,6 +4476,239 @@
 				"stderr": "",
 				"exitCode": 0
 			}
+		},
+		{
+			"name": "render act-ui opened root",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "value",
+							"from": "0",
+							"to": "1"
+						}
+					},
+					"delivery": "ax",
+					"roots": [
+						{
+							"ref": "@r12",
+							"kind": "menu",
+							"app": "Notes",
+							"title": "字体"
+						}
+					],
+					"changes": [],
+					"opened": {
+						"root": {
+							"ref": "@r12",
+							"kind": "menu",
+							"app": "Notes",
+							"title": "字体"
+						},
+						"stateId": "u",
+						"nodes": [
+							{
+								"ref": "@e1",
+								"role": "menu",
+								"name": "",
+								"caps": [],
+								"depth": 0
+							},
+							{
+								"ref": "@e2",
+								"role": "menuitem",
+								"name": "Helvetica",
+								"caps": [
+									"press"
+								],
+								"depth": 1,
+								"parent": "@e1"
+							},
+							{
+								"ref": "@e3",
+								"role": "menuitem",
+								"name": "Times",
+								"caps": [
+									"press"
+								],
+								"depth": 1,
+								"parent": "@e1"
+							}
+						],
+						"shown": 3,
+						"total": 3
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · value 0→1\n+ root @r12 menu \"字体\"\n(no element changes)\n@r12 Notes — 字体 · state u · 3 nodes, 3 shown\n@e1 menu\n  @e2 menuitem \"Helvetica\" {press}\n  @e3 menuitem \"Times\" {press}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui opened root --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--json",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "value",
+							"from": "0",
+							"to": "1"
+						}
+					},
+					"delivery": "ax",
+					"roots": [
+						{
+							"ref": "@r12",
+							"kind": "menu",
+							"app": "Notes",
+							"title": "字体"
+						}
+					],
+					"changes": [],
+					"opened": {
+						"root": {
+							"ref": "@r12",
+							"kind": "menu",
+							"app": "Notes",
+							"title": "字体"
+						},
+						"stateId": "u",
+						"nodes": [
+							{
+								"ref": "@e1",
+								"role": "menu",
+								"name": "",
+								"caps": [],
+								"depth": 0
+							},
+							{
+								"ref": "@e2",
+								"role": "menuitem",
+								"name": "Helvetica",
+								"caps": [
+									"press"
+								],
+								"depth": 1,
+								"parent": "@e1"
+							},
+							{
+								"ref": "@e3",
+								"role": "menuitem",
+								"name": "Times",
+								"caps": [
+									"press"
+								],
+								"depth": 1,
+								"parent": "@e1"
+							}
+						],
+						"shown": 3,
+						"total": 3
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"baseStateId\":\"s\",\"changes\":[],\"delivery\":\"ax\",\"opened\":{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"\",\"ref\":\"@e1\",\"role\":\"menu\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"Helvetica\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"menuitem\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"Times\",\"parent\":\"@e1\",\"ref\":\"@e3\",\"role\":\"menuitem\"}],\"root\":{\"app\":\"Notes\",\"kind\":\"menu\",\"ref\":\"@r12\",\"title\":\"字体\"},\"shown\":3,\"stateId\":\"u\",\"total\":3},\"outcome\":\"worked\",\"roots\":[{\"app\":\"Notes\",\"kind\":\"menu\",\"ref\":\"@r12\",\"title\":\"字体\"}],\"stateId\":\"t\",\"verification\":{\"evidence\":{\"field\":\"value\",\"from\":\"0\",\"source\":\"ax\",\"to\":\"1\"},\"status\":\"none\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui a later root closed while the state root stays",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "root",
+							"field": "closed"
+						}
+					},
+					"delivery": "ax",
+					"closed": {
+						"root": {
+							"ref": "@r5",
+							"kind": "sheet",
+							"app": "TextEdit",
+							"title": "警告"
+						},
+						"skipped": 1
+					},
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e9",
+							"fields": {
+								"value": "typed"
+							}
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nskipped 1 later step: its root closed\n~ @e9 =\"typed\"\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "act-ui locates by role and name",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"press\",\"find\":{\"role\":\"button\",\"name\":\"New\"}},{\"action\":\"setText\",\"text\":\"x\",\"find\":{\"role\":\"textfield\",\"name\":\"Name\",\"root\":\"opened\"},\"expect\":{\"text\":\"Saved\",\"root\":\"opened\"}}]"
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"press\",\"find\":{\"name\":\"New\",\"role\":\"button\"}},{\"action\":\"setText\",\"expect\":{\"root\":\"opened\",\"text\":\"Saved\"},\"find\":{\"name\":\"Name\",\"role\":\"textfield\",\"root\":\"opened\"},\"text\":\"x\"}],\"stateId\":\"s\"}}"
+			}
 		}
 	]
 }

@@ -162,6 +162,15 @@ export async function launchDrawnInput(directory, logPath, title, eventsPath) {
 	return { pid, exited };
 }
 
+/**
+ * Starts scripts/fixtures/batch-form.swift, a window with a font popup and a sheet; `logPath`
+ * receives `font <name>` and `created <name>`.
+ */
+export async function launchBatchForm(directory, logPath, title) {
+	const { pid, exited } = await launchSwiftFixture(directory, "batch-form", [logPath, title], "the batch form window");
+	return { pid, exited };
+}
+
 /** Front application and real pointer, read by a process that is not bcu. */
 export async function desktop() {
 	const { stdout } = await execFile("osascript", ["-l", "JavaScript", "-e", [

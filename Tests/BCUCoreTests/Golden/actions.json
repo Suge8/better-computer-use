@@ -546,7 +546,7 @@
 				]
 			},
 			"output": {
-				"stderr": "error invalid_arguments: click requires either ref or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: click requires ref, find, or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -562,7 +562,7 @@
 				]
 			},
 			"output": {
-				"stderr": "error invalid_arguments: setText requires either ref or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: setText requires ref, find, or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -7831,7 +7831,7 @@
 				}
 			},
 			"output": {
-				"stderr": "error invalid_arguments: typeText requires either ref or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: typeText requires ref, find, or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -11973,6 +11973,5080 @@
 			},
 			"output": {
 				"request": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":100,\"y\":200}}"
+			}
+		},
+		{
+			"name": "find button",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"role": "button",
+							"name": "OK"
+						}
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"press\",\"find\":{\"name\":\"OK\",\"role\":\"button\"}}]"
+			}
+		},
+		{
+			"name": "find with every option",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1"
+					},
+					{
+						"action": "setText",
+						"text": "x",
+						"find": {
+							"role": "textfield",
+							"name": "Name",
+							"nth": 1,
+							"root": "opened",
+							"timeoutMs": 500
+						},
+						"expect": {
+							"value": "x",
+							"root": "opened",
+							"timeoutMs": 300
+						}
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"press\",\"ref\":\"@e1\"},{\"action\":\"setText\",\"expect\":{\"root\":\"opened\",\"timeoutMs\":300,\"value\":\"x\"},\"find\":{\"name\":\"Name\",\"nth\":1,\"role\":\"textfield\",\"root\":\"opened\",\"timeoutMs\":500},\"text\":\"x\"}]"
+			}
+		},
+		{
+			"name": "find by role alone",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "scroll",
+						"find": {
+							"role": "scrollarea"
+						},
+						"scrollY": 3
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"scroll\",\"find\":{\"role\":\"scrollarea\"},\"scrollY\":3}]"
+			}
+		},
+		{
+			"name": "typing into a found element",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "typeText",
+						"text": "x",
+						"find": {
+							"name": "Search"
+						}
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"typeText\",\"find\":{\"name\":\"Search\"},\"text\":\"x\"}]"
+			}
+		},
+		{
+			"name": "step expectation on a ref",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"text": "Done",
+							"gone": false
+						}
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"press\",\"expect\":{\"gone\":false,\"text\":\"Done\"},\"ref\":\"@e1\"}]"
+			}
+		},
+		{
+			"name": "step expectation on a wait",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "wait",
+						"ms": 100,
+						"expect": {
+							"role": "button"
+						}
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"wait\",\"expect\":{\"role\":\"button\"},\"ms\":100}]"
+			}
+		},
+		{
+			"name": "step expectation in the opened root of its own action",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"text": "Name",
+							"root": "opened"
+						}
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"press\",\"expect\":{\"root\":\"opened\",\"text\":\"Name\"},\"ref\":\"@e1\"}]"
+			}
+		},
+		{
+			"name": "find with ref",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"find": {
+							"name": "OK"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press must use either ref or find, not both.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with coordinates",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "click",
+						"x": 1,
+						"y": 2,
+						"find": {
+							"name": "OK"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: click must use either find or coordinates, not both.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with an unknown key",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": "OK",
+							"label": "x"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.label is not supported.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find without role or name",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"nth": 1
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find needs a role or a name.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with a blank name",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": " "
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.name must be a non-empty string.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with a negative nth",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": "OK",
+							"nth": -1
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.nth must be a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with a fractional nth",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": "OK",
+							"nth": 1.5
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.nth must be a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with an unknown root",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": "OK",
+							"root": "banana"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.root must be state, opened, or app.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find with a long timeout",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": "OK",
+							"timeoutMs": 70000
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.timeoutMs must be an integer from 0 to 60000.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find that is not an object",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": "OK"
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find must be an object.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "find on a wait",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "wait",
+						"find": {
+							"name": "OK"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: wait.find is not supported.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "opened root at the first action",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"find": {
+							"name": "OK",
+							"root": "opened"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.find.root opened needs an earlier action in the array.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expect with an unknown key",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"text": "x",
+							"scope": "@e1"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.expect.scope is not supported.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expect without a condition",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"timeoutMs": 100
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.expect needs text, role, or value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expect with blank text",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"text": ""
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.expect.text must be a non-empty string.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expect gone that is not a boolean",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"text": "x",
+							"gone": "yes"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.expect.gone must be true or false.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expect with an unknown root",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "press",
+						"ref": "@e1",
+						"expect": {
+							"text": "x",
+							"root": "banana"
+						}
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: press.expect.root must be state, opened, or app.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "typing after a found click",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "click",
+						"find": {
+							"name": "Name"
+						}
+					},
+					{
+						"action": "typeText",
+						"text": "x"
+					}
+				]
+			},
+			"output": {
+				"stderr": "error invalid_arguments: typeText without a target requires an earlier focus-establishing action.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "exact name beats a longer name",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "button",
+					"name": "OK"
+				}
+			},
+			"output": {
+				"found": "@e6"
+			}
+		},
+		{
+			"name": "a part of a name when nothing is exact",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "button",
+					"name": "Oka"
+				}
+			},
+			"output": {
+				"found": "@e8"
+			}
+		},
+		{
+			"name": "names ignore case and fold three periods",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"name": "save as..."
+				}
+			},
+			"output": {
+				"found": "@e10"
+			}
+		},
+		{
+			"name": "role alone",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "popup"
+				}
+			},
+			"output": {
+				"found": "@e12"
+			}
+		},
+		{
+			"name": "role accepts the accessibility name",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "AXPopUpButton",
+					"name": "Font"
+				}
+			},
+			"output": {
+				"found": "@e12"
+			}
+		},
+		{
+			"name": "nth picks among equals",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "button",
+					"name": "Cancel",
+					"nth": 1
+				}
+			},
+			"output": {
+				"found": "@e11"
+			}
+		},
+		{
+			"name": "equal candidates are ambiguous",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "button",
+					"name": "Cancel"
+				}
+			},
+			"output": {
+				"kind": "ambiguous",
+				"stderr": "error element_not_found: Locator button \"Cancel\" matches 2 elements: nth 0: button \"Cancel\" {press} in window \"Form\"; nth 1: button \"Cancel\" {press} in window \"Form\"\nrecovery: Add nth, or a more exact role or name, to the locator.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "a tie goes to the control the action can use",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "setText",
+				"find": {
+					"name": "Reason"
+				}
+			},
+			"output": {
+				"found": "@e3"
+			}
+		},
+		{
+			"name": "a tie nobody can use stays a tie",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"name": "Reason"
+				}
+			},
+			"output": {
+				"kind": "ambiguous",
+				"stderr": "error element_not_found: Locator element \"Reason\" matches 2 elements: nth 0: text \"Reason\" in window \"Form\"; nth 1: textarea \"Reason\" {setText,typeText} in window \"Form\"\nrecovery: Add nth, or a more exact role or name, to the locator.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "the role named is the role matched",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "setText",
+				"find": {
+					"role": "textfield",
+					"name": "A1"
+				}
+			},
+			"output": {
+				"found": "@e4"
+			}
+		},
+		{
+			"name": "nothing matches",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "button",
+					"name": "Nope"
+				}
+			},
+			"output": {
+				"kind": "missing",
+				"stderr": "error element_not_found: Locator button \"Nope\" matches nothing. Nearest: button \"OK\" {press}; button \"OK\" {press} offscreen; button \"Okay\" {press}; button \"Cancel\" {press}; button \"Cancel\" {press}\nrecovery: Compare the locator with a fresh observe-ui of that root, or raise its timeoutMs.\n",
+				"exitCode": 7
+			}
+		},
+		{
+			"name": "nth beyond the matches",
+			"op": "locate",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "e1",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Form",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 50,
+								"h": 20
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "e2",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Reason",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "e3",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "Reason",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "e4",
+									"role": "AXTextField",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "e5",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "A1",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": true,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "e6",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "e7",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "OK",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": true,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "e8",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Okay",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"wireRef": "e9",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e10",
+									"wireRef": "e10",
+									"role": "AXMenuItem",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save As…",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e11",
+									"wireRef": "e11",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Cancel",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e12",
+									"wireRef": "e12",
+									"role": "AXPopUpButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Font",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 50,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": "press",
+				"find": {
+					"role": "button",
+					"name": "Cancel",
+					"nth": 5
+				}
+			},
+			"output": {
+				"kind": "missing",
+				"stderr": "error element_not_found: Locator button \"Cancel\" nth 5 asked but only 2 match\nrecovery: Compare the locator with a fresh observe-ui of that root, or raise its timeoutMs.\n",
+				"exitCode": 7
 			}
 		}
 	]

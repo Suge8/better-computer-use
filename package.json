@@ -11,11 +11,12 @@
 		"test:swift": "swift test",
 		"test:cli-errors": "node scripts/check-cli-errors.mjs",
 		"test:cli-resident": "node scripts/check-cli-resident.mjs",
+		"test:batch": "node scripts/check-batch-live.mjs",
 		"test:observe-live": "node scripts/check-observe-live.mjs",
 		"test:web-background": "node scripts/check-web-background.mjs",
 		"test:ocr-targets": "node scripts/check-ocr-targets.mjs",
 		"test:ime-typing": "node scripts/check-ime-typing.mjs",
-		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-observe-live.mjs && node scripts/check-web-background.mjs && node scripts/check-ocr-targets.mjs && node scripts/check-ime-typing.mjs",
+		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-batch-live.mjs && node scripts/check-observe-live.mjs && node scripts/check-web-background.mjs && node scripts/check-ocr-targets.mjs && node scripts/check-ime-typing.mjs",
 		"test": "npm run test:swift && npm run test:cli-errors && npm run test:cli-resident"
 	}
 }

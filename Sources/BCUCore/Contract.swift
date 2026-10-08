@@ -107,9 +107,30 @@ public enum PathPoint: Codable, Sendable, Equatable {
 	}
 }
 
+/// Which root of the app a step looks in: the root of the state being acted on, the root the
+/// array's earlier steps opened most recently, or the root the app would be observed at now.
+public enum RootChoice: String, Codable, Sendable, CaseIterable {
+	case state, opened, app
+}
+
+/// An element named by what the view shows, found in a fresh observation when its step runs.
+/// `nth` counts from 0 among the candidates a failure lists.
+public struct Locator: Codable, Sendable, Equatable {
+	public var role: String?
+	public var name: String?
+	public var nth: Int?
+	/// The root to look in; the state's own root when absent.
+	public var root: RootChoice?
+	/// How long to wait for a match to appear (default 3000).
+	public var timeoutMs: Int?
+}
+
 public struct UiAction: Codable, Sendable, Equatable {
 	public var action: ActionName
 	public var ref: String?
+	public var find: Locator?
+	/// A condition checked right after this step, before the next one runs.
+	public var expect: Expectation?
 	public var x: Double?
 	public var y: Double?
 	public var text: String?
@@ -122,7 +143,8 @@ public struct UiAction: Codable, Sendable, Equatable {
 	public var ms: Double?
 }
 
-/// Semantic postcondition; `scope` limits it to one element subtree.
+/// Semantic postcondition; `scope` limits it to one element subtree. On a step, `root` names
+/// where to check (the step's own root when absent) and `scope` is not allowed.
 public struct Expectation: Codable, Sendable, Equatable {
 	public var text: String?
 	public var role: String?
@@ -130,6 +152,7 @@ public struct Expectation: Codable, Sendable, Equatable {
 	public var scope: String?
 	public var gone: Bool?
 	public var timeoutMs: Int?
+	public var root: RootChoice?
 }
 
 public struct ActParams: Codable, Sendable, Equatable {
@@ -410,7 +433,25 @@ public struct Verification: Codable, Sendable, Equatable {
 	}
 }
 
-/// The root the actions ran in closed; `skipped` later steps were not sent to it.
+/// A root an action opened, observed right away: `stateId` and the refs in `nodes` go straight
+/// into the next act-ui, exactly as if observe-ui had been run on `root`.
+public struct OpenedRoot: Codable, Sendable, Equatable {
+	public var root: RootAppearance
+	public var stateId: String
+	public var nodes: [ProjectedNode]
+	public var shown: Int
+	public var total: Int
+
+	public init(root: RootAppearance, stateId: String, nodes: [ProjectedNode], shown: Int, total: Int) {
+		self.root = root
+		self.stateId = stateId
+		self.nodes = nodes
+		self.shown = shown
+		self.total = total
+	}
+}
+
+/// A root the actions closed; `skipped` later steps were not sent to it.
 public struct ClosedRoot: Codable, Sendable, Equatable {
 	public var root: RootAppearance
 	public var skipped: Int?
@@ -422,7 +463,8 @@ public struct ClosedRoot: Codable, Sendable, Equatable {
 }
 
 public struct ActResult: Codable, Sendable, Equatable {
-	/// Absent only when the action closed the app's last root and there is nothing to observe.
+	/// Observes the state's own root again; or, when the actions closed it, `next`. Absent only
+	/// when the app has no root left to observe.
 	public var stateId: String?
 	public var baseStateId: String
 	/// `worked` or `unknown`; a proven no-op is an `action_failed` error instead.
@@ -431,9 +473,13 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var delivery: String
 	/// Roots the transaction opened: menus, sheets, dialogs and new windows.
 	public var roots: [RootAppearance]?
+	/// A root the actions closed. When it is the state's own root, `next` is observed instead.
 	public var closed: ClosedRoot?
-	/// After a closed root: the app's root the successor state observes.
+	/// After the state's own root closed: the app's root the successor state observes.
 	public var next: RootAppearance?
+	/// One of `roots` with its view attached: a menu, sheet, popover or dialog the actions
+	/// opened and left open.
+	public var opened: OpenedRoot?
 	public var changes: [Change]?
 	public var offscreen: OffscreenChanges?
 	public var nodes: [ProjectedNode]?
@@ -441,7 +487,7 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var total: Int?
 	public var image: ImageInfo?
 
-	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, roots: [RootAppearance]? = nil, closed: ClosedRoot? = nil, next: RootAppearance? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
+	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, roots: [RootAppearance]? = nil, closed: ClosedRoot? = nil, next: RootAppearance? = nil, opened: OpenedRoot? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
 		self.stateId = stateId
 		self.baseStateId = baseStateId
 		self.outcome = outcome
@@ -450,6 +496,7 @@ public struct ActResult: Codable, Sendable, Equatable {
 		self.roots = roots
 		self.closed = closed
 		self.next = next
+		self.opened = opened
 		self.changes = changes
 		self.offscreen = offscreen
 		self.nodes = nodes

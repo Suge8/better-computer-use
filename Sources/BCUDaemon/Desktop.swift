@@ -12,6 +12,8 @@ protocol Desktop: Sendable {
 	func act(_ request: ActRequest) throws -> ActionReport
 	func actBatch(_ requests: [ActRequest]) throws -> BatchReport
 	func waitFor(_ request: WaitForRequest) throws -> WaitOutcome
+	func changeMark(pid: Int32) throws -> ChangeMark
+	func waitForChange(pid: Int32, since mark: ChangeMark, timeoutMs: Int) throws
 	func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage
 	func diagnostics() -> Diagnostics
 	func checkPermissions() -> PermissionStatus

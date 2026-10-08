@@ -58,6 +58,14 @@ private func rootWords(_ root: RootAppearance) -> String {
 	"\(root.ref) \(root.kind.rawValue) \(Text.quote(root.title))"
 }
 
+/// An opened root reads like the observe-ui of it.
+private func openedLines(_ opened: OpenedRoot) -> String {
+	renderObservation(ObservationView(
+		stateId: opened.stateId, root: ObservationRoot(ref: opened.root.ref, app: opened.root.app, title: opened.root.title),
+		nodes: opened.nodes, shown: opened.shown, total: opened.total
+	))
+}
+
 /// The platform's reason for the outcome, as it reported it.
 private func evidenceWords(_ evidence: ActEvidence?) -> String {
 	guard let evidence else { return "" }
@@ -77,9 +85,14 @@ private func renderAct(_ result: ActResult) -> String {
 	if let closed = result.closed {
 		let skipped = closed.skipped ?? 0
 		if skipped > 0 { parts.append("skipped \(skipped) later step\(skipped == 1 ? "" : "s"): its root closed") }
-		parts.append(result.next.map { "next root \(rootWords($0))" } ?? "no root of \(closed.root.app) remains; run find-roots")
+		if let next = result.next {
+			parts.append("next root \(rootWords(next))")
+		} else if result.stateId == nil {
+			parts.append("no root of \(closed.root.app) remains; run find-roots")
+		}
 	}
 	parts.append(successorLines(changes: result.changes, offscreen: result.offscreen, nodes: result.nodes))
 	parts.append(imageLine(result.image))
+	parts.append(result.opened.map(openedLines) ?? "")
 	return lines(parts)
 }

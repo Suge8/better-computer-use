@@ -34,6 +34,12 @@ enum Text {
 	}
 }
 
+/// Text as searches compare it: case-insensitive, with three periods read as the ellipsis
+/// that macOS titles end in, on both sides of the comparison.
+public func foldedForSearch(_ value: String) -> String {
+	value.lowercased().replacingOccurrences(of: "...", with: "\u{2026}")
+}
+
 extension Character {
 	var isASCIIDigit: Bool { isASCII && isNumber }
 }

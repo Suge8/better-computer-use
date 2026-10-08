@@ -9,7 +9,7 @@
 // resident reads the grants without asking for them (only `bcu setup` asks).
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
@@ -25,8 +25,8 @@ const env = { ...process.env, HOME: home, BCU_SOCKET_PATH: socketPath, BCU_APP_P
 
 const ACT_RESULT = { stateId: "bbbbbbbb", baseStateId: "abcd1234", outcome: "worked", verification: { status: "none" }, delivery: "ax", changes: [] };
 
-/** The wire protocol this bcu speaks (`wireProtocolVersion` in Sources/BCURuntime/Wire.swift). */
-const PROTOCOL = 2;
+/** The wire protocol this bcu speaks, read from its one definition. */
+const PROTOCOL = Number(/wireProtocolVersion = (\d+)/.exec(readFileSync(new URL("../Sources/BCURuntime/Wire.swift", import.meta.url), "utf8"))?.[1]);
 
 /** A resident that speaks the wire protocol from a script and records what it was asked. */
 async function scriptedResident(protocolVersion = PROTOCOL) {

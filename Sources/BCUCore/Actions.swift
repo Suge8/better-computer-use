@@ -11,16 +11,16 @@ private let waitRange = 0.0...60_000.0
 private let defaultWaitMs = 1_000.0
 
 private let actionFields: [ActionName: [String]] = [
-	.press: ["ref", "x", "y", "button", "clickCount"],
-	.click: ["ref", "x", "y", "button", "clickCount"],
-	.doubleClick: ["ref", "x", "y", "button"],
-	.setText: ["ref", "x", "y", "text"],
-	.typeText: ["ref", "x", "y", "text"],
-	.keypress: ["ref", "x", "y", "keys"],
-	.scroll: ["ref", "x", "y", "scrollX", "scrollY"],
-	.drag: ["ref", "x", "y", "path"],
-	.moveMouse: ["ref", "x", "y"],
-	.wait: ["ms"],
+	.press: ["ref", "find", "x", "y", "button", "clickCount", "expect"],
+	.click: ["ref", "find", "x", "y", "button", "clickCount", "expect"],
+	.doubleClick: ["ref", "find", "x", "y", "button", "expect"],
+	.setText: ["ref", "find", "x", "y", "text", "expect"],
+	.typeText: ["ref", "find", "x", "y", "text", "expect"],
+	.keypress: ["ref", "find", "x", "y", "keys", "expect"],
+	.scroll: ["ref", "find", "x", "y", "scrollX", "scrollY", "expect"],
+	.drag: ["ref", "find", "x", "y", "path", "expect"],
+	.moveMouse: ["ref", "find", "x", "y", "expect"],
+	.wait: ["ms", "expect"],
 ]
 
 private let requiredFields: [ActionName: [String]] = [.setText: ["text"], .typeText: ["text"], .keypress: ["keys"], .drag: ["path"]]
@@ -52,7 +52,42 @@ private let fieldRules: [String: (valid: Validator, requirement: String)] = [
 	"ms": ({ finite($0).map(waitRange.contains) ?? false }, "a finite number from 0 to 60000"),
 ]
 
-private func hasTarget(_ action: JSONValue) -> Bool {
+/// What a step may say about where to look, and about what must hold afterwards. Both are
+/// checked key by key like the action's own fields, then as a whole.
+private let rootRequirement = "state, opened, or app"
+private let timeoutRequirement = "an integer from 0 to \(Int(waitRange.upperBound))"
+private let nonEmptyString: Validator = { $0.string.map { !Text.trim($0).isEmpty } ?? false }
+private let rootChoice: Validator = { $0.string.flatMap(RootChoice.init(rawValue:)) != nil }
+private let wholeTimeout: Validator = { finite($0).map { $0 == $0.rounded() && waitRange.contains($0) } ?? false }
+
+private let findRules: [String: (valid: Validator, requirement: String)] = [
+	"role": (nonEmptyString, "a non-empty string"),
+	"name": (nonEmptyString, "a non-empty string"),
+	"nth": ({ finite($0).map { $0 == $0.rounded() && $0 >= 0 } ?? false }, "a non-negative integer"),
+	"root": (rootChoice, rootRequirement),
+	"timeoutMs": (wholeTimeout, timeoutRequirement),
+]
+
+private let expectRules: [String: (valid: Validator, requirement: String)] = [
+	"text": (nonEmptyString, "a non-empty string"),
+	"role": (nonEmptyString, "a non-empty string"),
+	"value": (nonEmptyString, "a non-empty string"),
+	"gone": ({ $0.bool != nil }, "true or false"),
+	"timeoutMs": (wholeTimeout, timeoutRequirement),
+	"root": (rootChoice, rootRequirement),
+]
+
+/// A nested object of a step: known keys only, each valid, and at least one of `required`.
+private func validateObject(_ value: JSONValue, path: String, rules: [String: (valid: Validator, requirement: String)], needs: [String], needsText: String) throws {
+	guard case .object(let members) = value else { throw invalid("\(path) must be an object.") }
+	for (key, member) in members.sorted(by: { $0.key < $1.key }) {
+		guard let rule = rules[key] else { throw invalid("\(path).\(key) is not supported.") }
+		if !rule.valid(member) { throw invalid("\(path).\(key) must be \(rule.requirement).") }
+	}
+	if !needs.contains(where: { members[$0] != nil }) { throw invalid("\(path) needs \(needsText).") }
+}
+
+private func hasPointTarget(_ action: JSONValue) -> Bool {
 	action["ref"]?.string.map { !Text.trim($0).isEmpty } == true || (action["x"].flatMap(finite) != nil && action["y"].flatMap(finite) != nil)
 }
 
@@ -60,13 +95,22 @@ private func hasTarget(_ action: JSONValue) -> Bool {
 private func validateFields(_ members: [String: JSONValue], _ name: ActionName) throws {
 	let allowed = actionFields[name] ?? []
 	for (key, value) in members.sorted(by: { $0.key < $1.key }) where key != "action" {
-		guard allowed.contains(key), let rule = fieldRules[key] else { throw invalid("\(name.rawValue).\(key) is not supported.") }
-		if !rule.valid(value) { throw invalid("\(name.rawValue).\(key) must be \(rule.requirement).") }
+		let path = "\(name.rawValue).\(key)"
+		guard allowed.contains(key) else { throw invalid("\(path) is not supported.") }
+		switch key {
+		case "find": try validateObject(value, path: path, rules: findRules, needs: ["role", "name"], needsText: "a role or a name")
+		case "expect": try validateObject(value, path: path, rules: expectRules, needs: ["text", "role", "value"], needsText: "text, role, or value")
+		default:
+			guard let rule = fieldRules[key] else { throw invalid("\(path) is not supported.") }
+			if !rule.valid(value) { throw invalid("\(path) must be \(rule.requirement).") }
+		}
 	}
 	let keys = Set(members.keys)
 	for field in requiredFields[name] ?? [] where !keys.contains(field) { throw invalid("\(name.rawValue).\(field) is required.") }
 	if keys.contains("x") != keys.contains("y") { throw invalid("\(name.rawValue).x and \(name.rawValue).y must be supplied together.") }
 	if keys.contains("ref"), keys.contains("x") { throw invalid("\(name.rawValue) must use either ref or coordinates, not both.") }
+	if keys.contains("find"), keys.contains("ref") { throw invalid("\(name.rawValue) must use either ref or find, not both.") }
+	if keys.contains("find"), keys.contains("x") { throw invalid("\(name.rawValue) must use either find or coordinates, not both.") }
 }
 
 /// Checks the whole array before anything is delivered and returns it typed.
@@ -74,19 +118,25 @@ public func validateActions(_ values: [JSONValue]) throws -> [UiAction] {
 	if values.isEmpty { throw invalid("act-ui actions must contain at least one action.") }
 	if values.count > maxActions { throw invalid("act-ui supports at most \(maxActions) actions per transaction.") }
 	var focusMayExist = false
-	for value in values {
+	for (index, value) in values.enumerated() {
 		guard case .object(let members) = value else { throw invalid("Every act-ui item must be an action object.") }
 		guard let action = value["action"] else { throw invalid("Every act-ui item needs an action.") }
 		guard let name = action.string.flatMap(ActionName.init(rawValue:)) else {
 			throw invalid("Unsupported action '\(action.string ?? action.serialized())'.")
 		}
 		try validateFields(members, name)
-		let targeted = hasTarget(value)
+		if index == 0, value["find"]?["root"]?.string == RootChoice.opened.rawValue {
+			throw invalid("\(name.rawValue).find.root opened needs an earlier action in the array.")
+		}
+		let pointed = hasPointTarget(value)
+		let targeted = pointed || value["find"] != nil
 		if name == .typeText || name == .keypress, !targeted, !focusMayExist {
 			throw invalid("\(name.rawValue) without a target requires an earlier focus-establishing action.")
 		}
-		if targetRequiredActions.contains(name), !targeted { throw invalid("\(name.rawValue) requires either ref or both x and y.") }
-		if [.press, .click, .doubleClick].contains(name), targeted { focusMayExist = true }
+		if targetRequiredActions.contains(name), !targeted { throw invalid("\(name.rawValue) requires ref, find, or both x and y.") }
+		// What a found element is, and so whether its click focused anything, is known only
+		// when its step runs; typing after it names its own target.
+		if [.press, .click, .doubleClick].contains(name), pointed { focusMayExist = true }
 	}
 	return try values.map { try JSONCoding.decode(UiAction.self, from: $0) }
 }
@@ -211,7 +261,7 @@ public struct ActionState: Sendable {
 }
 
 /// Semantic actions are delivered to the element that owns the capability the view promised.
-private let ownedCapabilities: [ActionName: [Capability]] = [
+let ownedCapabilities: [ActionName: [Capability]] = [
 	.press: [.press, .toggle, .open],
 	.click: [.press, .toggle, .open],
 	.doubleClick: [.press, .toggle, .open],
@@ -288,7 +338,7 @@ private func nativeTarget(_ action: UiAction, _ operation: ActionName, _ environ
 		return .point(point)
 	}
 	if operation == .drag, let path = action.path, !path.isEmpty { return .point(try dragPath(path, environment)[0]) }
-	throw invalid("\(operation.rawValue) requires either ref or both x and y.")
+	throw invalid("\(operation.rawValue) requires ref, find, or both x and y.")
 }
 
 private func focusedTarget(_ environment: ActionEnvironment) throws -> ActionTarget {
