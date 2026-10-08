@@ -3,8 +3,10 @@
 // this checkout. Against a scripted resident on the socket: status and stop report it,
 // doctor shows its permissions and the local config, act-ui carries the headless setting of
 // the environment and of the config file, the agent cursor motion is chosen in the config
-// file and overridden per field by BCU_CURSOR_MOTION_* (an unknown value is refused with the
-// allowed ones), and a resident speaking another protocol is refused. Against a test bundle of this build: status and stop never start a resident, a
+// file and overridden per field by BCU_CURSOR_MOTION_*, a config that is not valid JSON, has
+// an unknown key or a wrong value, or a BCU_* variable with a wrong value, refuses every
+// command with the allowed values, and a resident speaking another protocol is refused.
+// Against a test bundle of this build: status and stop never start a resident, a
 // command starts one through LaunchServices that serves on the caller's socket, and stop
 // ends it. The bundle holds no grants, so the command is refused as permission_missing: the
 // resident reads the grants without asking for them (only `bcu setup` asks).
@@ -98,13 +100,13 @@ async function scriptedChecks() {
 
 	assert.equal(await headlessSent({}), false, "act-ui went headless with nothing asking for it");
 	assert.equal(await headlessSent({ BCU_HEADLESS: "yes" }), true, "BCU_HEADLESS=yes did not make act-ui headless");
-	await fs.mkdir(path.join(home, ".config", "bcu"), { recursive: true });
-	await fs.writeFile(path.join(home, ".config", "bcu", "config.json"), JSON.stringify({ computer_use: { headless: "on" } }));
+	await writeConfig({ headless: "on" });
 	assert.equal(await headlessSent({}), true, "headless in the config file did not make act-ui headless");
 	assert.equal(await headlessSent({ BCU_HEADLESS: "0" }), false, "BCU_HEADLESS=0 did not override the config file");
-	await fs.rm(path.join(home, ".config"), { recursive: true });
 
 	await cursorMotionChecks();
+	await refusedConfigChecks();
+	await fs.rm(path.join(home, ".config"), { recursive: true });
 
 	const foreign = await scriptedResident(PROTOCOL + 1);
 	try {
@@ -127,28 +129,41 @@ async function cursorMotion(extraEnv) {
 	}
 }
 
-async function refusedMotion(extraEnv, pattern) {
-	const result = await runCli(["status"], { env: { ...env, ...extraEnv } });
-	assert.equal(result.code, 2, `an invalid cursor motion was not refused: ${result.stderr}`);
-	assert.match(result.stderr, pattern);
+async function writeConfig(value) {
+	await fs.mkdir(path.join(home, ".config", "bcu"), { recursive: true });
+	await fs.writeFile(path.join(home, ".config", "bcu", "config.json"), typeof value === "string" ? value : JSON.stringify(value));
 }
 
 async function cursorMotionChecks() {
-	await fs.mkdir(path.join(home, ".config", "bcu"), { recursive: true });
-	const config = path.join(home, ".config", "bcu", "config.json");
-	await fs.writeFile(config, JSON.stringify({ cursor_motion: { style: "comet_swoop", timing: "fitts", effects: { glow: true } } }));
+	await writeConfig({ cursor_motion: { style: "comet_swoop", timing: "fitts", effects: { glow: true } } });
 	assert.deepEqual(await cursorMotion({}), { style: "comet_swoop", timing: "fitts", effects: { trail: true, glow: true, magnet: false, ripple: true, squish: false } }, "the config file's cursor motion is not in effect");
 	assert.deepEqual(
 		await cursorMotion({ BCU_CURSOR_MOTION_STYLE: "magnetic", BCU_CURSOR_MOTION_EFFECTS: "ripple=off,squish=on" }),
 		{ style: "magnetic", timing: "fitts", effects: { trail: false, glow: true, magnet: true, ripple: false, squish: true } },
 		"BCU_CURSOR_MOTION_* did not override the config file field by field",
 	);
-	await refusedMotion({ BCU_CURSOR_MOTION_STYLE: "zigzag" }, /^error invalid_arguments: .*zigzag.*signature_arc, spring_settle, magnetic, comet_swoop, adaptive, classic/m);
-	await refusedMotion({ BCU_CURSOR_MOTION_TIMING: "slow" }, /^error invalid_arguments: .*slow.*native, fitts, fixed/m);
-	await refusedMotion({ BCU_CURSOR_MOTION_EFFECTS: "sparkle=on" }, /^error invalid_arguments: .*sparkle.*trail, glow, magnet, ripple, squish/m);
-	await fs.writeFile(config, JSON.stringify({ cursor_motion: { effects: { trail: "maybe" } } }));
-	await refusedMotion({}, /^error invalid_arguments: .*trail.*maybe/m);
-	await fs.rm(path.join(home, ".config"), { recursive: true });
+}
+
+/** Every wrong setting, in the file or the environment, refuses the command the same way. */
+async function refusedConfigChecks() {
+	const BOOLEAN = /true\/false, on\/off, yes\/no, 1\/0/;
+	const cases = [
+		[{}, "{ headless: true", /config\.json is not valid JSON/],
+		[{}, { computer_use: { headless: true } }, /'computer_use' .*headless, cursor_overlay, cursor_motion/],
+		[{}, { cursor_overlay: 2 }, new RegExp(`cursor_overlay .*2.*${BOOLEAN.source}`)],
+		[{}, { cursor_motion: { effects: { trail: "maybe" } } }, new RegExp(`trail.*maybe.*${BOOLEAN.source}`)],
+		[{ BCU_HEADLESS: "maybe" }, {}, new RegExp(`BCU_HEADLESS.*maybe.*${BOOLEAN.source}`)],
+		[{ BCU_CURSOR_MOTION_STYLE: "zigzag" }, {}, /zigzag.*signature_arc, spring_settle, magnetic, comet_swoop, adaptive, classic/],
+		[{ BCU_CURSOR_MOTION_TIMING: "slow" }, {}, /slow.*native, fitts, fixed/],
+		[{ BCU_CURSOR_MOTION_EFFECTS: "sparkle=on" }, {}, /sparkle.*trail, glow, magnet, ripple, squish/],
+	];
+	for (const [extraEnv, config, pattern] of cases) {
+		await writeConfig(config);
+		const result = await runCli(["status"], { env: { ...env, ...extraEnv } });
+		const subject = `${JSON.stringify(extraEnv)} with config ${JSON.stringify(config)}`;
+		assert.equal(result.code, 2, `${subject} was not refused: ${result.stderr}`);
+		assert.match(result.stderr, new RegExp(`^error invalid_arguments: .*${pattern.source}`, "m"), `${subject} was refused without naming the allowed values`);
+	}
 }
 
 /** A throwaway bundle of this build, launched through LaunchServices like bcu.app. */
@@ -193,7 +208,7 @@ async function launchedChecks() {
 try {
 	await scriptedChecks();
 	await launchedChecks();
-	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, cursor motion from config and env, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
+	console.log("PASS scripted resident: status, doctor, stop, headless from env and config, cursor motion from config and env, wrong config refused, protocol refused → launched resident: status and stop start nothing, a command starts it through LaunchServices and is refused for the missing grants, stop ends it");
 } finally {
 	await runCli(["stop"], { env }).catch(() => undefined);
 	await fs.rm(root, { recursive: true, force: true });
