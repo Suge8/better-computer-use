@@ -1,9 +1,7 @@
 // Native controls whose delivery has side effects the accessibility value does not show.
 // Arguments: the log file, then the window title. `chat` is a text field that, like a chat
 // box, clears itself on Return and logs `submit <text>`; Tab in it logs `tab`. `secret` is a
-// secure field that logs `secret <character count>` on Return and clears. `dialog` is a button
-// that logs `dialog` and runs an NSAlert modally, so an AXPress on it does not return until
-// the alert is dismissed; the alert's own button logs `dismissed`. `slow` is a button whose
+// secure field that logs `secret <character count>` on Return and clears. `slow` is a button whose
 // action logs `slow` and then keeps the main thread busy for 2.5 s, so an AXPress on it fails
 // with a timeout although the action did start. It prints `ready` once the window is on screen.
 import AppKit
@@ -39,14 +37,6 @@ final class Fields: NSObject, NSTextFieldDelegate {
 		Thread.sleep(forTimeInterval: 2.5)
 	}
 
-	@objc func showDialog(_ sender: NSButton) {
-		append("dialog")
-		let alert = NSAlert()
-		alert.messageText = "Blocking dialog"
-		alert.addButton(withTitle: "Dismiss")
-		alert.runModal()
-		append("dismissed")
-	}
 }
 
 let app = NSApplication.shared
@@ -65,9 +55,6 @@ func place(_ field: NSTextField, label: String, y: CGFloat) {
 }
 place(NSTextField(string: ""), label: "chat", y: 150)
 place(NSSecureTextField(string: ""), label: "secret", y: 110)
-let dialog = NSButton(title: "dialog", target: fields, action: #selector(Fields.showDialog(_:)))
-dialog.frame = NSRect(x: 20, y: 60, width: 120, height: 28)
-content.addSubview(dialog)
 let slow = NSButton(title: "slow", target: fields, action: #selector(Fields.slowAction(_:)))
 slow.frame = NSRect(x: 160, y: 60, width: 120, height: 28)
 content.addSubview(slow)

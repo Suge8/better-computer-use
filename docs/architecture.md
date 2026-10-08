@@ -173,7 +173,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 - `typeText` 投递字符本身而不是打出它的按键：每个字符一对 keycode 0 的键盘事件，附上该字符的 Unicode 串，修饰键清零；换行（\n、\r、\r\n）和 Tab 不是文本，按真的 Return、Tab 键发送（后台与前台一样）：Chrome 地址栏对 keycode 0 上的换行字符不动作，实测改成 Return 键后后台打 "url\n" 就能导航，所以 Chromium 原生字段不需要为换行要求前台。物理键码会被用户当前的输入法（拼音、假名）组合成别的文字，Unicode 串不会；前台一级同样如此。`keypress` 仍发物理键码，它的语义就是按键。输入法只为前台应用组合：实测（微信输入法，中文模式）同样的字母键投递给后台应用时原样到达，前台一级才被组合成候选；
 - 键盘事件在 macOS 15+ 附上 `SLSEventAuthenticationMessage`（Chromium 据此信任后台按键）；带 command 的组合键不附，否则会绕过菜单快捷键的派发路径；
-- 读指针位置的工具包会丢掉按 pid 投递的指针事件：Tk 从硬件指针取点击位置，LibreOffice 的 VCL 不处理这类事件，bcu 对它们只能报 unverified。平台用 `proc_pidinfo` 读进程映射的文件（不需要 task port）认出它们（`Tk.framework`、`libtk*`、`libtcl9tk*`、`_tkinter*.so`、`libvclplug_osx*`），按进程缓存结果，对这样的进程，坐标类的指针投递（点击、移动、滚轮、拖拽）要求前台；按元素的无障碍动作不受影响。系统自带 Python 的 Tk 8.5 不丢，这条规则对它也适用，多一次前台；`check-pointer-toolkit.mjs` 用 Tk 8.6 验证。
+- Tk 从硬件指针取点击位置，按 pid 投递的指针事件不会移动硬件指针，点击落在真实指针所在处，bcu 只能报 unverified。平台用 `proc_pidinfo` 读进程映射的文件（不需要 task port）认出 Tk（`Tk.framework`、`libtk*`、`libtcl9tk*`、`_tkinter*.so`），按进程缓存结果，对这样的进程，坐标类的指针投递（点击、移动、滚轮、拖拽）要求前台；按元素的无障碍动作不受影响。系统自带 Python 的 Tk 8.5 不丢，这条规则对它也适用，多一次前台；`check-pointer-toolkit.mjs` 用 Tk 8.6 验证。
 - 坐标指针事件走 SkyLight。原生窗口先用 `SLPSPostEventRecordTo` 只告诉目标进程它处于激活状态，再投递点击（yabai 与 cua 的做法会先让当前前台进程失焦，实测会让用户的前台应用交出 key window 与激活状态，用户接着打的字会丢，所以不发这一半）：`acceptsFirstMouse` 为 false 的视图因此也收得到后台窗口上的第一次点击，而 WindowServer 前台、用户前台应用的 key window 和窗口层叠都不变（真机门用一个记录自己失去 key 的前台应用验证）；
 - 滚轮按格投递：`scrollX`/`scrollY` 是滚轮格数（-50…50，正数向下、向右），每格一个按行计的滚轮事件，间隔 15 ms，和实体鼠标滚轮一样。Qt（微信 4 用它）把每个按行计的事件算作一格，而把精确像素增量按每像素 1/60 格累积，不满一格不滚，所以按像素投递的 5 在 Qt 列表上一行都不动；AppKit 与 Chromium 每格滚一行。有无障碍滚动动作的元素走第一级，只看方向，每次一页；
 - 网页里的滚动用滚轮：Chromium 不给可滚动元素暴露滚动动作，祖先的滚动动作滚的是整页，所以在元素上方发带窗口路由的滚轮事件。滚动的证据是元素内容相对元素的位置变化；Chromium 把直接子元素的 frame 裁剪到滚动区域，只有更深的后代会移动；

@@ -16,7 +16,7 @@
 		"test:web-background": "node scripts/check-web-background.mjs",
 		"test:ocr-targets": "node scripts/check-ocr-targets.mjs",
 		"test:ime-typing": "node scripts/check-ime-typing.mjs",
-		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-batch-live.mjs && node scripts/check-observe-live.mjs && node scripts/check-web-background.mjs && node scripts/check-ocr-targets.mjs && node scripts/check-ime-typing.mjs && node scripts/check-spaces-live.mjs && node scripts/check-field-delivery.mjs && node scripts/check-finder-rename.mjs && node scripts/check-pointer-toolkit.mjs && node scripts/check-address-bar.mjs",
+		"test:smoke": "node scripts/check-e2e-smoke.mjs && node scripts/check-transient-roots.mjs && node scripts/check-batch-live.mjs && node scripts/check-observe-live.mjs && node scripts/check-web-background.mjs && node scripts/check-ocr-targets.mjs && node scripts/check-ime-typing.mjs && node scripts/check-spaces-live.mjs && node scripts/check-field-delivery.mjs && node scripts/check-finder-rename.mjs && node scripts/check-pointer-toolkit.mjs",
 		"test": "npm run test:swift && npm run test:cli-errors && npm run test:cli-resident"
 	}
 }

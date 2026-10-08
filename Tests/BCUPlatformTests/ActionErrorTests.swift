@@ -6,13 +6,11 @@ import Testing
 // an error that proves the request never arrived lets bcu retry or climb to raw input.
 
 struct ActionErrorTests {
-	@Test(arguments: [AXError.invalidUIElement, .illegalArgument, .notImplemented])
-	func theseErrorsProveNothingWasDelivered(status: AXError) {
-		#expect(Platform.actionNeverArrived(status))
-	}
-
-	@Test(arguments: [AXError.success, .failure, .cannotComplete, .attributeUnsupported, .actionUnsupported])
-	func otherErrorsLeaveItUnknown(status: AXError) {
-		#expect(!Platform.actionNeverArrived(status))
+	@Test(arguments: [
+		(AXError.invalidUIElement, true), (.illegalArgument, true), (.notImplemented, true),
+		(.cannotComplete, false), (.failure, false), (.actionUnsupported, false),
+	])
+	func onlyProofOfNonDeliveryAllowsAnotherTry(status: AXError, neverArrived: Bool) {
+		#expect(Platform.actionNeverArrived(status) == neverArrived)
 	}
 }

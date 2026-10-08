@@ -20,11 +20,11 @@ extension Platform {
 
 	/// Judges typed text on the field's value, which only speaks for it when it can hold it.
 	/// A `didnt` climbs the ladder and types the text again, so it is given only when nothing
-	/// could have happened: not when the value is masked or unreadable, and not when the text
+	/// could have happened: not when the value became unreadable, and not when the text
 	/// presses Return or Tab, after which a chat box is empty again. Those need the full text
 	/// in the value to be `worked`.
-	static func typedOutcome(text: String, before: String?, after: String?, masked: Bool) -> ActOutcome {
-		guard !masked, let before, let after else { return .unknown }
+	static func typedOutcome(text: String, before: String, after: String?) -> ActOutcome {
+		guard let after else { return .unknown }
 		let keystrokes = typesKeystrokes(text)
 		if after != before { return keystrokes && !after.contains(text) ? .unknown : .worked }
 		return keystrokes ? .unknown : .didnt
@@ -38,15 +38,15 @@ extension Platform {
 			role: stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? "",
 			subrole: stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
 		)
-		guard !masked, valueBefore != nil else { return (.unknown, nil) }
-		var valueAfter = valueBefore
+		guard !masked, let valueBefore else { return (.unknown, nil) }
+		var valueAfter: String? = valueBefore
 		var outcome = ActOutcome.unknown
 		_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
 			valueAfter = attributeSignature(element, attribute: kAXValueAttribute as CFString)
-			outcome = Self.typedOutcome(text: text, before: valueBefore, after: valueAfter, masked: false)
+			outcome = Self.typedOutcome(text: text, before: valueBefore, after: valueAfter)
 			return outcome == .worked
 		}
 		guard outcome == .worked else { return (outcome, nil) }
-		return (outcome, ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(valueBefore ?? ""), to: evidenceExcerpt(valueAfter ?? "")))
+		return (outcome, ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(valueBefore), to: evidenceExcerpt(valueAfter ?? "")))
 	}
 }

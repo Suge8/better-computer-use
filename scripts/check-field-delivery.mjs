@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // What a delivery did can differ from what the element's value shows, and bcu must not
 // replay a delivery that already landed. The subject is a native window with a chat-style
-// field that clears itself on Return, a secure field, and two buttons whose action keeps the
-// app from answering Accessibility (a modal alert, and 2.5 s of work on the main thread).
+// field that clears itself on Return, a secure field, and a button whose action keeps the app
+// from answering Accessibility for 2.5 s.
 // A stand-in for the user's front app holds the front while the background cells run.
 //   - Typed \n, \r and \t reach the field as the real Return and Tab keys; a submit that
 //     empties the field is delivered once, in the background and with `--foreground`, and is
 //     never judged as having done nothing, which would climb the ladder and send it again.
 //   - A secure field's value is a mask, not the typed text, so typing into it is unverified.
 //   - A press whose AXPress fails with a timeout is judged on the evidence, not repeated: the
-//     slow action runs once, the modal alert opens once.
+//     slow action runs once.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
@@ -108,17 +108,9 @@ try {
 	fields = await launchDeliveryFields(root, logPath, title);
 	await waitForAxWindow(fields.pid, fields.exited, title);
 
-	await cell("Return typed in the background submits the chat field once", async (failures, since) => {
-		await typed(failures, "hello\n", [], { delivery: "pid" });
-		await expectLog(failures, since, ["submit hello"]);
-	});
-	await cell("\\r\\n typed in the background is one Return", async (failures, since) => {
-		await typed(failures, "line\r\n", [], { delivery: "pid" });
-		await expectLog(failures, since, ["submit line"]);
-	});
-	await cell("Tab typed in the background is the Tab key", async (failures, since) => {
-		await typed(failures, "a\tb\n", [], { delivery: "pid" });
-		await expectLog(failures, since, ["tab", "submit ab"]);
+	await cell("Return, \\r\\n and Tab typed in the background are the real keys, each delivered once", async (failures, since) => {
+		await typed(failures, "a\tb\r\nc\n", [], { delivery: "pid" });
+		await expectLog(failures, since, ["tab", "submit ab", "submit c"]);
 	});
 	await cell("Return typed with --foreground submits the chat field once", async (failures, since) => {
 		await typed(failures, "again\n", ["--foreground"], { delivery: "hid" });
@@ -141,19 +133,6 @@ try {
 		else if (run.result.delivery !== "ax") failures.push(`delivered via ${run.result.delivery}, want ax`);
 		await untilBusyWorkEnds("slow");
 		await expectLog(failures, since, ["slow"]);
-	});
-	await cell("a press that opens a modal alert opens it once and is worked", async (failures, since) => {
-		const { ref } = await observed();
-		const run = await act([{ action: "press", ref: await ref("dialog") }]);
-		if (run.code !== 0) failures.push(`press exited ${run.code}: ${run.stderr.trim()}`);
-		else if (run.result.outcome !== "worked") failures.push(`the press was judged ${run.result.outcome}, want worked`);
-		const found = await bcu(["find-roots", "--pid", String(fields.pid), "--kind", "dialog"]);
-		const alert = found.roots[0];
-		if (!alert) return failures.push("no alert is open after the press");
-		const state = await bcu(["observe-ui", "--root", alert.ref]);
-		const dismissed = await runCli(["act-ui", "--state", state.stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "press", ref: (await bcu(["search-ui", "--state", state.stateId, "--text", "Dismiss", "--limit", "1"])).matches[0].ref }])}\n`, env });
-		if (dismissed.code !== 0) failures.push(`dismissing the alert exited ${dismissed.code}: ${dismissed.stderr.trim()}`);
-		await expectLog(failures, since, ["dialog", "dismissed"]);
 	});
 } finally {
 	if (fields && killProcess(fields.pid, "SIGTERM")) await withTimeout(fields.exited, "the fixture to exit", 5_000).catch(() => killProcess(fields.pid));

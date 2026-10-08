@@ -8,7 +8,8 @@
 // Elements that show no trace of a press are pressed exactly once and reported as an
 // unverified success, never replayed on a higher rung. A drag over an area that follows
 // pointer events reaches the page as one pointerdown-to-pointerup gesture. Scroll amounts
-// share one rule on both axes: positive scrollY scrolls down, positive scrollX right.
+// share one rule on both axes: positive scrollY scrolls down, positive scrollX right. A URL and
+// a line break typed into the address bar navigate.
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -224,6 +225,20 @@ try {
 		const [nowA, nowB] = [await dom(pageA), await dom(pageB)];
 		const stray = nowB.set || nowB.type || nowB.keys.length ? ` window B changed ${JSON.stringify(nowB)}` : "";
 		return { result, effect: { ok: nowA.type === beforeA.type + TYPED && !stray, detail: `window A value ${JSON.stringify(nowA.type)}${stray}` } };
+	});
+	// The line break is the real Return key, which the address bar acts on; a character on key
+	// code 0 it ignores.
+	await cell("typeText a URL and a line break into the address bar navigates", async () => {
+		const state = await observeWindow("A", "Address and search bar");
+		const ref = await refFor(state.stateId, "Address and search bar", "textfield");
+		const result = await act(state.stateId, [{ action: "keypress", ref, keys: ["cmd", "a"] }, { action: "typeText", ref, text: `${pageUrl("C")}\n` }]);
+		const deadline = Date.now() + 5_000;
+		let title = "";
+		while (title !== "bcu web fixture C" && Date.now() < deadline) {
+			title = (await pageA.send("Runtime.evaluate", { expression: "document.title", returnByValue: true })).result.value;
+			if (title !== "bcu web fixture C") await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+		return { result, effect: { ok: title === "bcu web fixture C", detail: `the page shows ${JSON.stringify(title)}, want the fixture C page` } };
 	});
 	pageA.close();
 	pageB.close();
