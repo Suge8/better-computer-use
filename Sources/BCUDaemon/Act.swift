@@ -176,7 +176,7 @@ extension Daemon {
 		let stillOpen = execution.appeared.filter { $0.handle != execution.closedTarget?.root.handle }
 		let attached = try await attachOpened(stillOpen, base: target, lane: lane)
 		// A menu hanging under its popup is in this window's tree too; it is reported once, as opened.
-		let view = successorView(base: Outline(restoring: transaction.outline), next: next, menusOpenedByBcu: execution.openedMenus, omitting: attached.map { saved.payload.outline.refs(of: $0.handle) } ?? [])
+		let view = successorView(base: Outline(restoring: transaction.outline), next: next, menusOpenedByBcu: execution.openedMenus, omitting: attached?.element.map(saved.payload.outline.refs(of:)) ?? [])
 		let roots = stillOpen.compactMap(appearance)
 		return BCUCore.ActResult(
 			stateId: saved.stateId, baseStateId: params.stateId, outcome: outcome, verification: verification,

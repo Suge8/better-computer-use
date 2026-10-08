@@ -43,8 +43,10 @@ private final class Notes: @unchecked Sendable {
 	func isOpen(_ root: Root) -> Bool { lock.withLock { _extra.contains { $0.handle == root.handle } } }
 }
 
-private func fontItems(handle: String) -> LookNode {
-	node(handle, role: "AXMenu", children: fonts.map { node("item-\($0)", role: "AXMenuItem", title: $0, canPress: true) })
+/// The menu's own element: a root's handle is not the handle of its element, which is how the
+/// popup's tree and the menu's own look both reach it.
+private func fontItems() -> LookNode {
+	node("font-menu-el", role: "AXMenu", children: fonts.map { node("item-\($0)", role: "AXMenuItem", title: $0, canPress: true) })
 }
 
 private func notesApp(_ notes: Notes) -> Harness {
@@ -71,7 +73,7 @@ private func notesApp(_ notes: Notes) -> Harness {
 			switch request.root {
 			case Handle("nw"):
 				// An open popup menu hangs under the popup in the window's own tree.
-				let menu = notes.isOpen(fontMenu) ? [fontItems(handle: "font-menu")] : []
+				let menu = notes.isOpen(fontMenu) ? [fontItems()] : []
 				let children = [
 					node("popup", role: "AXPopUpButton", title: "Font", value: notes.font, canPress: true, children: menu),
 					node("new", role: "AXButton", title: "New", canPress: true),
@@ -84,7 +86,7 @@ private func notesApp(_ notes: Notes) -> Harness {
 				return lookResult(node("nw-el", role: "AXWindow", title: "Notes", children: children), frame: notesWindow.framePoints, windowId: 7101)
 			case Handle("font-menu"):
 				guard notes.isOpen(fontMenu) else { throw BCUError(.windowStale, "The menu is gone") }
-				return lookResult(fontItems(handle: "font-menu-el"), frame: fontMenu.framePoints, kind: .menu)
+				return lookResult(fontItems(), frame: fontMenu.framePoints, kind: .menu)
 			case Handle("name-sheet"):
 				guard notes.isOpen(nameSheet) else { throw BCUError(.windowStale, "The sheet is gone") }
 				var children = [node("name", role: "AXTextField", title: "Name", value: notes.name, canSetValue: true), node("cancel", role: "AXButton", title: "Cancel", canPress: true)]

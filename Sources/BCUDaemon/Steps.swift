@@ -213,7 +213,7 @@ extension Daemon {
 
 	/// The view of the most prominent menu, sheet, popover or dialog the actions opened and
 	/// left open, saved as a state of its own in the same lane as the successor.
-	func attachOpened(_ appeared: [Root], base: Target, lane: Lane<Observation>) async throws -> (opened: OpenedRoot, handle: Handle)? {
+	func attachOpened(_ appeared: [Root], base: Target, lane: Lane<Observation>) async throws -> (opened: OpenedRoot, element: Handle?)? {
 		let candidates = appeared.filter { $0.pid == base.pid && attachedKinds.contains($0.kind) }
 		guard let best = mostProminent(candidates) else { return nil }
 		let root = target(best, appName: base.appName, bundleId: base.bundleId)
@@ -225,7 +225,9 @@ extension Daemon {
 			return nil
 		}
 		let saved = try lane.save(observation)
-		let view = BCUCore.openedView(saved.payload.outline.outline())
-		return (OpenedRoot(root: root.appearance, stateId: saved.stateId, nodes: view.nodes ?? [], shown: view.shown ?? 0, total: view.total ?? 0), root.root.handle)
+		let outline = saved.payload.outline.outline()
+		let view = BCUCore.openedView(outline)
+		let opened = OpenedRoot(root: root.appearance, stateId: saved.stateId, nodes: view.nodes ?? [], shown: view.shown ?? 0, total: view.total ?? 0)
+		return (opened, outline.root.wireRef.flatMap { saved.payload.outline.current.handles[$0] })
 	}
 }
