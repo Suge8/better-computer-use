@@ -17,14 +17,6 @@
    └─ 平台：Accessibility、ScreenCaptureKit、Vision、输入投递、agent 光标
 ```
 
-## 运行时模块
-
-- `Sources/BCUCore/`：纯逻辑——大纲、投影、变化、搜索、契约类型、错误、动作校验与准备、CLI 解析与渲染；
-- `Sources/BCURuntime/`：线协议、connect-or-start、状态库、调度与 epoch、根注册表、截图 artifact，不碰平台；
-- `Sources/BCUPlatform/`：进程内的 `Platform` 门面，元素与根以 `Handle` 交给调用方保存；
-- `Sources/BCUDaemon/`：常驻进程的命令处理——根发现与选择、观察与缓存查询、动作事务与投递梯子、权限；
-- `Sources/bcu/`：可执行文件入口——客户端、`bcu serve`、配置与环境变量。
-
 ## 职责边界
 
 ### 客户端
@@ -227,7 +219,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 ## 已知局限
 
-- 对 popup 的 AXPress 会打开一个菜单，菜单跟踪期间它成为 key：用户前台应用的前台身份和真实指针不变，但它的 key window 会记到一次失去 key（实测，主干构建同样）。这是 AppKit 打开菜单的行为，与是否带 `opened` 无关。
+- 对 popup 的 AXPress 会打开一个菜单，菜单跟踪期间它成为 key：用户前台应用的前台身份和真实指针不变，但它的 key window 会记到一次失去 key（实测）。这是 AppKit 打开菜单的行为。
 - Finder 里文件名的两种框写 AXValue 只改显示、不改文件名，读回却等于新值：列表视图的名称格（带 AXFilename 与 file:// AXURL，未在编辑）和简介窗口的"名称与扩展名"框（标识符 `Name`）。`setText` 在写之前对它们以 `action_failed` 拒绝，recovery 写出真正能改名的键盘路线：`--image always` 观察后用 `act-ui --foreground` 点中名称（简介窗口点输入框），列表视图再按 Return 进入编辑，然后 cmd+a、输入新名称、Return。
 
 - 有的界面只在应用处于前台时才出现，bcu 从外部识别不了。用户实测：微信搜索框里后台打字逐字正确，但搜索结果下拉只在微信处于前台时出现，后台时什么都不发生，结果是 unverified。bcu 的后台点击会让目标应用自认处于激活状态（`NSApp.isActive` 为真，但 WindowServer 的前台和用户的 key window 都没变），所以只看 `isActive` 的界面在后台照样出现，真机门用一个只在 `isActive` 时显示结果区的自绘输入验证这一点；微信用的是别的判断，而"输入到了、其余没反应"和"本来就没有东西可显示"从外部看是同一个样子。bcu 不猜：这一步已经投递，`unknown` 不升级，也不会为此自动换到前台重做。调用方已知需要前台时用 `act-ui --foreground` 显式从前台一级开始，代价是激活目标应用、抢走用户的前台和键盘焦点，指针类动作还会移动真实指针；`headless` 下不可用。
@@ -236,17 +228,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 ## 测量
 
-首屏视图大小由 `scripts/fixtures/` 里两份真机大纲（TextEdit 一个文档窗口、Finder 一个文件夹窗口）的投影金标锁定，`swift test --filter projection` 复现。投影层落地前同样两个窗口的文本视图是 1517 和 4683 字节（基线 `b97686f`），现在是 491 和 704 字节。
-
-端到端时延直接量命令本身：
-
-```bash
-time bcu observe-ui --app TextEdit
-```
-
-## 浏览器窗口
-
-浏览器窗口是普通的 AX 窗口，没有专用代码路径：网页里的按钮、输入框、打字和按键走同一条投递梯子，在后台完成。页面级自动化（DOM、网络、脚本）由 `better-browser-use` 负责。
+首屏视图大小由 `scripts/fixtures/` 里两份真机大纲（TextEdit 文档窗口、Finder 文件夹窗口）的投影金标锁定，`swift test --filter projection` 复现。
 
 ## 结果契约
 
