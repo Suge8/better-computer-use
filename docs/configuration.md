@@ -20,7 +20,7 @@
 
 `cursor_motion` 选 agent 光标怎么移动，同样在常驻进程启动时读取：
 
-- `style`（默认 `signature_arc`）：`signature_arc` 一段带轻微冲过的弧线；`spring_settle` 弧线落点回弹一次；`magnetic` 靠近目标时减速再被吸入；`comet_swoop` 大弧线带拖尾；`adaptive` 小目标慢慢靠近、远距离大弧线、其余走最小加加速度路径；`classic` 原来的 Dubins 滑行加落点弹簧。
+- `style`（默认 `signature_arc`）：`signature_arc` 一段带轻微冲过的弧线；`spring_settle` 弧线落点回弹一次；`magnetic` 靠近目标时减速再被吸入；`comet_swoop` 大弧线带拖尾；`adaptive` 小目标慢慢靠近、远距离大弧线、其余走最小加加速度路径；`classic` Dubins 滑行加落点弹簧。
 - `timing`（默认 `native`）：`native` 用样式自己的时长；`fitts` 按菲茨定律 `150 + 120·log2(距离/目标短边 + 1)` 毫秒，限制在 300–1000；`fixed` 每次 1430 毫秒。目标尺寸未知时按 24 pt 的方框算。
 - `effects`：`trail` 彗星拖尾（从箭头身体拖出）、`glow` 随速度变大的光晕、`magnet` `magnetic` 吸附时目标周围的光晕、`ripple` 点击落下时的涟漪、`squish` 点击时箭头缩一下。没写的效果用样式自己的默认：`signature_arc` 开 glow/ripple/squish，`spring_settle` 开 glow/squish，`magnetic` 开 magnet/ripple，`comet_swoop` 开 trail/ripple，`adaptive` 开 squish，`classic` 全关。
 
@@ -34,4 +34,4 @@
 - `BCU_IDLE_MS`：空闲多少毫秒后退出，默认 600000。
 - `BCU_APP_PATH`：按需启动的 app，仅用于开发与测试；默认是 `bcu` 自己所在的 app，不在 app 里的 `bcu`（调试构建）必须设置它。
 
-运行时路径：常驻进程 socket `~/Library/Caches/bcu/resident.sock`，截图 `~/Library/Caches/bcu/shots/`。常驻进程按需启动，空闲 10 分钟退出。
+截图写在 `~/Library/Caches/bcu/shots/`。
