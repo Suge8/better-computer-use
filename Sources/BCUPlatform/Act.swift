@@ -137,9 +137,18 @@ extension Platform {
 			}
 		}
 
+		// Read once: grounding and the cursor's target box share it, so the cursor costs no extra AX query.
+		var readFrame: CGRect??
+		func elementFrame() -> CGRect? {
+			if let readFrame { return readFrame }
+			let frame = element.flatMap(frameForElement)
+			readFrame = .some(frame)
+			return frame
+		}
+
 		func coordinatePoint() throws -> CGPoint {
 			if let rawPoint { return rawPoint }
-			if let element, let frame = frameForElement(element) {
+			if let frame = elementFrame() {
 				return CGPoint(x: frame.midX, y: frame.midY)
 			}
 			throw BCUError(.actionFailed, "No coordinate grounding is available")
@@ -152,7 +161,10 @@ extension Platform {
 				policy != .axOnly,
 				[.press, .click, .moveMouse, .scroll, .drag].contains(action)
 			else { return }
-			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId) }
+			// The overlay joins every Space; over a window in another Space it would draw on the user's.
+			if SpaceView()?.placement(of: record.windowId) == .elsewhere { return }
+			let target = elementFrame()
+			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId, action: action, target: target) }
 		}
 
 		/// Activation is asynchronous: a menu bar item has no geometry until it belongs to the

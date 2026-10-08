@@ -3,7 +3,7 @@
 - `Package.swift`：SwiftPM 包的目标划分与目录归属（ADR 0002）。
 - `Sources/BCUCore/`：纯逻辑库（大纲、投影、变化、搜索、契约类型、错误、动作校验与准备、CLI 解析与渲染），不依赖 AppKit；`Tests/BCUCoreTests/` 用 `Golden/` 金标逐字节对照，金标就是契约，行为变更先单独提交手改的金标。
 - `Sources/BCURuntime/`：常驻进程与客户端的运行时核心，不碰平台：socket 线协议、connect-or-start、状态库、按 pid 的调度与 epoch、根注册表、截图 artifact；测试在 `Tests/BCURuntimeTests/`。
-- `Sources/BCUPlatform/`：全部平台能力（Accessibility、ScreenCaptureKit、OCR、输入投递、agent 光标），`Platform` 是进程内门面，请求与结果类型在 `API.swift`，元素与根以 `Handle`（`Handle.swift`）交给调用方保存；`Act.swift` 是单个动作的投递与判定，`SkyLight.swift` 是后台原始输入所用的私有接口，`LookOutline.swift` 是 look 大纲节点与 OCR 行挂载规则，`RemoteWindows.swift` 与 `Spaces.swift` 补回 AXWindows 不列的其他 Space 窗口；单元测试在 `Tests/BCUPlatformTests/`。
+- `Sources/BCUPlatform/`：全部平台能力（Accessibility、ScreenCaptureKit、OCR、输入投递、agent 光标），`Platform` 是进程内门面，请求与结果类型在 `API.swift`，元素与根以 `Handle`（`Handle.swift`）交给调用方保存；`Act.swift` 是单个动作的投递与判定，`SkyLight.swift` 是后台原始输入所用的私有接口，`LookOutline.swift` 是 look 大纲节点与 OCR 行挂载规则，`RemoteWindows.swift` 与 `Spaces.swift` 补回 AXWindows 不列的其他 Space 窗口，`TypedText.swift` 是打字的投递拆分与判定，`PointerToolkit.swift` 认出丢弃后台指针事件的工具包，`FinderName.swift` 认出写值不改名的 Finder 文件名框，`AgentCursor*.swift` 是 agent 光标的覆盖层、运动规划、样式与效果；单元测试在 `Tests/BCUPlatformTests/`。
 - `Sources/BCUDaemon/`：常驻进程的命令处理（`makeRequestHandler` 是交给 `bcu serve` 的接缝）。`Roots.swift` 根发现与选择、`Observe.swift` 观察与缓存查询、`Act.swift` 动作事务与投递梯子、`Steps.swift` 跨界面的步骤（按名称定位、选根、步骤后置条件、新根视图）、`Readiness.swift` 权限与 doctor/setup；观察连同平台句柄存进状态库（`Observation.swift`）；`Desktop.swift` 是处理器依赖的平台接缝，`Tests/BCUDaemonTests/` 用假平台测结果契约。
 - `Sources/bcu/`：唯一的可执行文件。客户端解析参数、连接或经 `open` 启动 `bcu.app`、打印结果；`bcu serve` 在 AppKit 主运行循环里运行常驻进程；配置文件与 `BCU_*` 环境变量在这里解析。
 - `Tests/Support/`：测试共用的 `TemporaryRoot`，套件加上 `.temporaryRoot` 后每个测试在 /tmp 下有自己的目录，结束即删。
