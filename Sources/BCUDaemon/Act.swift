@@ -11,19 +11,16 @@ import Foundation
 private let settleAfterRawInput = Duration.milliseconds(280)
 private let settleAfterAccessibility = Duration.milliseconds(120)
 
-/// One action ready to deliver: a pause, or a platform request whose policy the ladder picks.
-private enum Step: Sendable {
-	case wait(ms: Int)
-	case deliver(action: ActAction, target: ActTarget, input: ActionInput)
-}
-
 /// Everything checked before the epoch moves: the transaction is refused, not half delivered,
-/// when any of it fails.
+/// when any of it fails. A step that names its element is found only when it runs, but the
+/// first one is found here: refusing it costs the caller nothing.
 private struct Transaction: Sendable {
 	let target: Target
-	let steps: [Step]
+	let steps: [PlannedStep]
 	let scope: Handle?
 	let base: Observation
+	/// The roots the app showed before the array ran; read only when a step looks for what an earlier one opened.
+	let known: Set<Handle>
 	var outline: SerializedOutline { base.outline.current.outline }
 }
 
@@ -40,8 +37,13 @@ private struct Execution {
 	var quiet: Bool
 	var openedMenus = false
 	var actionCount: Int
+	/// The step closed the root it acted in.
 	var rootClosed = false
+	/// The root that was closed, once the array stopped because of it.
+	var closedTarget: Target?
 	var skipped = 0
+	/// The postcondition of the last step that had one and met it.
+	var verified: Expectation?
 
 	/// One array: the worst outcome, the last evidence, every root opened.
 	init(_ steps: [Execution]) {
@@ -53,6 +55,7 @@ private struct Execution {
 		quiet = steps.allSatisfy(\.quiet)
 		openedMenus = steps.contains(where: \.openedMenus)
 		actionCount = steps.count
+		verified = steps.last { $0.verified != nil }?.verified
 	}
 
 	/// One step, as the platform reported it.
@@ -118,67 +121,47 @@ extension Daemon {
 		let scope = try trimmed(params.expect?.scope).map { try observation.outline.handle(of: try node($0, in: outline)) }
 		let target = try await current(observation.target)
 		let environment = ActionEnvironment(outline: outline, image: observation.image, headless: headless)
+		let looksForOpened = actions.contains { $0.find?.root == .opened || $0.expect?.root == .opened }
+		let known = looksForOpened ? Set(try await roots(pid: target.pid).map(\.handle)) : []
 		var focus = ActionState(currentFocus: false)
-		var steps: [Step] = []
-		for action in actions {
-			let prepared = try prepareAction(action, state: focus, environment: environment)
-			if prepared.establishesFocus { focus.currentFocus = true }
-			steps.append(try step(prepared, outline: outline, observation: observation))
+		var steps: [PlannedStep] = []
+		for (index, action) in actions.enumerated() {
+			let step: Step
+			if action.find != nil {
+				step = index == 0
+					? .deliver(try await locateStep(action, index: 0, count: actions.count, base: target, trail: Trail(known: known), headless: headless))
+					: .locate(action)
+			} else {
+				let prepared = try prepareAction(action, state: focus, environment: environment)
+				if prepared.establishesFocus { focus.currentFocus = true }
+				if case .wait(let ms) = prepared.params { step = .wait(ms: ms) } else { step = .deliver(try resolvedStep(prepared, outline: outline, observation: observation, root: target)) }
+			}
+			steps.append(PlannedStep(step: step, expect: action.expect))
 		}
-		return Transaction(target: target, steps: steps, scope: scope, base: observation)
-	}
-
-	private func step(_ prepared: PreparedAction, outline: Outline, observation: Observation) throws -> Step {
-		if case .wait(let ms) = prepared.params { return .wait(ms: ms) }
-		var preserveFocus = false
-		let target: ActTarget
-		switch prepared.target {
-		case .ref(let wireRef):
-			guard let node = outline.node(wireRef) else { throw BCUError(.elementNotFound, "Ref '\(wireRef)' does not belong to the current state.") }
-			target = .element(try observation.outline.handle(of: node))
-		case .point(let point):
-			target = .point(x: point.x, y: point.y)
-		case .focus(let x, let y):
-			// Typing into whatever an earlier click focused; the point only anchors the input.
-			target = .point(x: Double(x), y: Double(y))
-			preserveFocus = true
-		case nil:
-			throw BCUError(.internalError, "Action \(prepared.action.rawValue) was prepared without a target.")
-		}
-		var input = ActionInput(preserveFocus: preserveFocus)
-		switch prepared.params {
-		case .click(let button, let clickCount):
-			input = ActionInput(button: button == .right ? .right : button == .middle ? .center : .left, clickCount: clickCount, preserveFocus: preserveFocus)
-		case .text(let text): input = ActionInput(text: text, preserveFocus: preserveFocus)
-		case .keys(let keys): input = ActionInput(keys: keys, preserveFocus: preserveFocus)
-		case .scroll(let x, let y): input = ActionInput(scrollX: x, scrollY: y, preserveFocus: preserveFocus)
-		case .drag(let path): input = ActionInput(path: path.map { CGPoint(x: $0.x, y: $0.y) }, preserveFocus: preserveFocus)
-		case .none, .wait: break
-		}
-		guard let action = ActAction(rawValue: prepared.action.rawValue) else {
-			throw BCUError(.invalidArguments, "Action \(prepared.action.rawValue) cannot be delivered.")
-		}
-		return .deliver(action: action, target: target, input: input)
+		return Transaction(target: target, steps: steps, scope: scope, base: observation, known: known)
 	}
 
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
 		let target = transaction.target
-		var execution = try await dispatch(transaction, count: actions.count, geometry: transaction.base.geometry, headless: headless, startsInForeground: params.foreground ?? false)
-		if execution.rootClosed { return try await closedRoot(execution, target: target, params: params, image: image, lane: lane) }
+		var execution = try await dispatch(transaction, count: actions.count, headless: headless, startsInForeground: params.foreground ?? false)
+		var baseClosed = execution.closedTarget?.root.handle == target.root.handle
+		if baseClosed { return try await closedRoot(execution, target: target, params: params, image: image, lane: lane) }
+		// Another root the array acted in closed: its closing is the proof, and the state's own root carries on.
+		if execution.closedTarget != nil { execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed) }
 		let executed = Array(actions.prefix(execution.actionCount))
-		var verification = Verification(status: .none, evidence: execution.evidence)
+		var verification = recordedVerification(execution)
 		if let expect = params.expect {
 			do {
 				verification = try await verify(expect, transaction: transaction, execution: &execution)
 			} catch {
 				if try await isLive(target) { throw error }
-				execution.rootClosed = true
+				baseClosed = true
 			}
 		} else if !execution.settled {
 			try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput)
 		}
 		var successor: (observation: Observation, image: LookImage?)?
-		if !execution.rootClosed {
+		if !baseClosed {
 			do {
 				successor = try await capture(target, image: image, base: transaction.base)
 			} catch {
@@ -191,28 +174,38 @@ extension Daemon {
 		let outcome = outcomeAfterObservedValues(execution.outcome, actions: executed) { next.node($0)?.value }
 		if outcome == .didnt { throw failure(execution) }
 		let view = successorView(base: Outline(restoring: transaction.outline), next: next, menusOpenedByBcu: execution.openedMenus)
-		let roots = execution.appeared.compactMap(appearance)
+		let stillOpen = execution.appeared.filter { $0.handle != execution.closedTarget?.root.handle }
+		let roots = stillOpen.compactMap(appearance)
 		return BCUCore.ActResult(
 			stateId: saved.stateId, baseStateId: params.stateId, outcome: outcome, verification: verification,
 			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots,
+			closed: execution.closedTarget.map { ClosedRoot(root: $0.appearance, skipped: execution.skipped > 0 ? execution.skipped : nil) },
+			opened: try await attachOpened(stillOpen, base: target, lane: lane),
 			changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
 			image: try await artifact(successor.image, for: saved.stateId)
 		)
 	}
 
+	/// The array's own evidence, and the last step condition it met.
+	private func recordedVerification(_ execution: Execution) -> Verification {
+		guard let met = execution.verified else { return Verification(status: .none, evidence: execution.evidence) }
+		return Verification(status: .verified, evidence: execution.evidence, text: trimmed(met.text), role: trimmed(met.role), value: trimmed(met.value), gone: met.gone == true ? true : nil, timeoutMs: waitTimeout(met.timeoutMs))
+	}
+
 	// MARK: delivery
+
+	private func request(_ step: ResolvedStep, _ policy: ActPolicy) -> ActRequest {
+		ActRequest(geometry: step.geometry, pid: step.root.pid, action: step.action, target: step.target, params: step.input.delivered(policy == .foreground ? .hid : .pid), policy: policy)
+	}
 
 	/// Strictly headless arrays of platform actions go as one platform batch. Otherwise each
 	/// action climbs the ladder on its own, so a delivered background prefix is never replayed
-	/// in the foreground.
-	private func dispatch(_ transaction: Transaction, count: Int, geometry: LookGeometry, headless: Bool, startsInForeground: Bool) async throws -> Execution {
+	/// in the foreground; a step that names its element is found just before its turn.
+	private func dispatch(_ transaction: Transaction, count: Int, headless: Bool, startsInForeground: Bool) async throws -> Execution {
 		let target = transaction.target
-		func request(_ action: ActAction, _ actTarget: ActTarget, _ input: ActionInput, _ policy: ActPolicy) -> ActRequest {
-			ActRequest(geometry: geometry, pid: target.pid, action: action, target: actTarget, params: input.delivered(policy == .foreground ? .hid : .pid), policy: policy)
-		}
-		let deliveries = transaction.steps.compactMap { step -> ActRequest? in
-			guard case .deliver(let action, let actTarget, let input) = step else { return nil }
-			return request(action, actTarget, input, .axOnly)
+		let deliveries = transaction.steps.compactMap { planned -> ActRequest? in
+			guard planned.expect == nil, case .deliver(let step) = planned.step, step.root.root.handle == target.root.handle else { return nil }
+			return request(step, .axOnly)
 		}
 		if headless && deliveries.count == transaction.steps.count {
 			let report = try await offload { [desktop = self.desktop] in try desktop.actBatch(deliveries) }
@@ -232,69 +225,84 @@ extension Daemon {
 			if closed {
 				// The step that failed on the closed root was never delivered to it.
 				let failedAt = report.stoppedAt.flatMap { if case .failed = report.steps[$0] { $0 } else { nil } }
-				execution.rootClosed = true
+				execution.closedTarget = target
 				execution.skipped = count - (failedAt ?? report.steps.count)
 			}
 			return execution
 		}
 		var done: [Execution] = []
-		var rootClosed = false
-		for (index, step) in transaction.steps.enumerated() {
-			let result: Execution
+		var trail = Trail(known: transaction.known)
+		var lastActed = target
+		var closed: Target?
+		for (index, planned) in transaction.steps.enumerated() {
+			var acted = target
+			var result: Execution
 			do {
-				switch step {
+				switch planned.step {
 				case .wait(let ms):
 					try await pause(.milliseconds(ms))
 					result = Execution(waited: ())
-				case .deliver(let action, let actTarget, let input):
-					result = try await climb { policy in request(action, actTarget, input, policy) }
+				case .deliver(let step):
+					acted = step.root
+					result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
+				case .locate(let action):
+					let step = try await locateStep(action, index: index, count: count, base: target, trail: trail, headless: headless)
+					acted = step.root
+					result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
 				}
 			} catch {
-				// The platform saw no closure, but an earlier step may still have closed the root.
-				if index > 0, try await !isLive(target) {
-					rootClosed = true
+				// The platform saw no closure, but an earlier step may still have closed the root it acted in.
+				if index > 0, try await !isLive(lastActed) {
+					closed = lastActed
 					break
 				}
 				throw error
 			}
+			trail.appeared.append(result.appeared)
+			if result.outcome != .didnt, let expect = planned.expect {
+				try await verifyStep(expect, index: index, count: count, acted: acted, base: target, closed: result.rootClosed, trail: trail)
+				result.outcome = outcomeAfterCheck(result.outcome, .verified)
+				result.verified = expect
+			}
 			done.append(result)
+			lastActed = acted
 			if result.outcome == .didnt { break }
 			if result.rootClosed {
-				rootClosed = true
+				closed = acted
 				break
 			}
 		}
 		var execution = Execution(done)
-		if rootClosed {
-			execution.rootClosed = true
+		if let closed {
+			execution.closedTarget = closed
 			execution.skipped = count - done.count
 		}
 		return execution
+	}
 
-		/// The ladder of docs/architecture.md: background first; the foreground only after a
-		/// background rung proved it changed nothing (`didnt`) or refused as needing it, or
-		/// when the caller asked to start there.
-		func climb(_ request: (ActPolicy) -> ActRequest) async throws -> Execution {
-			let foreground = request(.foreground)
-			let first = request(headless ? .axOnly : .background)
-			func inForeground() async throws -> Execution {
-				do {
-					return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, closedOut: target, headless: headless)
-				} catch let refusal as ForegroundRequired {
-					throw BCUError(.actionFailed, refusal.message)
-				}
-			}
-			if startsInForeground { return try await inForeground() }
-			let report: ActionReport
+	/// The ladder of docs/architecture.md: background first; the foreground only after a
+	/// background rung proved it changed nothing (`didnt`) or refused as needing it, or
+	/// when the caller asked to start there.
+	private func climb(_ step: ResolvedStep, headless: Bool, startsInForeground: Bool) async throws -> Execution {
+		let foreground = request(step, .foreground)
+		let first = request(step, headless ? .axOnly : .background)
+		func inForeground() async throws -> Execution {
 			do {
-				report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
+				return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, closedOut: step.root, headless: headless)
 			} catch let refusal as ForegroundRequired {
-				guard !headless else { throw BCUError(.actionFailed, refusal.message) }
-				return try await inForeground()
+				throw BCUError(.actionFailed, refusal.message)
 			}
-			if canRetryInForeground(report.outcome, headless: headless) { return try await inForeground() }
-			return Execution(report, closedOut: target, headless: headless)
 		}
+		if startsInForeground { return try await inForeground() }
+		let report: ActionReport
+		do {
+			report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
+		} catch let refusal as ForegroundRequired {
+			guard !headless else { throw BCUError(.actionFailed, refusal.message) }
+			return try await inForeground()
+		}
+		if canRetryInForeground(report.outcome, headless: headless) { return try await inForeground() }
+		return Execution(report, closedOut: step.root, headless: headless)
 	}
 
 	// MARK: postconditions

@@ -102,6 +102,15 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		return wait(request)
 	}
 
+	func changeMark(pid: Int32) throws -> ChangeMark {
+		ChangeMark(generation: 0)
+	}
+
+	/// Nothing is ever notified; a short sleep stands in for the app's quiet.
+	func waitForChange(pid: Int32, since mark: ChangeMark, timeoutMs: Int) throws {
+		Thread.sleep(forTimeInterval: min(0.005, Double(timeoutMs) / 1000))
+	}
+
 	func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage {
 		let read = update { scene in
 			scene.reads.append(handle)

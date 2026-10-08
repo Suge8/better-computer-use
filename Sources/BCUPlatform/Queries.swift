@@ -8,7 +8,7 @@ extension Platform {
 		let pid = request.pid
 		ensureEnhancedAccessibility(pid: pid)
 		let role = request.role?.trimmingCharacters(in: .whitespacesAndNewlines)
-		let text = request.text?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+		let text = request.text.map { foldedForSearch($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 		let expectedValue = request.value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 		let timeoutMs = max(Self.waitTimeoutRange.lowerBound, min(Self.waitTimeoutRange.upperBound, request.timeoutMs ?? Self.defaultWaitTimeoutMs))
 		guard role?.isEmpty == false || text?.isEmpty == false || expectedValue?.isEmpty == false else {
@@ -31,11 +31,11 @@ extension Platform {
 			if let role, !role.isEmpty, candidateRole != role { return false }
 			if let text, !text.isEmpty {
 				let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
-				let haystack = [
+				let haystack = foldedForSearch([
 					stringAttribute(element, attribute: kAXTitleAttribute as CFString) ?? "",
 					stringAttribute(element, attribute: kAXDescriptionAttribute as CFString) ?? "",
 					displayValue(element, role: candidateRole, subrole: subrole),
-				].joined(separator: "\n").lowercased()
+				].joined(separator: "\n"))
 				if !haystack.contains(text) { return false }
 			}
 			if let expectedValue, !expectedValue.isEmpty {
@@ -50,6 +50,19 @@ extension Platform {
 		}
 		guard settled else { return .timedOut }
 		return request.gone ? .gone : .found
+	}
+
+	/// Where an app's stream of accessibility notifications stands, to wait for what comes
+	/// after it. Take it before looking, so a change made during the look ends the wait at once.
+	public func changeMark(pid: Int32) throws -> ChangeMark {
+		ChangeMark(generation: try observedApp(pid).generation)
+	}
+
+	/// Returns after the app posts a notification or an app takes the front since `mark`, or
+	/// after `timeoutMs`; the caller looks again either way.
+	public func waitForChange(pid: Int32, since mark: ChangeMark, timeoutMs: Int) throws {
+		let app = try observedApp(pid)
+		_ = app.wait(until: Date().addingTimeInterval(Double(timeoutMs) / 1000)) { app.generation != mark.generation }
 	}
 
 	/// A wait lasts 10 s unless asked otherwise, and between 0.1 s and 60 s.
