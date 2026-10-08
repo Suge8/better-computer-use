@@ -125,7 +125,7 @@ find-roots → observe-ui → cached query → act-ui → successor state
 - Accessibility 大纲，以及每个节点背后的平台句柄；
 - 可选的图片和 OCR 行。
 
-完整大纲只存在状态库里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 查询完整大纲，因此被投影省略或折叠的节点照样可达。节点被平台截断时，`expand-ui` 在该状态所在 pid 的道里、以相同 epoch 补读这棵子树，不会把并发动作之后的数据嫁接到旧状态上。
+完整大纲只存在状态库里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 查询完整大纲，因此被投影省略或折叠的节点照样可达。搜索文本、`wait-for` 与 `--expect-text` 不区分大小写，并把三个句点读作 macOS 标题结尾的省略号（`Save As...` 找到 `Save As…`），两侧都折叠，其余字符照常匹配。节点被平台截断时，`expand-ui` 在该状态所在 pid 的道里、以相同 epoch 补读这棵子树，不会把并发动作之后的数据嫁接到旧状态上。
 
 `observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，平台自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。截了图的观察都把截图文件交给 agent（结果带 `image`，文本视图末行 `image <path> (WxH)`）：OCR 读不到空输入框这类无字区域，agent 要看图按坐标点；没截图的窗口不会为此多截。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点和截图。
 
@@ -180,7 +180,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 ## Action transaction
 
-`act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。数组只放互不依赖中间 UI 的动作：某步 `unknown` 时继续下一步，某步 `didnt` 时中止。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
+`act-ui` 接收一个动作数组。数组内步骤共享同一 base state 和资源锁，按顺序验证。用 ref 或坐标的步骤只放互不依赖中间 UI 的动作，后面的步骤依赖前面打开的界面时用定位器（见“跨界面的步骤”）：某步 `unknown` 时继续下一步，某步 `didnt` 时中止。能够表达完成条件时，调用方把 `--expect-text`、`--expect-role` 或 `--expect-value` 附在同一事务中，避免独立等待和额外模型轮次。
 
 平台对每次投递判定 `worked`、`didnt` 或 `unknown`，并说明理由。判定按证据强弱排序：
 
@@ -198,14 +198,27 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 动作打开的根跟结果一起回来：平台已经为判定 outcome 等过根森林的变化，`act-ui` 把新出现的根经根注册表铸成稳定 `@r`，以 `roots: [{ref, kind, app, title}]` 返回，文本视图写作 `+ root @r12 menu "文件"`。按完菜单栏项的 agent 直接 `observe-ui --root @r12`，不需要再 `find-roots`，也就没有“动作刚发出、发现还没看到新根”的竞态。
 
+动作打开且结果返回时仍开着的菜单、sheet、popover、对话框（新窗口不算，由 `observe-ui` 按需看），其视图随结果一起返回：`opened: {root, stateId, nodes, shown, total}`，文本视图末尾是与 `observe-ui --root @rN` 相同的块。`stateId` 和里面的 ref 直接用于下一次 `act-ui`，所以选下拉框的选项是两条命令：按下拉框，再按返回视图里的选项。几个根同时打开时只附带最突出的一个（模态优先，同 `observe-ui` 选根的打分），其余只在 `roots` 里。这次观察与后继状态在同一 epoch 保存：两个 `stateId` 都有效，从其中一个动作之后另一个按常规过期。视图的预算：不读屏、不截图，最多 60 个节点（`openedView`），更长的菜单用它的 `stateId` 做 `search-ui`。没有照 cua 在 `set_value` 里一步选中选项：那只覆盖 popup，这里菜单、popover、sheet 都适用，选哪一项仍由 agent 决定。
+
 动作让它所在的根消失——按 sheet、对话框、popover 或菜单里关掉自己的按钮——本身就是证据：结果是 `worked`，证据为 `{source: "root", field: "closed"}`，文本写作 `root closed`，退出 0。判定根已消失有两条来源：平台在动作里看到该根关闭，或读回该根失败后它已不在应用的根列表里。动作针对的根始终是保存状态里的那个根，前面冒出来的模态根作为新根报告，不会替换它，否则判定会落到别的根上。结果以 `closed: {root}` 写出关掉的根（文本 `- root @r44 sheet "警告"`，紧跟结果行），后继状态改为观察这个应用此刻会被选中的根（排除刚关掉的那个），以 `next` 写出它（文本 `next root @r12 window "…"`）并给出它的完整折叠视图；应用已没有可观察的根时不带 `stateId`，文本写 `no root of <app> remains; run find-roots`。数组里某步关掉了根，后续步骤不再投递，`closed.skipped` 记下跳过几步（文本 `skipped 1 later step: its root closed`）。根关掉后后置条件无处可查：`--expect-gone` 视为满足，其余以 `action_failed` 报出。
 
 视图外的 offscreen 元素增删不逐条列出：一个节点本身或其祖先 offscreen、且不在对应视图里（新增看后继视图，删除看基线视图），就只计入 `offscreen: {added, removed}`，文本用一行 `… offscreen elements outside the view: 30 added` 概括。bcu 为按下菜单项而打开、关上菜单时（平台在结果里报 `openedMenus`），AppKit 可能顺手重建菜单（帮助菜单会换成带搜索框的新菜单），这次动作里菜单及其内部节点的增删同样只计数，即使它们的占位行在视图里；菜单栏项本身不在菜单里，照常列出。结果行之后先是 `- root`、`+ root` 这些根的变化，再是元素变化。
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
 
+### 跨界面的步骤
+
+动作项可以用 `find: {role?, name?, nth?, root?, timeoutMs?}` 代替 ref（与 ref、坐标互斥，至少给 role 或 name），让一个数组走完“打开对话框 → 填写 → 确认”。步骤执行时才对它的根做新鲜观察，等到唯一匹配再投递。根由 `root` 选：`state`（默认）是状态所在的根；`opened` 是前面步骤最近打开的根，还没有时等它出现；`app` 是应用此刻会被 `observe-ui` 选中的根（模态优先）。匹配对象是视图里的节点：role 取视图的角色词，也认无障碍 role 与 subrole，一律精确；name 先精确、没有精确的再按子串，忽略大小写和多余空白，`...` 与 `…` 相同。并列时先留屏上的元素，再留动作需要的能力（setText 要 setText，press 要 press、toggle 或 open），所以对 setText 来说“Reason”是输入框而不是它的标签；规则都分不开，没有 `nth` 就失败，并列出候选（`nth i: 节点 in 父节点`，`nth` 从 0 起算候选）。没找到则等到 `timeoutMs`（默认 3 s）再失败，列出最接近的元素；并列不等待，它不会自己消失。等待由目标应用的无障碍通知唤醒，没有通知时每 400 ms 再看一次（sheet 出现不发通知），应用不接受观察者时直接以 `action_failed` 报错。cua 把 role 按家族折叠（textfield 也匹配 textarea）再靠精确 role 消歧，bcu 的 role 本来就精确，不需要这一步；也不接受形状不对的参数。
+
+第一步是定位器时在 epoch 前进之前就找：找不到或并列就拒绝，状态仍然可用。之后的步骤在投递过程中找，失败的错误以“Step N of M”开头，recovery 说明前面哪几步已经投递且不会重放——此时状态已过期。
+
+每个动作项可带 `expect: {text?, role?, value?, gone?, timeoutMs?, root?}`（至少给 text、role 或 value；没有 `scope`，ref 属于状态，步骤的根不一定是它的根），语义同 `--expect-*`：在该步投递之后、下一步之前检查，默认在该步所在的根，`root` 同上；不满足以 `action_failed` 失败，后面的步骤不投递；满足时把该步的 `unknown` 记为 `worked`，结果的 `verification` 写最后一个满足的条件。该步关掉了它要检查的那个根时，只有 `gone` 满足。全局 `--expect-*` 仍检查状态所在的根，在所有步骤之后。
+
+结果的后继状态始终观察状态所在的根。数组里某步关掉的是别的根（确认按钮关掉对话框）时，`closed` 报告它、后面的步骤不再投递，`stateId` 仍是状态的根的后继，没有 `next`；关掉的是状态的根时同上一节。
+
 ## 已知局限
 
+- 对 popup 的 AXPress 会打开一个菜单，菜单跟踪期间它成为 key：用户前台应用的前台身份和真实指针不变，但它的 key window 会记到一次失去 key（实测，主干构建同样）。这是 AppKit 打开菜单的行为，与是否带 `opened` 无关。
 - 有的界面只在应用处于前台时才出现，bcu 从外部识别不了。用户实测：微信搜索框里后台打字逐字正确，但搜索结果下拉只在微信处于前台时出现，后台时什么都不发生，结果是 unverified。bcu 的后台点击会让目标应用自认处于激活状态（`NSApp.isActive` 为真，但 WindowServer 的前台和用户的 key window 都没变），所以只看 `isActive` 的界面在后台照样出现，真机门用一个只在 `isActive` 时显示结果区的自绘输入验证这一点；微信用的是别的判断，而"输入到了、其余没反应"和"本来就没有东西可显示"从外部看是同一个样子。bcu 不猜：这一步已经投递，`unknown` 不升级，也不会为此自动换到前台重做。调用方已知需要前台时用 `act-ui --foreground` 显式从前台一级开始，代价是激活目标应用、抢走用户的前台和键盘焦点，指针类动作还会移动真实指针；`headless` 下不可用。
 - 网页内容里判定只看无障碍证据。可聚焦的元素按下后获得焦点，这就是按下的证据；不可聚焦、按下后自身无变化的元素结果是 unverified，需要确认时用 `--expect-*` 表达完成条件。
 - 第二级依赖未公开的 SkyLight 接口，macOS 升级可能改变它们的行为；`BCU_LIVE=1 node scripts/check-web-background.mjs` 在真实 Chrome 上逐格验证按钮、输入框、打字、按键、坐标点击、滚动、多窗口打字都在后台完成，无证据的按下恰好生效一次并报告 unverified。
