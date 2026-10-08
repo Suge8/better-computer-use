@@ -1,28 +1,21 @@
 @testable import BCUPlatform
 import Testing
 
-// Tk and LibreOffice's VCL drop pointer events posted to a pid: Tk reads the pointer from the
-// hardware, VCL ignores the event. Such an app is recognized by the libraries it maps.
+// Tk drops pointer events posted to a pid, and an app is recognized by the libraries it maps.
+// Missing one costs an unverified click; taking another library for Tk sends the app's
+// clicks through the foreground for nothing.
 
 struct PointerToolkitTests {
 	@Test(arguments: [
-		"/System/Library/Frameworks/Tk.framework/Versions/8.5/Tk",
-		"/opt/homebrew/opt/tcl-tk/lib/libtk8.6.dylib",
-		"/usr/local/lib/libtcl9tk9.0.dylib",
-		"/opt/homebrew/lib/python3.12/lib-dynload/_tkinter.cpython-312-darwin.so",
-		"/Applications/LibreOffice.app/Contents/Frameworks/libvclplug_osxlo.dylib",
+		("/System/Library/Frameworks/Tk.framework/Versions/8.5/Tk", true),
+		("/opt/homebrew/opt/tcl-tk/lib/libtk8.6.dylib", true),
+		("/usr/local/lib/libtcl9tk9.0.dylib", true),
+		("/opt/homebrew/lib/python3.12/lib-dynload/_tkinter.cpython-312-darwin.so", true),
+		("/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit", false),
+		("/usr/lib/libtcl8.6.dylib", false),
+		("/opt/homebrew/lib/libtkrzw.dylib", false),
 	])
-	func aMappedToolkitLibraryIsRecognized(path: String) {
-		#expect(PointerToolkit.mapped(inImagePath: path) != nil)
-	}
-
-	@Test(arguments: [
-		"/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
-		"/usr/lib/libtcl8.6.dylib",
-		"/opt/homebrew/lib/libtkrzw.dylib",
-		"/Applications/LibreOffice.app/Contents/Frameworks/libvcllo.dylib",
-	])
-	func otherLibrariesAreNot(path: String) {
-		#expect(PointerToolkit.mapped(inImagePath: path) == nil)
+	func aMappedTkLibraryIsRecognized(path: String, isTk: Bool) {
+		#expect(Tk.isImage(path: path) == isTk)
 	}
 }

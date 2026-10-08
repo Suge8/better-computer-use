@@ -267,8 +267,8 @@ extension Platform {
 			guard element != nil || record.hasImage else {
 				throw BCUError(.actionFailed, "Coordinate grounding is unavailable for this outline-only root")
 			}
-			if delivery == .pid, let toolkit = PointerToolkit.detect(pid: pid) {
-				throw ForegroundRequired(message: "\(toolkit.rawValue) drops pointer events sent to a background app, so this needs the real pointer")
+			if delivery == .pid, Tk.isMapped(pid: pid) {
+				throw ForegroundRequired(message: "Tk drops pointer events sent to a background app, so this needs the real pointer")
 			}
 			performed.grounding = .coordinates
 			if delivery == .pid { performed.callerMustVerify = true }
