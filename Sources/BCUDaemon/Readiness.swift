@@ -27,11 +27,10 @@ extension Daemon {
 		throw BCUError(.permissionMissing, "\(message)\nMissing permissions: \(missing.joined(separator: " and ")). Run 'bcu setup' to grant them, then retry.")
 	}
 
-	/// The resident process, its platform and the grants it holds.
+	/// The platform the resident runs on and the grants it holds.
 	func doctor() async throws -> JSONValue {
 		let (diagnostics, status) = try await offload { [desktop = self.desktop] in (desktop.diagnostics(), desktop.checkPermissions()) }
 		return try JSONCoding.encode(DoctorReport(
-			resident: .init(pid: Int(getpid()), protocolVersion: wireProtocolVersion),
 			platform: .init(diagnostics),
 			permissions: .init(status)
 		))
@@ -51,11 +50,6 @@ private struct Grants: Encodable {
 }
 
 private struct DoctorReport: Encodable {
-	struct Resident: Encodable {
-		let pid: Int
-		let protocolVersion: Int
-	}
-
 	struct PlatformReport: Encodable {
 		let arch: String
 		let macOS: String
@@ -91,7 +85,6 @@ private struct DoctorReport: Encodable {
 		}
 	}
 
-	let resident: Resident
 	let platform: PlatformReport
 	let permissions: Permissions
 }

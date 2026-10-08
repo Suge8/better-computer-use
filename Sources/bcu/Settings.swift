@@ -7,20 +7,17 @@ import Foundation
 /// `bcu serve`. LaunchServices does not hand the caller's environment to the app it starts,
 /// so the client forwards every `BCU_*` variable to the resident explicitly.
 struct Settings {
-	/// Also the default of scripts/install.sh: the script decides where the app goes and the
-	/// client where to launch it from, and a client built with `swift build` sits in no app.
-	static let defaultAppPath = "/Applications/bcu.app"
-
 	let socketPath: String
 	let idleTimeout: Duration
-	let appPath: String
+	/// `BCU_APP_PATH`, else the app this executable sits in; nil for a bare executable.
+	let appPath: String?
 	let config: LoadedConfig
 	/// `NAME=value` for every `BCU_*` variable, for `open --env`.
 	let forwarded: [String]
 
 	init(environment: [String: String]) throws {
 		socketPath = environment["BCU_SOCKET_PATH"] ?? RuntimePaths.socket
-		appPath = environment["BCU_APP_PATH"] ?? Self.defaultAppPath
+		appPath = environment["BCU_APP_PATH"] ?? App.containing
 		if let idle = environment["BCU_IDLE_MS"] {
 			guard let milliseconds = Int(idle), milliseconds >= 0 else {
 				throw BCUError(.invalidArguments, "BCU_IDLE_MS must be a whole number of milliseconds, not '\(idle)'.")

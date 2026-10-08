@@ -5,6 +5,10 @@ import Foundation
 /// `bcu <command>`: parse, reach the resident, print. Returns the process exit code.
 func runClient(_ arguments: [String]) -> Int32 {
 	do {
+		if arguments == ["--version"] {
+			write(try App.target(currentSettings()).version + "\n")
+			return 0
+		}
 		switch try CLI.parse(arguments, stdin: { String(decoding: FileHandle.standardInput.readDataToEndOfFile(), as: UTF8.self) }) {
 		case .help(let text):
 			write(text)
@@ -32,17 +36,14 @@ private func write(_ text: String) {
 }
 
 private func connectOrStart(_ settings: Settings) throws -> Connection {
-	let appPath = settings.appPath
+	let app = try App.target(settings)
 	let forwarded = settings.forwarded
-	return try Client.connectOrStart(socketPath: settings.socketPath) { try launchResident(appPath: appPath, forwarded: forwarded) }
+	return try Client.connectOrStart(socketPath: settings.socketPath, version: app.version) { try launchResident(appPath: app.path, forwarded: forwarded) }
 }
 
 /// `open -n -g bcu.app --args serve`: the resident runs as the app, so macOS attributes its
 /// Accessibility and Screen Recording use to bcu.app, not to the terminal that ran `bcu`.
 private func launchResident(appPath: String, forwarded: [String]) throws {
-	guard FileManager.default.fileExists(atPath: appPath) else {
-		throw BCUError(.residentUnavailable, "bcu.app is not installed at \(appPath). Run scripts/install.sh in the bcu checkout.")
-	}
 	let open = Process()
 	open.executableURL = URL(filePath: "/usr/bin/open")
 	open.arguments = ["-n", "-g"] + forwarded.flatMap { ["--env", $0] } + [appPath, "--args", "serve"]
@@ -73,7 +74,7 @@ private func output(_ value: some Encodable, _ text: String, json: Bool) throws 
 private struct StatusReport: Encodable {
 	var running: Bool
 	var pid: Int?
-	var protocolVersion: Int?
+	var version: String?
 }
 
 private struct StopReport: Encodable {
@@ -95,8 +96,8 @@ private func status(_ settings: Settings, json: Bool) throws -> String {
 	defer { connection.close() }
 	let status = connection.status
 	return try output(
-		StatusReport(running: true, pid: status.pid, protocolVersion: status.protocolVersion),
-		"resident running · pid \(status.pid) · protocol \(status.protocolVersion)",
+		StatusReport(running: true, pid: status.pid, version: status.version),
+		"resident running · pid \(status.pid) · version \(status.version)",
 		json: json
 	)
 }
@@ -129,7 +130,7 @@ private func doctor(_ settings: Settings, json: Bool) throws -> String {
 	guard case .object(var members) = report else { throw BCUError(.internalError, "The resident's doctor report is not an object.") }
 	members["resident"] = try JSONCoding.encode(status)
 	members["config"] = try JSONCoding.encode(settings.config)
-	return try output(JSONValue.object(members), "resident ok · pid \(status.pid) · protocol \(status.protocolVersion)\n\(try Permissions(report: report).line)", json: json)
+	return try output(JSONValue.object(members), "resident ok · pid \(status.pid) · version \(status.version)\n\(try Permissions(report: report).line)", json: json)
 }
 
 /// Registers bcu.app with both privacy panes, waits for the user to switch them on, then

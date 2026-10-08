@@ -1,11 +1,10 @@
 /// The CLI ↔ resident wire: one JSON value per line over a Unix socket. A connection opens
-/// with `{"hello":<client version>}` answered by `{"hello":ResidentStatus}`, then carries
-/// requests `{"command":…,"params":…}` answered by `{"result":…}` or `{"error":BCUError}`.
+/// with the resident's `{"hello":ResidentStatus}`, then carries requests
+/// `{"command":…,"params":…}` answered by `{"result":…}` or `{"error":BCUError}`. There is no
+/// protocol version: a client only talks to a resident of its own app's version (see
+/// `Client.connectOrStart`).
 import BCUCore
 import Foundation
-
-/// Bumped whenever a request or result changes shape; client and resident must agree.
-public let wireProtocolVersion = 4
 
 public enum RuntimePaths {
 	private static let caches = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library/Caches/bcu").path
@@ -34,28 +33,16 @@ public enum Request: Codable, Sendable, Equatable {
 	}
 }
 
-/// What a running resident reports about itself; the answer to every hello.
+/// What a running resident reports about itself; the first thing a client reads.
 public struct ResidentStatus: Codable, Sendable, Equatable {
 	public var pid: Int
-	public var protocolVersion: Int
+	/// The version of the app the resident runs from.
+	public var version: String
 }
 
-/// The first line each side sends: the client's protocol version, the resident's status.
-struct Hello<Content: Codable>: Codable {
-	var hello: Content
-}
-
-/// A line a client sends: its hello, then requests.
-enum Incoming: Decodable {
-	case hello(Int)
-	case request(Request)
-
-	private enum CodingKeys: String, CodingKey { case hello }
-
-	init(from decoder: any Decoder) throws {
-		let container = try decoder.container(keyedBy: CodingKeys.self)
-		self = if container.contains(.hello) { .hello(try container.decode(Int.self, forKey: .hello)) } else { .request(try Request(from: decoder)) }
-	}
+/// The first line of a connection, sent by the resident.
+struct Hello: Codable {
+	var hello: ResidentStatus
 }
 
 /// The answer to one request: its result, or the error it failed with.

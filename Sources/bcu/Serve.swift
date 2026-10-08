@@ -13,7 +13,8 @@ func serve() -> Never {
 	let server: Server
 	do {
 		settings = try currentSettings()
-		server = Server(socketPath: settings.socketPath, idleTimeout: settings.idleTimeout, handler: makeRequestHandler(agentCursor: settings.agentCursor))
+		guard let version = App.runningVersion else { throw BCUError(.residentUnavailable, "bcu serve must run as bcu.app: this executable is in no app bundle.") }
+		server = Server(socketPath: settings.socketPath, version: version, idleTimeout: settings.idleTimeout, handler: makeRequestHandler(agentCursor: settings.agentCursor))
 		// Another resident already listens: this launch lost the race and has nothing to do.
 		guard try server.start() else { exit(0) }
 	} catch {

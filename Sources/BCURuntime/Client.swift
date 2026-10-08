@@ -11,12 +11,13 @@ public final class Connection {
 	private var channel: LineChannel
 	private var open = true
 
-	fileprivate init(_ descriptor: Int32, protocolVersion: Int) throws {
+	/// Nil when the resident hung up without greeting: it was shutting down, so none is running.
+	fileprivate init?(_ descriptor: Int32) throws {
 		channel = LineChannel(descriptor)
 		do {
-			try channel.write(Hello(hello: protocolVersion))
-			guard let hello = try channel.read(Hello<ResidentStatus>.self) else {
-				throw BCUError(.residentUnavailable, "The bcu resident process closed the connection during the handshake.")
+			guard let hello = try channel.read(Hello.self) else {
+				Darwin.close(descriptor)
+				return nil
 			}
 			status = hello.hello
 		} catch {
@@ -45,23 +46,23 @@ public final class Connection {
 }
 
 public enum Client {
-	/// The running resident, or nil when none listens; never starts one.
-	public static func connectIfRunning(socketPath: String, protocolVersion: Int = wireProtocolVersion) throws -> Connection? {
-		guard let connection = try handshake(socketPath, protocolVersion) else { return nil }
-		guard connection.status.protocolVersion == protocolVersion else {
-			throw BCUError(.residentUnavailable, "The running bcu resident process (pid \(connection.status.pid)) speaks protocol \(connection.status.protocolVersion); this bcu speaks \(protocolVersion).", recovery: "Run 'bcu stop', then retry.")
-		}
-		return connection
+	/// The running resident, whatever version it is, or nil when none listens; never starts one.
+	public static func connectIfRunning(socketPath: String) throws -> Connection? {
+		guard case .connected(let descriptor) = try connectSocket(socketPath) else { return nil }
+		return try Connection(descriptor)
 	}
 
-	/// Connects, starting the resident first when none listens. Concurrent callers serialize on
-	/// a user-level lock, so exactly one of them launches; the rest find it listening.
-	public static func connectOrStart(socketPath: String, protocolVersion: Int = wireProtocolVersion, readyTimeout: Duration = .seconds(15), launcher: Launcher) throws -> Connection {
-		if let connection = try connectIfRunning(socketPath: socketPath, protocolVersion: protocolVersion) { return connection }
+	/// Connects to a resident of `version`, the version of the app on disk that would be started.
+	/// A resident of any other version is left over from before an upgrade: it is stopped and
+	/// replaced. Concurrent callers serialize on a user-level lock, so exactly one of them
+	/// replaces and launches; the rest find the new resident listening.
+	public static func connectOrStart(socketPath: String, version: String, readyTimeout: Duration = .seconds(15), launcher: Launcher) throws -> Connection {
+		if let connection = try running(socketPath, version) { return connection }
 		let directory = (socketPath as NSString).deletingLastPathComponent
 		try ensurePrivateDirectory(directory)
 		return try LockFile(socketPath + ".launch.lock").withLock {
-			if let connection = try connectIfRunning(socketPath: socketPath, protocolVersion: protocolVersion) { return connection }
+			if let connection = try running(socketPath, version) { return connection }
+			_ = try stop(socketPath: socketPath)
 			// Armed before the launch so the resident's socket appearing cannot slip past unseen.
 			let watcher = try DirectoryWatcher(directory)
 			defer { watcher.cancel() }
@@ -72,7 +73,7 @@ public enum Client {
 			}
 			let deadline = DispatchTime.now() + .nanoseconds(Int(readyTimeout.nanoseconds))
 			while true {
-				if let connection = try connectIfRunning(socketPath: socketPath, protocolVersion: protocolVersion) { return connection }
+				if let connection = try running(socketPath, version) { return connection }
 				guard watcher.waitForChange(until: deadline) else {
 					throw BCUError(.residentUnavailable, "The bcu resident process did not start listening at \(socketPath) within \(readyTimeout).")
 				}
@@ -80,18 +81,18 @@ public enum Client {
 		}
 	}
 
-	/// Stops the running resident, whatever protocol it speaks, and returns what it was; nil
-	/// when none was running.
-	public static func stop(socketPath: String, protocolVersion: Int = wireProtocolVersion) throws -> ResidentStatus? {
-		guard let connection = try handshake(socketPath, protocolVersion) else { return nil }
+	/// Stops the running resident, whatever version it is, and returns what it was; nil when
+	/// none was running. The socket is gone when this returns.
+	public static func stop(socketPath: String) throws -> ResidentStatus? {
+		guard let connection = try connectIfRunning(socketPath: socketPath) else { return nil }
 		defer { connection.close() }
 		_ = try connection.send(.plain(.stop))
 		return connection.status
 	}
 
-	private static func handshake(_ socketPath: String, _ protocolVersion: Int) throws -> Connection? {
-		guard case .connected(let descriptor) = try connectSocket(socketPath) else { return nil }
-		return try Connection(descriptor, protocolVersion: protocolVersion)
+	private static func running(_ socketPath: String, _ version: String) throws -> Connection? {
+		guard let connection = try connectIfRunning(socketPath: socketPath) else { return nil }
+		return connection.status.version == version ? connection : nil
 	}
 }
 

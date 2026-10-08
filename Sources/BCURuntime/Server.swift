@@ -1,5 +1,5 @@
-/// The resident side of the wire: listens on the private socket, answers hellos, `status` and
-/// `stop` itself, hands every other request to its handler, and exits after sitting idle.
+/// The resident side of the wire: listens on the private socket, greets each connection with its
+/// status, answers `status` and `stop` itself, hands every other request to its handler, and exits after sitting idle.
 import BCUCore
 import Foundation
 import os
@@ -26,10 +26,10 @@ public final class Server: @unchecked Sendable {
 	private var finished = false
 	private var waiters: [CheckedContinuation<Void, Never>] = []
 
-	public init(socketPath: String, idleTimeout: Duration = defaultIdleTimeout, protocolVersion: Int = wireProtocolVersion, handler: @escaping RequestHandler) {
+	public init(socketPath: String, version: String, idleTimeout: Duration = defaultIdleTimeout, handler: @escaping RequestHandler) {
 		self.socketPath = socketPath
 		self.idleTimeout = idleTimeout
-		self.status = ResidentStatus(pid: Int(getpid()), protocolVersion: protocolVersion)
+		self.status = ResidentStatus(pid: Int(getpid()), version: version)
 		self.handler = handler
 	}
 
@@ -138,12 +138,12 @@ public final class Server: @unchecked Sendable {
 
 	private func serve(_ descriptor: Int32) {
 		var channel = LineChannel(descriptor)
-		var open = true
+		var open = (try? channel.write(Hello(hello: status))) != nil
 		while open {
 			let reply: any Encodable
 			do {
-				guard let message = try channel.read(Incoming.self) else { break }
-				(reply, open) = respond(to: message, on: descriptor)
+				guard let request = try channel.read(Request.self) else { break }
+				(reply, open) = respond(to: request, on: descriptor)
 			} catch {
 				reply = Reply(error: BCUError(.internalError, "The bcu resident process received a malformed request: \(error)"))
 			}
@@ -159,8 +159,7 @@ public final class Server: @unchecked Sendable {
 	}
 
 	/// The reply to one message, and whether the connection stays open after it.
-	private func respond(to message: Incoming, on descriptor: Int32) -> (any Encodable, Bool) {
-		guard case .request(let request) = message else { return (Hello(hello: status), true) }
+	private func respond(to request: Request, on descriptor: Int32) -> (any Encodable, Bool) {
 		do {
 			switch request {
 			case .plain(.status): return (Reply(result: try JSONCoding.encode(status)), true)
