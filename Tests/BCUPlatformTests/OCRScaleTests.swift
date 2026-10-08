@@ -19,7 +19,8 @@ struct OCRScaleTests {
 		context.draw(source, in: CGRect(x: 0, y: 0, width: width, height: height))
 		let capture = try #require(context.makeImage())
 
-		let read = Set(try Platform(showsAgentCursor: false).recognizeText(in: capture, pixelsPerPoint: 1, outputWidth: width, outputHeight: height).map(\.string))
+		// The guard is against misread characters; Vision versions differ in spacing ("行 5" on CI's).
+		let read = Set(try Platform(showsAgentCursor: false).recognizeText(in: capture, pixelsPerPoint: 1, outputWidth: width, outputHeight: height).map { $0.string.filter { !$0.isWhitespace } })
 		#expect(read.isSuperset(of: ["发送", "取消", "静默", "行3", "行4", "行5"]), "read \(read.sorted())")
 	}
 }
