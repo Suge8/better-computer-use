@@ -153,7 +153,7 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		let base = try loadOutline(input["base"]!)
 		let next = try loadOutline(input["next"]!)
 		next.stabilizeRefs(against: base)
-		let view = successorView(base: base, next: next, menusOpenedByBcu: input["menusOpenedByBcu"]?.bool ?? false, omitting: refs(input["omitting"]) ?? [])
+		let view = successorView(base: base, next: next, menusOpenedByBcu: input["menusOpenedByBcu"]?.bool ?? false, omitting: refs(input["omitting"]) ?? [], baseOmitting: refs(input["omittingBase"]) ?? [])
 		return ["json": .string(try JSONCoding.string(view))]
 	case "validate":
 		let actions = try validateActions(input["actions"]!.array!)

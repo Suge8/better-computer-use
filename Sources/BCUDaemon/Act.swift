@@ -181,7 +181,7 @@ extension Daemon {
 		return BCUCore.ActResult(
 			stateId: saved.stateId, baseStateId: params.stateId, outcome: outcome, verification: verification,
 			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots,
-			closed: execution.closedTarget.map { ClosedRoot(root: $0.appearance, skipped: execution.skipped > 0 ? execution.skipped : nil) },
+			closed: execution.closedTarget.map { [$0.appearance] },
 			opened: attached?.opened,
 			changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
 			image: try await artifact(successor.image, for: saved.stateId)
@@ -366,7 +366,7 @@ extension Daemon {
 		return BCUCore.ActResult(
 			stateId: saved?.stateId, baseStateId: params.stateId, outcome: .worked, verification: verification,
 			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots,
-			closed: ClosedRoot(root: target.appearance, skipped: execution.skipped > 0 ? execution.skipped : nil),
+			closed: [target.appearance],
 			next: next?.appearance, changes: view?.changes, offscreen: view?.offscreen, nodes: view?.nodes, shown: view?.shown, total: view?.total,
 			image: artifact
 		)

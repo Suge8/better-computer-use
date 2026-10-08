@@ -75,21 +75,17 @@ private func evidenceWords(_ evidence: ActEvidence?) -> String {
 	return " · \(evidence.field?.rawValue ?? evidence.source.rawValue)"
 }
 
-/// A closed root leads, since the refs of the base state went with it; then where to go next.
+/// Roots that closed lead, since refs of theirs went with them; then where to go next.
 private func renderAct(_ result: ActResult) -> String {
 	let verified = result.verification.status == .verified ? " · verified" + (result.verification.preexisting == true ? " (preexisting)" : "") : ""
 	let outcome = result.outcome == .unknown ? "unverified" : result.outcome.rawValue
 	var parts = ["state \(result.stateId ?? "none") ← \(result.baseStateId) · \(outcome) via \(result.delivery)\(evidenceWords(result.verification.evidence))\(verified)"]
-	if let closed = result.closed { parts.append("- root \(rootWords(closed.root))") }
+	parts += (result.closed ?? []).map { "- root \(rootWords($0))" }
 	parts += (result.roots ?? []).map { "+ root \(rootWords($0))" }
-	if let closed = result.closed {
-		let skipped = closed.skipped ?? 0
-		if skipped > 0 { parts.append("skipped \(skipped) later step\(skipped == 1 ? "" : "s"): its root closed") }
-		if let next = result.next {
-			parts.append("next root \(rootWords(next))")
-		} else if result.stateId == nil {
-			parts.append("no root of \(closed.root.app) remains; run find-roots")
-		}
+	if let next = result.next {
+		parts.append("next root \(rootWords(next))")
+	} else if result.stateId == nil, let closed = result.closed?.first {
+		parts.append("no root of \(closed.app) remains; run find-roots")
 	}
 	parts.append(successorLines(changes: result.changes, offscreen: result.offscreen, nodes: result.nodes))
 	parts.append(imageLine(result.image))

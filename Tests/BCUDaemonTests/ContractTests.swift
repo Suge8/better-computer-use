@@ -318,7 +318,7 @@ struct ContractTests {
 		let closed = try await harness.act(sheet.view.stateId, #"[{"action":"press","ref":"\#(sheet.save)"}]"#)
 		#expect(closed.outcome == .worked)
 		#expect(closed.verification.evidence == ActEvidence(source: .root, field: .closed))
-		#expect(try encoded(closed.closed?.root) == #"{"app":"Fixture","kind":"sheet","ref":"\#(sheet.sheet.ref)","title":"警告"}"#)
+		#expect(try encoded(closed.closed) == #"[{"app":"Fixture","kind":"sheet","ref":"\#(sheet.sheet.ref)","title":"警告"}]"#)
 		#expect(closed.next?.kind == .window && closed.next?.title == "未命名2")
 		#expect(closed.stateId.map { matches($0, "^[0-9a-z]{8}$") } == true)
 		#expect((closed.nodes?.count ?? 0) > 0)
@@ -331,7 +331,6 @@ struct ContractTests {
 		#expect(harness.desktop.scene.acts.map { handle(of: $0.target) } == [Handle("sheet-save")])
 		#expect(matches(text[0], #"^state [0-9a-z]{8} ← \#(sheet.view.stateId) · worked via ax · root closed$"#), "\(text[0])")
 		#expect(text[1] == "- root \(sheet.sheet.ref) sheet \"警告\"")
-		#expect(text.contains("skipped 1 later step: its root closed"))
 		#expect(text.contains { matches($0, #"^next root @r\d+ window "未命名2"$"#) })
 	}
 

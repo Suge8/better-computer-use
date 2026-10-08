@@ -157,7 +157,7 @@ struct BatchTests {
 		// Both states are live until one of them acts; acting from the menu's stales the other.
 		let picked = try await harness.act(opened.stateId, #"[{"action":"press","ref":"\#(try ref(opened.nodes, "Times"))"}]"#)
 		#expect(delivered(harness) == [Handle("popup"), Handle("item-Times")])
-		#expect(picked.closed?.root.ref == opened.root.ref)
+		#expect(picked.closed?.first?.ref == opened.root.ref)
 		#expect(picked.next?.kind == .window)
 		#expect(await expectCode(.staleState) { _ = try await harness.act(try #require(pressed.stateId), #"[{"action":"press","ref":"@e1"}]"#) })
 	}
@@ -191,7 +191,7 @@ struct BatchTests {
 		let result = try await harness.act(window.stateId, steps)
 		#expect(delivered(harness) == [Handle("new"), Handle("name"), Handle("create")])
 		#expect(notes.doc == "Created: Report")
-		#expect(result.closed?.root.kind == .sheet, "the confirm button closed the sheet")
+		#expect(result.closed?.first?.kind == .sheet, "the confirm button closed the sheet")
 		#expect(result.next == nil && result.stateId != nil, "the state's own root is still there to observe")
 		#expect(result.verification.status == .verified)
 		#expect(result.opened == nil)

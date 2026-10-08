@@ -233,15 +233,18 @@ public func openedView(_ outline: Outline) -> SuccessorView {
 
 /// Successor view of a state transition: a diff when identity holds, the full view otherwise.
 /// `menusOpenedByBcu`: bcu opened and closed menus to act, so the menu tree it moved is not news.
-/// `omitting`: refs of `next` that the result carries as a root of its own; they are not news here.
-public func successorView(base: Outline, next: Outline, menusOpenedByBcu: Bool = false, omitting: Set<String> = []) -> SuccessorView {
+/// `omitting`, `baseOmitting`: refs of `next` and of `base` that are another root's tree, such as a
+/// menu hanging under its popup; that root is reported as itself, so here it is neither new nor gone.
+public func successorView(base: Outline, next: Outline, menusOpenedByBcu: Bool = false, omitting: Set<String> = [], baseOmitting: Set<String> = []) -> SuccessorView {
 	var nextOptions = ProjectOptions.unfolded
 	nextOptions.omitting = omitting
+	var baseOptions = ProjectOptions.unfolded
+	baseOptions.omitting = baseOmitting
 	let transition = changesBetween(
-		project(base, .unfolded).nodes,
+		project(base, baseOptions).nodes,
 		project(next, nextOptions).nodes,
 		visible: viewRefs(next, omitting: omitting),
-		baseVisible: viewRefs(base),
+		baseVisible: viewRefs(base, omitting: baseOmitting),
 		menusOpenedByBcu: menusOpenedByBcu
 	)
 	if transition.useFullView { return fullView(next, omitting: omitting) }

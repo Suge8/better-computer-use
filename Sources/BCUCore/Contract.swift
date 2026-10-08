@@ -451,20 +451,9 @@ public struct OpenedRoot: Codable, Sendable, Equatable {
 	}
 }
 
-/// A root the actions closed; `skipped` later steps were not sent to it.
-public struct ClosedRoot: Codable, Sendable, Equatable {
-	public var root: RootAppearance
-	public var skipped: Int?
-
-	public init(root: RootAppearance, skipped: Int? = nil) {
-		self.root = root
-		self.skipped = skipped
-	}
-}
-
 public struct ActResult: Codable, Sendable, Equatable {
-	/// Observes the state's own root again; or, when the actions closed it, `next`. Absent only
-	/// when the app has no root left to observe.
+	/// Observes the state's own root, or `next` when it is gone. Absent only when the app has
+	/// no root left to observe.
 	public var stateId: String?
 	public var baseStateId: String
 	/// `worked` or `unknown`; a proven no-op is an `action_failed` error instead.
@@ -473,9 +462,10 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var delivery: String
 	/// Roots the transaction opened: menus, sheets, dialogs and new windows.
 	public var roots: [RootAppearance]?
-	/// A root the actions closed. When it is the state's own root, `next` is observed instead.
-	public var closed: ClosedRoot?
-	/// After the state's own root closed: the app's root the successor state observes.
+	/// Roots the actions acted in, or the state's own root, that are gone now.
+	public var closed: [RootAppearance]?
+	/// The root the successor state observes when it is not the state's own: the one the app
+	/// would be observed at now.
 	public var next: RootAppearance?
 	/// One of `roots` with its view attached: a menu, sheet, popover or dialog the actions
 	/// opened and left open.
@@ -487,7 +477,7 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var total: Int?
 	public var image: ImageInfo?
 
-	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, roots: [RootAppearance]? = nil, closed: ClosedRoot? = nil, next: RootAppearance? = nil, opened: OpenedRoot? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
+	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, roots: [RootAppearance]? = nil, closed: [RootAppearance]? = nil, next: RootAppearance? = nil, opened: OpenedRoot? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
 		self.stateId = stateId
 		self.baseStateId = baseStateId
 		self.outcome = outcome

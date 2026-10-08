@@ -217,7 +217,7 @@ try {
 	const closing = JSON.parse(cancelled.stdout);
 	assert.equal(closing.outcome, "worked", `pressing '${cancel.name}' reported ${closing.outcome}`);
 	assert.deepEqual(closing.verification.evidence, { source: "root", field: "closed" }, `pressing '${cancel.name}' was judged on ${JSON.stringify(closing.verification.evidence)}`);
-	assert.equal(closing.closed?.root?.ref, sheets[0].ref, `the result does not name the closed sheet: ${JSON.stringify(closing.closed)}`);
+	assert.equal(closing.closed?.[0]?.ref, sheets[0].ref, `the result does not name the closed sheet: ${JSON.stringify(closing.closed)}`);
 	assert.equal(closing.next?.kind, "window", `the result names no window to observe next: ${JSON.stringify(closing.next)}`);
 	assert.deepEqual(await rootsOfKind(createdPid, "sheet"), [], "the sheet is still listed after its Cancel was pressed");
 	const nextObserved = await request("observe-ui", { root: closing.next.ref, mode: "semantic" });

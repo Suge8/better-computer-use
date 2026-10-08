@@ -82,7 +82,7 @@ try {
 	const times = pressed.opened.nodes.find((node) => node.name === "Times");
 	const chosen = await act(pressed.opened.stateId, [{ action: "press", ref: times.ref }]);
 	assert.deepEqual(await logged(), ["font Times"], "choosing the option did not reach the app");
-	assert.equal(chosen.closed?.root.ref, pressed.opened.root.ref, "choosing the option did not report the menu closing");
+	assert.equal(chosen.closed?.[0]?.ref, pressed.opened.root.ref, "choosing the option did not report the menu closing");
 	assert.equal(chosen.next?.ref, window.ref, "the window is not the root to continue in");
 	await untouched("choosing a dropdown option", { menuOpen: true });
 
@@ -94,7 +94,7 @@ try {
 		{ action: "press", find: { role: "button", name: "Create", root: "opened" }, expect: { text: "note: Report", root: "state" } },
 	]);
 	assert.deepEqual((await logged()).slice(1), ["created Report"], "the dialog did not run to its end");
-	assert.equal(filled.closed?.root.kind, "sheet");
+	assert.equal(filled.closed?.[0]?.kind, "sheet");
 	assert.equal(filled.verification.status, "verified");
 	await untouched("filling in a dialog");
 

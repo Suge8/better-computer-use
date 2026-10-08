@@ -265,8 +265,7 @@ struct ActionTests {
 			}
 		}
 		let result = try await harness.act(state.stateId, #"[{"action":"press","ref":"@e2"},{"action":"press","ref":"@e2"}]"#)
-		#expect(result.closed?.root.title == "Save")
-		#expect(result.closed?.skipped == 1)
+		#expect(result.closed?.first?.title == "Save")
 		#expect(result.next?.title == "Doc")
 		#expect(result.verification.evidence == ActEvidence(source: .root, field: .closed))
 		#expect(result.stateId != nil)
