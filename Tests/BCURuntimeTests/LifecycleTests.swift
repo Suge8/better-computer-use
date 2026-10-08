@@ -115,30 +115,51 @@ struct LifecycleTests {
 		#expect(!FileManager.default.fileExists(atPath: path))
 	}
 
+	/// The idle timer starts with the resident, so on a loaded runner it can fire before the
+	/// client arrives; that attempt never had a request in flight and says nothing about one. A
+	/// client whose handshake got an answer was accepted, which cancelled the timer, so every
+	/// attempt that connects ends the same way and only it is judged.
 	@Test func requestInFlightKeepsTheResidentAlive() async throws {
-		let path = temporarySocketPath()
-		let gate = Gate()
-		let started = Gate()
-		// The idle timeout leaves room for the client to connect: on a slow CI runner a 100 ms
-		// timeout fired before the connection arrived, and the resident was gone.
-		let server = Server(socketPath: path, idleTimeout: .seconds(1)) { _ in
-			started.open()
-			await gate.wait()
-			return .string("done")
-		}
-		#expect(try server.start())
-		let reply = Task {
-			try await blocking {
-				let connection = try #require(try Client.connectIfRunning(socketPath: path))
-				defer { connection.close() }
-				return try connection.send(.plain(.doctor))
+		let idle = Duration.milliseconds(100)
+		for _ in 0..<5 {
+			let path = temporarySocketPath()
+			let gate = Gate()
+			let started = Gate()
+			let connected = Gate()
+			let connections = Counter()
+			let server = Server(socketPath: path, idleTimeout: idle) { _ in
+				started.open()
+				await gate.wait()
+				return .string("done")
 			}
+			#expect(try server.start())
+			let reply = Task {
+				try await blocking { () throws -> JSONValue? in
+					let attempt = try? Client.connectIfRunning(socketPath: path)
+					guard let connection = attempt ?? nil else {
+						connected.open()
+						return nil
+					}
+					defer { connection.close() }
+					connections.increment()
+					connected.open()
+					return try connection.send(.plain(.doctor))
+				}
+			}
+			await connected.wait()
+			guard connections.current == 1 else {
+				await server.stopped()
+				continue
+			}
+			await started.wait()
+			// Several idle periods pass with the request still unanswered.
+			try await Task.sleep(for: idle * 4)
+			#expect(FileManager.default.fileExists(atPath: path))
+			gate.open()
+			#expect(try await reply.value == .string("done"))
+			await server.stopped()
+			return
 		}
-		await started.wait()
-		try await Task.sleep(for: .milliseconds(1_500))
-		#expect(FileManager.default.fileExists(atPath: path))
-		gate.open()
-		#expect(try await reply.value == .string("done"))
-		await server.stopped()
+		Issue.record("the resident idled out before a client could connect, in every attempt")
 	}
 }
