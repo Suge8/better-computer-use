@@ -129,7 +129,7 @@ extension Platform {
 	/// returns for presses that landed) say nothing about whether it ran, and doing it again
 	/// could run it twice.
 	static func actionNeverArrived(_ status: AXError) -> Bool {
-		[.invalidUIElement, .illegalArgument, .actionUnsupported, .notImplemented].contains(status)
+		[.invalidUIElement, .illegalArgument, .notImplemented].contains(status)
 	}
 
 	func supportsAction(_ element: AXUIElement, action: CFString) -> Bool {
