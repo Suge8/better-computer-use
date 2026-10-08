@@ -155,7 +155,7 @@ extension Platform {
 		}
 
 		func animateCursor(at point: CGPoint) {
-			guard showsAgentCursor,
+			guard let motion = agentCursor,
 				request.cursorOverlay,
 				delivery == .pid,
 				policy != .axOnly,
@@ -164,7 +164,7 @@ extension Platform {
 			// The overlay joins every Space; over a window in another Space it would draw on the user's.
 			if SpaceView()?.placement(of: record.windowId) == .elsewhere { return }
 			let target = elementFrame()
-			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId, action: action, target: target) }
+			Task { @MainActor in AgentCursor.shared.animate(to: point, above: record.windowId, motion: motion, action: action, target: target) }
 		}
 
 		/// Activation is asynchronous: a menu bar item has no geometry until it belongs to the

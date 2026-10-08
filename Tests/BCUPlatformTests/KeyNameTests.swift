@@ -16,6 +16,6 @@ struct KeyNameTests {
 		("-", 27), ("+", 24), ("a", 0),
 	])
 	func spellingsOfOneKeyResolveToIt(spelling: String, code: Int) {
-		#expect(Platform(showsAgentCursor: false).keyCode(spelling) == CGKeyCode(code))
+		#expect(Platform().keyCode(spelling) == CGKeyCode(code))
 	}
 }

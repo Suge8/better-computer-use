@@ -33,8 +33,11 @@ struct Settings {
 		forwarded = environment.filter { $0.key.hasPrefix("BCU_") }.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
 	}
 
-	/// The agent cursor draws pointer actions; headless forbids them, so it never shows then.
-	var showsAgentCursor: Bool { config.config.cursor_overlay && !config.config.headless }
+	/// The motion of the agent cursor that draws pointer actions, or nil when it is off;
+	/// headless forbids those actions, so it never shows then.
+	var agentCursor: CursorMotion? {
+		config.config.cursor_overlay && !config.config.headless ? config.config.cursor_motion : nil
+	}
 
 	/// A configured headless mode tightens every act-ui; nothing loosens it again.
 	func applying(to request: CommandRequest) -> CommandRequest {
@@ -50,24 +53,24 @@ struct Config: Codable {
 	var cursor_motion = CursorMotion()
 }
 
+/// What one source, the config file or the environment, sets. A wrong value, an unknown key
+/// or a file that is not JSON is refused, naming what is allowed: a config that is silently
+/// half-applied looks like a bcu bug.
 struct PartialConfig: Codable {
 	var headless: Bool?
 	var cursor_overlay: Bool?
 	var cursor_motion: PartialCursorMotion?
 
-	/// A config object, or its `computer_use` member when it has one. Unreadable `headless` and
-	/// `cursor_overlay` values are ignored; a wrong `cursor_motion` is refused, naming the
-	/// values it accepts.
 	init(_ raw: JSONValue, path: String) throws {
-		let source = raw["computer_use"].flatMap { if case .object = $0 { $0 } else { nil } } ?? raw
-		headless = source["headless"].flatMap(parseBoolean)
-		cursor_overlay = source["cursor_overlay"].flatMap(parseBoolean)
-		cursor_motion = try source["cursor_motion"].map { try PartialCursorMotion($0, path: path) }
+		let members = try object(raw, name: path, keys: ["headless", "cursor_overlay", "cursor_motion"])
+		headless = try members["headless"].map { try flag($0, name: "headless in \(path)") }
+		cursor_overlay = try members["cursor_overlay"].map { try flag($0, name: "cursor_overlay in \(path)") }
+		cursor_motion = try members["cursor_motion"].map { try PartialCursorMotion($0, path: path) }
 	}
 
 	init(environment: [String: String]) throws {
-		headless = environment["BCU_HEADLESS"].flatMap { parseBoolean(.string($0)) }
-		cursor_overlay = environment["BCU_CURSOR_OVERLAY"].flatMap { parseBoolean(.string($0)) }
+		headless = try environment["BCU_HEADLESS"].map { try flag(.string($0), name: "BCU_HEADLESS") }
+		cursor_overlay = try environment["BCU_CURSOR_OVERLAY"].map { try flag(.string($0), name: "BCU_CURSOR_OVERLAY") }
 		cursor_motion = try PartialCursorMotion(environment: environment)
 	}
 
@@ -101,16 +104,13 @@ struct PartialCursorMotion: Codable {
 	var effects: [String: Bool]?
 
 	init(_ raw: JSONValue, path: String) throws {
-		guard case .object(let members) = raw else { throw motionError("cursor_motion in \(path) is not an object; it takes style, timing and effects.") }
-		for key in members.keys where !["style", "timing", "effects"].contains(key) {
-			throw motionError("cursor_motion.\(key) in \(path) is not a setting; use style, timing or effects.")
-		}
-		style = try members["style"].map { try parse($0, as: CursorMotionStyle.self, name: "cursor_motion.style in \(path)") }
-		timing = try members["timing"].map { try parse($0, as: CursorMotionTiming.self, name: "cursor_motion.timing in \(path)") }
-		guard let raw = members["effects"] else { return }
-		guard case .object(let flags) = raw else { throw motionError("cursor_motion.effects in \(path) is not an object of effect names to booleans.") }
-		effects = try flags.reduce(into: [:]) { effects, flag in
-			effects[flag.key] = try parseEffect(flag.key, flag.value, name: "cursor_motion.effects.\(flag.key) in \(path)")
+		let members = try object(raw, name: "cursor_motion in \(path)", keys: ["style", "timing", "effects"])
+		style = try members["style"].map { try choice($0, name: "cursor_motion.style in \(path)") }
+		timing = try members["timing"].map { try choice($0, name: "cursor_motion.timing in \(path)") }
+		effects = try members["effects"].map { raw in
+			try object(raw, name: "cursor_motion.effects in \(path)", keys: CursorEffects.names).reduce(into: [:]) { effects, effect in
+				effects[effect.key] = try flag(effect.value, name: "cursor_motion.effects.\(effect.key) in \(path)")
+			}
 		}
 	}
 
@@ -119,13 +119,14 @@ struct PartialCursorMotion: Codable {
 	init?(environment: [String: String]) throws {
 		let style = environment["BCU_CURSOR_MOTION_STYLE"], timing = environment["BCU_CURSOR_MOTION_TIMING"], effects = environment["BCU_CURSOR_MOTION_EFFECTS"]
 		guard style != nil || timing != nil || effects != nil else { return nil }
-		self.style = try style.map { try parse(.string($0), as: CursorMotionStyle.self, name: "BCU_CURSOR_MOTION_STYLE") }
-		self.timing = try timing.map { try parse(.string($0), as: CursorMotionTiming.self, name: "BCU_CURSOR_MOTION_TIMING") }
+		self.style = try style.map { try choice(.string($0), name: "BCU_CURSOR_MOTION_STYLE") }
+		self.timing = try timing.map { try choice(.string($0), name: "BCU_CURSOR_MOTION_TIMING") }
 		self.effects = try effects.map { list in
 			try list.split(separator: ",").reduce(into: [:]) { effects, item in
 				let parts = item.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
-				guard parts.count == 2 else { throw motionError("BCU_CURSOR_MOTION_EFFECTS takes name=on|off items separated by commas, not '\(item)'.") }
-				effects[parts[0]] = try parseEffect(parts[0], .string(parts[1]), name: "BCU_CURSOR_MOTION_EFFECTS \(parts[0])")
+				guard parts.count == 2 else { throw configError("BCU_CURSOR_MOTION_EFFECTS takes name=on|off items separated by commas, not '\(item)'.") }
+				guard CursorEffects.names.contains(parts[0]) else { throw configError("BCU_CURSOR_MOTION_EFFECTS names '\(parts[0])'; use \(CursorEffects.names.joined(separator: ", ")).") }
+				effects[parts[0]] = try flag(.string(parts[1]), name: "BCU_CURSOR_MOTION_EFFECTS \(parts[0])")
 			}
 		}
 	}
@@ -147,36 +148,50 @@ struct PartialCursorMotion: Codable {
 	}
 }
 
-private func parse<T: RawRepresentable & CaseIterable>(_ value: JSONValue, as _: T.Type, name: String) throws -> T where T.RawValue == String {
-	let allowed = T.allCases.map(\.rawValue).joined(separator: ", ")
-	guard let text = value.string else { throw motionError("\(name) is \(value.serialized()), not one of \(allowed).") }
-	guard let parsed = T(rawValue: text) else { throw motionError("\(name) is '\(text)', not one of \(allowed).") }
+private func object(_ value: JSONValue, name: String, keys: [String]) throws -> [String: JSONValue] {
+	guard case .object(let members) = value else { throw configError("\(name) is \(value.serialized()), not an object of \(keys.joined(separator: ", ")).") }
+	if let unknown = members.keys.sorted().first(where: { !keys.contains($0) }) {
+		throw configError("\(name) has the key '\(unknown)' that is not a setting; use \(keys.joined(separator: ", ")).")
+	}
+	return members
+}
+
+private func choice<T: RawRepresentable & CaseIterable>(_ value: JSONValue, name: String) throws -> T where T.RawValue == String {
+	guard let parsed = value.string.flatMap(T.init(rawValue:)) else {
+		throw configError("\(name) is \(described(value)), not one of \(T.allCases.map(\.rawValue).joined(separator: ", ")).")
+	}
 	return parsed
 }
 
-private func parseEffect(_ name: String, _ value: JSONValue, name origin: String) throws -> Bool {
-	guard CursorEffects.names.contains(name) else {
-		throw motionError("\(origin): '\(name)' is not an effect; use \(CursorEffects.names.joined(separator: ", ")).")
+private func flag(_ value: JSONValue, name: String) throws -> Bool {
+	switch value {
+	case .bool(let flag): return flag
+	case .number(1): return true
+	case .number(0): return false
+	case .string(let text):
+		let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+		if ["1", "true", "yes", "on", "enabled"].contains(normalized) { return true }
+		if ["0", "false", "no", "off", "disabled"].contains(normalized) { return false }
+	default: break
 	}
-	guard let flag = parseBoolean(value) else {
-		throw motionError("\(origin) is \(value.string.map { "'\($0)'" } ?? value.serialized()), not a boolean (true/false, on/off, yes/no, 1/0).")
-	}
-	return flag
+	throw configError("\(name) is \(described(value)), not a boolean (true/false, on/off, yes/no, 1/0, enabled/disabled).")
 }
 
-private func motionError(_ message: String) -> BCUError {
-	BCUError(.invalidArguments, message, recovery: "Correct cursor_motion in ~/.config/bcu/config.json or the BCU_CURSOR_MOTION_* variables, then retry; 'bcu stop' makes the next command start the resident with it.")
+private func described(_ value: JSONValue) -> String {
+	value.string.map { "'\($0)'" } ?? value.serialized()
+}
+
+private func configError(_ message: String) -> BCUError {
+	BCUError(.invalidArguments, message, recovery: "Correct ~/.config/bcu/config.json or the BCU_* variable, then retry; 'bcu stop' makes the next command start the resident with it.")
 }
 
 struct ConfigSource: Codable {
 	var path: String
 	var exists: Bool
 	var values: PartialConfig?
-	var error: String?
 }
 
-/// The effective config, where each part came from, and why a file was ignored; `bcu doctor
-/// --json` prints it as is.
+/// The effective config and what each source set; `bcu doctor --json` prints it as is.
 struct LoadedConfig: Codable {
 	var config: Config
 	var sources: [ConfigSource]
@@ -191,27 +206,14 @@ struct LoadedConfig: Codable {
 	}
 
 	private static func read(_ path: String) throws -> ConfigSource {
-		guard FileManager.default.fileExists(atPath: path) else { return ConfigSource(path: path, exists: false) }
+		guard let data = FileManager.default.contents(atPath: path) else { return ConfigSource(path: path, exists: false) }
 		let json: JSONValue
 		do {
-			json = try JSONValue(parsing: try String(contentsOfFile: path, encoding: .utf8))
-		} catch {
-			return ConfigSource(path: path, exists: true, error: "\(error)")
+			json = try JSONValue(parsing: String(decoding: data, as: UTF8.self))
+		} catch DecodingError.dataCorrupted(let context) {
+			let reason = (context.underlyingError as NSError?)?.userInfo["NSDebugDescription"] as? String ?? context.debugDescription
+			throw configError("\(path) is not valid JSON: \(reason)")
 		}
 		return ConfigSource(path: path, exists: true, values: try PartialConfig(json, path: path))
-	}
-}
-
-private func parseBoolean(_ value: JSONValue) -> Bool? {
-	switch value {
-	case .bool(let flag): return flag
-	case .number(1): return true
-	case .number(0): return false
-	case .string(let text):
-		let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-		if ["1", "true", "yes", "on", "enabled"].contains(normalized) { return true }
-		if ["0", "false", "no", "off", "disabled"].contains(normalized) { return false }
-		return nil
-	default: return nil
 	}
 }

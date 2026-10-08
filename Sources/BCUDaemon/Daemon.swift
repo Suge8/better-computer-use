@@ -6,8 +6,8 @@ import Foundation
 /// The resident process's request handler: every command except `status` and `stop`,
 /// which `Server` answers itself. `bcu serve` passes it to `Server`; this signature is the
 /// seam between the daemon wiring and the executable.
-public func makeRequestHandler(showsAgentCursor: Bool) -> RequestHandler {
-	let daemon = Daemon(desktop: Platform(showsAgentCursor: showsAgentCursor))
+public func makeRequestHandler(agentCursor: CursorMotion?) -> RequestHandler {
+	let daemon = Daemon(desktop: Platform(agentCursor: agentCursor))
 	return { request in try await daemon.handle(request) }
 }
 

@@ -33,7 +33,7 @@ struct PrivacyPromptTests {
 	@Test(arguments: [false, true])
 	func checkingAndReportingTheGrantsNeverPrompts(granted: Bool) {
 		let grants = RecordingGrants(granted: granted)
-		let platform = Platform(showsAgentCursor: false, grants: grants)
+		let platform = Platform(grants: grants)
 		let status = platform.checkPermissions()
 		let diagnostics = platform.diagnostics()
 		#expect(grants.promptCount == 0)
@@ -43,7 +43,7 @@ struct PrivacyPromptTests {
 
 	@Test func setupAsksForTheGrants() {
 		let grants = RecordingGrants(granted: false)
-		_ = Platform(showsAgentCursor: false, grants: grants).registerPermissions()
+		_ = Platform(grants: grants).registerPermissions()
 		#expect(grants.promptCount > 0)
 	}
 }

@@ -1,6 +1,6 @@
 # 配置
 
-`bcu` 读取一份用户级配置，`~/.config/bcu/config.json`。环境变量覆盖文件，命令参数覆盖单次调用。`bcu doctor --json` 打印生效值、文件路径和解析错误。
+`bcu` 读取一份用户级配置，`~/.config/bcu/config.json`。环境变量覆盖文件，命令参数覆盖单次调用。`bcu doctor --json` 打印生效值、文件路径和每个来源设置了什么。文件不是合法 JSON、有未知的键、取值类型或取值不对，或 `BCU_*` 变量取值不对时，每条命令都以 `invalid_arguments` 失败，并说明允许的键或取值。
 
 ```json
 {
@@ -24,9 +24,9 @@
 - `timing`（默认 `native`）：`native` 用样式自己的时长；`fitts` 按菲茨定律 `150 + 120·log2(距离/目标短边 + 1)` 毫秒，限制在 300–1000；`fixed` 每次 1430 毫秒。目标尺寸未知时按 24 pt 的方框算。
 - `effects`：`trail` 彗星拖尾（从箭头身体拖出）、`glow` 随速度变大的光晕、`magnet` `magnetic` 吸附时目标周围的光晕、`ripple` 点击落下时的涟漪、`squish` 点击时箭头缩一下。没写的效果用样式自己的默认：`signature_arc` 开 glow/ripple/squish，`spring_settle` 开 glow/squish，`magnetic` 开 magnet/ripple，`comet_swoop` 开 trail/ripple，`adaptive` 开 squish，`classic` 全关。
 
-系统设置里开了"减弱动态效果"时，每次移动都是 120 ms 的直线滑行，没有效果。光标从不等动作，动作也不等光标：动作照常立即投递，光标随后到达目标并在那里播放点击效果。取值写错时每条命令都以 `invalid_arguments` 失败，并列出允许的取值。
+系统设置里开了"减弱动态效果"时，每次移动都是 120 ms 的直线滑行，没有效果。光标从不等动作，动作也不等光标：动作照常立即投递，光标随后到达目标并在那里播放点击效果。
 
-环境变量：`BCU_HEADLESS`、`BCU_CURSOR_OVERLAY` 接受 `1/0`、`true/false`、`yes/no`、`on/off`、`enabled/disabled`。`BCU_CURSOR_MOTION_STYLE`、`BCU_CURSOR_MOTION_TIMING` 覆盖 `style`、`timing`；`BCU_CURSOR_MOTION_EFFECTS` 写成 `trail=on,glow=off`，逐项覆盖文件里的效果。
+`headless`、`cursor_overlay` 与各效果在文件里写 JSON 布尔值，也接受下面这些字符串和 `1/0`。环境变量：`BCU_HEADLESS`、`BCU_CURSOR_OVERLAY` 接受 `1/0`、`true/false`、`yes/no`、`on/off`、`enabled/disabled`。`BCU_CURSOR_MOTION_STYLE`、`BCU_CURSOR_MOTION_TIMING` 覆盖 `style`、`timing`；`BCU_CURSOR_MOTION_EFFECTS` 写成 `trail=on,glow=off`，逐项覆盖文件里的效果。
 
 `bcu` 通过 LaunchServices 启动常驻进程，系统不会把调用方的环境交给它，所以 `bcu` 把全部 `BCU_*` 变量显式转交过去。测试与开发用的变量：
 
