@@ -119,7 +119,9 @@ struct LifecycleTests {
 		let path = temporarySocketPath()
 		let gate = Gate()
 		let started = Gate()
-		let server = Server(socketPath: path, idleTimeout: .milliseconds(100)) { _ in
+		// The idle timeout leaves room for the client to connect: on a slow CI runner a 100 ms
+		// timeout fired before the connection arrived, and the resident was gone.
+		let server = Server(socketPath: path, idleTimeout: .seconds(1)) { _ in
 			started.open()
 			await gate.wait()
 			return .string("done")
@@ -133,7 +135,7 @@ struct LifecycleTests {
 			}
 		}
 		await started.wait()
-		try await Task.sleep(for: .milliseconds(400))
+		try await Task.sleep(for: .milliseconds(1_500))
 		#expect(FileManager.default.fileExists(atPath: path))
 		gate.open()
 		#expect(try await reply.value == .string("done"))
