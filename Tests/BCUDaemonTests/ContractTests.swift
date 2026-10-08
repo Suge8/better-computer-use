@@ -310,8 +310,8 @@ struct ContractTests {
 		#expect(dropped.offscreen?.added == 0 && dropped.offscreen?.removed == noiseItems)
 	}
 
-	/// Pressing a button that closes its own sheet is proof the press landed; later steps are
-	/// not sent to a root that no longer exists.
+	/// Pressing a button that closes its own sheet is proof the press landed. A later step that
+	/// acts in that root cannot be delivered, and fails as the step it is.
 	@Test func closingTheRootHandsOverTheNextOne() async throws {
 		let (harness, world) = try contract()
 		var sheet = try await harness.openSheet(world)
@@ -327,11 +327,14 @@ struct ContractTests {
 
 		sheet = try await harness.openSheet(world)
 		harness.desktop.update { $0.acts = [] }
-		let text = lines(try await harness.text(harness.actRequest(sheet.view.stateId, #"[{"action":"press","ref":"\#(sheet.save)"},{"action":"press","ref":"\#(sheet.cancel)"}]"#)))
+		do {
+			_ = try await harness.act(sheet.view.stateId, #"[{"action":"press","ref":"\#(sheet.save)"},{"action":"press","ref":"\#(sheet.cancel)"}]"#)
+			Issue.record("a step was delivered to a root that no longer exists")
+		} catch let error as BCUError {
+			#expect(error.code == .windowStale)
+			#expect(error.message.hasPrefix("Step 2 of 2:") && error.recovery.contains("Step 1 was already delivered"), "\(error.message) / \(error.recovery)")
+		}
 		#expect(harness.desktop.scene.acts.map { handle(of: $0.target) } == [Handle("sheet-save")])
-		#expect(matches(text[0], #"^state [0-9a-z]{8} ← \#(sheet.view.stateId) · worked via ax · root closed$"#), "\(text[0])")
-		#expect(text[1] == "- root \(sheet.sheet.ref) sheet \"警告\"")
-		#expect(text.contains { matches($0, #"^next root @r\d+ window "未命名2"$"#) })
 	}
 
 	@Test func menuBarsAreListedOnlyWhenAskedFor() async throws {

@@ -15,6 +15,9 @@ private let notesWindow = root("nw", pid: 7001, app: "Notes", bundleId: "com.exa
 private let secondWindow = root("second", pid: 7001, app: "Notes", bundleId: "com.example.notes", title: "Second", windowId: 7103, frame: CGRect(x: 40, y: 40, width: 300, height: 200), zOrder: 2)
 private let fontMenu = root("font-menu", pid: 7001, app: "Notes", bundleId: "com.example.notes", kind: .menu, title: "Font", role: "AXMenu", subrole: "", frame: CGRect(x: 20, y: 60, width: 160, height: 90), focused: true)
 private let nameSheet = root("name-sheet", pid: 7001, app: "Notes", bundleId: "com.example.notes", kind: .sheet, title: "New note", role: "AXSheet", subrole: "", windowId: 7102, frame: CGRect(x: 60, y: 30, width: 400, height: 160), focused: true, modal: true)
+/// The window "Open document" raises; the notes window stops being the one the app would pick.
+private let docWindow = root("doc-window", pid: 7001, app: "Notes", bundleId: "com.example.notes", title: "Created", windowId: 7104, frame: CGRect(x: 80, y: 80, width: 400, height: 300), zOrder: 0, focused: true, main: true)
+private let notesBehind = root("nw", pid: 7001, app: "Notes", bundleId: "com.example.notes", title: "Notes", windowId: 7101, frame: CGRect(x: 0, y: 0, width: 600, height: 400), zOrder: 1)
 private let fonts = ["Helvetica", "Times", "Courier"]
 
 /// What the app shows, and the actions that change it.
@@ -24,6 +27,7 @@ private final class Notes: @unchecked Sendable {
 	private var _font = "Helvetica"
 	private var _name = ""
 	private var _doc = ""
+	private var _body = ""
 	private var _sheetLooks = 0
 	/// The look of the sheet at which its Create button appears.
 	var createAppearsAtLook = 1
@@ -32,12 +36,15 @@ private final class Notes: @unchecked Sendable {
 	var font: String { lock.withLock { _font } }
 	var name: String { lock.withLock { _name } }
 	var doc: String { lock.withLock { _doc } }
+	var body: String { lock.withLock { _body } }
+	var docOpen: Bool { lock.withLock { _extra.contains { $0.handle == docWindow.handle } } }
 	var sheetLooks: Int { lock.withLock { _sheetLooks } }
 
 	func open(_ roots: [Root]) { lock.withLock { _extra += roots.filter { root in !_extra.contains { $0.handle == root.handle } } } }
 	func close(_ root: Root) { lock.withLock { _extra.removeAll { $0.handle == root.handle } } }
 	func choose(_ font: String) { lock.withLock { _font = font } }
 	func type(_ name: String) { lock.withLock { _name = name } }
+	func write(_ text: String) { lock.withLock { _body += text } }
 	func create() { lock.withLock { _doc = "Created: \(_name)" } }
 	func lookAtSheet() -> Int { lock.withLock { _sheetLooks += 1; return _sheetLooks } }
 	func isOpen(_ root: Root) -> Bool { lock.withLock { _extra.contains { $0.handle == root.handle } } }
@@ -56,7 +63,7 @@ private func notesApp(_ notes: Notes) -> Harness {
 	let harness = Harness(scene)
 	let desktop = harness.desktop
 
-	@Sendable func publish() { desktop.update { $0.roots[7001] = [notesWindow] + notes.extra } }
+	@Sendable func publish() { desktop.update { $0.roots[7001] = [notes.docOpen ? notesBehind : notesWindow] + notes.extra } }
 	@Sendable func closing(_ root: Root) -> ActionReport {
 		notes.close(root)
 		publish()
@@ -89,9 +96,12 @@ private func notesApp(_ notes: Notes) -> Harness {
 				return lookResult(fontItems(), frame: fontMenu.framePoints, kind: .menu)
 			case Handle("name-sheet"):
 				guard notes.isOpen(nameSheet) else { throw BCUError(.windowStale, "The sheet is gone") }
-				var children = [node("name", role: "AXTextField", title: "Name", value: notes.name, canSetValue: true), node("cancel", role: "AXButton", title: "Cancel", canPress: true)]
+				var children = [node("name", role: "AXTextField", title: "Name", value: notes.name, canSetValue: true), node("cancel", role: "AXButton", title: "Cancel", canPress: true), node("open-doc", role: "AXButton", title: "Open document", canPress: true)]
 				if notes.lookAtSheet() >= notes.createAppearsAtLook { children.append(node("create", role: "AXButton", title: "Create", canPress: true)) }
 				return lookResult(node("sheet-el", role: "AXSheet", children: children), frame: nameSheet.framePoints, windowId: 7102, kind: .sheet)
+			case Handle("doc-window"):
+				guard notes.docOpen else { throw BCUError(.windowStale, "The document is gone") }
+				return lookResult(node("doc-el", role: "AXWindow", title: "Created", children: [node("body", role: "AXTextArea", title: "Body", value: notes.body, canSetValue: true)]), frame: docWindow.framePoints, windowId: 7104)
 			default:
 				return lookResult(node("other", role: "AXWindow", title: "Second"), frame: secondWindow.framePoints, windowId: 7103)
 			}
@@ -110,6 +120,15 @@ private func notesApp(_ notes: Notes) -> Harness {
 				notes.create()
 				return closing(nameSheet)
 			case Handle("cancel"): return closing(nameSheet)
+			case Handle("open-doc"):
+				var report = opening([docWindow])
+				report.rootDelta.append(.root(.closed, nameSheet))
+				notes.close(nameSheet)
+				publish()
+				return report
+			case Handle("body"):
+				notes.write(request.params.text)
+				return reported(.worked, evidence: ActEvidence(source: .ax, field: .value))
 			default:
 				if fonts.contains(where: { Handle("item-\($0)") == target }) {
 					notes.choose(String(String(describing: target.base.base).dropFirst("item-".count)))
@@ -142,7 +161,8 @@ struct BatchTests {
 		let notes = Notes()
 		let harness = notesApp(notes)
 		let window = try await harness.observe(#"{"app":"Notes"}"#)
-		let pressed = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(try ref(window.nodes, "Font"))"}]"#)
+		let font = try ref(window.nodes, "Font")
+		let pressed = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(font)"}]"#)
 		let opened = try #require(pressed.opened)
 		#expect(pressed.roots?.map(\.ref) == [opened.root.ref])
 		#expect(opened.root.kind == .menu && opened.root.title == "Font")
@@ -159,7 +179,27 @@ struct BatchTests {
 		#expect(delivered(harness) == [Handle("popup"), Handle("item-Times")])
 		#expect(picked.closed?.first?.ref == opened.root.ref)
 		#expect(picked.next?.kind == .window)
+		// The window is reported as what changed since it was last seen, not folded whole.
+		#expect(try JSONCoding.string(picked.changes) == #"[{"fields":{"value":"Times"},"ref":"\#(font)","type":"updated"}]"#)
+		#expect(picked.nodes == nil)
 		#expect(await expectCode(.staleState) { _ = try await harness.act(try #require(pressed.stateId), #"[{"action":"press","ref":"@e1"}]"#) })
+	}
+
+	/// A step closes the root the state is about; the array goes on, and a later step names where.
+	@Test func closingTheStatesRootDoesNotEndTheArray() async throws {
+		let notes = Notes()
+		let harness = notesApp(notes)
+		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		_ = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(try ref(window.nodes, "New"))"}]"#)
+		let sheet = try #require(try await harness.roots(#"{"app":"Notes","kind":"sheet"}"#).first)
+		let view = try await harness.observe(#"{"root":"\#(sheet.ref)"}"#)
+		let steps = #"[{"action":"press","ref":"\#(try ref(view.nodes, "Open document"))"},{"action":"typeText","text":"hello","find":{"role":"textarea","root":"app"}}]"#
+		let result = try await harness.act(view.stateId, steps)
+		#expect(delivered(harness) == [Handle("new"), Handle("open-doc"), Handle("body")])
+		#expect(notes.body == "hello")
+		#expect(result.closed?.map(\.ref) == [sheet.ref])
+		#expect(result.next?.title == "Created", "the state follows the root the app shows now")
+		#expect(result.stateId != nil)
 	}
 
 	/// Windows are left to observe-ui; of several transient roots the most prominent one is
