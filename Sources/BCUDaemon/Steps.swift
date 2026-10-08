@@ -57,16 +57,6 @@ private struct Countdown {
 	}
 }
 
-/// The desktop and an app's menu bar are not roots a step looks in.
-private func isObservable(_ root: Root) -> Bool {
-	root.subrole != "AXDesktop" && root.kind != .menubar
-}
-
-/// The most prominent root: modal first, then focus, as observe-ui picks.
-private func prominent(_ roots: [Root]) -> Root? {
-	stableSorted(roots) { selectionScore($0) > selectionScore($1) }.first
-}
-
 extension Daemon {
 	// MARK: finding an element
 
@@ -141,8 +131,7 @@ extension Daemon {
 		case .state: return try await current(base)
 		case .opened: return try await openedRoot(base: base, trail: trail, timeoutMs: timeoutMs)
 		case .app:
-			let live = try await roots(pid: base.pid).filter(isObservable)
-			guard let best = prominent(live) else {
+			guard let best = mostProminent(try await roots(pid: base.pid)) else {
 				throw BCUError(.windowStale, "App '\(base.appName)' has no controllable root to look in.")
 			}
 			return target(best, appName: base.appName, bundleId: base.bundleId)
@@ -153,9 +142,9 @@ extension Daemon {
 		let clock = Countdown(timeoutMs: timeoutMs)
 		while true {
 			let watch = await self.watch(base.pid)
-			let live = try await roots(pid: base.pid).filter(isObservable)
-			let reported = trail.appeared.reversed().lazy.compactMap { step in prominent(live.filter { root in step.contains { $0.handle == root.handle } }) }.first
-			if let opened = reported ?? prominent(live.filter { !trail.known.contains($0.handle) }) {
+			let live = try await roots(pid: base.pid)
+			let reported = trail.appeared.reversed().lazy.compactMap { step in mostProminent(live.filter { root in step.contains { $0.handle == root.handle } }) }.first
+			if let opened = reported ?? mostProminent(live.filter { !trail.known.contains($0.handle) }) {
 				return target(opened, appName: base.appName, bundleId: base.bundleId)
 			}
 			guard clock.remainingMs > 0 else {
@@ -226,7 +215,7 @@ extension Daemon {
 	/// left open, saved as a state of its own in the same lane as the successor.
 	func attachOpened(_ appeared: [Root], base: Target, lane: Lane<Observation>) async throws -> OpenedRoot? {
 		let candidates = appeared.filter { $0.pid == base.pid && attachedKinds.contains($0.kind) }
-		guard let best = prominent(candidates) else { return nil }
+		guard let best = mostProminent(candidates) else { return nil }
 		let root = target(best, appName: base.appName, bundleId: base.bundleId)
 		let observation: Observation
 		do {

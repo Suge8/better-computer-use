@@ -206,10 +206,13 @@ private func noControllableRoot(_ appName: String) -> BCUError {
 	BCUError(.windowStale, "App '\(appName)' is running but has no controllable window. Open a window in it, or run find-roots and observe another root.")
 }
 
+/// The root bcu would pick among these: modal first, then focus, as observe-ui picks.
+func mostProminent(_ roots: [Root]) -> Root? {
+	stableSorted(roots.filter(isSelectable)) { selectionScore($0) > selectionScore($1) }.first
+}
+
 private func choosePreferred(_ windows: [Root], appName: String) throws -> Root {
-	guard let best = stableSorted(windows.filter(isSelectable), by: { selectionScore($0) > selectionScore($1) }).first else {
-		throw noControllableRoot(appName)
-	}
+	guard let best = mostProminent(windows) else { throw noControllableRoot(appName) }
 	return best
 }
 

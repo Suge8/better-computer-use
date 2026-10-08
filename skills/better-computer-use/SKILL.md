@@ -36,6 +36,7 @@ state e4441aa2 ← 937572b9 · worked via ax · value →hello · verified
 - 动作打开的菜单、sheet、popover、对话框，其视图随结果返回（`opened`：末尾一块，格式同 `observe-ui`，带自己的 `stateId` 与 ref）。选下拉框选项是两条命令：按下拉框，再用 `opened` 的 `stateId` 按选项。只附带最突出的一个根，新窗口不附带，其余见 `+ root` 行。
 - 后一步要用前面打开的界面时，用 `find` 代替 ref，该步执行时才现找：`{"action":"press","find":{"role":"button","name":"Create","root":"opened"},"expect":{"text":"Saved","root":"state"}}`。`root` 取 `state`（默认）/`opened`（前面步骤最近打开的）/`app`（应用此刻会选中的）；名称不分大小写，`...` 与 `…` 相同；重名用 `nth`（从 0 起，失败时列出候选），没找到会等 `timeoutMs`（默认 3000）。每步的 `expect` 在该步之后检查，不满足就停在这一步；前面的步骤已投递，不要整组重发。按钮把对话框关掉后，后面的步骤不再投递，确认放最后。
 - 菜单从 `find-roots --app X --kind menubar` 的根进入：observe 它之后 search 到目标菜单项就能直接 press，不用先打开父菜单。
+- `find-roots` 里没标 `onscreen` 的窗口可能在别的桌面空间（含全屏应用），后台操作照常可用；`--foreground` 会把用户的桌面切过去。
 - `@e` ref 属于生成它的 `stateId`。act-ui 返回新 `stateId`，下一步用它；`stale_state`、`window_stale`、`element_not_found` 都表示重新 `observe-ui` 取新状态。
 - 视图折叠掉的部分用 `search-ui` 找、`expand-ui` 展开、`inspect-ui` 看原始字段、`read-text` 读长文本；输入框后面的 `▸ N lines, read-text @eN` 表示它的逐行文字折起来了，值里已有，要全文就 `read-text`。需要像素证据时 `--mode fused`。
 - 等待写进命令本身：`--expect-text` / `--expect-role` / `--expect-value` 加 `--scope @eN`，或独立用 `wait-for`；后一步依赖前一步打开的界面时，同一数组里用 `find` 定位；不依赖中间 UI 的动作也可以合并。
