@@ -1,7 +1,6 @@
 import AppKit
 import BCUCore
 import BCUDaemon
-import BCUPlatform
 import BCURuntime
 import Foundation
 
@@ -14,8 +13,7 @@ func serve() -> Never {
 	let server: Server
 	do {
 		settings = try currentSettings()
-		selectAgentCursorMotion(settings.config.config.cursor_motion)
-		server = Server(socketPath: settings.socketPath, idleTimeout: settings.idleTimeout, handler: makeRequestHandler(showsAgentCursor: settings.showsAgentCursor))
+		server = Server(socketPath: settings.socketPath, idleTimeout: settings.idleTimeout, handler: makeRequestHandler(agentCursor: settings.agentCursor))
 		// Another resident already listens: this launch lost the race and has nothing to do.
 		guard try server.start() else { exit(0) }
 	} catch {

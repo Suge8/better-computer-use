@@ -10,18 +10,18 @@ import Testing
 struct AgentCursorTests {
 	@Test(arguments: CursorMotionStyle.allCases, CursorMotionTiming.allCases)
 	func motionLandsOnTheLatestTargetAndSettles(style: CursorMotionStyle, timing: CursorMotionTiming) {
-		let renderer = AgentCursorRenderer(motion: CursorMotion(style: style, timing: timing))
+		let renderer = AgentCursorRenderer(), motion = CursorMotion(style: style, timing: timing)
 		renderer.setInitialPosition(CGPoint(x: 100, y: 100))
 		#expect(!renderer.isAnimating, "renderer should start idle")
 
 		var now: CFTimeInterval = 0
-		renderer.moveTo(point: CGPoint(x: 300, y: 300), target: nil, clicks: true, reducedMotion: false)
+		renderer.moveTo(point: CGPoint(x: 300, y: 300), target: nil, motion: motion, clicks: true, reducedMotion: false)
 		for _ in 0..<12 {
 			now += 1.0 / 120.0
 			renderer.tick(now: now)
 		}
 		let latest = CGPoint(x: 900, y: 700)
-		renderer.moveTo(point: latest, target: CGRect(x: 880, y: 690, width: 40, height: 20), clicks: true, reducedMotion: false)
+		renderer.moveTo(point: latest, target: CGRect(x: 880, y: 690, width: 40, height: 20), motion: motion, clicks: true, reducedMotion: false)
 		#expect(renderer.isAnimating, "a move should start rendering")
 		for _ in 0..<12_000 where renderer.isAnimating {
 			now += 1.0 / 120.0
@@ -32,10 +32,10 @@ struct AgentCursorTests {
 	}
 
 	@Test func reducedMotionIsAShortStraightGlide() {
-		let renderer = AgentCursorRenderer(motion: CursorMotion(style: .cometSwoop))
+		let renderer = AgentCursorRenderer()
 		let start = CGPoint(x: 100, y: 100), end = CGPoint(x: 900, y: 500)
 		renderer.setInitialPosition(start)
-		renderer.moveTo(point: end, target: nil, clicks: true, reducedMotion: true)
+		renderer.moveTo(point: end, target: nil, motion: CursorMotion(style: .cometSwoop), clicks: true, reducedMotion: true)
 		var now: CFTimeInterval = 0
 		for _ in 0..<16 where renderer.isAnimating {
 			now += 1.0 / 120.0
@@ -54,10 +54,10 @@ struct AgentCursorTests {
 		let scheduler = ManualIdleHideScheduler()
 		let cursor = AgentCursor(scheduleIdleHide: scheduler.schedule)
 
-		cursor.animate(to: CGPoint(x: 300, y: 300), above: 0)
+		cursor.animate(to: CGPoint(x: 300, y: 300), above: 0, motion: CursorMotion())
 		let firstWindow = try #require(application.windows.first { !existingWindows.contains(ObjectIdentifier($0)) && $0.isVisible }, "first action should create a visible overlay")
 
-		cursor.animate(to: CGPoint(x: 500, y: 500), above: 0)
+		cursor.animate(to: CGPoint(x: 500, y: 500), above: 0, motion: CursorMotion())
 		#expect(scheduler.count == 2, "each action should replace the idle timeout")
 
 		scheduler.fire(0)
@@ -69,7 +69,7 @@ struct AgentCursorTests {
 		#expect(!firstWindow.isVisible, "the current timeout should hide the overlay")
 		#expect(firstWindow.contentView == nil, "the current timeout should release the view tree")
 
-		cursor.animate(to: CGPoint(x: 700, y: 700), above: 0)
+		cursor.animate(to: CGPoint(x: 700, y: 700), above: 0, motion: CursorMotion())
 		let recreatedWindow = try #require(application.windows.first { !existingWindows.contains(ObjectIdentifier($0)) && $0 !== firstWindow && $0.isVisible }, "a later action should recreate the overlay")
 
 		scheduler.fire(2)

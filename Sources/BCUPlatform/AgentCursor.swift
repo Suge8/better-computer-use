@@ -1,12 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// `bcu serve` selects the motion once, before it serves: the overlay is one per process.
-@MainActor
-public func selectAgentCursorMotion(_ motion: CursorMotion) {
-	AgentCursorRenderer.shared.motion = motion
-}
-
 /// Visual-only cursor; native action delivery remains authoritative.
 @MainActor
 final class AgentCursor {
@@ -26,7 +20,7 @@ final class AgentCursor {
     /// Never waits for the motion: the action is delivered while the cursor travels. `target`
     /// is the element's frame when known (Fitts timing, adaptive dispatch and the magnet glow
     /// assume a 24 pt box without it); a press or click plays the click effects on arrival.
-    func animate(to point: CGPoint, above windowId: UInt32, action: ActAction? = nil, target: CGRect? = nil) {
+    func animate(to point: CGPoint, above windowId: UInt32, motion: CursorMotion, action: ActAction? = nil, target: CGRect? = nil) {
         idleHideTask?.cancel()
         idleHideTask = nil
         idleGeneration &+= 1
@@ -46,6 +40,7 @@ final class AgentCursor {
         renderer.moveTo(
             point: point,
             target: target,
+            motion: motion,
             clicks: action == .press || action == .click,
             reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         )

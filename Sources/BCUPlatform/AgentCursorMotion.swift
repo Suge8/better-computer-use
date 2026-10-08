@@ -7,9 +7,8 @@ import Observation
 @Observable
 @MainActor
 final class AgentCursorRenderer {
-	static let shared = AgentCursorRenderer(motion: CursorMotion())
+	static let shared = AgentCursorRenderer()
 
-	@ObservationIgnored var motion: CursorMotion
 	private(set) var isAnimating = false
 	@ObservationIgnored private(set) var hotspot = CGPoint(x: -200, y: -200)
 	@ObservationIgnored private(set) var heading = restHeading
@@ -21,15 +20,11 @@ final class AgentCursorRenderer {
 	@ObservationIgnored private var lastFrameTime: CFTimeInterval?
 	@ObservationIgnored private var moves = 0
 
-	init(motion: CursorMotion) {
-		self.motion = motion
-	}
-
 	var isPlaced: Bool { hotspot.x > -100 }
 
 	/// Plans a move of the hotspot from where it is now; a move in flight is replaced.
 	/// `clicks` plays the click effects when the hotspot arrives.
-	func moveTo(point: CGPoint, target: CGRect?, clicks: Bool, reducedMotion: Bool) {
+	func moveTo(point: CGPoint, target: CGRect?, motion: CursorMotion, clicks: Bool, reducedMotion: Bool) {
 		moves += 1
 		let request = MoveRequest(from: hotspot, fromHeading: heading, to: point, target: target, seed: "bcu|\(moves)", reducedMotion: reducedMotion)
 		trajectory = planMove(motion, request)

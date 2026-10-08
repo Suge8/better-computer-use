@@ -10,9 +10,9 @@ import os
 /// The platform keeps no record of what it returned: elements and roots come back as
 /// handles the caller keeps with its own observation.
 public final class Platform: Sendable {
-	/// Pointer actions delivered in the background animate an on-screen agent cursor; it
-	/// needs a running AppKit application.
-	let showsAgentCursor: Bool
+	/// Pointer actions delivered in the background animate an on-screen agent cursor with this
+	/// motion; nil draws none. The cursor needs a running AppKit application.
+	let agentCursor: CursorMotion?
 
 	/// Held across one delivery of real (HID) input, so two requests never interleave the
 	/// pointer or keyboard; recursive because a delivery calls the smaller posts that take it too.
@@ -25,12 +25,12 @@ public final class Platform: Sendable {
 	let rootObservers = RootObservers()
 	let grants: any PrivacyGrants
 
-	public convenience init(showsAgentCursor: Bool) {
-		self.init(showsAgentCursor: showsAgentCursor, grants: SystemGrants())
+	public convenience init(agentCursor: CursorMotion? = nil) {
+		self.init(agentCursor: agentCursor, grants: SystemGrants())
 	}
 
-	init(showsAgentCursor: Bool, grants: any PrivacyGrants) {
-		self.showsAgentCursor = showsAgentCursor
+	init(agentCursor: CursorMotion? = nil, grants: any PrivacyGrants) {
+		self.agentCursor = agentCursor
 		self.grants = grants
 	}
 }

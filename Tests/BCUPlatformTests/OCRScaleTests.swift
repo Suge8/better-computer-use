@@ -20,7 +20,7 @@ struct OCRScaleTests {
 		let capture = try #require(context.makeImage())
 
 		// The guard is against misread characters; Vision versions differ in spacing ("行 5" on CI's).
-		let read = Set(try Platform(showsAgentCursor: false).recognizeText(in: capture, pixelsPerPoint: 1, outputWidth: width, outputHeight: height).map { $0.string.filter { !$0.isWhitespace } })
+		let read = Set(try Platform().recognizeText(in: capture, pixelsPerPoint: 1, outputWidth: width, outputHeight: height).map { $0.string.filter { !$0.isWhitespace } })
 		#expect(read.isSuperset(of: ["发送", "取消", "静默", "行3", "行4", "行5"]), "read \(read.sorted())")
 	}
 }
