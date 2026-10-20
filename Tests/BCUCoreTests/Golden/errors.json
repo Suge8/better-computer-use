@@ -121,6 +121,18 @@
 			}
 		},
 		{
+			"name": "screen_locked",
+			"op": "error",
+			"input": {
+				"code": "screen_locked",
+				"message": "A screen_locked failure."
+			},
+			"output": {
+				"stderr": "error screen_locked: A screen_locked failure.\nrecovery: Unlock the Mac, then retry. Foreground input would only reach the lock screen.\n",
+				"exitCode": 11
+			}
+		},
+		{
 			"name": "internal_error",
 			"op": "error",
 			"input": {
