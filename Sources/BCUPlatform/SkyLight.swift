@@ -269,10 +269,10 @@ enum SkyLight {
 
 	/// Tells the process that owns `windowId` it is active, without changing WindowServer's
 	/// front process or reordering windows, so a view that rejects the first mouse event of
-	/// an inactive app still takes a background click. yabai and cua also defocus the current
-	/// front process first; measured, that makes the user's front app resign its key window
-	/// and its activation, and the keystrokes the user types next are lost. So only the
-	/// target is told.
+	/// an inactive app still takes a background click. yabai also defocuses the current front
+	/// process first (cua did too, until e32127764); measured, that makes the user's front app
+	/// resign its key window and its activation, and the keystrokes the user types next are
+	/// lost. So only the target is told.
 	static func activateWithoutRaise(windowId: UInt32) throws {
 		try postRecord(owning: windowId, about: windowId, kind: 0x0D, symbols: try require()) { $0[0x8A] = 0x01 }
 	}

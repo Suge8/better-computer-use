@@ -58,7 +58,8 @@ Usage lives in the [skill](https://github.com/Suge8/friedbun/blob/main/skills/op
 - Needs macOS 14 or later.
 - Some UI only reacts while its app is in front (WeChat's search results dropdown, for one). bcu cannot tell from outside, so the agent has to switch to foreground mode explicitly, which activates the app, takes the keyboard and moves the real pointer.
 - Background clicks and typing use private macOS interfaces that a system update may break.
-- While the screen is locked macOS stops reporting window contents and bcu finds nothing; it recovers on unlock.
+- While the screen is locked macOS stops reporting window contents; commands that need the UI fail with `screen_locked` and work again on unlock.
+- A browser may build no accessibility tree for a page whose window is minimized, covered or in the background; bcu says so, and page content then belongs to a browser tool.
 
 When something is off, run `bcu doctor` first, then see [troubleshooting](./docs/troubleshooting.md) (Chinese).
 
@@ -68,4 +69,4 @@ Needs Swift 6.2 (Xcode or the Command Line Tools) and a Developer ID Application
 
 ## License
 
-MIT. The macOS engine comes from [injaneity/pi-computer-use](https://github.com/injaneity/pi-computer-use) (MIT); background input is ported from [trycua/cua](https://github.com/trycua/cua) (MIT).
+MIT. The macOS engine started from [injaneity/pi-computer-use](https://github.com/injaneity/pi-computer-use) (MIT); background input and engine fixes are ported from [trycua/cua](https://github.com/trycua/cua) (MIT).

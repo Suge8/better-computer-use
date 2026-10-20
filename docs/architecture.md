@@ -67,6 +67,10 @@ find-roots → observe-ui → cached query → act-ui → successor state
 
 `find-roots` 返回 `@r`；`--app` 有精确名称匹配的应用时只取它们（`Google Chrome` 不带上 `Google Chrome for Testing`），否则按包含匹配。`observe-ui` 生成不可变 `stateId` 和属于该状态的 `@e`。`stateId` 是 8 位十六进制随机 id：每条命令都带它，所以要短；状态库铸造时避开仍保存着的 id，32 位随机数也让常驻进程重启前的旧 id 几乎不可能撞上新状态。每条命令都从自己的 `stateId` 取出那次观察，不存在跨请求共享的“当前窗口”。
 
+`observe-ui` 用选择器选根：`--root`（`@r` 或数字窗口 id）；否则 `--app` 或 `--pid` 选应用（`--pid` 选中的应用照 `--app` 的规则选窗口，两者都给时必须指同一个应用），`--window-title` 再按标题选；都没给时取前台应用最突出的窗口。`search-ui`、`act-ui`、`wait-for` 接受同一个选择器代替 `--state`：同一条命令里先对选中的根做一次新鲜观察，保存成新状态再执行，结果的 `stateId`（`act-ui` 是 `baseStateId`）就是它；`--state` 与选择器同时给出或都没给，是 `invalid_arguments`。新鲜观察里没有调用方见过的 ref，所以选择器下的 `act-ui` 只接受定位器（`find`）和前面步骤留下焦点之后的无目标打字、按键；带 ref、坐标、拖拽路径或 `--scope` 的以 `invalid_arguments` 拒绝，recovery 让调用方先 `observe-ui`。
+
+`wait-for` 用选择器时，选中的根还不存在（应用在启动、窗口还没开或还没有那个标题）也在超时内等它出现，再在剩下的时间里判条件。等待由事件唤醒：应用启动、退出、进入前台，以及被关注应用的无障碍通知（窗口创建、标题变化等）。被关注的是选择器指名的应用；只给标题时是前台应用和等待开始后启动的应用。每次查找前先给这些应用挂上观察者再取标记，挂上之后开出的窗口必然唤醒等待。`@r`、窗口 id 和 `--pid` 指的东西消失后不会再回来，不等，直接报错。
+
 `@r` 由根注册表发放，身份由平台判定：同一个 AX 元素是同一个根，没有 AX 元素的弹出菜单按它的窗口 id 认。标题和几何变化不影响 `@r`；注册表有容量上限，最久未用的 `@r` 被淘汰，淘汰后不再复用。观察只按根的句柄定位；窗口 id 是窗口的一个属性，只用于截图，菜单栏、菜单、sheet 和 popover 往往没有它。根已消失时直接报错，不会退回到应用的其他窗口。
 
 其他 Space 的窗口（全屏应用各有自己的 Space）不在应用的 AXWindows 里。窗口服务器列出它、而 AXWindows 没有它时，平台按元素 id 探测：用私有 `_AXUIElementCreateWithRemoteToken` 依次取应用的前 2000 个元素（最多 300 ms），只收 `_AXUIElementGetWindow` 等于该窗口 id 的 AXWindow，所以结果和 AXWindows 里的匹配一样精确，取回的元素把消息超时恢复成调用方的值。找到的窗口是普通根：`@r` 仍由那个 AX 元素认，用户切到它的 Space、它重新出现在 AXWindows 后还是同一个 `@r`；观察、后台 AX 按下、后台点击和打字都和普通窗口一样，不切 Space、不动用户的前台。`onscreen` 以 Space 为准：全屏应用的窗口窗口服务器自己报在屏上，bcu 报不在。窗口服务器没有的 `kCGWindowIsOnscreen` 一律读作不在屏上。
@@ -125,6 +129,8 @@ find-roots → observe-ui → cached query → act-ui → successor state
 
 `observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，平台自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。截了图的观察都把截图文件交给 agent（结果带 `image`，文本视图末行 `image <path> (WxH)`）：OCR 读不到空输入框这类无字区域，agent 要看图按坐标点；没截图的窗口不会为此多截。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点和截图。
 
+Chromium 与 Electron 只在辅助客户端请求后才构建网页内容的无障碍树，而且是异步的：实测 Chrome for Testing 153 冷启动后约 2.1 s，窗口在后台且被遮挡也一样。平台对每个进程只请求一次：先设 `AXManualAccessibility`，应用不支持才设 `AXEnhancedUserInterface`（移植自 cua 4f7084573、1e93424e5）。Chrome for Testing 153 对前者答不支持、对后者答未实现，却照样构建，所以不看后者的返回码；应用忙到没有回答时不记录，下次再请求。观察一个构建网页内容的应用（浏览器，或接受了 `AXManualAccessibility` 的应用）的标准窗口、而大纲里没有带子节点的 AXWebArea 时，等它出现，上限 4 s：应用的无障碍通知一到就再看；Chromium 在最后一条通知之后才填满网页区，所以通知之间每 100 ms 再看一次；等到一半时再请求一次。超时记在进程上（pid 加启动时间，pid 会被复用），30 s 内不再等，之后照常再等。仍然没有网页内容时（实测最小化的窗口 4 s 内没有；被完全遮挡的后台窗口实测 100 s 都没有），`observe-ui` 明说：文本视图一行 `web content not exposed: …`，`--json` 里是 `webContentMissing: true`；不把浏览器外壳当成页面，也不为此转去读屏。页面内容交给 CDP 浏览器工具。
+
 OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别拉丁文字，中文界面会是空的）。截图低于每点 2 像素（1 倍缩放的外接屏）时先放大到每点 2 像素再识别：Vision 在每点 1 像素下会把界面字号的中文读成别的字或漏掉（自绘夹具 20 pt 的"发送""静默"读成"無准""攜蝶"，列表行全部丢失），放大后与 Retina 截图一样读对；合成到白底不能稳定修好。代价实测：440×412 点的夹具窗口 `observe-ui` 端到端从约 150 ms 升到约 175 ms，1320×824 的截图 Vision 识别从约 146 ms 升到约 158 ms；Retina 截图不放大，没有变化。同一行文字已被无障碍说出（某个相交节点的标题、值或描述包含它）时丢弃；其余每行成为一个独立节点，挂在包含它中心点的最深容器下；红绿灯按钮和已有名称的叶子控件不算容器，压在它们上面的文字挂到持有它们的元素下。实测（M 系列，热启动）：微信主窗口截图约 60 ms、OCR 约 190 ms，`observe-ui` 端到端约 0.4 s，得到 47 个 OCR 节点；IINA 窗口 OCR 约 80 ms。
 
 ## 投影
@@ -159,21 +165,25 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 证据按主体取，不按投递方式取。主体有按下会移动的 AX 事实（值、选中状态、文本选区）时，只用 AX 读回判定。主体没有这类事实时（OCR 节点、自绘区域、没有值的普通按钮），按下以及落在坐标上的滚轮和拖拽在元素证据和根变化都没有结论后，才用屏幕证据：投递前查一次窗口并截图，投递后在最多 600 ms 内每 80 ms 再截一次（窗口不再重查；像素变化没有任何通知，这是平台里唯一按间隔截图的地方），排除标题栏后比较内容区，超过 0.5% 像素的某个通道变化超过 30，记为 `worked`，证据为 `source: screen`，CLI 写作 `screen changed`。截图不含真实鼠标和 agent 光标覆盖层；标题栏按窗口实际缩放比例排除。屏幕证据可能把焦点环、无关动画、通知或新消息误判为动作效果，这是它排在最后、且只用于没有 AX 读回的主体的原因。
 
-升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或平台明确要求前台（`ForegroundRequired`），才交给下一级。AXPress 报错不等于没按下：只有证明请求没送达的错误（元素失效、参数非法、应用不实现无障碍）才重找元素再按或改走坐标点击；超时（按钮打开模态对话框或忙于处理时，AXPress 阻塞到消息超时返回 `kAXErrorCannotComplete`）和其余错误同成功一样按证据判定，再按或再点一次会让动作生效两次。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 也不算失败，结果写作 unverified（见下节）。一个动作数组里先点击、再不带 ref 打字或按键时，打字落在点击留下的焦点上，同样从后台开始：没有 ref、目标又无 AX 读回的打字结果是 `unknown`，不升级。能建立焦点的点击是点中可编辑元素的点击，以及一切落到坐标上的点击类动作——press 一个 OCR 节点或没有 AX 元素的节点、x/y click。这条规则在平台内部（ax → pid）和动作事务里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。`act-ui --foreground` 让数组里每个动作直接从第三级开始，用于调用方已知应用只在前台才响应的场合（见已知局限）；它与 `headless` 矛盾，同时给出时以 `invalid_arguments` 拒绝。
+升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或平台明确要求前台（`ForegroundRequired`），才交给下一级。AXPress 报错不等于没按下：只有证明请求没送达的错误（元素失效、参数非法、应用不实现无障碍）才重找元素再按或改走坐标点击；超时（按钮打开模态对话框或忙于处理时，AXPress 阻塞到消息超时返回 `kAXErrorCannotComplete`）和其余错误同成功一样按证据判定，再按或再点一次会让动作生效两次。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 也不算失败，结果写作 unverified（见下节）。不带目标的打字和按键落在应用此刻的键盘焦点上，不需要截图；数组里它前面要有一个可能留下焦点的步骤：带目标（ref、坐标或 `find`）的 press、click、doubleClick、typeText 或 keypress。它同样从后台开始，没有可读回的元素，结果是 `unknown`，不升级。`headless` 不接受无目标打字：它的点击是后台无障碍按下，不一定移动焦点。这条规则在平台内部（ax → pid）和动作事务里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。`act-ui --foreground` 让数组里每个动作直接从第三级开始，用于调用方已知应用只在前台才响应的场合（见已知局限）；它与 `headless` 矛盾，同时给出时以 `invalid_arguments` 拒绝。
 
 第二级为什么用私有接口：公开的 `CGEvent.postToPid` 不经过 WindowServer 的活动监视，Chromium 不把这类事件当真实输入。SkyLight 这一级做三件事：
 
 - `typeText` 投递字符本身而不是打出它的按键：每个字符一对 keycode 0 的键盘事件，附上该字符的 Unicode 串，修饰键清零；换行（\n、\r、\r\n）和 Tab 不是文本，按真的 Return、Tab 键发送（后台与前台一样）：Chrome 地址栏对 keycode 0 上的换行字符不动作，实测改成 Return 键后后台打 "url\n" 就能导航，所以 Chromium 原生字段不需要为换行要求前台。物理键码会被用户当前的输入法（拼音、假名）组合成别的文字，Unicode 串不会；前台一级同样如此。`keypress` 仍发物理键码，它的语义就是按键。输入法只为前台应用组合：实测（微信输入法，中文模式）同样的字母键投递给后台应用时原样到达，前台一级才被组合成候选；
+- 带 ref 的 `typeText` 与 `keypress` 先把焦点设到元素上，在 200 ms 内读回确认：元素自己报告获得焦点，或应用的焦点元素就是它或在它里面；确认前每 20 ms 或每条通知后再请求一次，忙碌的应用会丢掉请求。确认不了就要求前台，不盲打（移植自 cua 8a66f0d8d、8347d6cd8）；`headless` 下以 `action_failed` 结束；
 - 键盘事件在 macOS 15+ 附上 `SLSEventAuthenticationMessage`（Chromium 据此信任后台按键）；带 command 的组合键不附，否则会绕过菜单快捷键的派发路径；
 - Tk 从硬件指针取点击位置，按 pid 投递的指针事件不会移动硬件指针，点击落在真实指针所在处，bcu 只能报 unverified。平台用 `proc_pidinfo` 读进程映射的文件（不需要 task port）认出 Tk（`Tk.framework`、`libtk*`、`libtcl9tk*`、`_tkinter*.so`），按进程缓存结果，对这样的进程，坐标类的指针投递（点击、移动、滚轮、拖拽）要求前台；按元素的无障碍动作不受影响。系统自带 Python 的 Tk 8.5 不丢，这条规则对它也适用，多一次前台；`check-pointer-toolkit.mjs` 用 Tk 8.6 验证。
-- 坐标指针事件走 SkyLight。原生窗口先用 `SLPSPostEventRecordTo` 只告诉目标进程它处于激活状态，再投递点击（yabai 与 cua 的做法会先让当前前台进程失焦，实测会让用户的前台应用交出 key window 与激活状态，用户接着打的字会丢，所以不发这一半）：`acceptsFirstMouse` 为 false 的视图因此也收得到后台窗口上的第一次点击，而 WindowServer 前台、用户前台应用的 key window 和窗口层叠都不变（真机门用一个记录自己失去 key 的前台应用验证）；
+- 坐标指针事件走 SkyLight。原生窗口先用 `SLPSPostEventRecordTo` 只告诉目标进程它处于激活状态，再投递点击（yabai 的做法会先让当前前台进程失焦，cua 起初照做、在 e32127764 去掉了这一半；实测这一半会让用户的前台应用交出 key window 与激活状态，用户接着打的字会丢，所以不发）：`acceptsFirstMouse` 为 false 的视图因此也收得到后台窗口上的第一次点击，而 WindowServer 前台、用户前台应用的 key window 和窗口层叠都不变（真机门用一个记录自己失去 key 的前台应用验证）；
 - 滚轮按格投递：`scrollX`/`scrollY` 是滚轮格数（-50…50，正数向下、向右），每格一个按行计的滚轮事件，间隔 15 ms，和实体鼠标滚轮一样。Qt（微信 4 用它）把每个按行计的事件算作一格，而把精确像素增量按每像素 1/60 格累积，不满一格不滚，所以按像素投递的 5 在 Qt 列表上一行都不动；AppKit 与 Chromium 每格滚一行。有无障碍滚动动作的元素走第一级，只看方向，每次一页；
 - 网页里的滚动用滚轮：Chromium 不给可滚动元素暴露滚动动作，祖先的滚动动作滚的是整页，所以在元素上方发带窗口路由的滚轮事件。滚动的证据是元素内容相对元素的位置变化；Chromium 把直接子元素的 frame 裁剪到滚动区域，只有更深的后代会移动；
+- 指针事件的修饰键标志显式写成无：从 HID 状态创建的鼠标事件带着当时按住的修饰键，按住或卡住的 Control 会把后台点击变成右键菜单（移植自 cua f87f19152）；
 - 点击按 Chromium 配方投递：先在目标点发 mouseMoved，再在屏外 (-1,-1) 按下抬起一次通过用户激活检查，最后在目标点按下抬起；每个事件写入目标 pid、窗口 id 与同一个点击组 id，窗口坐标相对窗口左上角；
-- 拖拽带同样的路由：先在起点发 mouseMoved，按下，沿路径每约 10 点发一个 dragged 事件（每段最多 30 个），停 50 ms 让 Chromium 处理完最后一个 dragged 再抬起；全部事件共用一个点击组 id。视图靠按下与抬起之间的 dragged 事件跟踪拖拽，只发按下和抬起、或不带路由的事件，自绘视图和网页都收不到；
+- 拖拽带同样的路由：先在起点发 mouseMoved，按下，沿路径每约 10 点发一个 dragged 事件（每段最多 30 个），停 50 ms 让 Chromium 处理完最后一个 dragged 再抬起；全部事件共用一个点击组 id。视图靠按下与抬起之间的 dragged 事件跟踪拖拽，只发按下和抬起、或不带路由的事件，自绘视图和网页都收不到。拖拽开启了 macOS 拖放会话（列表重排、拖文件、HTML5 draggable）时，系统按真实指针跟踪它，后台放不到指定位置：每个 dragged 之后看目标进程在拖拽层级（`kCGDraggingWindowLevel`）有没有新出现的拖拽图像窗口，有就立即松开并要求前台（移植自 cua 1dc9b52bd）；
 - 投递给进程的输入只到达它的 key window。目标窗口不是 key window 时，先向该进程发 yabai 的 focus-without-raise 事件记录（`SLPSPostEventRecordTo`），让它成为 key window 而不激活应用、不置顶窗口；这次切换计入动作前的基线，不会被当成动作本身的效果。
 
 任一私有符号解析失败时，第二级直接要求前台，没有公开接口的回退路径。
+
+屏保启动或显示器休眠都会把会话锁在锁屏后面（有没有密码都一样），这时所有应用的窗口都读作空，前台输入只会落到锁屏上。需要界面的命令（`find-roots`、`observe-ui`、`act-ui`、`read-text`、`wait-for`、带选择器的 `search-ui`，以及缓存查询转去读实时界面时）先读一次锁屏状态，锁着就以 `screen_locked`（退出码 11）失败，recovery 写解锁；梯子升级到前台前再读一次，锁着同样失败而不升级（移植自 cua b1633ef91 的拒绝；它让显示器保持唤醒的部分没有移植）。只读保存状态的缓存查询照常回答。
 
 ## Action transaction
 
