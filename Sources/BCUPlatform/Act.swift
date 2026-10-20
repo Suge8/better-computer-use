@@ -10,6 +10,8 @@ extension Platform {
 	static let menuBarActivationTimeout: TimeInterval = 1.5
 	/// How long a menu bcu presses open, or a pressed item's menus, may take to open or close.
 	static let menuTimeout: TimeInterval = 1.0
+	/// How long a background element may take to report that it holds the keyboard focus.
+	static let focusReadbackTimeout: TimeInterval = 0.2
 	/// Pause after raising a window before hit testing it again.
 	static let raiseSettle: TimeInterval = 0.02
 	/// How long, and how often, a scrolled element's content offset is read back.
@@ -228,6 +230,15 @@ extension Platform {
 		/// menus bcu opened are gone, so they are neither an appeared nor a closed root.
 		func awaitMenuClosed(_ shown: AXUIElement) throws {
 			_ = try awaitChange(in: pid, timeout: Self.menuTimeout) { (frameForElement(shown)?.width ?? 0) <= 0 }
+		}
+
+		/// Keys go to whatever the app has focused, so the element is focused first. In the
+		/// background nothing else puts the focus there: the keys are sent only once the app reads
+		/// back that the element, or something inside it, holds the focus (ported from trycua/cua).
+		func focusForKeys(_ target: AXUIElement) throws {
+			if AXUIElementSetAttributeValue(target, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success { performed.focused = true }
+			guard delivery == .pid, try !awaitChange(in: pid, timeout: Self.focusReadbackTimeout, { holdsKeyboardFocus(target, pid: pid) }) else { return }
+			throw ForegroundRequired(message: "The element did not take the keyboard focus in the background, so keys sent there could land elsewhere")
 		}
 
 		func focusTargetForPhysicalInput() throws {
@@ -449,10 +460,7 @@ extension Platform {
 			try executeCoordinates(coordinatePoint())
 		} else if action == .typeText {
 			try focusTargetForBackgroundInput()
-			if let element {
-				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-				if focused == .success { performed.focused = true }
-			}
+			if let element { try focusForKeys(element) }
 			acquirePhysicalInputIfNeeded()
 			if delivery == .hid && !intoFocus { try focusTargetForPhysicalInput() }
 			let text = params.text
@@ -469,8 +477,7 @@ extension Platform {
 			}
 			try focusTargetForBackgroundInput()
 			if let element {
-				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
-				if focused == .success { performed.focused = true }
+				try focusForKeys(element)
 				let normalizedKeys = keys.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
 				if normalizedKeys.count == 2,
 					normalizedKeys.last == "a",
@@ -516,6 +523,15 @@ extension Platform {
 		}
 
 		return try finish(try verdict())
+	}
+
+	/// The element says it is focused, or the app's focused element is it or inside it.
+	func holdsKeyboardFocus(_ element: AXUIElement, pid: Int32) -> Bool {
+		if boolAttribute(element, attribute: kAXFocusedAttribute as CFString) == true { return true }
+		let app = AXUIElementCreateApplication(pid)
+		AXUIElementSetMessagingTimeout(app, messagingTimeout)
+		guard let focused = copyAttribute(app, attribute: kAXFocusedUIElementAttribute as CFString).flatMap(asAXElement) else { return false }
+		return isElement(focused, descendantOf: element)
 	}
 
 	/// Delivers up to 20 actions on one look as a transaction: one resource lock, one root
