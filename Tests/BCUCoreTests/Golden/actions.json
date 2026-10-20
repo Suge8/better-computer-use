@@ -1027,7 +1027,7 @@
 			}
 		},
 		{
-			"name": "click an editor establishes focus",
+			"name": "click an editor",
 			"op": "prepare",
 			"input": {
 				"outline": {
@@ -1339,7 +1339,6 @@
 					"action": "click",
 					"ref": "@e3"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -1347,331 +1346,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"}}"
-			}
-		},
-		{
-			"name": "headless click does not establish focus",
-			"op": "prepare",
-			"input": {
-				"outline": {
-					"outline": {
-						"root": {
-							"ref": "@e1",
-							"wireRef": "window",
-							"role": "AXWindow",
-							"subrole": "AXStandardWindow",
-							"identifier": "",
-							"title": "Fixture",
-							"description": "",
-							"value": "",
-							"actions": [],
-							"canPress": false,
-							"canFocus": false,
-							"canSetValue": false,
-							"canScroll": false,
-							"canIncrement": false,
-							"canDecrement": false,
-							"isTextInput": false,
-							"rect": {
-								"x": 0,
-								"y": 0,
-								"w": 0,
-								"h": 0
-							},
-							"focused": false,
-							"offscreen": false,
-							"pictureOnly": false,
-							"truncated": false,
-							"children": [
-								{
-									"ref": "@e2",
-									"wireRef": "toolbar",
-									"role": "AXToolbar",
-									"subrole": "",
-									"identifier": "",
-									"title": "Toolbar",
-									"description": "",
-									"value": "",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 0,
-										"y": 0,
-										"w": 800,
-										"h": 40
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e3",
-									"wireRef": "editor",
-									"role": "AXTextArea",
-									"subrole": "",
-									"identifier": "",
-									"title": "",
-									"description": "",
-									"value": "",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": true,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": true,
-									"rect": {
-										"x": 10,
-										"y": 50,
-										"w": 400,
-										"h": 300
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e4",
-									"wireRef": "save",
-									"role": "AXButton",
-									"subrole": "",
-									"identifier": "",
-									"title": "Save",
-									"description": "",
-									"value": "",
-									"actions": [
-										"AXPress"
-									],
-									"canPress": true,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 700,
-										"y": 10,
-										"w": 60,
-										"h": 21
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e5",
-									"wireRef": "menuonly",
-									"role": "AXImage",
-									"subrole": "",
-									"identifier": "",
-									"title": "",
-									"description": "Logo",
-									"value": "",
-									"actions": [
-										"AXShowMenu",
-										"AXScrollToVisible"
-									],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 20,
-										"y": 400,
-										"w": 31,
-										"h": 31
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e6",
-									"wireRef": "custom",
-									"role": "AXGroup",
-									"subrole": "",
-									"identifier": "",
-									"title": "Custom",
-									"description": "",
-									"value": "",
-									"actions": [
-										"AXCustom"
-									],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 100,
-										"y": 400,
-										"w": 10,
-										"h": 10
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e7",
-									"wireRef": "ocr",
-									"role": "AXStaticText",
-									"subrole": "",
-									"identifier": "",
-									"title": "",
-									"description": "",
-									"value": "Text",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 200,
-										"y": 500,
-										"w": 101,
-										"h": 20
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": true,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e8",
-									"wireRef": "far",
-									"role": "AXButton",
-									"subrole": "",
-									"identifier": "",
-									"title": "Far",
-									"description": "",
-									"value": "",
-									"actions": [
-										"AXPress"
-									],
-									"canPress": true,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 900,
-										"y": 10,
-										"w": 20,
-										"h": 20
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e9",
-									"role": "AXGroup",
-									"subrole": "",
-									"identifier": "",
-									"title": "No wire ref",
-									"description": "",
-									"value": "",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 300,
-										"y": 300,
-										"w": 20,
-										"h": 20
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": [
-										{
-											"ref": "@e10",
-											"wireRef": "nested-text",
-											"role": "AXStaticText",
-											"subrole": "",
-											"identifier": "",
-											"title": "",
-											"description": "",
-											"value": "inside",
-											"actions": [],
-											"canPress": false,
-											"canFocus": false,
-											"canSetValue": false,
-											"canScroll": false,
-											"canIncrement": false,
-											"canDecrement": false,
-											"isTextInput": false,
-											"rect": {
-												"x": 0,
-												"y": 0,
-												"w": 0,
-												"h": 0
-											},
-											"focused": false,
-											"offscreen": false,
-											"pictureOnly": false,
-											"truncated": false,
-											"children": []
-										}
-									]
-								}
-							]
-						}
-					},
-					"numbering": "saved"
-				},
-				"action": {
-					"action": "click",
-					"ref": "@e3"
-				},
-				"currentFocus": false,
-				"headless": true,
-				"image": {
-					"width": 800,
-					"height": 600
-				}
-			},
-			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -1987,7 +1662,6 @@
 					"action": "click",
 					"ref": "save"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -1995,7 +1669,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"save\"}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -2313,7 +1987,6 @@
 					"button": "right",
 					"clickCount": 2
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -2321,7 +1994,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"press\",\"establishesFocus\":false,\"params\":{\"button\":\"right\",\"clickCount\":2},\"target\":{\"ref\":\"save\"}}"
+				"prepared": "{\"action\":\"press\",\"params\":{\"button\":\"right\",\"clickCount\":2},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -2637,7 +2310,6 @@
 					"action": "click",
 					"ref": "@e2"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -2645,7 +2317,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":400,\"y\":20}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":400,\"y\":20}}"
 			}
 		},
 		{
@@ -2961,7 +2633,6 @@
 					"action": "click",
 					"ref": "@e5"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -2969,7 +2640,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":35.5,\"y\":415.5}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":35.5,\"y\":415.5}}"
 			}
 		},
 		{
@@ -3285,7 +2956,6 @@
 					"action": "click",
 					"ref": "@e6"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -3293,7 +2963,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"custom\"}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"custom\"}}"
 			}
 		},
 		{
@@ -3609,7 +3279,6 @@
 					"action": "click",
 					"ref": "@e7"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -3617,11 +3286,11 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":250.5,\"y\":510}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":250.5,\"y\":510}}"
 			}
 		},
 		{
-			"name": "press text read by OCR establishes focus",
+			"name": "press text read by OCR",
 			"op": "prepare",
 			"input": {
 				"outline": {
@@ -3933,7 +3602,6 @@
 					"action": "press",
 					"ref": "@e7"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -3941,7 +3609,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"press\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":250.5,\"y\":510}}"
+				"prepared": "{\"action\":\"press\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":250.5,\"y\":510}}"
 			}
 		},
 		{
@@ -4257,7 +3925,6 @@
 					"action": "click",
 					"ref": "@e9"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -4265,7 +3932,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":310,\"y\":310}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":310,\"y\":310}}"
 			}
 		},
 		{
@@ -4581,7 +4248,6 @@
 					"action": "click",
 					"ref": "@e8"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -4589,7 +4255,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"far\"}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"ref\":\"far\"}}"
 			}
 		},
 		{
@@ -4906,7 +4572,6 @@
 					"x": 799.5,
 					"y": 0
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -4914,332 +4579,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":true,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":799.5,\"y\":0}}"
-			}
-		},
-		{
-			"name": "headless click coordinates does not establish focus",
-			"op": "prepare",
-			"input": {
-				"outline": {
-					"outline": {
-						"root": {
-							"ref": "@e1",
-							"wireRef": "window",
-							"role": "AXWindow",
-							"subrole": "AXStandardWindow",
-							"identifier": "",
-							"title": "Fixture",
-							"description": "",
-							"value": "",
-							"actions": [],
-							"canPress": false,
-							"canFocus": false,
-							"canSetValue": false,
-							"canScroll": false,
-							"canIncrement": false,
-							"canDecrement": false,
-							"isTextInput": false,
-							"rect": {
-								"x": 0,
-								"y": 0,
-								"w": 0,
-								"h": 0
-							},
-							"focused": false,
-							"offscreen": false,
-							"pictureOnly": false,
-							"truncated": false,
-							"children": [
-								{
-									"ref": "@e2",
-									"wireRef": "toolbar",
-									"role": "AXToolbar",
-									"subrole": "",
-									"identifier": "",
-									"title": "Toolbar",
-									"description": "",
-									"value": "",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 0,
-										"y": 0,
-										"w": 800,
-										"h": 40
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e3",
-									"wireRef": "editor",
-									"role": "AXTextArea",
-									"subrole": "",
-									"identifier": "",
-									"title": "",
-									"description": "",
-									"value": "",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": true,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": true,
-									"rect": {
-										"x": 10,
-										"y": 50,
-										"w": 400,
-										"h": 300
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e4",
-									"wireRef": "save",
-									"role": "AXButton",
-									"subrole": "",
-									"identifier": "",
-									"title": "Save",
-									"description": "",
-									"value": "",
-									"actions": [
-										"AXPress"
-									],
-									"canPress": true,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 700,
-										"y": 10,
-										"w": 60,
-										"h": 21
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e5",
-									"wireRef": "menuonly",
-									"role": "AXImage",
-									"subrole": "",
-									"identifier": "",
-									"title": "",
-									"description": "Logo",
-									"value": "",
-									"actions": [
-										"AXShowMenu",
-										"AXScrollToVisible"
-									],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 20,
-										"y": 400,
-										"w": 31,
-										"h": 31
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e6",
-									"wireRef": "custom",
-									"role": "AXGroup",
-									"subrole": "",
-									"identifier": "",
-									"title": "Custom",
-									"description": "",
-									"value": "",
-									"actions": [
-										"AXCustom"
-									],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 100,
-										"y": 400,
-										"w": 10,
-										"h": 10
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e7",
-									"wireRef": "ocr",
-									"role": "AXStaticText",
-									"subrole": "",
-									"identifier": "",
-									"title": "",
-									"description": "",
-									"value": "Text",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 200,
-										"y": 500,
-										"w": 101,
-										"h": 20
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": true,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e8",
-									"wireRef": "far",
-									"role": "AXButton",
-									"subrole": "",
-									"identifier": "",
-									"title": "Far",
-									"description": "",
-									"value": "",
-									"actions": [
-										"AXPress"
-									],
-									"canPress": true,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 900,
-										"y": 10,
-										"w": 20,
-										"h": 20
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": []
-								},
-								{
-									"ref": "@e9",
-									"role": "AXGroup",
-									"subrole": "",
-									"identifier": "",
-									"title": "No wire ref",
-									"description": "",
-									"value": "",
-									"actions": [],
-									"canPress": false,
-									"canFocus": false,
-									"canSetValue": false,
-									"canScroll": false,
-									"canIncrement": false,
-									"canDecrement": false,
-									"isTextInput": false,
-									"rect": {
-										"x": 300,
-										"y": 300,
-										"w": 20,
-										"h": 20
-									},
-									"focused": false,
-									"offscreen": false,
-									"pictureOnly": false,
-									"truncated": false,
-									"children": [
-										{
-											"ref": "@e10",
-											"wireRef": "nested-text",
-											"role": "AXStaticText",
-											"subrole": "",
-											"identifier": "",
-											"title": "",
-											"description": "",
-											"value": "inside",
-											"actions": [],
-											"canPress": false,
-											"canFocus": false,
-											"canSetValue": false,
-											"canScroll": false,
-											"canIncrement": false,
-											"canDecrement": false,
-											"isTextInput": false,
-											"rect": {
-												"x": 0,
-												"y": 0,
-												"w": 0,
-												"h": 0
-											},
-											"focused": false,
-											"offscreen": false,
-											"pictureOnly": false,
-											"truncated": false,
-											"children": []
-										}
-									]
-								}
-							]
-						}
-					},
-					"numbering": "saved"
-				},
-				"action": {
-					"action": "click",
-					"x": 799.5,
-					"y": 0
-				},
-				"currentFocus": false,
-				"headless": true,
-				"image": {
-					"width": 800,
-					"height": 600
-				}
-			},
-			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":799.5,\"y\":0}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":799.5,\"y\":0}}"
 			}
 		},
 		{
@@ -5556,7 +4896,6 @@
 					"x": 800,
 					"y": 10.4
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -5882,7 +5221,6 @@
 					"x": 1,
 					"y": 1
 				},
-				"currentFocus": false,
 				"headless": false
 			},
 			"output": {
@@ -6203,7 +5541,6 @@
 					"action": "doubleClick",
 					"ref": "@e4"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -6211,7 +5548,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"click\",\"establishesFocus\":false,\"params\":{\"button\":\"left\",\"clickCount\":2},\"target\":{\"ref\":\"save\"}}"
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":2},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -6528,7 +5865,6 @@
 					"ref": "@e3",
 					"text": "hello"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -6536,7 +5872,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"setText\",\"establishesFocus\":false,\"params\":{\"text\":\"hello\"},\"target\":{\"ref\":\"editor\"}}"
+				"prepared": "{\"action\":\"setText\",\"params\":{\"text\":\"hello\"},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -6852,7 +6188,6 @@
 					"action": "typeText",
 					"text": "hello"
 				},
-				"currentFocus": true,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -6860,11 +6195,11 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"typeText\",\"establishesFocus\":false,\"params\":{\"text\":\"hello\"},\"target\":{\"focus\":{\"x\":400,\"y\":300}}}"
+				"prepared": "{\"action\":\"typeText\",\"params\":{\"text\":\"hello\"},\"target\":{\"focus\":true}}"
 			}
 		},
 		{
-			"name": "keypress into the current focus of an odd image",
+			"name": "keypress into the current focus",
 			"op": "prepare",
 			"input": {
 				"outline": {
@@ -7178,19 +6513,14 @@
 						"return"
 					]
 				},
-				"currentFocus": true,
-				"headless": false,
-				"image": {
-					"width": 801,
-					"height": 599
-				}
+				"headless": false
 			},
 			"output": {
-				"prepared": "{\"action\":\"keypress\",\"establishesFocus\":false,\"params\":{\"keys\":[\"return\"]},\"target\":{\"focus\":{\"x\":400,\"y\":299}}}"
+				"prepared": "{\"action\":\"keypress\",\"params\":{\"keys\":[\"return\"]},\"target\":{\"focus\":true}}"
 			}
 		},
 		{
-			"name": "typeText without an image",
+			"name": "typeText into the focus needs no image",
 			"op": "prepare",
 			"input": {
 				"outline": {
@@ -7502,12 +6832,10 @@
 					"action": "typeText",
 					"text": "hello"
 				},
-				"currentFocus": true,
 				"headless": false
 			},
 			"output": {
-				"stderr": "error action_failed: Focused keyboard input requires an image-bearing state. Observe with --image always and retry.\nrecovery: Observe the current UI before deciding whether the action is safe to retry.\n",
-				"exitCode": 9
+				"prepared": "{\"action\":\"typeText\",\"params\":{\"text\":\"hello\"},\"target\":{\"focus\":true}}"
 			}
 		},
 		{
@@ -7823,7 +7151,6 @@
 					"action": "typeText",
 					"text": "hello"
 				},
-				"currentFocus": true,
 				"headless": true,
 				"image": {
 					"width": 800,
@@ -7831,7 +7158,7 @@
 				}
 			},
 			"output": {
-				"stderr": "error invalid_arguments: typeText requires ref, find, or both x and y.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: typeText without a target types into the keyboard focus, which headless does not use; give it a ref or find.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -8149,7 +7476,6 @@
 					"ref": "@e3",
 					"text": "x"
 				},
-				"currentFocus": true,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -8157,7 +7483,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"typeText\",\"establishesFocus\":false,\"params\":{\"text\":\"x\"},\"target\":{\"ref\":\"editor\"}}"
+				"prepared": "{\"action\":\"typeText\",\"params\":{\"text\":\"x\"},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -8477,7 +7803,6 @@
 						"a"
 					]
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -8485,7 +7810,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"keypress\",\"establishesFocus\":false,\"params\":{\"keys\":[\"cmd\",\"a\"]},\"target\":{\"ref\":\"editor\"}}"
+				"prepared": "{\"action\":\"keypress\",\"params\":{\"keys\":[\"cmd\",\"a\"]},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -8801,7 +8126,6 @@
 					"action": "scroll",
 					"ref": "@e3"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -8809,7 +8133,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"scroll\",\"establishesFocus\":false,\"params\":{\"scrollX\":0,\"scrollY\":0},\"target\":{\"ref\":\"editor\"}}"
+				"prepared": "{\"action\":\"scroll\",\"params\":{\"scrollX\":0,\"scrollY\":0},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -9128,7 +8452,6 @@
 					"scrollX": -2.4,
 					"scrollY": 2.6
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -9136,7 +8459,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"scroll\",\"establishesFocus\":false,\"params\":{\"scrollX\":-2,\"scrollY\":3},\"target\":{\"x\":5,\"y\":5}}"
+				"prepared": "{\"action\":\"scroll\",\"params\":{\"scrollX\":-2,\"scrollY\":3},\"target\":{\"x\":5,\"y\":5}}"
 			}
 		},
 		{
@@ -9451,7 +8774,6 @@
 				"action": {
 					"action": "wait"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -9459,7 +8781,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"wait\",\"establishesFocus\":false,\"params\":{\"ms\":1000}}"
+				"prepared": "{\"action\":\"wait\",\"params\":{\"ms\":1000}}"
 			}
 		},
 		{
@@ -9775,7 +9097,6 @@
 					"action": "wait",
 					"ms": 10.5
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -9783,7 +9104,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"wait\",\"establishesFocus\":false,\"params\":{\"ms\":11}}"
+				"prepared": "{\"action\":\"wait\",\"params\":{\"ms\":11}}"
 			}
 		},
 		{
@@ -10108,7 +9429,6 @@
 						}
 					]
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -10116,7 +9436,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"drag\",\"establishesFocus\":false,\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3.5,\"y\":4}]},\"target\":{\"x\":1,\"y\":2}}"
+				"prepared": "{\"action\":\"drag\",\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3.5,\"y\":4}]},\"target\":{\"x\":1,\"y\":2}}"
 			}
 		},
 		{
@@ -10442,7 +9762,6 @@
 						]
 					]
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -10450,7 +9769,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"drag\",\"establishesFocus\":false,\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3,\"y\":4}]},\"target\":{\"ref\":\"editor\"}}"
+				"prepared": "{\"action\":\"drag\",\"params\":{\"path\":[{\"x\":1,\"y\":2},{\"x\":3,\"y\":4}]},\"target\":{\"ref\":\"editor\"}}"
 			}
 		},
 		{
@@ -10775,7 +10094,6 @@
 						]
 					]
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -11100,7 +10418,6 @@
 					"action": "moveMouse",
 					"ref": "@e4"
 				},
-				"currentFocus": false,
 				"headless": false,
 				"image": {
 					"width": 800,
@@ -11108,7 +10425,7 @@
 				}
 			},
 			"output": {
-				"prepared": "{\"action\":\"moveMouse\",\"establishesFocus\":false,\"params\":{},\"target\":{\"ref\":\"save\"}}"
+				"prepared": "{\"action\":\"moveMouse\",\"params\":{},\"target\":{\"ref\":\"save\"}}"
 			}
 		},
 		{
@@ -12123,18 +11440,6 @@
 								"timeoutMs": 100
 							}
 						}
-					],
-					"typing after a found click": [
-						{
-							"action": "click",
-							"find": {
-								"name": "Name"
-							}
-						},
-						{
-							"action": "typeText",
-							"text": "x"
-						}
 					]
 				}
 			},
@@ -12146,8 +11451,52 @@
 				"find with a negative nth": "error invalid_arguments: press.find.nth must be a non-negative integer.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"opened root at the first action": "error invalid_arguments: press.find.root opened needs an earlier action in the array.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"expect with an unknown key": "error invalid_arguments: press.expect.scope is not supported.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
-				"expect without a condition": "error invalid_arguments: press.expect needs text, role, or value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
-				"typing after a found click": "error invalid_arguments: typeText without a target requires an earlier focus-establishing action.\nrecovery: Run 'bcu --help' and correct the command arguments.\n"
+				"expect without a condition": "error invalid_arguments: press.expect needs text, role, or value.\nrecovery: Run 'bcu --help' and correct the command arguments.\n"
+			}
+		},
+		{
+			"name": "typing after a found click goes to the focus",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "click",
+						"find": {
+							"name": "Name"
+						}
+					},
+					{
+						"action": "typeText",
+						"text": "x"
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"click\",\"find\":{\"name\":\"Name\"}},{\"action\":\"typeText\",\"text\":\"x\"}]"
+			}
+		},
+		{
+			"name": "a keypress after typing into an element goes to the focus",
+			"op": "validate",
+			"input": {
+				"actions": [
+					{
+						"action": "typeText",
+						"find": {
+							"role": "textfield"
+						},
+						"text": "hi"
+					},
+					{
+						"action": "keypress",
+						"keys": [
+							"return"
+						]
+					}
+				]
+			},
+			"output": {
+				"ok": "[{\"action\":\"typeText\",\"find\":{\"role\":\"textfield\"},\"text\":\"hi\"},{\"action\":\"keypress\",\"keys\":[\"return\"]}]"
 			}
 		},
 		{

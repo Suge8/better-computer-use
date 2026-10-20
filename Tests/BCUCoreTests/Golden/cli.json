@@ -7,7 +7,7 @@
 				"argv": []
 			},
 			"output": {
-				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -21,7 +21,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -35,7 +35,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -49,7 +49,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -64,7 +64,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array from stdin against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
+				"stdout": "bcu <command> [options]\n\nCommands:\n  find-roots      List controllable roots: windows, sheets, dialogs and open menus.\n  observe-ui      Observe one root and return a stateId with the projected element tree.\n  search-ui       Search the saved outline of one state, including elements the view folded away.\n  expand-ui       Expand one element of a saved state, walking the live UI when the subtree was cut short.\n  inspect-ui      Print every raw accessibility field of one element, including the ones the projection hides.\n  act-ui          Run a checked action array against one state and return the successor state.\n  read-text       Read the full text of one element, a slice at a time.\n  wait-for        Wait for text or a role to appear or disappear, then return the successor state.\n  status          Report resident process status without starting it.\n  doctor          Start and diagnose the resident process, permissions and config.\n  setup           Register and verify macOS permissions.\n  stop            Stop the resident process if it is running.\n\nEvery command takes --json for one JSON object on stdout, and --help for its own options.\nFailures write nothing to stdout and report 'error <code>' plus 'recovery' on stderr.\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -82,7 +82,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu search-ui [options]\n\nSearch the saved outline of one state, including elements the view folded away.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --text <value>            substring of any name, value or OCR text\n  --role <value>            role word, e.g. button, textfield, row\n  --action <value>          capability, e.g. press, setText, scroll\n  --limit <n>               maximum matches to return (default 12, max 50)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu search-ui [options]\n\nSearch the saved outline of one state, including elements the view folded away.\n\nOptions:\n  --state <value>           stateId from observe-ui; or observe a root first, selected by:\n  --app <value>             app name or bundle id\n  --pid <n>                 process id of the app, chosen like --app\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --text <value>            substring of any name, value or OCR text\n  --role <value>            role word, e.g. button, textfield, row\n  --action <value>          capability, e.g. press, setText, scroll\n  --limit <n>               maximum matches to return (default 12, max 50)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -112,7 +112,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu observe-ui [options]\n\nObserve one root and return a stateId with the projected element tree.\n\nOptions:\n  --app <value>             app name or bundle id\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --mode semantic|fused     semantic: accessibility only (default); fused: also capture an image and OCR\n  --image never|always      write a screenshot artifact (default never)\n  --read-text auto|always|never OCR policy; auto (default) reads the screen only when the root exposes almost no accessibility content\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu observe-ui [options]\n\nObserve one root and return a stateId with the projected element tree.\n\nOptions:\n  --app <value>             app name or bundle id\n  --pid <n>                 process id of the app, chosen like --app\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --mode semantic|fused     semantic: accessibility only (default); fused: also capture an image and OCR\n  --image never|always      write a screenshot artifact (default never)\n  --read-text auto|always|never OCR policy; auto (default) reads the screen only when the root exposes almost no accessibility content\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -127,7 +127,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu search-ui [options]\n\nSearch the saved outline of one state, including elements the view folded away.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --text <value>            substring of any name, value or OCR text\n  --role <value>            role word, e.g. button, textfield, row\n  --action <value>          capability, e.g. press, setText, scroll\n  --limit <n>               maximum matches to return (default 12, max 50)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu search-ui [options]\n\nSearch the saved outline of one state, including elements the view folded away.\n\nOptions:\n  --state <value>           stateId from observe-ui; or observe a root first, selected by:\n  --app <value>             app name or bundle id\n  --pid <n>                 process id of the app, chosen like --app\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --text <value>            substring of any name, value or OCR text\n  --role <value>            role word, e.g. button, textfield, row\n  --action <value>          capability, e.g. press, setText, scroll\n  --limit <n>               maximum matches to return (default 12, max 50)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -172,7 +172,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu act-ui - [options]\n\nRun a checked action array from stdin against one state and return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --headless                never activate, focus or move the pointer physically\n  --foreground              start in the foreground: activate the app and use real input\n  --image never|always      write a screenshot artifact (default never)\n  --expect-text <value>     postcondition: this text must appear\n  --expect-role <value>     postcondition: an element with this role must appear\n  --expect-value <value>    postcondition: an element must hold this exact value\n  --expect-gone             invert the postcondition: it must disappear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu act-ui <actions-json>|- [options]\n\nRun a checked action array against one state and return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui; or observe a root first, selected by:\n  --app <value>             app name or bundle id\n  --pid <n>                 process id of the app, chosen like --app\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --headless                never activate, focus or move the pointer physically\n  --foreground              start in the foreground: activate the app and use real input\n  --image never|always      write a screenshot artifact (default never)\n  --expect-text <value>     postcondition: this text must appear\n  --expect-role <value>     postcondition: an element with this role must appear\n  --expect-value <value>    postcondition: an element must hold this exact value\n  --expect-gone             invert the postcondition: it must disappear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -202,7 +202,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu wait-for [options]\n\nWait for text or a role to appear or disappear, then return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --text <value>            text that must appear\n  --role <value>            role word that must appear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --gone                    wait for the condition to disappear instead\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu wait-for [options]\n\nWait for text or a role to appear or disappear, then return the successor state.\n\nOptions:\n  --state <value>           stateId from observe-ui; or observe a root first, selected by:\n  --app <value>             app name or bundle id\n  --pid <n>                 process id of the app, chosen like --app\n  --window-title <value>    exact or partial window title\n  --root <value>            @r ref from find-roots, or a numeric window id\n  --text <value>            text that must appear\n  --role <value>            role word that must appear\n  --scope <value>           limit the condition to this element subtree, e.g. @e12\n  --gone                    wait for the condition to disappear instead\n  --timeout <n>             condition timeout in ms (default 10000, max 60000)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -577,7 +577,7 @@
 				]
 			},
 			"output": {
-				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\",\"mode\":\"fused\",\"readText\":\"never\",\"root\":\"@r3\",\"windowTitle\":\"未命名\"}}"
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"image\":\"always\",\"mode\":\"fused\",\"readText\":\"never\",\"selector\":{\"app\":\"TextEdit\",\"root\":\"@r3\",\"windowTitle\":\"未命名\"}}}"
 			}
 		},
 		{
@@ -646,7 +646,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: search-ui needs --state, or a root selector (--app, --pid, --window-title, --root) to observe first.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -662,7 +662,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: search-ui needs --state, or a root selector (--app, --pid, --window-title, --root) to observe first.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -866,7 +866,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: wait-for needs --state, or a root selector (--app, --pid, --window-title, --root) to observe first.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -981,7 +981,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: act-ui requires '-' and reads its JSON action array from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui takes its JSON action array as one argument, or '-' to read it from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -999,7 +999,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: act-ui requires '-' and reads its JSON action array from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui takes its JSON action array as one argument, or '-' to read it from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1013,7 +1013,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: act-ui requires '-' and reads its JSON action array from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui takes its JSON action array as one argument, or '-' to read it from stdin.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1029,7 +1029,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--state' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui needs --state, or a root selector (--app, --pid, --window-title, --root) to observe first.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1106,7 +1106,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: act-ui stdin must be a JSON action array: <parser detail>\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui actions must be a JSON action array: <parser detail>\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1124,7 +1124,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: act-ui stdin must be a JSON action array: <parser detail>\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui actions must be a JSON action array: <parser detail>\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1142,7 +1142,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: act-ui stdin must contain a JSON action array.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: act-ui actions must be a JSON action array.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1197,6 +1197,237 @@
 			"output": {
 				"stdout": "",
 				"stderr": "error invalid_arguments: Every act-ui item must be an object with a supported action name.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "observe-ui by pid",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--pid",
+					"42",
+					"--window-title",
+					"Doc"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"selector\":{\"pid\":42,\"windowTitle\":\"Doc\"}}}"
+			}
+		},
+		{
+			"name": "search-ui observes a selected root first",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--app",
+					"TextEdit",
+					"--text",
+					"Save"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"search-ui\",\"json\":false,\"params\":{\"selector\":{\"app\":\"TextEdit\"},\"text\":\"Save\"}}"
+			}
+		},
+		{
+			"name": "search-ui with a state and a selector",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"search-ui",
+					"--state",
+					"s",
+					"--root",
+					"@r2",
+					"--text",
+					"x"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: search-ui takes --state or a root selector (--app, --pid, --window-title, --root), not both.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "expand-ui ref as an argument",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"expand-ui",
+					"--state",
+					"s",
+					"@e3"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Unexpected argument '@e3'. Pass an element ref with --ref.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "wait-for a selected root",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--app",
+					"Safari",
+					"--window-title",
+					"Docs",
+					"--text",
+					"Loaded",
+					"--timeout",
+					"20000"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"selector\":{\"app\":\"Safari\",\"windowTitle\":\"Docs\"},\"text\":\"Loaded\",\"timeoutMs\":20000}}"
+			}
+		},
+		{
+			"name": "wait-for a selected root with a scope",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"wait-for",
+					"--pid",
+					"7",
+					"--text",
+					"x",
+					"--scope",
+					"@e2"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: --scope depends on an earlier observation, but a root selector acts on a fresh one.\nrecovery: Run observe-ui and pass its stateId with --state, or name the element with find.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui actions as an argument",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"[{\"action\":\"press\",\"ref\":\"@e1\"}]"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"press\",\"ref\":\"@e1\"}],\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "act-ui a selected root with locators",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--app",
+					"TextEdit",
+					"[{\"action\":\"press\",\"find\":{\"name\":\"Save\"}},{\"action\":\"keypress\",\"keys\":[\"return\"]}]"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"press\",\"find\":{\"name\":\"Save\"}},{\"action\":\"keypress\",\"keys\":[\"return\"]}],\"selector\":{\"app\":\"TextEdit\"}}}"
+			}
+		},
+		{
+			"name": "act-ui raise is not an action",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"[{\"action\":\"raise\",\"ref\":\"@e1\"}]"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Every act-ui item must be an object with a supported action name.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui a selected root refuses a ref",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--app",
+					"TextEdit",
+					"[{\"action\":\"press\",\"find\":{\"name\":\"Save\"}},{\"action\":\"press\",\"ref\":\"@e1\"}]"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Step 2 (press) uses a ref, which depends on an earlier observation, but a root selector acts on a fresh one.\nrecovery: Run observe-ui and pass its stateId with --state, or name the element with find.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui a selected root refuses coordinates",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--pid",
+					"42",
+					"[{\"action\":\"click\",\"x\":10,\"y\":20}]"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: Step 1 (click) uses coordinates, which depends on an earlier observation, but a root selector acts on a fresh one.\nrecovery: Run observe-ui and pass its stateId with --state, or name the element with find.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui a selected root refuses a scope",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--app",
+					"TextEdit",
+					"--expect-text",
+					"Saved",
+					"--scope",
+					"@e4",
+					"[{\"action\":\"press\",\"find\":{\"name\":\"Save\"}}]"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: --scope depends on an earlier observation, but a root selector acts on a fresh one.\nrecovery: Run observe-ui and pass its stateId with --state, or name the element with find.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "act-ui with a state and a selector",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"--app",
+					"TextEdit",
+					"-"
+				],
+				"stdin": "[{\"action\":\"press\",\"find\":{\"name\":\"Save\"}}]"
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: act-ui takes --state or a root selector (--app, --pid, --window-title, --root), not both.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1617,7 +1848,7 @@
 				}
 			},
 			"output": {
-				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\"}}",
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"selector\":{\"app\":\"TextEdit\"}}}",
 				"stdout": "@r1 TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 10 shown\n@e1 window \"未命名2\"\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\"\n",
 				"stderr": "",
 				"exitCode": 0
@@ -1766,7 +1997,7 @@
 				}
 			},
 			"output": {
-				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"app\":\"TextEdit\"}}",
+				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"selector\":{\"app\":\"TextEdit\"}}}",
 				"stdout": "{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}},{\"caps\":[\"press\"],\"depth\":2,\"name\":\"\",\"parent\":\"@e2\",\"ref\":\"@e12\",\"role\":\"ruler\"},{\"caps\":[],\"depth\":1,\"hidden\":{\"count\":16,\"roles\":{\"button\":3,\"combobox\":1,\"menubutton\":1,\"popup\":3,\"segment\":8}},\"name\":\"设置格式\",\"parent\":\"@e1\",\"ref\":\"@e3\",\"role\":\"group\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e4\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e5\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e6\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"文稿操作\",\"parent\":\"@e1\",\"ref\":\"@e7\",\"role\":\"menubutton\"},{\"caps\":[],\"depth\":1,\"name\":\"未命名2\",\"parent\":\"@e1\",\"ref\":\"@e8\",\"role\":\"text\"}],\"root\":{\"app\":\"TextEdit\",\"frame\":{\"h\":488,\"w\":586,\"x\":0,\"y\":25.5},\"pid\":101,\"ref\":\"@r1\",\"scale\":2,\"title\":\"未命名2\",\"windowId\":1010},\"shown\":10,\"stateId\":\"1a2b3c4d\",\"total\":47}\n",
 				"stderr": "",
 				"exitCode": 0
@@ -1842,7 +2073,7 @@
 				}
 			},
 			"output": {
-				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\"}}",
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"image\":\"always\",\"selector\":{\"app\":\"TextEdit\"}}}",
 				"stdout": "TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 3 shown\n@e1 window \"未命名2\"\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\nimage /tmp/shots/1a2b3c4d.jpg (1172x976)\n",
 				"stderr": "",
 				"exitCode": 0
@@ -1919,7 +2150,7 @@
 				}
 			},
 			"output": {
-				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\"}}",
+				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"image\":\"always\",\"selector\":{\"app\":\"TextEdit\"}}}",
 				"stdout": "{\"image\":{\"height\":976,\"mime\":\"image/jpeg\",\"path\":\"/tmp/shots/1a2b3c4d.jpg\",\"width\":1172},\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}}],\"root\":{\"app\":\"TextEdit\",\"frame\":{\"h\":488,\"w\":586,\"x\":0,\"y\":25.5},\"pid\":101,\"scale\":2,\"title\":\"未命名2\"},\"shown\":3,\"stateId\":\"1a2b3c4d\",\"total\":47}\n",
 				"stderr": "",
 				"exitCode": 0
