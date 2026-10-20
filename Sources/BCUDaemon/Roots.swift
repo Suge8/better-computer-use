@@ -114,12 +114,14 @@ extension Daemon {
 
 	/// The root a selector names, waited for while it does not exist yet: an app still
 	/// launching, a window not yet open or titled. Each attempt is made after a desktop mark
-	/// that watches the apps the selector names (the front app for a title alone), so an app
-	/// launching or taking the front, or a window those apps open or retitle, wakes the wait
-	/// at once. An `@r` ref, a window id and a pid never come back, so they are not waited for.
+	/// that watches the apps that may show it (those the selector names; for a title alone,
+	/// the front app and every app launched since the wait began), so an app launching or
+	/// taking the front, or a window those apps open or retitle, wakes the wait at once. An
+	/// `@r` ref, a window id and a pid never come back, so they are not waited for.
 	func awaitRoot(_ selector: RootSelector, _ clock: Countdown, timeoutMs: Int) async throws -> Target {
+		let before = Set(try await apps().map(\.pid))
 		while true {
-			let watched = try await watchedPids(selector)
+			let watched = try await watchedPids(selector, launchedAfter: before)
 			let mark = try await offload { [desktop = self.desktop] in desktop.desktopMark(watching: watched) }
 			do {
 				return try await observedTarget(selector)
@@ -137,10 +139,12 @@ extension Daemon {
 		return error.code == .windowStale || (error.code == .appNotFound && selector.pid == nil)
 	}
 
-	private func watchedPids(_ selector: RootSelector) async throws -> [Int32] {
+	private func watchedPids(_ selector: RootSelector, launchedAfter before: Set<Int32>) async throws -> [Int32] {
+		let running = try await apps()
 		let app = trimmed(selector.app)
-		if app != nil || selector.pid != nil { return appsMatching(try await apps(), app: app, bundleId: nil, pid: selector.pid).map(\.pid) }
-		return [try await offload { [desktop = self.desktop] in try desktop.frontmost() }.pid]
+		if app != nil || selector.pid != nil { return appsMatching(running, app: app, bundleId: nil, pid: selector.pid).map(\.pid) }
+		let front = try await offload { [desktop = self.desktop] in try desktop.frontmost() }.pid
+		return [front] + running.map(\.pid).filter { !before.contains($0) && $0 != front }
 	}
 
 	private func target(named selector: String) async throws -> Target {
