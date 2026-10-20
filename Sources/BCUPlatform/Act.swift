@@ -12,6 +12,8 @@ extension Platform {
 	static let menuTimeout: TimeInterval = 1.0
 	/// How long a background element may take to report that it holds the keyboard focus.
 	static let focusReadbackTimeout: TimeInterval = 0.2
+	/// How often the focus is asked for again while no notification says it moved.
+	static let focusRetry: TimeInterval = 0.02
 	/// Pause after raising a window before hit testing it again.
 	static let raiseSettle: TimeInterval = 0.02
 	/// How long, and how often, a scrolled element's content offset is read back.
@@ -236,8 +238,20 @@ extension Platform {
 		/// background nothing else puts the focus there: the keys are sent only once the app reads
 		/// back that the element, or something inside it, holds the focus (ported from trycua/cua).
 		func focusForKeys(_ target: AXUIElement) throws {
-			if AXUIElementSetAttributeValue(target, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success { performed.focused = true }
-			guard delivery == .pid, try !awaitChange(in: pid, timeout: Self.focusReadbackTimeout, { holdsKeyboardFocus(target, pid: pid) }) else { return }
+			func focus() {
+				if AXUIElementSetAttributeValue(target, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success { performed.focused = true }
+			}
+			guard delivery == .pid else { return focus() }
+			// A busy app can drop the request, so it is made again on every look, as cua does.
+			let deadline = Date().addingTimeInterval(Self.focusReadbackTimeout)
+			while true {
+				let generation = notifications.generation
+				focus()
+				if holdsKeyboardFocus(target, pid: pid) { return }
+				let now = Date()
+				guard now < deadline else { break }
+				notifications.wait(since: generation, until: min(deadline, now.addingTimeInterval(Self.focusRetry)))
+			}
 			throw ForegroundRequired(message: "The element did not take the keyboard focus in the background, so keys sent there could land elsewhere")
 		}
 
