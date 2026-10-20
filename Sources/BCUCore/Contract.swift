@@ -339,6 +339,8 @@ public struct ObserveResult: Codable, Sendable, Equatable {
 	public var shown: Int
 	public var total: Int
 	public var image: ImageInfo?
+	/// A browser window whose page the browser exposed no accessibility tree for.
+	public var webContentMissing: Bool?
 }
 
 /// A projected node with its projected ancestry, outermost first.

@@ -1,9 +1,9 @@
 /// Queries over one saved observation: its view, search, expansion and raw fields. Only a
 /// subtree the platform cut short needs a live read, which the caller supplies.
 
-public func observeResult(stateId: String, root: RootSummary, outline: Outline, image: ImageInfo? = nil) -> ObserveResult {
+public func observeResult(stateId: String, root: RootSummary, outline: Outline, image: ImageInfo? = nil, webContentMissing: Bool = false) -> ObserveResult {
 	let projection = project(outline)
-	return ObserveResult(stateId: stateId, root: root, nodes: projection.nodes, shown: projection.shown, total: projection.total, image: image)
+	return ObserveResult(stateId: stateId, root: root, nodes: projection.nodes, shown: projection.shown, total: projection.total, image: image, webContentMissing: webContentMissing ? true : nil)
 }
 
 private let defaultSearchLimit = 12

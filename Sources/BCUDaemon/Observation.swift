@@ -43,6 +43,7 @@ struct Observation: StatePayload {
 	let image: ImageSize?
 	let readText: ReadTextMode?
 	let readScreen: Bool
+	let webContentMissing: Bool
 	let frame: Frame
 	let scale: Double
 	let byteCount: Int

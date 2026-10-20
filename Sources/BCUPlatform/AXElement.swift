@@ -5,25 +5,7 @@ import AppKit
 /// the target.
 let quickMessagingTimeout: Float = 0.25
 let messagingTimeout: Float = 1.0
-/// Chromium's web-content tree appears this long after enhanced accessibility is switched on.
-let browserAccessibilitySettle: TimeInterval = 0.35
-
 extension Platform {
-	func ensureEnhancedAccessibility(pid: Int32) {
-		let inserted = enhancedAccessibilityPids.withLock { $0.insert(pid).inserted }
-		if !inserted { return }
-		let appElement = AXUIElementCreateApplication(pid)
-		AXUIElementSetMessagingTimeout(appElement, quickMessagingTimeout)
-		let enhancedStatus = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
-		let manualStatus = AXUIElementSetAttributeValue(appElement, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-		// Chromium builds its web-content tree asynchronously after these toggles and says
-		// nothing when it is done, so the first walk of a browser waits a measured moment
-		// once per pid instead of seeing the browser chrome only.
-		if isBrowser(pid: pid) && (enhancedStatus == .success || manualStatus == .success) {
-			Thread.sleep(forTimeInterval: browserAccessibilitySettle)
-		}
-	}
-
 	func isBrowser(pid: Int32) -> Bool {
 		let app = NSRunningApplication(processIdentifier: pid)
 		if browserBundleIds.contains(app?.bundleIdentifier ?? "") { return true }

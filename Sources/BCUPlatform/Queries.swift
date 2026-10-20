@@ -6,7 +6,7 @@ extension Platform {
 	/// `gone`, until none does), re-reading the tree whenever the app reports a change.
 	public func waitFor(_ request: WaitForRequest) throws -> WaitOutcome {
 		let pid = request.pid
-		ensureEnhancedAccessibility(pid: pid)
+		requestAccessibility(pid: pid)
 		let role = request.role?.trimmingCharacters(in: .whitespacesAndNewlines)
 		let text = request.text.map { foldedForSearch($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 		let expectedValue = request.value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

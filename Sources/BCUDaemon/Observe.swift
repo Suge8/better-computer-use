@@ -47,6 +47,7 @@ extension Daemon {
 			image: look.image.map { ImageSize(width: max(1, $0.width), height: max(1, $0.height)) },
 			readText: look.readText?.requested,
 			readScreen: look.readText?.executed ?? false,
+			webContentMissing: look.webContentMissing,
 			frame: Frame(x: window.origin.x, y: window.origin.y, w: max(0, window.width), h: max(0, window.height)),
 			scale: max(1, look.window.scaleFactor),
 			byteCount: try JSONCoding.string(serialized).utf8.count
@@ -69,7 +70,7 @@ extension Daemon {
 		let observed = try await observation(of: target, readText: params.readText ?? .auto, image: image)
 		let observation = observed.state.payload
 		let root = RootSummary(ref: target.ref, app: target.appName, pid: Int(target.pid), title: target.title, windowId: target.windowId, frame: observation.frame, scale: observation.scale)
-		return observeResult(stateId: observed.state.stateId, root: root, outline: observation.outline.outline(), image: try await artifact(observed.image, for: observed.state.stateId))
+		return observeResult(stateId: observed.state.stateId, root: root, outline: observation.outline.outline(), image: try await artifact(observed.image, for: observed.state.stateId), webContentMissing: observation.webContentMissing)
 	}
 
 	/// Looks at a root and saves the look as a live state in its app's lane.

@@ -177,6 +177,8 @@ public struct LookResult {
 	/// Whether the screen was read; nil for a picture-only popup menu.
 	public let readText: (requested: ReadTextMode, executed: Bool)?
 	public let image: LookImage?
+	/// A browser window whose page the browser exposed no accessibility tree for.
+	public let webContentMissing: Bool
 }
 
 // MARK: Act
