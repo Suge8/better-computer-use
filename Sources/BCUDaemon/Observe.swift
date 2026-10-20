@@ -65,16 +65,31 @@ extension Daemon {
 
 	func observe(_ params: ObserveParams) async throws -> ObserveResult {
 		let image = params.image ?? (params.mode == .fused ? .always : .never)
-		let target = try await observedTarget(params)
+		let target = try await observedTarget(params.selector)
+		let observed = try await observation(of: target, readText: params.readText ?? .auto, image: image)
+		let observation = observed.state.payload
+		let root = RootSummary(ref: target.ref, app: target.appName, pid: Int(target.pid), title: target.title, windowId: target.windowId, frame: observation.frame, scale: observation.scale)
+		return observeResult(stateId: observed.state.stateId, root: root, outline: observation.outline.outline(), image: try await artifact(observed.image, for: observed.state.stateId))
+	}
+
+	/// Looks at a root and saves the look as a live state in its app's lane.
+	func observation(of target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never) async throws -> (state: StoredState<Observation>, image: LookImage?) {
 		let picture = CapturedImage()
 		let state = try await runtime.observe(pid: Int(target.pid)) { _ in
-			let captured = try await self.capture(target, readText: params.readText ?? .auto, image: image)
+			let captured = try await self.capture(target, readText: readText, image: image)
 			picture.value = captured.image
 			return captured.observation
 		}
-		let observation = state.payload
-		let root = RootSummary(ref: target.ref, app: target.appName, pid: Int(target.pid), title: target.title, windowId: target.windowId, frame: observation.frame, scale: observation.scale)
-		return observeResult(stateId: state.stateId, root: root, outline: observation.outline.outline(), image: try await artifact(picture.value, for: state.stateId))
+		return (state, picture.value)
+	}
+
+	/// The state a command runs against: the saved one it names, or a fresh observation of
+	/// the root it selects.
+	func state(_ command: CommandName, stateId: String?, selector: RootSelector?) async throws -> StoredState<Observation> {
+		switch try Subject(command, stateId: stateId, selector: selector) {
+		case .state(let stateId): try runtime.state(stateId)
+		case .fresh(let selector): try await observation(of: try await observedTarget(selector)).state
+		}
 	}
 
 	// MARK: cached queries
@@ -82,7 +97,7 @@ extension Daemon {
 	/// Searches the saved outline. When nothing found can be acted on and the screen was not
 	/// read yet, the root is read from the screen once and the search runs on that new state.
 	func search(_ params: SearchUiParams) async throws -> SearchResult {
-		let state = try runtime.state(params.stateId)
+		let state = try await state(.searchUi, stateId: params.stateId, selector: params.selector)
 		let found = try searchUI(params, in: state.payload.outline.outline(), stateId: state.stateId)
 		let hits = searchOutline(state.payload.outline.outline(), text: trimmed(params.text), role: trimmed(params.role))
 		let nothingToActOn = hits.allSatisfy { !$0.canPress && !$0.canFocus && !$0.canSetValue && $0.actions.isEmpty && !$0.pictureOnly }
@@ -151,11 +166,18 @@ extension Daemon {
 		let role = trimmed(params.role)
 		let timeoutMs = waitTimeout(params.timeoutMs)
 		guard text != nil || role != nil else { throw BCUError(.invalidArguments, "wait-for requires --text or --role.") }
-		let state = try runtime.state(params.stateId)
+		let clock = Countdown(timeoutMs: timeoutMs)
+		let state: StoredState<Observation>
+		switch try Subject(.waitFor, stateId: params.stateId, selector: params.selector) {
+		case .state(let stateId): state = try runtime.state(stateId)
+		case .fresh(let selector):
+			if trimmed(params.scope) != nil { throw stateRefs("--scope") }
+			state = try await observation(of: try await awaitRoot(selector, clock, timeoutMs: timeoutMs)).state
+		}
 		let scope = try trimmed(params.scope).map { try state.payload.outline.handle(of: try node($0, in: state.payload.outline.outline())) }
 		let target = try await current(state.payload.target)
 		let gone = params.gone == true
-		let request = WaitForRequest(pid: target.pid, root: target.root.handle, role: role, text: text, gone: gone, scope: scope, timeoutMs: timeoutMs)
+		let request = WaitForRequest(pid: target.pid, root: target.root.handle, role: role, text: text, gone: gone, scope: scope, timeoutMs: clock.remainingMs)
 		let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
 		guard outcome == .found || outcome == .gone else {
 			let inside = params.scope.map { " inside \($0)" } ?? ""

@@ -53,7 +53,7 @@ private func editor() -> Harness {
 private extension Harness {
 	func observe() async throws -> ObserveResult {
 		_ = try await roots(#"{"app":"TextEdit"}"#)
-		return try await observe(#"{"root":"@r1"}"#)
+		return try await observe(#"{"selector":{"root":"@r1"}}"#)
 	}
 }
 
@@ -82,15 +82,15 @@ struct DiscoveryTests {
 		let harness = editor()
 		_ = try await harness.run(#"{"command":"find-roots","params":{"app":"TextEdit"}}"#)
 		harness.desktop.update { $0.roots[101] = [editorMenuBar()] }
-		#expect(await expectCode(.windowStale) { _ = try await harness.run(#"{"command":"observe-ui","params":{"root":"@r1"}}"#) })
+		#expect(await expectCode(.windowStale) { _ = try await harness.run(#"{"command":"observe-ui","params":{"selector":{"root":"@r1"}}}"#) })
 	}
 
 	/// A mistyped --root must never pick a window by a substring of its name; --app and
 	/// --window-title are the named selectors.
 	@Test func aRootThatIsNeitherARefNorAWindowIdIsRefused() async throws {
 		let harness = editor()
-		#expect(await expectCode(.invalidArguments) { _ = try await harness.run(#"{"command":"observe-ui","params":{"root":"Doc"}}"#) })
-		#expect(await expectCode(.invalidArguments) { _ = try await harness.run(#"{"command":"observe-ui","params":{"root":"TextEdit"}}"#) })
+		#expect(await expectCode(.invalidArguments) { _ = try await harness.run(#"{"command":"observe-ui","params":{"selector":{"root":"Doc"}}}"#) })
+		#expect(await expectCode(.invalidArguments) { _ = try await harness.run(#"{"command":"observe-ui","params":{"selector":{"root":"TextEdit"}}}"#) })
 	}
 
 	@Test func missingPermissionsRefuseCommandsButNotDoctor() async throws {
@@ -125,7 +125,7 @@ struct ObservationTests {
 	@Test func anImageIsWrittenAsAPrivateArtifact() async throws {
 		let harness = editor()
 		_ = try await harness.roots(#"{"app":"TextEdit"}"#)
-		let result = try await harness.observe(#"{"root":"@r1","image":"always"}"#)
+		let result = try await harness.observe(#"{"selector":{"root":"@r1"},"image":"always"}"#)
 		let image = try #require(result.image)
 		#expect(image.path.hasPrefix(harness.shots))
 		#expect(FileManager.default.contents(atPath: image.path) == Data([0xFF, 0xD8, 0xFF, 0xD9]))
@@ -256,7 +256,7 @@ struct ActionTests {
 	@Test func anActionThatClosesTheAppsLastRootLeavesNothingToObserve() async throws {
 		let harness = editor()
 		harness.desktop.update { $0.roots[101] = [editorSheet(), editorWindow(focused: false)] }
-		let state = try await harness.observe(#"{"app":"TextEdit"}"#)
+		let state = try await harness.observe(#"{"selector":{"app":"TextEdit"}}"#)
 		#expect(state.root.title == "Save")
 		harness.desktop.update { scene in
 			scene.answer = { _ in

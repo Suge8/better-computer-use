@@ -39,6 +39,8 @@ extension Platform {
 		}
 		defer { if holdsPhysicalInput { physicalInputLock.unlock() } }
 		let pressLike = action == .press || action == .click
+		// Typing an earlier step aimed: it goes to the focus as it is, with nothing focused first.
+		let intoFocus = if case .focus = request.target { true } else { false }
 		var performed = ActPerformed(delivery: delivery)
 		var element: AXUIElement?
 		var rawPoint: CGPoint?
@@ -84,7 +86,7 @@ extension Platform {
 		/// Input posted to a pid reaches only its key window. The handoff is taken into the
 		/// baseline, so it is never mistaken for the action's own effect.
 		func focusTargetForBackgroundInput() throws {
-			guard delivery == .pid, policy != .axOnly, !params.preserveFocus,
+			guard delivery == .pid, policy != .axOnly, !intoFocus,
 				try focusWindowWithoutRaise(pid: pid, windowId: record.windowId)
 			else { return }
 			performed.focusedWindow = true
@@ -116,6 +118,8 @@ extension Platform {
 			element = stored
 			evidenceElement = stored
 			beforeEvidence = evidenceSnapshot(stored)
+		case .focus:
+			break
 		case .point(let x, let y):
 			guard record.hasImage else {
 				throw BCUError(.actionFailed, "Coordinate targeting is unavailable for this outline-only root")
@@ -444,14 +448,13 @@ extension Platform {
 			}
 			try executeCoordinates(coordinatePoint())
 		} else if action == .typeText {
-			let preserveFocus = params.preserveFocus
 			try focusTargetForBackgroundInput()
 			if let element {
 				let focused = AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
 				if focused == .success { performed.focused = true }
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == .hid && !preserveFocus { try focusTargetForPhysicalInput() }
+			if delivery == .hid && !intoFocus { try focusTargetForPhysicalInput() }
 			let text = params.text
 			try postUnicodeText(text, pid: pid, delivery: delivery)
 			performed.grounding = .coordinates
@@ -460,7 +463,6 @@ extension Platform {
 				return try finish(ActionReport(outcome: judged.outcome, performed: performed, verification: judged.evidence))
 			}
 		} else if action == .keypress {
-			let preserveFocus = params.preserveFocus
 			let keys = params.keys
 			guard !keys.isEmpty else {
 				throw BCUError(.invalidArguments, "keypress requires keys")
@@ -484,7 +486,7 @@ extension Platform {
 				}
 			}
 			acquirePhysicalInputIfNeeded()
-			if delivery == .hid && !preserveFocus { try focusTargetForPhysicalInput() }
+			if delivery == .hid && !intoFocus { try focusTargetForPhysicalInput() }
 			try postKeyPress(keys: keys, pid: pid, delivery: delivery)
 			performed.grounding = .coordinates
 		} else if let element, action == .scroll {

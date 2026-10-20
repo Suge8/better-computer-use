@@ -190,6 +190,8 @@ public enum ActTarget: Sendable {
 	case element(Handle)
 	/// A point in the look's image coordinates.
 	case point(x: Double, y: Double)
+	/// Wherever the app's keyboard focus is: typing that an earlier step aimed.
+	case focus
 }
 
 /// The rung of the delivery ladder a call may start from; see docs/architecture.md.
@@ -207,12 +209,10 @@ public struct ActionInput: Sendable {
 	public let path: [CGPoint]?
 	public let text: String
 	public let keys: [String]
-	/// Deliver to the element's current focus instead of focusing the target first.
-	public let preserveFocus: Bool
 	/// Post raw input to the process rather than through the HID event stream.
 	public let pidDelivery: Bool
 
-	public init(button: CGMouseButton = .left, clickCount: Int = 1, scrollX: Int = 0, scrollY: Int = 0, path: [CGPoint]? = nil, text: String = "", keys: [String] = [], preserveFocus: Bool = false, pidDelivery: Bool = false) {
+	public init(button: CGMouseButton = .left, clickCount: Int = 1, scrollX: Int = 0, scrollY: Int = 0, path: [CGPoint]? = nil, text: String = "", keys: [String] = [], pidDelivery: Bool = false) {
 		self.button = button
 		self.clickCount = clickCount
 		self.scrollX = scrollX
@@ -220,7 +220,6 @@ public struct ActionInput: Sendable {
 		self.path = path
 		self.text = text
 		self.keys = keys
-		self.preserveFocus = preserveFocus
 		self.pidDelivery = pidDelivery
 	}
 }

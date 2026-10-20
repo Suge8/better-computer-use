@@ -111,6 +111,14 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		Thread.sleep(forTimeInterval: min(0.005, Double(timeoutMs) / 1000))
 	}
 
+	func desktopMark(watching pids: [Int32]) -> ChangeMark {
+		ChangeMark(generation: 0)
+	}
+
+	func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int) {
+		Thread.sleep(forTimeInterval: min(0.005, Double(timeoutMs) / 1000))
+	}
+
 	func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage {
 		let read = update { scene in
 			scene.reads.append(handle)

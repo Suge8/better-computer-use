@@ -91,7 +91,7 @@ private func image(_ value: JSONValue?) -> ImageSize? {
 }
 
 /** Errors print as the CLI prints them; stdin parse failures keep only the stable prefix. */
-private let stdinPrefix = "act-ui stdin must be a JSON action array: "
+private let stdinPrefix = "act-ui actions must be a JSON action array: "
 
 private func withoutParserDetail(_ stderr: String) -> String {
 	guard let range = stderr.range(of: stdinPrefix) else { return stderr }
@@ -161,12 +161,12 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 	case "prepare":
 		let action = try JSONCoding.decode(UiAction.self, from: input["action"]!)
 		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: input["headless"]!.bool!)
-		let prepared = try prepareAction(action, state: ActionState(currentFocus: input["currentFocus"]!.bool!), environment: environment)
+		let prepared = try prepareAction(action, environment: environment)
 		return ["prepared": .string(try JSONCoding.string(prepared))]
 	case "deliver":
 		let actions = try validateActions([input["action"]!])
 		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: false)
-		let prepared = try prepareAction(actions[0], state: ActionState(currentFocus: false), environment: environment)
+		let prepared = try prepareAction(actions[0], environment: environment)
 		return ["request": .string(try JSONCoding.string(Delivered(action: prepared.action, target: prepared.target, params: prepared.params)))]
 	case "locate":
 		return try locateCase(input)

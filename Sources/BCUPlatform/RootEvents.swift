@@ -7,13 +7,50 @@ struct RootAXEvent: Sendable {
 	let notification: String
 }
 
+/// A count of changes that waiters compare and sleep on: whoever records a change bumps it,
+/// and every waiter re-checks its condition.
+final class ChangeSignal: Sendable {
+	private let count = OSAllocatedUnfairLock(initialState: UInt64(0))
+	/// Waiters hold it while they compare generations, so a change recorded between the
+	/// comparison and the wait still wakes them.
+	private let changed = NSCondition()
+
+	var generation: UInt64 { count.withLock { $0 } }
+
+	func bump() {
+		count.withLock { $0 += 1 }
+		changed.lock()
+		changed.broadcast()
+		changed.unlock()
+	}
+
+	/// Re-checks `condition` after each change, until it holds or the deadline passes; whether
+	/// it held. Between changes it sleeps.
+	func wait(until deadline: Date, _ condition: () -> Bool) -> Bool {
+		while true {
+			let generation = self.generation
+			if condition() { return true }
+			if Date() >= deadline { return false }
+			wait(since: generation, until: deadline)
+		}
+	}
+
+	/// Returns after the next change since `generation`, or at the deadline.
+	func wait(since generation: UInt64, until deadline: Date) {
+		changed.lock()
+		if self.generation == generation {
+			_ = changed.wait(until: deadline)
+		}
+		changed.unlock()
+	}
+}
+
 /// One app's accessibility notifications: its observer thread records them, requests read
-/// them and wait for the next one.
+/// them and wait for the next one. Each one also counts as a change of the whole desktop.
 final class AppNotifications: Sendable {
 	private struct Log: Sendable {
 		var events: [RootAXEvent] = []
 		var nextSequence: UInt64 = 1
-		var generation: UInt64 = 0
 		var lastUsed = Date()
 	}
 
@@ -23,16 +60,16 @@ final class AppNotifications: Sendable {
 
 	let pid: Int32
 	private let log = OSAllocatedUnfairLock(initialState: Log())
-	/// Waiters hold it while they compare generations, so a notification recorded between the
-	/// comparison and the wait still wakes them.
-	private let changed = NSCondition()
+	private let signal = ChangeSignal()
+	private let desktop: ChangeSignal
 
-	init(pid: Int32) {
+	init(pid: Int32, desktop: ChangeSignal) {
 		self.pid = pid
+		self.desktop = desktop
 	}
 
 	var lastUsed: Date { log.withLock { $0.lastUsed } }
-	var generation: UInt64 { log.withLock { $0.generation } }
+	var generation: UInt64 { signal.generation }
 	var cursor: UInt64 { log.withLock { $0.nextSequence } }
 
 	func touch() {
@@ -44,21 +81,14 @@ final class AppNotifications: Sendable {
 			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification))
 			log.nextSequence += 1
 			if log.events.count > Self.retainedEvents { log.events.removeFirst(log.events.count - Self.retainedEvents) }
-			log.generation += 1
 		}
-		broadcast()
+		signal.bump()
+		desktop.bump()
 	}
 
 	/// Wakes waiters without a notification of the app's own: another app took the front.
 	func wake() {
-		log.withLock { $0.generation += 1 }
-		broadcast()
-	}
-
-	private func broadcast() {
-		changed.lock()
-		changed.broadcast()
-		changed.unlock()
+		signal.bump()
 	}
 
 	func events(since cursor: UInt64) -> [RootAXEvent] {
@@ -68,21 +98,12 @@ final class AppNotifications: Sendable {
 	/// Re-checks `condition` each time a notification arrives or the front app changes, until
 	/// it holds or the deadline passes; whether it held. Between those events it sleeps.
 	func wait(until deadline: Date, _ condition: () -> Bool) -> Bool {
-		while true {
-			let generation = self.generation
-			if condition() { return true }
-			if Date() >= deadline { return false }
-			wait(since: generation, until: deadline)
-		}
+		signal.wait(until: deadline, condition)
 	}
 
-	/// Returns after the next notification or wake, or at the deadline.
-	private func wait(since generation: UInt64, until deadline: Date) {
-		changed.lock()
-		if self.generation == generation {
-			_ = changed.wait(until: deadline)
-		}
-		changed.unlock()
+	/// Returns after the next notification or wake since `generation`, or at the deadline.
+	func wait(since generation: UInt64, until deadline: Date) {
+		signal.wait(since: generation, until: deadline)
 	}
 }
 
@@ -144,12 +165,20 @@ final class RootObservers: Sendable {
 	private static let limit = 4
 	private let apps = OSAllocatedUnfairLock(initialState: [Int32: Observed]())
 	private let starting = NSLock()
+	/// Any change of the desktop: an app launching, quitting or taking the front, or a
+	/// notification of any observed app. Waiting for a root to exist wakes on it.
+	let desktop = ChangeSignal()
 
 	/// Another app taking the front changes what every observed app's waiters look at: which
 	/// app is frontmost, and a menu bar's geometry, which only the frontmost app has.
 	init() {
-		_ = NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: nil) { [weak self] _ in
+		let center = NSWorkspace.shared.notificationCenter
+		_ = center.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: nil) { [weak self] _ in
 			self?.wakeAll()
+			self?.desktop.bump()
+		}
+		for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+			_ = center.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in self?.desktop.bump() }
 		}
 	}
 
@@ -169,7 +198,7 @@ final class RootObservers: Sendable {
 				existing.touch()
 				return existing
 			}
-			let app = AppNotifications(pid: pid)
+			let app = AppNotifications(pid: pid, desktop: desktop)
 			guard let thread = start(app) else { return nil }
 			let exit = DispatchSource.makeProcessSource(identifier: pid, eventMask: .exit, queue: .global())
 			exit.setEventHandler { [weak self] in self?.drop(app) }

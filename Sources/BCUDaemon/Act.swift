@@ -19,6 +19,7 @@ private struct Transaction: Sendable {
 	let steps: [PlannedStep]
 	let scope: Handle?
 	let base: Observation
+	let baseStateId: String
 	/// The roots the app showed before the array ran; read only when a step looks for what an earlier one opened.
 	let known: Set<Handle>
 	var outline: SerializedOutline { base.outline.current.outline }
@@ -106,6 +107,8 @@ private func distinct(_ roots: [ActedRoot]) -> [ActedRoot] {
 extension Daemon {
 	func act(_ params: ActParams) async throws -> BCUCore.ActResult {
 		let actions = try validateActions(params.actions.map { try JSONCoding.encode($0) })
+		let subject = try Subject(.actUi, stateId: params.stateId, selector: params.selector)
+		if case .fresh = subject { try requireStateFree(actions, scope: params.expect?.scope) }
 		let headless = params.headless ?? false
 		let foreground = params.foreground ?? false
 		if headless && foreground {
@@ -115,7 +118,11 @@ extension Daemon {
 		if let expect = params.expect, trimmed(expect.text) == nil, trimmed(expect.role) == nil, trimmed(expect.value) == nil {
 			throw BCUError(.invalidArguments, "act-ui expectations require --expect-text, --expect-role, or --expect-value.")
 		}
-		return try await runtime.act(from: params.stateId, prepare: { state in
+		let stateId = switch subject {
+		case .state(let stateId): stateId
+		case .fresh(let selector): try await observation(of: try await observedTarget(selector)).state.stateId
+		}
+		return try await runtime.act(from: stateId, prepare: { state in
 			try await self.prepare(actions, params: params, headless: headless, state: state)
 		}, deliver: { transaction, lane in
 			try await self.deliver(transaction, actions: actions, params: params, headless: headless, image: image, lane: lane)
@@ -131,7 +138,6 @@ extension Daemon {
 		let environment = ActionEnvironment(outline: outline, image: observation.image, headless: headless)
 		let looksForOpened = actions.contains { $0.find?.root == .opened || $0.expect?.root == .opened }
 		let known = looksForOpened ? Set(try await roots(pid: target.pid).map(\.handle)) : []
-		var focus = ActionState(currentFocus: false)
 		var steps: [PlannedStep] = []
 		for (index, action) in actions.enumerated() {
 			let step: Step
@@ -140,13 +146,12 @@ extension Daemon {
 					? .deliver(try await locateStep(action, locator, index: 0, count: actions.count, base: target, trail: Trail(known: known), headless: headless))
 					: .locate(action, locator)
 			} else {
-				let prepared = try prepareAction(action, state: focus, environment: environment)
-				if prepared.establishesFocus { focus.currentFocus = true }
+				let prepared = try prepareAction(action, environment: environment)
 				if case .wait(let ms) = prepared.params { step = .wait(ms: ms) } else { step = .deliver(try resolvedStep(prepared, outline: outline, observation: observation, root: target)) }
 			}
 			steps.append(PlannedStep(step: step, expect: action.expect))
 		}
-		return Transaction(target: target, steps: steps, scope: scope, base: observation, known: known)
+		return Transaction(target: target, steps: steps, scope: scope, base: observation, baseStateId: state.stateId, known: known)
 	}
 
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
@@ -171,7 +176,7 @@ extension Daemon {
 		let closed = gone.isEmpty ? nil : gone.map(\.target.appearance)
 		guard let successor else {
 			if execution.outcome == .didnt { throw failure(execution) }
-			return BCUCore.ActResult(stateId: nil, baseStateId: params.stateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed)
+			return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed)
 		}
 		let saved = try lane.save(successor.observation)
 		let next = saved.payload.outline.outline()
@@ -189,7 +194,7 @@ extension Daemon {
 			view = fullView(next, omitting: omitting)
 		}
 		return BCUCore.ActResult(
-			stateId: saved.stateId, baseStateId: params.stateId, outcome: outcome, verification: verification,
+			stateId: saved.stateId, baseStateId: transaction.baseStateId, outcome: outcome, verification: verification,
 			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed,
 			next: successor.root.root.handle == target.root.handle ? nil : successor.root.appearance,
 			opened: attached?.opened,
@@ -378,6 +383,6 @@ extension Daemon {
 
 private extension ActionInput {
 	func delivered(_ delivery: Delivery) -> ActionInput {
-		ActionInput(button: button, clickCount: clickCount, scrollX: scrollX, scrollY: scrollY, path: path, text: text, keys: keys, preserveFocus: preserveFocus, pidDelivery: delivery == .pid)
+		ActionInput(button: button, clickCount: clickCount, scrollX: scrollX, scrollY: scrollY, path: path, text: text, keys: keys, pidDelivery: delivery == .pid)
 	}
 }

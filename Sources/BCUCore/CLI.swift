@@ -70,11 +70,26 @@ private struct ParsedOptions {
 	}
 
 	func noPositionals() throws {
-		if let first = positionals.first { throw invalid("Unexpected argument '\(first)'.") }
+		guard let first = positionals.first else { return }
+		if first.hasPrefix("@e") { throw invalid("Unexpected argument '\(first)'. Pass an element ref with --ref.") }
+		throw invalid("Unexpected argument '\(first)'.")
+	}
+
+	var selector: RootSelector {
+		RootSelector(app: raw("app"), pid: integer("pid"), windowTitle: raw("windowTitle"), root: raw("root"))
 	}
 }
 
 private let stateOption = OptionSpec(flag: "--state", key: "stateId", kind: .string(nil), doc: "stateId from observe-ui (required)")
+/// The roots observe-ui picks from; search-ui, act-ui and wait-for take them instead of --state
+/// to observe the root first.
+private let selectorOptions = [
+	OptionSpec(flag: "--app", key: "app", kind: .string(nil), doc: "app name or bundle id"),
+	OptionSpec(flag: "--pid", key: "pid", kind: .integer, doc: "process id of the app, chosen like --app"),
+	OptionSpec(flag: "--window-title", key: "windowTitle", kind: .string(nil), doc: "exact or partial window title"),
+	OptionSpec(flag: "--root", key: "root", kind: .string(nil), doc: "@r ref from find-roots, or a numeric window id"),
+]
+private let subjectOptions = [OptionSpec(flag: "--state", key: "stateId", kind: .string(nil), doc: "stateId from observe-ui; or observe a root first, selected by:")] + selectorOptions
 private let refOption = OptionSpec(flag: "--ref", key: "ref", kind: .string(nil), doc: "element ref from the same state, e.g. @e12 (required)")
 private let imageOption = OptionSpec(flag: "--image", key: "image", kind: .string(ImageMode.allCases.map(\.rawValue)), doc: "write a screenshot artifact (default never)")
 private let timeoutOption = OptionSpec(flag: "--timeout", key: "timeoutMs", kind: .integer, doc: "condition timeout in ms (default 10000, max 60000)")
@@ -94,16 +109,12 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 		OptionSpec(flag: "--pid", key: "pid", kind: .integer, doc: "restrict to one process id"),
 		OptionSpec(flag: "--kind", key: "kind", kind: .string(RootKind.allCases.map(\.rawValue)), doc: "restrict to one root kind; menubar roots are listed only when this or an app names them"),
 	]),
-	.observeUi: CommandSpec(summary: "Observe one root and return a stateId with the projected element tree.", options: [
-		OptionSpec(flag: "--app", key: "app", kind: .string(nil), doc: "app name or bundle id"),
-		OptionSpec(flag: "--window-title", key: "windowTitle", kind: .string(nil), doc: "exact or partial window title"),
-		OptionSpec(flag: "--root", key: "root", kind: .string(nil), doc: "@r ref from find-roots, or a numeric window id"),
+	.observeUi: CommandSpec(summary: "Observe one root and return a stateId with the projected element tree.", options: selectorOptions + [
 		OptionSpec(flag: "--mode", key: "mode", kind: .string(ObserveMode.allCases.map(\.rawValue)), doc: "semantic: accessibility only (default); fused: also capture an image and OCR"),
 		imageOption,
 		OptionSpec(flag: "--read-text", key: "readText", kind: .string(ReadTextMode.allCases.map(\.rawValue)), doc: "OCR policy; auto (default) reads the screen only when the root exposes almost no accessibility content"),
 	]),
-	.searchUi: CommandSpec(summary: "Search the saved outline of one state, including elements the view folded away.", options: [
-		stateOption,
+	.searchUi: CommandSpec(summary: "Search the saved outline of one state, including elements the view folded away.", options: subjectOptions + [
 		OptionSpec(flag: "--text", key: "text", kind: .string(nil), doc: "substring of any name, value or OCR text"),
 		OptionSpec(flag: "--role", key: "role", kind: .string(nil), doc: "role word, e.g. button, textfield, row"),
 		OptionSpec(flag: "--action", key: "action", kind: .string(nil), doc: "capability, e.g. press, setText, scroll"),
@@ -115,8 +126,7 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 		OptionSpec(flag: "--depth", key: "depth", kind: .integer, doc: "levels to unfold below the element (default 3, max 8)"),
 	]),
 	.inspectUi: CommandSpec(summary: "Print every raw accessibility field of one element, including the ones the projection hides.", options: [stateOption, refOption]),
-	.actUi: CommandSpec(summary: "Run a checked action array from stdin against one state and return the successor state.", arguments: "-", options: [
-		stateOption,
+	.actUi: CommandSpec(summary: "Run a checked action array against one state and return the successor state.", arguments: "<actions-json>|-", options: subjectOptions + [
 		OptionSpec(flag: "--headless", key: "headless", kind: .flag, doc: "never activate, focus or move the pointer physically"),
 		OptionSpec(flag: "--foreground", key: "foreground", kind: .flag, doc: "start in the foreground: activate the app and use real input"),
 		imageOption,
@@ -133,8 +143,7 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 		OptionSpec(flag: "--offset", key: "offset", kind: .integer, doc: "first character to read (default 0)"),
 		OptionSpec(flag: "--limit", key: "limit", kind: .integer, doc: "characters to read (default 4000, max 100000)"),
 	]),
-	.waitFor: CommandSpec(summary: "Wait for text or a role to appear or disappear, then return the successor state.", options: [
-		stateOption,
+	.waitFor: CommandSpec(summary: "Wait for text or a role to appear or disappear, then return the successor state.", options: subjectOptions + [
 		OptionSpec(flag: "--text", key: "text", kind: .string(nil), doc: "text that must appear"),
 		OptionSpec(flag: "--role", key: "role", kind: .string(nil), doc: "role word that must appear"),
 		scopeOption,
@@ -216,14 +225,14 @@ private func request(_ name: CommandName, _ parsed: ParsedOptions, stdin: () thr
 	case .observeUi:
 		try parsed.noPositionals()
 		return .observeUi(ObserveParams(
-			app: parsed.raw("app"), windowTitle: parsed.raw("windowTitle"), root: parsed.raw("root"),
+			selector: parsed.selector,
 			mode: parsed.raw("mode").flatMap(ObserveMode.init(rawValue:)), image: parsed.raw("image").flatMap(ImageMode.init(rawValue:)),
 			readText: parsed.raw("readText").flatMap(ReadTextMode.init(rawValue:))
 		))
 	case .searchUi:
 		try parsed.noPositionals()
-		_ = try parsed.required("stateId", "--state")
-		return .searchUi(SearchUiParams(stateId: parsed.raw("stateId")!, text: parsed.raw("text"), role: parsed.raw("role"), action: parsed.raw("action"), limit: parsed.integer("limit")))
+		let selector = try parsed.subjectSelector(.searchUi)
+		return .searchUi(SearchUiParams(stateId: parsed.raw("stateId"), selector: selector, text: parsed.raw("text"), role: parsed.raw("role"), action: parsed.raw("action"), limit: parsed.integer("limit")))
 	case .expandUi:
 		try parsed.noPositionals()
 		return .expandUi(ExpandUiParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.required("ref", "--ref"), depth: parsed.integer("depth")))
@@ -237,15 +246,18 @@ private func request(_ name: CommandName, _ parsed: ParsedOptions, stdin: () thr
 		return .readText(ReadTextParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.required("ref", "--ref"), offset: parsed.integer("offset"), limit: parsed.integer("limit")))
 	case .waitFor:
 		try parsed.noPositionals()
-		_ = try parsed.required("stateId", "--state")
+		let selector = try parsed.subjectSelector(.waitFor)
 		if parsed.trimmed("text") == nil, parsed.trimmed("role") == nil { throw invalid("wait-for requires --text or --role.") }
-		return .waitFor(WaitForParams(stateId: parsed.raw("stateId")!, text: parsed.raw("text"), role: parsed.raw("role"), scope: parsed.raw("scope"), gone: parsed.flag("gone"), timeoutMs: parsed.integer("timeoutMs")))
+		if selector != nil, parsed.trimmed("scope") != nil { throw stateRefs("--scope") }
+		return .waitFor(WaitForParams(stateId: parsed.raw("stateId"), selector: selector, text: parsed.raw("text"), role: parsed.raw("role"), scope: parsed.raw("scope"), gone: parsed.flag("gone"), timeoutMs: parsed.integer("timeoutMs")))
 	}
 }
 
 private func actParams(_ parsed: ParsedOptions, stdin: () throws -> String) throws -> ActParams {
-	if parsed.positionals != ["-"] { throw invalid("act-ui requires '-' and reads its JSON action array from stdin.") }
-	let stateId = try parsed.required("stateId", "--state")
+	guard parsed.positionals.count == 1, let source = parsed.positionals.first else {
+		throw invalid("act-ui takes its JSON action array as one argument, or '-' to read it from stdin.")
+	}
+	let selector = try parsed.subjectSelector(.actUi)
 	let text = parsed.trimmed("expectText")
 	let role = parsed.trimmed("expectRole")
 	let value = parsed.trimmed("expectValue")
@@ -256,9 +268,12 @@ private func actParams(_ parsed: ParsedOptions, stdin: () throws -> String) thro
 	if gone != nil || scope != nil || timeoutMs != nil, !expects {
 		throw invalid("--expect-gone, --scope and --timeout require --expect-text, --expect-role, or --expect-value.")
 	}
+	let actions = try validateActions(readActions(source == "-" ? try stdin() : source))
+	if selector != nil { try requireStateFree(actions, scope: scope) }
 	return ActParams(
-		stateId: stateId,
-		actions: try validateActions(readActions(try stdin())),
+		stateId: parsed.raw("stateId"),
+		selector: selector,
+		actions: actions,
 		headless: parsed.flag("headless"),
 		foreground: parsed.flag("foreground"),
 		image: parsed.raw("image").flatMap(ImageMode.init(rawValue:)),
@@ -266,14 +281,22 @@ private func actParams(_ parsed: ParsedOptions, stdin: () throws -> String) thro
 	)
 }
 
+private extension ParsedOptions {
+	/// The selector when the command runs on a fresh observation, nil when on --state.
+	func subjectSelector(_ command: CommandName) throws -> RootSelector? {
+		if case .fresh(let selector) = try Subject(command, stateId: raw("stateId"), selector: selector) { return selector }
+		return nil
+	}
+}
+
 private func readActions(_ input: String) throws -> [JSONValue] {
 	let parsed: JSONValue
 	do {
 		parsed = try JSONValue(parsing: input)
 	} catch {
-		throw invalid("act-ui stdin must be a JSON action array: \(error)")
+		throw invalid("act-ui actions must be a JSON action array: \(error)")
 	}
-	guard case .array(let items) = parsed else { throw invalid("act-ui stdin must contain a JSON action array.") }
+	guard case .array(let items) = parsed else { throw invalid("act-ui actions must be a JSON action array.") }
 	for item in items where item["action"]?.string.flatMap(ActionName.init(rawValue:)) == nil {
 		throw invalid("Every act-ui item must be an object with a supported action name.")
 	}

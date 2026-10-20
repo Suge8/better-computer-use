@@ -65,6 +65,20 @@ extension Platform {
 		_ = app.wait(until: Date().addingTimeInterval(Double(timeoutMs) / 1000)) { app.generation != mark.generation }
 	}
 
+	/// Where the desktop's changes stand: apps launching, quitting or taking the front, and the
+	/// notifications of observed apps. The `watching` apps are observed first, so a window they
+	/// open or retitle after the mark is a change; an app that accepts no observer still counts
+	/// when it takes the front. Take it before looking for a root.
+	public func desktopMark(watching pids: [Int32]) -> ChangeMark {
+		for pid in pids { _ = try? observedApp(pid) }
+		return ChangeMark(generation: rootObservers.desktop.generation)
+	}
+
+	/// Returns after a desktop change since `mark`, or after `timeoutMs`; the caller looks again either way.
+	public func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int) {
+		rootObservers.desktop.wait(since: mark.generation, until: Date().addingTimeInterval(Double(timeoutMs) / 1000))
+	}
+
 	/// A wait lasts 10 s unless asked otherwise, and between 0.1 s and 60 s.
 	static let defaultWaitTimeoutMs = 10_000
 	static let waitTimeoutRange = 100...60_000
