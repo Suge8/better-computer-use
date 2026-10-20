@@ -2157,6 +2157,131 @@
 			}
 		},
 		{
+			"name": "render observe-ui of a browser window without web content",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--pid",
+					"202"
+				],
+				"result": {
+					"stateId": "5e6f7a8b",
+					"root": {
+						"ref": "@r4",
+						"app": "Google Chrome for Testing",
+						"pid": 202,
+						"title": "bcu probe A - Google Chrome for Testing",
+						"windowId": 2020,
+						"frame": {
+							"x": 40,
+							"y": 60,
+							"w": 700,
+							"h": 500
+						},
+						"scale": 2
+					},
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "bcu probe A - Google Chrome for Testing",
+							"caps": [],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "group",
+							"name": "bcu probe A",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e1",
+							"hidden": {
+								"count": 13,
+								"roles": {
+									"button": 9,
+									"tab": 3,
+									"textfield": 1
+								}
+							}
+						}
+					],
+					"shown": 2,
+					"total": 40,
+					"webContentMissing": true
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"selector\":{\"pid\":202}}}",
+				"stdout": "@r4 Google Chrome for Testing — bcu probe A - Google Chrome for Testing · state 5e6f7a8b · 40 nodes, 2 shown\n@e1 window \"bcu probe A - Google Chrome for Testing\"\n  @e2 group \"bcu probe A\" ▸ 13 hidden: button×9 tab×3 textfield×1\nweb content not exposed: the browser has not built this page's accessibility tree, as happens while its window is minimized, covered or in the background; read the page with a CDP browser tool\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render observe-ui of a browser window without web content --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"observe-ui",
+					"--pid",
+					"202",
+					"--json"
+				],
+				"result": {
+					"stateId": "5e6f7a8b",
+					"root": {
+						"ref": "@r4",
+						"app": "Google Chrome for Testing",
+						"pid": 202,
+						"title": "bcu probe A - Google Chrome for Testing",
+						"windowId": 2020,
+						"frame": {
+							"x": 40,
+							"y": 60,
+							"w": 700,
+							"h": 500
+						},
+						"scale": 2
+					},
+					"nodes": [
+						{
+							"ref": "@e1",
+							"role": "window",
+							"name": "bcu probe A - Google Chrome for Testing",
+							"caps": [],
+							"depth": 0
+						},
+						{
+							"ref": "@e2",
+							"role": "group",
+							"name": "bcu probe A",
+							"caps": [],
+							"depth": 1,
+							"parent": "@e1",
+							"hidden": {
+								"count": 13,
+								"roles": {
+									"button": 9,
+									"tab": 3,
+									"textfield": 1
+								}
+							}
+						}
+					],
+					"shown": 2,
+					"total": 40,
+					"webContentMissing": true
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"selector\":{\"pid\":202}}}",
+				"stdout": "{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"bcu probe A - Google Chrome for Testing\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[],\"depth\":1,\"hidden\":{\"count\":13,\"roles\":{\"button\":9,\"tab\":3,\"textfield\":1}},\"name\":\"bcu probe A\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"group\"}],\"root\":{\"app\":\"Google Chrome for Testing\",\"frame\":{\"h\":500,\"w\":700,\"x\":40,\"y\":60},\"pid\":202,\"ref\":\"@r4\",\"scale\":2,\"title\":\"bcu probe A - Google Chrome for Testing\",\"windowId\":2020},\"shown\":2,\"stateId\":\"5e6f7a8b\",\"total\":40,\"webContentMissing\":true}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
 			"name": "render search-ui",
 			"op": "cli",
 			"input": {
