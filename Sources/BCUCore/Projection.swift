@@ -3,7 +3,7 @@
 
 /// The only capability words an agent ever sees; anything else stays inside the outline.
 public enum Capability: String, CaseIterable, Codable, Sendable {
-	case press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement, raise
+	case press, toggle, setText, typeText, menu, open, expand, scroll, increment, decrement
 }
 
 public struct ProjectedState: Codable, Sendable, Equatable {
@@ -127,7 +127,6 @@ private let actionCapabilities: [String: Capability] = [
 	"axdisclose": .expand,
 	"axincrement": .increment,
 	"axdecrement": .decrement,
-	"axraise": .raise,
 	"axscrollupbypage": .scroll,
 	"axscrolldownbypage": .scroll,
 	"axscrollleftbypage": .scroll,

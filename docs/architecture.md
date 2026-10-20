@@ -132,7 +132,7 @@ OCR 用 Vision 识别简体、繁体中文与英文（不设语言时只识别�
 `Sources/BCUCore/Projection.swift` 是 agent 看到的唯一视图，文本与 `--json` 渲染同一组 `ProjectedNode`：
 
 - role 用短词表，去掉 `AX` 前缀，subrole 更具体时优先（`AXWindow/AXStandardWindow` → `window`）；
-- caps 只能取固定词表（press、toggle、setText、typeText、menu、open、expand、scroll、increment、decrement、raise），其余 AX action 一律不外泄；
+- caps 只能取固定词表（press、toggle、setText、typeText、menu、open、expand、scroll、increment、decrement），其余 AX action 一律不外泄。每个词都有 `act-ui` 动作兑现；窗口的 AXRaise 不外泄：动作总是投到自己的窗口，前台一级需要时自己置顶，单独的置顶动作只会改变用户的窗口层叠；
 - 网页内容（AXWebArea 及其后代）和菜单项、菜单栏项不带 `menu`：Chromium 给每个网页节点都挂 AXShowMenu，每个菜单项都答 AXPick，它们不打开 agent 会选的东西；
 - 网页里的滚动容器带 `scroll`：Chromium 不给它暴露滚动动作，但把不含可聚焦内容的滚动容器设为可聚焦，所以网页里可聚焦、不能按、不收文本的节点（webarea 本身除外）就是它，`act-ui` 在它上方发一次滚轮。含可聚焦子元素的滚动容器在无障碍树里认不出来，不带 `scroll`，对它 scroll 照样能滚；
 - 从屏幕读出的文字 role 固定为 `ocr`，caps 只有 `press`：它没有无障碍元素，只能按坐标点击，不能 setText 或 typeText；`search-ui --role ocr` 与 `inspect-ui` 看到的是同一个节点；
