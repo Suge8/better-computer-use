@@ -1505,9 +1505,7 @@
 							"ref": "@e1",
 							"role": "window",
 							"name": "未命名2",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -1620,7 +1618,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\"}}",
-				"stdout": "@r1 TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 10 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\"\n",
+				"stdout": "@r1 TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 10 shown\n@e1 window \"未命名2\"\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n  @e3 group \"设置格式\" ▸ 16 hidden: segment×8 button×3 popup×3 combobox×1\n  @e4 closebutton {press}\n  @e5 fullscreenbutton {press,menu}\n  @e6 minimizebutton {press}\n  @e7 menubutton \"文稿操作\" {press,menu}\n  @e8 text \"未命名2\"\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -1656,9 +1654,7 @@
 							"ref": "@e1",
 							"role": "window",
 							"name": "未命名2",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -1771,7 +1767,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"app\":\"TextEdit\"}}",
-				"stdout": "{\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}},{\"caps\":[\"press\"],\"depth\":2,\"name\":\"\",\"parent\":\"@e2\",\"ref\":\"@e12\",\"role\":\"ruler\"},{\"caps\":[],\"depth\":1,\"hidden\":{\"count\":16,\"roles\":{\"button\":3,\"combobox\":1,\"menubutton\":1,\"popup\":3,\"segment\":8}},\"name\":\"设置格式\",\"parent\":\"@e1\",\"ref\":\"@e3\",\"role\":\"group\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e4\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e5\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e6\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"文稿操作\",\"parent\":\"@e1\",\"ref\":\"@e7\",\"role\":\"menubutton\"},{\"caps\":[],\"depth\":1,\"name\":\"未命名2\",\"parent\":\"@e1\",\"ref\":\"@e8\",\"role\":\"text\"}],\"root\":{\"app\":\"TextEdit\",\"frame\":{\"h\":488,\"w\":586,\"x\":0,\"y\":25.5},\"pid\":101,\"ref\":\"@r1\",\"scale\":2,\"title\":\"未命名2\",\"windowId\":1010},\"shown\":10,\"stateId\":\"1a2b3c4d\",\"total\":47}\n",
+				"stdout": "{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}},{\"caps\":[\"press\"],\"depth\":2,\"name\":\"\",\"parent\":\"@e2\",\"ref\":\"@e12\",\"role\":\"ruler\"},{\"caps\":[],\"depth\":1,\"hidden\":{\"count\":16,\"roles\":{\"button\":3,\"combobox\":1,\"menubutton\":1,\"popup\":3,\"segment\":8}},\"name\":\"设置格式\",\"parent\":\"@e1\",\"ref\":\"@e3\",\"role\":\"group\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e4\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e5\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e6\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"文稿操作\",\"parent\":\"@e1\",\"ref\":\"@e7\",\"role\":\"menubutton\"},{\"caps\":[],\"depth\":1,\"name\":\"未命名2\",\"parent\":\"@e1\",\"ref\":\"@e8\",\"role\":\"text\"}],\"root\":{\"app\":\"TextEdit\",\"frame\":{\"h\":488,\"w\":586,\"x\":0,\"y\":25.5},\"pid\":101,\"ref\":\"@r1\",\"scale\":2,\"title\":\"未命名2\",\"windowId\":1010},\"shown\":10,\"stateId\":\"1a2b3c4d\",\"total\":47}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -1806,9 +1802,7 @@
 							"ref": "@e1",
 							"role": "window",
 							"name": "未命名2",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -1849,7 +1843,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\"}}",
-				"stdout": "TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 3 shown\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\nimage /tmp/shots/1a2b3c4d.jpg (1172x976)\n",
+				"stdout": "TextEdit — 未命名2 · state 1a2b3c4d · 47 nodes, 3 shown\n@e1 window \"未命名2\"\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\nimage /tmp/shots/1a2b3c4d.jpg (1172x976)\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -1885,9 +1879,7 @@
 							"ref": "@e1",
 							"role": "window",
 							"name": "未命名2",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -1928,7 +1920,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"observe-ui\",\"json\":true,\"params\":{\"app\":\"TextEdit\",\"image\":\"always\"}}",
-				"stdout": "{\"image\":{\"height\":976,\"mime\":\"image/jpeg\",\"path\":\"/tmp/shots/1a2b3c4d.jpg\",\"width\":1172},\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}}],\"root\":{\"app\":\"TextEdit\",\"frame\":{\"h\":488,\"w\":586,\"x\":0,\"y\":25.5},\"pid\":101,\"scale\":2,\"title\":\"未命名2\"},\"shown\":3,\"stateId\":\"1a2b3c4d\",\"total\":47}\n",
+				"stdout": "{\"image\":{\"height\":976,\"mime\":\"image/jpeg\",\"path\":\"/tmp/shots/1a2b3c4d.jpg\",\"width\":1172},\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}}],\"root\":{\"app\":\"TextEdit\",\"frame\":{\"h\":488,\"w\":586,\"x\":0,\"y\":25.5},\"pid\":101,\"scale\":2,\"title\":\"未命名2\"},\"shown\":3,\"stateId\":\"1a2b3c4d\",\"total\":47}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -2063,9 +2055,7 @@
 							"ref": "@e1",
 							"role": "window",
 							"name": "未命名2",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -2108,7 +2098,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"expand-ui\",\"json\":false,\"params\":{\"ref\":\"@e1\",\"stateId\":\"s\"}}",
-				"stdout": "@e1 · state s\n@e1 window \"未命名2\" {raise}\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n",
+				"stdout": "@e1 · state s\n@e1 window \"未命名2\"\n  @e2 scrollarea {scroll}\n    @e9 textarea \"First Text View\" {setText,typeText,menu} focused\n    @e12 ruler {press}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -2133,9 +2123,7 @@
 							"ref": "@e1",
 							"role": "window",
 							"name": "未命名2",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -2178,7 +2166,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"expand-ui\",\"json\":true,\"params\":{\"ref\":\"@e1\",\"stateId\":\"s\"}}",
-				"stdout": "{\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}},{\"caps\":[\"press\"],\"depth\":2,\"name\":\"\",\"parent\":\"@e2\",\"ref\":\"@e12\",\"role\":\"ruler\"}],\"ref\":\"@e1\",\"stateId\":\"s\"}\n",
+				"stdout": "{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"未命名2\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"scroll\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"scrollarea\"},{\"caps\":[\"setText\",\"typeText\",\"menu\"],\"depth\":2,\"name\":\"First Text View\",\"parent\":\"@e2\",\"ref\":\"@e9\",\"role\":\"textarea\",\"state\":{\"focused\":true}},{\"caps\":[\"press\"],\"depth\":2,\"name\":\"\",\"parent\":\"@e2\",\"ref\":\"@e12\",\"role\":\"ruler\"}],\"ref\":\"@e1\",\"stateId\":\"s\"}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -2600,9 +2588,7 @@
 							"ref": "@e48",
 							"role": "window",
 							"name": "MacBook Pro",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -2780,7 +2766,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"wait-for\",\"json\":false,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
-				"stdout": "state t · found\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stdout": "state t · found\n@e48 window \"MacBook Pro\"\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -2805,9 +2791,7 @@
 							"ref": "@e48",
 							"role": "window",
 							"name": "MacBook Pro",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -2985,7 +2969,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"wait-for\",\"json\":true,\"params\":{\"stateId\":\"s\",\"text\":\"x\"}}",
-				"stdout": "{\"found\":true,\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"shown\":14,\"stateId\":\"t\",\"total\":99}\n",
+				"stdout": "{\"found\":true,\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"shown\":14,\"stateId\":\"t\",\"total\":99}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -3439,9 +3423,7 @@
 							"ref": "@e48",
 							"role": "window",
 							"name": "MacBook Pro",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -3619,7 +3601,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "state t ← s · worked via ax · selected · verified\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stdout": "state t ← s · worked via ax · selected · verified\n@e48 window \"MacBook Pro\"\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -3655,9 +3637,7 @@
 							"ref": "@e48",
 							"role": "window",
 							"name": "MacBook Pro",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -3835,7 +3815,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "{\"baseStateId\":\"s\",\"delivery\":\"ax\",\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"outcome\":\"worked\",\"shown\":14,\"stateId\":\"t\",\"total\":99,\"verification\":{\"evidence\":{\"field\":\"selected\",\"source\":\"ax\"},\"status\":\"verified\",\"text\":\"x\",\"timeoutMs\":100}}\n",
+				"stdout": "{\"baseStateId\":\"s\",\"delivery\":\"ax\",\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"outcome\":\"worked\",\"shown\":14,\"stateId\":\"t\",\"total\":99,\"verification\":{\"evidence\":{\"field\":\"selected\",\"source\":\"ax\"},\"status\":\"verified\",\"text\":\"x\",\"timeoutMs\":100}}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -3882,9 +3862,7 @@
 							"ref": "@e48",
 							"role": "window",
 							"name": "MacBook Pro",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -4062,7 +4040,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nnext root @r1 window \"未命名2\"\n@e48 window \"MacBook Pro\" {raise}\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
+				"stdout": "state t ← s · worked via ax · root closed\n- root @r5 sheet \"警告\"\nnext root @r1 window \"未命名2\"\n@e48 window \"MacBook Pro\"\n  @e62 outline \"边栏\" {menu,scroll} ▸ 19 hidden: row×18 button×1\n  @e64 browser \"分栏视图\" {menu}\n    @e139 list {menu,scroll} focused\n      @e144 textfield =\"网络\" {setText,typeText,menu,open}\n      @e146 textfield =\"Macintosh HD\" {setText,typeText,menu,open}\n  @e95 image \"不可编辑\"\n  @e96 text \"2个项目\"\n  @e66 list \"路径\" {menu} ▸ 1 hidden: text×1\n  @e50 toolbar {menu} ▸ 6 hidden: button×2 segment×2 group×1 searchfield×1\n  @e51 closebutton {press}\n  @e52 fullscreenbutton {press,menu}\n  @e53 minimizebutton {press}\n  @e54 text \"MacBook Pro\" {press}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -4110,9 +4088,7 @@
 							"ref": "@e48",
 							"role": "window",
 							"name": "MacBook Pro",
-							"caps": [
-								"raise"
-							],
+							"caps": [],
 							"depth": 0
 						},
 						{
@@ -4290,7 +4266,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
-				"stdout": "{\"baseStateId\":\"s\",\"closed\":[{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"}],\"delivery\":\"ax\",\"next\":{\"app\":\"TextEdit\",\"kind\":\"window\",\"ref\":\"@r1\",\"title\":\"未命名2\"},\"nodes\":[{\"caps\":[\"raise\"],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"outcome\":\"worked\",\"shown\":14,\"stateId\":\"t\",\"total\":99,\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"status\":\"none\"}}\n",
+				"stdout": "{\"baseStateId\":\"s\",\"closed\":[{\"app\":\"TextEdit\",\"kind\":\"sheet\",\"ref\":\"@r5\",\"title\":\"警告\"}],\"delivery\":\"ax\",\"next\":{\"app\":\"TextEdit\",\"kind\":\"window\",\"ref\":\"@r1\",\"title\":\"未命名2\"},\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"MacBook Pro\",\"ref\":\"@e48\",\"role\":\"window\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":1,\"hidden\":{\"count\":19,\"roles\":{\"button\":1,\"row\":18}},\"name\":\"边栏\",\"owners\":{\"scroll\":\"@e55\"},\"parent\":\"@e48\",\"ref\":\"@e62\",\"role\":\"outline\"},{\"caps\":[\"menu\"],\"depth\":1,\"name\":\"分栏视图\",\"parent\":\"@e48\",\"ref\":\"@e64\",\"role\":\"browser\"},{\"caps\":[\"menu\",\"scroll\"],\"depth\":2,\"name\":\"\",\"owners\":{\"scroll\":\"@e119\"},\"parent\":\"@e64\",\"ref\":\"@e139\",\"role\":\"list\",\"state\":{\"focused\":true}},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e144\",\"role\":\"textfield\",\"value\":\"网络\"},{\"caps\":[\"setText\",\"typeText\",\"menu\",\"open\"],\"depth\":3,\"name\":\"\",\"parent\":\"@e139\",\"ref\":\"@e146\",\"role\":\"textfield\",\"value\":\"Macintosh HD\"},{\"caps\":[],\"depth\":1,\"name\":\"不可编辑\",\"parent\":\"@e48\",\"ref\":\"@e95\",\"role\":\"image\"},{\"caps\":[],\"depth\":1,\"name\":\"2个项目\",\"parent\":\"@e48\",\"ref\":\"@e96\",\"role\":\"text\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":1,\"roles\":{\"text\":1}},\"name\":\"路径\",\"parent\":\"@e48\",\"ref\":\"@e66\",\"role\":\"list\"},{\"caps\":[\"menu\"],\"depth\":1,\"hidden\":{\"count\":6,\"roles\":{\"button\":2,\"group\":1,\"searchfield\":1,\"segment\":2}},\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e50\",\"role\":\"toolbar\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e51\",\"role\":\"closebutton\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e52\",\"role\":\"fullscreenbutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"\",\"parent\":\"@e48\",\"ref\":\"@e53\",\"role\":\"minimizebutton\"},{\"caps\":[\"press\"],\"depth\":1,\"name\":\"MacBook Pro\",\"parent\":\"@e48\",\"ref\":\"@e54\",\"role\":\"text\"}],\"outcome\":\"worked\",\"shown\":14,\"stateId\":\"t\",\"total\":99,\"verification\":{\"evidence\":{\"field\":\"closed\",\"source\":\"root\"},\"status\":\"none\"}}\n",
 				"stderr": "",
 				"exitCode": 0
 			}
