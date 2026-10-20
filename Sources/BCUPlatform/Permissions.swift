@@ -102,3 +102,13 @@ extension Platform {
 		grants.request()
 	}
 }
+
+extension Platform {
+	/// Whether the session sits behind the lock screen. macOS locks it when the screen saver
+	/// starts or the display sleeps, password or not; every app's windows then read as empty,
+	/// and foreground input would reach the lock screen. Read fresh: it changes at any moment.
+	public func screenLocked() -> Bool {
+		guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
+		return session["CGSSessionScreenIsLocked"] as? Bool ?? false
+	}
+}

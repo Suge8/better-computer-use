@@ -102,6 +102,23 @@ struct DiscoveryTests {
 		#expect(doctor["permissions"]?["screenRecording"] == .bool(false))
 	}
 
+	@Test func aLockedScreenRefusesLiveCommandsButNotCachedQueries() async throws {
+		let harness = editor()
+		let state = try await harness.observe()
+		harness.desktop.update { $0.locked = true }
+		for request in [
+			#"{"command":"find-roots","params":{}}"#,
+			#"{"command":"observe-ui","params":{"selector":{"app":"TextEdit"}}}"#,
+			#"{"command":"search-ui","params":{"selector":{"app":"TextEdit"},"text":"OK"}}"#,
+			#"{"command":"act-ui","params":{"stateId":"\#(state.stateId)","actions":[{"action":"press","ref":"@e2"}]}}"#,
+		] {
+			#expect(await expectCode(.screenLocked) { _ = try await harness.run(request) })
+		}
+		#expect(harness.desktop.scene.acts.isEmpty)
+		_ = try await harness.run(#"{"command":"search-ui","params":{"stateId":"\#(state.stateId)","text":"OK"}}"#)
+		_ = try await harness.run(#"{"command":"inspect-ui","params":{"stateId":"\#(state.stateId)","ref":"@e2"}}"#)
+	}
+
 	@Test func setupRegistersThePermissions() async throws {
 		let harness = editor()
 		let setup = try await harness.plain(.setup)

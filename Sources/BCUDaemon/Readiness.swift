@@ -27,6 +27,13 @@ extension Daemon {
 		throw BCUError(.permissionMissing, "\(message)\nMissing permissions: \(missing.joined(separator: " and ")). Run 'bcu setup' to grant them, then retry.")
 	}
 
+	/// Refuses a command that needs the desktop while the session is behind the lock screen:
+	/// no window can be seen and foreground input would reach the lock screen.
+	func ensureUnlocked() async throws {
+		guard try await offload({ [desktop = self.desktop] in desktop.screenLocked() }) else { return }
+		throw BCUError(.screenLocked, "The screen is locked, so macOS shows bcu no window of any app.")
+	}
+
 	/// The platform the resident runs on and the grants it holds.
 	func doctor() async throws -> JSONValue {
 		let (diagnostics, status) = try await offload { [desktop = self.desktop] in (desktop.diagnostics(), desktop.checkPermissions()) }

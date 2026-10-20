@@ -36,6 +36,7 @@ final class Daemon<D: Desktop>: Sendable {
 			// A state that is gone says so before anything else is checked.
 			if let stateId = command.stateId { _ = try runtime.state(stateId) }
 			try await ensurePermissions()
+			if command.readsDesktop { try await ensureUnlocked() }
 			return try await run(command).json()
 		}
 	}
@@ -55,6 +56,16 @@ final class Daemon<D: Desktop>: Sendable {
 }
 
 private extension CommandRequest {
+	/// Whether the command looks at or acts on the live desktop; cached queries over a saved
+	/// state do not, until their own live fallbacks run.
+	var readsDesktop: Bool {
+		switch self {
+		case .findRoots, .observeUi, .actUi, .readText, .waitFor: true
+		case .searchUi(let params): params.selector != nil
+		case .expandUi, .inspectUi: false
+		}
+	}
+
 	var stateId: String? {
 		switch self {
 		case .findRoots, .observeUi: nil

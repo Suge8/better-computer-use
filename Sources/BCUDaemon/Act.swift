@@ -342,9 +342,13 @@ extension Daemon {
 			report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
 		} catch let refusal as ForegroundRequired {
 			guard !headless else { throw BCUError(.actionFailed, refusal.message) }
+			try await ensureUnlocked()
 			return try await inForeground()
 		}
-		if canRetryInForeground(report.outcome, headless: headless) { return try await inForeground() }
+		if canRetryInForeground(report.outcome, headless: headless) {
+			try await ensureUnlocked()
+			return try await inForeground()
+		}
 		return Execution(report, in: step, headless: headless)
 	}
 

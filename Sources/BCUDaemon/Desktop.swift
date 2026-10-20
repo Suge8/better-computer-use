@@ -18,6 +18,7 @@ protocol Desktop: Sendable {
 	func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int)
 	func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage
 	func diagnostics() -> Diagnostics
+	func screenLocked() -> Bool
 	func checkPermissions() -> PermissionStatus
 	func registerPermissions() -> PermissionRegistration
 }

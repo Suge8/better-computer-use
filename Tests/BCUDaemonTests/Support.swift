@@ -12,6 +12,7 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		var apps: [RunningApp] = []
 		var roots: [Int32: [Root]] = [:]
 		var permissions = true
+		var locked = false
 		/// Element values actions changed, by handle name.
 		var values: [String: String] = [:]
 		var looks: [LookRequest] = []
@@ -131,6 +132,8 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 	func diagnostics() -> Diagnostics {
 		Diagnostics(accessibility: scene.permissions, screenRecording: scene.permissions, pid: 1, parentPid: 1, parentPath: nil, parentAppName: nil, parentBundleId: nil, executablePath: "/Applications/bcu.app/Contents/MacOS/bcu", macOS: "27", arch: "arm64")
 	}
+
+	func screenLocked() -> Bool { scene.locked }
 
 	func checkPermissions() -> PermissionStatus {
 		let granted = scene.permissions

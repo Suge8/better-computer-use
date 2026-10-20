@@ -102,6 +102,7 @@ extension Daemon {
 		let hits = searchOutline(state.payload.outline.outline(), text: trimmed(params.text), role: trimmed(params.role))
 		let nothingToActOn = hits.allSatisfy { !$0.canPress && !$0.canFocus && !$0.canSetValue && $0.actions.isEmpty && !$0.pictureOnly }
 		guard nothingToActOn, state.payload.readText != .never, !state.payload.readScreen else { return found }
+		try await ensureUnlocked()
 		let read = try await runtime.read(from: state.stateId) { state, lane in
 			let target = try await self.current(state.payload.target)
 			// Lines read from the screen are pressed by coordinates, which need the picture.
@@ -117,6 +118,7 @@ extension Daemon {
 		guard let ref = trimmed(params.ref) else { throw BCUError(.invalidArguments, "expand-ui requires --ref.") }
 		guard let node = state.payload.outline.outline().node(ref) else { throw BCUError(.elementNotFound, "Ref '\(ref)' is not in the current state.") }
 		if node.truncated {
+			try await ensureUnlocked()
 			try await runtime.read(from: state.stateId) { state, _ in
 				let observation = state.payload
 				let target = try await self.current(observation.target)
