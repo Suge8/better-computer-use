@@ -66,19 +66,32 @@ extension Platform {
 	}
 
 	/// Starts watching the apps for the windows they open, retitle or focus, and returns where
-	/// the desktop's changes stand from then on: such a window, an app launching, quitting or
-	/// taking the front, or a notification of an observed app. One thread hosts an observer per
-	/// app (an app that takes none, or runs as a background-only process, is left out); stop
-	/// the watch when the wait is over.
+	/// the desktop's changes stood when it started: such a window, an app launching, quitting
+	/// or taking the front, or a notification of an observed app counts as a change. Apps that
+	/// show windows are watched: regular apps, and others that own a window now; agents and
+	/// helpers without one are left out, they take the front when they open one. One thread
+	/// hosts an observer per app and registers them without the caller waiting: registering
+	/// waits on each app's answer, a hung app's for the messaging timeout. Its end counts as a
+	/// change, so a window opened before its app was registered is looked for again. Stop the
+	/// watch when the wait is over.
 	public func watchRoots(of pids: [Int32]) -> RootWatch {
 		let signal = rootObservers.desktop
-		guard !pids.isEmpty else { return RootWatch(mark: ChangeMark(generation: signal.generation), thread: nil) }
+		let mark = ChangeMark(generation: signal.generation)
+		let owners = Set(cgWindowOwners(entries: nil).map(\.pid))
+		let watched = pids.filter { owners.contains($0) || NSRunningApplication(processIdentifier: $0)?.activationPolicy == .regular }
+		guard !watched.isEmpty else { return RootWatch(mark: mark, thread: nil) }
 		let thread = RunLoopThread.start { [self] in
-			let observers = pids.compactMap { rootObserver(pid: $0, signal: signal) }
-			for observer in observers { CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes) }
-			return observers.isEmpty ? nil : observers as NSArray
+			let observers = NSMutableArray()
+			CFRunLoopPerformBlock(CFRunLoopGetCurrent(), CFRunLoopMode.commonModes.rawValue) {
+				for observer in watched.compactMap({ self.rootObserver(pid: $0, signal: signal) }) {
+					observers.add(observer)
+					CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)
+				}
+				signal.bump()
+			}
+			return observers
 		}
-		return RootWatch(mark: ChangeMark(generation: signal.generation), thread: thread)
+		return RootWatch(mark: mark, thread: thread)
 	}
 
 	/// Returns after a desktop change since `mark`, or after `timeoutMs`; the caller looks again either way.
