@@ -128,12 +128,13 @@ extension Daemon {
 			do {
 				return try await observedTarget(selector)
 			} catch let error as BCUError where mayAppear(error, selector) {
-				guard clock.remainingMs > 0 else {
-					throw BCUError(.actionTimeout, "No root matching the selector appeared within \(timeoutMs)ms. \(error.message)")
-				}
+				let timedOut = BCUError(.actionTimeout, "No root matching the selector appeared within \(timeoutMs)ms. \(error.message)")
+				guard clock.remainingMs > 0 else { throw timedOut }
 				let fresh = try await watchedPids(selector).filter { !watched.contains($0) }
 				if let since = mark, fresh.isEmpty {
 					try await offload { [desktop = self.desktop] in desktop.waitForDesktopChange(since: since, timeoutMs: clock.remainingMs) }
+					// Woken by the deadline rather than a change: one more look would only overrun it.
+					guard clock.remainingMs > 0 else { throw timedOut }
 				}
 				// New apps are watched before the mark; with none, the watch only takes the mark.
 				let watch = try await offload { [desktop = self.desktop] in desktop.watchRoots(of: fresh) }

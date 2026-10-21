@@ -25,14 +25,15 @@ extension Daemon {
 	/// same root, refs of what is still there are kept.
 	/// `image` asks for a picture at the size an explicit request gets; the platform may take
 	/// one anyway to read the screen.
-	func capture(_ target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never, base: Observation? = nil) async throws -> (observation: Observation, image: LookImage?) {
-		try await capture(target, readText: readText, includeImage: image == .always, maxDimension: image == .always ? explicitImageDimension : automaticImageDimension, base: base)
+	/// `until` ends a wait for a browser's web content at the caller's own deadline.
+	func capture(_ target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never, base: Observation? = nil, until deadline: Date? = nil) async throws -> (observation: Observation, image: LookImage?) {
+		try await capture(target, readText: readText, includeImage: image == .always, maxDimension: image == .always ? explicitImageDimension : automaticImageDimension, base: base, until: deadline)
 	}
 
-	func capture(_ target: Target, readText: ReadTextMode, includeImage: Bool, maxDimension: Int, base: Observation?) async throws -> (observation: Observation, image: LookImage?) {
+	func capture(_ target: Target, readText: ReadTextMode, includeImage: Bool, maxDimension: Int, base: Observation?, until deadline: Date? = nil) async throws -> (observation: Observation, image: LookImage?) {
 		let request = LookRequest(
 			root: target.root.handle, windowId: target.root.windowId.flatMap { $0 > 0 ? $0 : nil },
-			maxDimension: maxDimension, readText: readText, includeImage: includeImage
+			maxDimension: maxDimension, readText: readText, includeImage: includeImage, deadline: deadline
 		)
 		let look = try await offload { [desktop = self.desktop] in try desktop.look(request) }
 		let baseOutline = base.flatMap { $0.target.root.handle == target.root.handle ? $0.outline.current : nil }
@@ -74,10 +75,10 @@ extension Daemon {
 	}
 
 	/// Looks at a root and saves the look as a live state in its app's lane.
-	func observation(of target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never) async throws -> (state: StoredState<Observation>, image: LookImage?) {
+	func observation(of target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never, until deadline: Date? = nil) async throws -> (state: StoredState<Observation>, image: LookImage?) {
 		let picture = CapturedImage()
 		let state = try await runtime.observe(pid: Int(target.pid)) { _ in
-			let captured = try await self.capture(target, readText: readText, image: image)
+			let captured = try await self.capture(target, readText: readText, image: image, until: deadline)
 			picture.value = captured.image
 			return captured.observation
 		}
@@ -175,7 +176,8 @@ extension Daemon {
 		case .state(let stateId): state = try runtime.state(stateId)
 		case .fresh(let selector):
 			if trimmed(params.scope) != nil { throw stateRefs("--scope") }
-			state = try await observation(of: try await awaitRoot(selector, clock, timeoutMs: timeoutMs)).state
+			let root = try await awaitRoot(selector, clock, timeoutMs: timeoutMs)
+			state = try await observation(of: root, until: clock.deadline).state
 		}
 		let scope = try trimmed(params.scope).map { try state.payload.outline.handle(of: try node($0, in: state.payload.outline.outline())) }
 		let target = try await current(state.payload.target)
@@ -187,7 +189,7 @@ extension Daemon {
 			throw BCUError(.actionTimeout, "The condition \(gone ? "still held" : "did not appear") within \(timeoutMs)ms\(inside).")
 		}
 		let successor = try await runtime.read(from: state.stateId) { state, lane in
-			try lane.save(try await self.capture(target, base: state.payload).observation)
+			try lane.save(try await self.capture(target, base: state.payload, until: clock.deadline).observation)
 		}
 		let view = successorView(base: state.payload.outline.outline(), next: successor.payload.outline.outline())
 		return BCUCore.WaitForResult(stateId: successor.stateId, found: true, gone: outcome == .gone ? true : nil, changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total)

@@ -99,9 +99,10 @@ extension Platform {
 		rootObservers.desktop.wait(since: mark.generation, until: Date().addingTimeInterval(Double(timeoutMs) / 1000))
 	}
 
-	/// A wait lasts 10 s unless asked otherwise, and between 0.1 s and 60 s.
+	/// A wait lasts 10 s unless asked otherwise, and at most 60 s. A caller whose own time has run
+	/// out asks for 0: the condition is checked once.
 	static let defaultWaitTimeoutMs = 10_000
-	static let waitTimeoutRange = 100...60_000
+	static let waitTimeoutRange = 0...60_000
 	/// How much of the root a wait searches each time it looks.
 	static let waitSearchDepth = 12
 	static let waitSearchNodes = 2_000

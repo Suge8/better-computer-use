@@ -98,7 +98,7 @@ extension Platform {
 		// from the screen.
 		var webContentMissing = false
 		if scope == nil, lacksWebContent(outline, window: window, request: accessibility) {
-			if awaitWebContent(pid: pid, window: window) { outline = buildLookOutline(root: rootElement, transform: frame.transform) }
+			if awaitWebContent(pid: pid, window: window, until: request.deadline) { outline = buildLookOutline(root: rootElement, transform: frame.transform) }
 			webContentMissing = lacksWebContent(outline, window: window, request: accessibility)
 		}
 		// A window that says (almost) nothing through Accessibility is read from the screen,
