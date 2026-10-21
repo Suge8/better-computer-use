@@ -2221,6 +2221,88 @@
 				"json": "{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"Fixture\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"press\",\"menu\"],\"depth\":1,\"name\":\"New Tab\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"button\"},{\"caps\":[],\"depth\":1,\"name\":\"Page\",\"parent\":\"@e1\",\"ref\":\"@e3\",\"role\":\"webarea\"},{\"caps\":[\"scroll\"],\"depth\":2,\"name\":\"Scroll area\",\"parent\":\"@e3\",\"ref\":\"@e4\",\"role\":\"group\"},{\"caps\":[\"setText\",\"typeText\"],\"depth\":2,\"name\":\"Query\",\"parent\":\"@e3\",\"ref\":\"@e5\",\"role\":\"textfield\"},{\"caps\":[\"press\"],\"depth\":2,\"name\":\"Go\",\"parent\":\"@e3\",\"ref\":\"@e6\",\"role\":\"button\"}],\"shown\":6,\"total\":6,\"truncated\":false}",
 				"text": "@e1 window \"Fixture\"\n  @e2 button \"New Tab\" {press,menu}\n  @e3 webarea \"Page\"\n    @e4 group \"Scroll area\" {scroll}\n    @e5 textfield \"Query\" {setText,typeText}\n    @e6 button \"Go\" {press}"
 			}
+		},
+		{
+			"name": "role conditions match the view word, the role or the subrole, exactly",
+			"op": "roles",
+			"input": {
+				"cases": {
+					"the view word": {
+						"wanted": "button",
+						"role": "AXButton",
+						"subrole": ""
+					},
+					"the accessibility role": {
+						"wanted": "AXButton",
+						"role": "AXButton",
+						"subrole": ""
+					},
+					"the role without AX, any case": {
+						"wanted": "Button",
+						"role": "AXButton",
+						"subrole": ""
+					},
+					"the view word for static text": {
+						"wanted": "text",
+						"role": "AXStaticText",
+						"subrole": ""
+					},
+					"the role word the view replaces": {
+						"wanted": "statictext",
+						"role": "AXStaticText",
+						"subrole": ""
+					},
+					"the view word from a subrole": {
+						"wanted": "window",
+						"role": "AXWindow",
+						"subrole": "AXStandardWindow"
+					},
+					"the subrole itself": {
+						"wanted": "AXStandardWindow",
+						"role": "AXWindow",
+						"subrole": "AXStandardWindow"
+					},
+					"a more specific subrole wins the view word": {
+						"wanted": "dialog",
+						"role": "AXWindow",
+						"subrole": "AXSystemDialog"
+					},
+					"the alias of a role": {
+						"wanted": "popup",
+						"role": "AXPopUpButton",
+						"subrole": ""
+					},
+					"spaces and dashes are ignored": {
+						"wanted": "pop-up button",
+						"role": "AXPopUpButton",
+						"subrole": ""
+					},
+					"another role": {
+						"wanted": "button",
+						"role": "AXCheckBox",
+						"subrole": ""
+					},
+					"a prefix is no match": {
+						"wanted": "butt",
+						"role": "AXButton",
+						"subrole": ""
+					}
+				}
+			},
+			"output": {
+				"the view word": "true",
+				"the accessibility role": "true",
+				"the role without AX, any case": "true",
+				"the view word for static text": "true",
+				"the role word the view replaces": "true",
+				"the view word from a subrole": "true",
+				"the subrole itself": "true",
+				"a more specific subrole wins the view word": "true",
+				"the alias of a role": "true",
+				"spaces and dashes are ignored": "true",
+				"another role": "false",
+				"a prefix is no match": "false"
+			}
 		}
 	]
 }
