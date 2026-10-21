@@ -165,7 +165,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 证据按主体取，不按投递方式取。主体有按下会移动的 AX 事实（值、选中状态、文本选区）时，只用 AX 读回判定。主体没有这类事实时（OCR 节点、自绘区域、没有值的普通按钮），按下以及落在坐标上的滚轮和拖拽在元素证据和根变化都没有结论后，才用屏幕证据：投递前查一次窗口并截图，投递后在最多 600 ms 内每 80 ms 再截一次（窗口不再重查；像素变化没有任何通知，这是平台里唯一按间隔截图的地方），排除标题栏后比较内容区，超过 0.5% 像素的某个通道变化超过 30，记为 `worked`，证据为 `source: screen`，CLI 写作 `screen changed`。截图不含真实鼠标和 agent 光标覆盖层；标题栏按窗口实际缩放比例排除。屏幕证据可能把焦点环、无关动画、通知或新消息误判为动作效果，这是它排在最后、且只用于没有 AX 读回的主体的原因。
 
-升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或平台明确要求前台（`ForegroundRequired`），才交给下一级。AXPress 报错不等于没按下：只有证明请求没送达的错误（元素失效、参数非法、应用不实现无障碍）才重找元素再按或改走坐标点击；超时（按钮打开模态对话框或忙于处理时，AXPress 阻塞到消息超时返回 `kAXErrorCannotComplete`）和其余错误同成功一样按证据判定，再按或再点一次会让动作生效两次。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 也不算失败，结果写作 unverified（见下节）。不带目标的打字和按键落在应用此刻的键盘焦点上，不需要截图；数组里它前面要有一个可能留下焦点的步骤：带目标（ref、坐标或 `find`）的 press、click、doubleClick、typeText 或 keypress。它同样从后台开始，没有可读回的元素，结果是 `unknown`，不升级。`headless` 不接受无目标打字：它的点击是后台无障碍按下，不一定移动焦点。这条规则在平台内部（ax → pid）和动作事务里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。`act-ui --foreground` 让数组里每个动作直接从第三级开始，用于调用方已知应用只在前台才响应的场合（见已知局限）；它与 `headless` 矛盾，同时给出时以 `invalid_arguments` 拒绝。
+升级只有一条规则：某一级证明自己什么都没改变（`didnt`），或平台明确要求前台（`ForegroundRequired`），才交给下一级。按 ref 或定位器按下一个已选中的选择类控件（radio、标签页、segment）不投递，直接 `worked`，证据 `alreadySelected`（文本 `already selected`）：按下它的意思是选中它，这已经成立；而分段控件在已选中的那段上被点击时会再发一次它的动作（重新排序、重新加载），不投递就不制造这种副作用。落在坐标上的点击已经投递，同样判 `worked`。AXPress 报错不等于没按下：只有证明请求没送达的错误（元素失效、参数非法、应用不实现无障碍）才重找元素再按或改走坐标点击；超时（按钮打开模态对话框或忙于处理时，AXPress 阻塞到消息超时返回 `kAXErrorCannotComplete`）和其余错误同成功一样按证据判定，再按或再点一次会让动作生效两次。`unknown` 不升级：那一级已经投递，再投一次可能让动作生效两次——Chromium 的 AXPress 本身就会派发 mousedown、mouseup 与 click，对不可聚焦元素再点一次实测会触发两次。`unknown` 也不算失败，结果写作 unverified（见下节）。不带目标的打字和按键落在应用此刻的键盘焦点上，不需要截图；数组里它前面要有一个可能留下焦点的步骤：带目标（ref、坐标或 `find`）的 press、click、doubleClick、typeText 或 keypress。它同样从后台开始，没有可读回的元素，结果是 `unknown`，不升级。`headless` 不接受无目标打字：它的点击是后台无障碍按下，不一定移动焦点。这条规则在平台内部（ax → pid）和动作事务里（后台 → 前台）是同一条。`headless` 把梯子钉死在第一级。`act-ui --foreground` 让数组里每个动作直接从第三级开始，用于调用方已知应用只在前台才响应的场合（见已知局限）；它与 `headless` 矛盾，同时给出时以 `invalid_arguments` 拒绝。
 
 第二级为什么用私有接口：公开的 `CGEvent.postToPid` 不经过 WindowServer 的活动监视，Chromium 不把这类事件当真实输入。SkyLight 这一级做三件事：
 
@@ -194,12 +194,12 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 1. 目标元素自身的事实移动了——AXValue、AXSelected、AXFocused、选区或插入点——`worked`，`verification.evidence` 记下是哪个字段、从什么变成什么；
 2. 指针确实落在该元素上（命中测试通过）且动作后它持有键盘焦点——`worked`；只移动插入点的点击没有别的痕迹；
 3. 根森林发生变化（菜单打开、sheet 出现、窗口易主）——`worked`；
-4. 元素是有值的切换类控件（checkbox、radio、segment、switch、disclosure）而值没动——`didnt`，错误信息带上停在哪个值；
+4. 元素是有值的切换类控件而值没动：翻转类（checkbox、switch、disclosure、toggle button）是 `didnt`，错误信息带上停在哪个值；选择类（radio、标签页、segment）按下前已选中是 `worked`，证据 `alreadySelected`，因为选中正是按下要的结果（见上节梯子）；
 5. 其余——`unknown`：已经投递，但没有证据判定，既不伪装成成功，也不当成失败。
 
 带 ref 的 `typeText` 以字段的值判定，但值只有在装得下输入时才算证据，因为 `didnt` 会让梯子换前台把同一段文字再打一遍：普通文本值没变才是 `didnt`；文本含回车或 Tab 时，字段可能提交、清空自己或把焦点移走（聊天框、搜索框），只有值含全文才是 `worked`，其余是 `unknown`；密码框（AppKit 的值是圆点掩码，别的应用可能是明文，都不当证据，也不写进结果）和读不到值的元素一律 `unknown`。
 
-投影里带 `toggle` 能力的元素就是平台按第 4 条判定的那一类，两侧取同一组 role 与 subrole。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
+投影里带 `toggle` 能力的元素就是平台按第 4 条判定的那一类，两侧调用同一个规则（BCUCore 的 `pressEffect`），它也区分翻转类与选择类。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
 
 只有被证明无效的动作才失败：`didnt` 和后置条件未满足在动作事务里抛出 `action_failed`，退出码 9，stdout 为空。`unknown` 退出 0，结果行写作 `unverified via ax`，照常返回后继状态和变化，没有变化时写出 `(no element changes)`；`--json` 的 `outcome` 仍是 `"unknown"`。菜单命令、没有可读效果的快捷键、自绘窗口里的按下都落在这里，它们大多已经生效，逼 agent 为每一个再观察一轮得不偿失。带 `--expect-*` 且条件满足时结果是 `worked`：后置条件就是那份缺失的证据。`--scope @eN` 把后置条件限定在一个子树内。变化行必须说出变了什么：值和名字按原格式，状态写成它变成了什么（`~ @e51 onscreen`、`~ @e51 focused`）。只是 offscreen↔onscreen 翻转、而该节点本来就不在首屏视图里的变化不输出。
 

@@ -374,7 +374,11 @@ extension Platform {
 					// a click that only places a caret leaves no other trace.
 					outcome = .worked
 					verification = ActEvidence(source: .focus, field: .focused)
-				} else if pressLike, after != nil, before["value"] != nil, isToggleLike(subject) {
+				} else if pressLike, after?["value"] == "1", isAlreadySelected(subject, before: before) {
+					// A click that landed on a selected tab or segment: it is where it was asked to be.
+					outcome = .worked
+					verification = ActEvidence(source: .ax, field: .alreadySelected)
+				} else if pressLike, after != nil, before["value"] != nil, pressEffect(subject) != nil {
 					outcome = .didnt
 					verification = ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(before["value"] ?? ""), to: evidenceExcerpt(before["value"] ?? ""))
 				}
@@ -391,6 +395,14 @@ extension Platform {
 			return ActionReport(outcome: outcome, performed: performed, verification: verification)
 		}
 
+		// Pressing a selected radio, tab or segment asks for what already holds. It is not
+		// delivered: a segmented control sends its action again on such a click (a re-sort, a
+		// reload), and an agent selecting it wants none of that.
+		if let element, pressLike, isAlreadySelected(element, before: beforeEvidence) {
+			performed.grounding = .description
+			performed.delivery = .ax
+			return try finish(ActionReport(outcome: .worked, performed: performed, verification: ActEvidence(source: .ax, field: .alreadySelected)))
+		}
 		if let element, pressLike {
 			let elementRole = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 			let textRoles: Set<String> = ["AXTextField", "AXTextArea", "AXTextView", "AXSearchField", "AXComboBox", "AXEditableText", "AXSecureTextField"]

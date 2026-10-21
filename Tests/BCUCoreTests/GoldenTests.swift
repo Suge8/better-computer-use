@@ -191,6 +191,10 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		return Dictionary(uniqueKeysWithValues: members(input["cases"]).map { name, entry in
 			(name, JSONValue.string(roleMatches(entry["wanted"]!.string!, role: entry["role"]!.string!, subrole: entry["subrole"]!.string!) ? "true" : "false"))
 		})
+	case "pressEffects":
+		return Dictionary(uniqueKeysWithValues: members(input["cases"]).map { name, entry in
+			(name, JSONValue.string(pressEffect(role: entry["role"]!.string!, subrole: entry["subrole"]!.string!).map { "\($0)" } ?? "none"))
+		})
 	case "cli":
 		return try cliCase(input)
 	case "query":

@@ -435,10 +435,11 @@ public enum ActOutcome: String, Codable, Sendable {
 /// the pointer reaching an element that then held focus, or the screen changing.
 public struct ActEvidence: Codable, Sendable, Equatable {
 	public enum Source: String, Codable, Sendable { case ax, root, focus, screen }
-	public enum Field: String, Codable, Sendable { case value, selected, focused, selection, selectedText, scroll, changed, closed }
+	public enum Field: String, Codable, Sendable { case value, selected, focused, selection, selectedText, scroll, changed, closed, alreadySelected }
 
 	public var source: Source
-	/// `closed` with source `root`: the root the action ran in is gone.
+	/// `closed` with source `root`: the root the action ran in is gone. `alreadySelected`: the
+	/// pressed radio, tab or segment was selected already, so it was left alone.
 	public var field: Field?
 	public var from: String?
 	public var to: String?
