@@ -142,7 +142,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu expand-ui [options]\n\nExpand one element of a saved state, walking the live UI when the subtree was cut short.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             element ref from the same state, e.g. @e12 (required)\n  --depth <n>               levels to unfold below the element (default 3, max 8)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu expand-ui <ref> [options]\n\nExpand one element of a saved state, walking the live UI when the subtree was cut short.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             the element ref, instead of the argument\n  --depth <n>               levels to unfold below the element (default 3, max 8)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -157,7 +157,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu inspect-ui [options]\n\nPrint every raw accessibility field of one element, including the ones the projection hides.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             element ref from the same state, e.g. @e12 (required)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu inspect-ui <ref> [options]\n\nPrint every raw accessibility field of one element, including the ones the projection hides.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             the element ref, instead of the argument\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -187,7 +187,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu read-text [options]\n\nRead the full text of one element, a slice at a time.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             element ref from the same state, e.g. @e12 (required)\n  --offset <n>              first character to read (default 0)\n  --limit <n>               characters to read (default 4000, max 100000)\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu read-text <ref> [options]\n\nRead the full text of one element, a slice at a time.\n\nOptions:\n  --state <value>           stateId from observe-ui (required)\n  --ref <value>             the element ref, instead of the argument\n  --offset <n>              first character to read (default 0)\n  --limit <n>               characters to read (default 4000, max 100000)\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -696,16 +696,19 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--ref' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: An element ref is required, e.g. @e12, as the argument or with --ref.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
 		{
-			"name": "expand-ui checks the ref after the positional",
+			"name": "expand-ui takes one ref argument",
 			"op": "cli",
 			"input": {
 				"argv": [
 					"expand-ui",
+					"--state",
+					"s",
+					"@e3",
 					"x"
 				]
 			},
@@ -748,6 +751,21 @@
 			}
 		},
 		{
+			"name": "inspect-ui ref as an argument",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"inspect-ui",
+					" @e1 ",
+					"--state",
+					"s"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"inspect-ui\",\"json\":false,\"params\":{\"ref\":\"@e1\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
 			"name": "read-text every option",
 			"op": "cli",
 			"input": {
@@ -779,7 +797,43 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--ref' is required.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: An element ref is required, e.g. @e12, as the argument or with --ref.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "read-text ref as an argument",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"@e2",
+					"--offset",
+					"10"
+				]
+			},
+			"output": {
+				"request": "{\"command\":\"read-text\",\"json\":false,\"params\":{\"offset\":10,\"ref\":\"@e2\",\"stateId\":\"s\"}}"
+			}
+		},
+		{
+			"name": "read-text ref both as an argument and with --ref",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"read-text",
+					"--state",
+					"s",
+					"@e2",
+					"--ref",
+					"@e2"
+				]
+			},
+			"output": {
+				"stdout": "",
+				"stderr": "error invalid_arguments: The element ref is given twice, as '@e2' and with --ref; pass it once.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
@@ -1264,9 +1318,7 @@
 				]
 			},
 			"output": {
-				"stdout": "",
-				"stderr": "error invalid_arguments: Unexpected argument '@e3'. Pass an element ref with --ref.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
-				"exitCode": 2
+				"request": "{\"command\":\"expand-ui\",\"json\":false,\"params\":{\"ref\":\"@e3\",\"stateId\":\"s\"}}"
 			}
 		},
 		{
