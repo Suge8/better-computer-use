@@ -54,14 +54,11 @@ private func searchKey(_ value: String) -> String {
 	Text.normalized(foldedForSearch(value))
 }
 
+/// A projected node is the outline node of its ref, whose view word is the node's role.
 private func roleMatcher(_ wanted: String?, _ outline: Outline) -> (ProjectedNode) -> Bool {
 	guard let wanted else { return { _ in true } }
-	let query = normalizedSearchRole(wanted)
 	let raw = Dictionary(outline.nodes.map { ($0.ref, $0) }, uniquingKeysWith: { first, _ in first })
-	return { node in
-		let source = raw[node.ref]
-		return [normalizedSearchRole(node.role), source.map { normalizedSearchRole($0.role) }, source.map { normalizedSearchRole($0.subrole) }].contains(query)
-	}
+	return { node in raw[node.ref].map { roleMatches(wanted, role: $0.role, subrole: $0.subrole) } ?? false }
 }
 
 /// The rule's survivors, or everyone when it would leave nobody.

@@ -28,7 +28,7 @@ extension Platform {
 		}
 		func matches(_ element: AXUIElement) -> Bool {
 			let candidateRole = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
-			if let role, !role.isEmpty, candidateRole != role { return false }
+			if let role, !role.isEmpty, !roleMatches(role, role: candidateRole, subrole: stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? "") { return false }
 			if let text, !text.isEmpty {
 				let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
 				let haystack = foldedForSearch([

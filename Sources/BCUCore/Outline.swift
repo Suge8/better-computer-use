@@ -353,11 +353,10 @@ private func structuralKey(_ node: OutlineNode) -> String {
 /// Matches anywhere in the outline, depth first; role accepts short words as well as AX names.
 public func searchOutline(_ outline: Outline, text: String?, role: String?) -> [OutlineNode] {
 	let query = text.map { foldedForSearch(Text.trim($0)) } ?? ""
-	let roleQuery = role.map(normalizedSearchRole)
 	return outline.root.preorder.filter { node in
 		let haystack = foldedForSearch([node.role, node.subrole, node.identifier, node.title, node.description, node.value].joined(separator: " "))
 		if !query.isEmpty, !haystack.contains(query) { return false }
-		if let roleQuery, !roleQuery.isEmpty, normalizedSearchRole(node.role) != roleQuery, normalizedSearchRole(node.subrole) != roleQuery { return false }
+		if let role, !Text.trim(role).isEmpty, !roleMatches(role, role: node.role, subrole: node.subrole) { return false }
 		return true
 	}
 }

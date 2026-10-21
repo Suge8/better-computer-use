@@ -165,11 +165,24 @@ private func word(_ value: String) -> String {
 }
 
 private func roleWord(_ node: OutlineNode) -> String {
-	let main = roleAliases[word(node.role)] ?? word(node.role)
-	let sub = word(node.subrole)
+	roleWord(role: node.role, subrole: node.subrole)
+}
+
+/// The view's role word for an accessibility role and subrole.
+private func roleWord(role: String, subrole: String) -> String {
+	let main = roleAliases[word(role)] ?? word(role)
+	let sub = word(subrole)
 	if sub.isEmpty { return main.isEmpty ? "unknown" : main }
 	let specific = roleAliases[sub] ?? sub
 	return specific == main ? main : specific
+}
+
+/// The one rule for a role a caller names (find, search-ui, wait-for, expect): the view's role
+/// word, or the accessibility role or subrole with or without `AX`, compared exactly, ignoring
+/// case, spaces, underscores and hyphens.
+public func roleMatches(_ wanted: String, role: String, subrole: String) -> Bool {
+	let query = normalizedSearchRole(wanted)
+	return [roleWord(role: role, subrole: subrole), role, subrole].contains { normalizedSearchRole($0) == query }
 }
 
 private func clean(_ value: String, _ limit: Int) -> String {

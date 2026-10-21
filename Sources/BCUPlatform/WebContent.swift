@@ -118,7 +118,7 @@ extension Platform {
 				guard visits > 0 else { return false }
 				visits -= 1
 				switch stringAttribute(child, attribute: kAXRoleAttribute as CFString) {
-				case kAXMenuBarRole as String: continue
+				case kAXMenuBarRole: continue
 				case "AXWebArea": if !axElementArray(child, attribute: kAXChildrenAttribute as CFString).isEmpty { return true }
 				default: if search(child, depth: depth - 1) { return true }
 				}
