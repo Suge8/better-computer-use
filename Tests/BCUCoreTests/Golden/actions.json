@@ -5221,11 +5221,652 @@
 					"x": 1,
 					"y": 1
 				},
+				"headless": false,
+				"root": "@r3"
+			},
+			"output": {
+				"stderr": "error invalid_arguments: Coordinates are read off a state's image, and this state has none.\nrecovery: Run 'bcu observe-ui --root @r3 --image always' and act on its stateId with coordinates from its image, or act on a ref.\n",
+				"exitCode": 2
+			}
+		},
+		{
+			"name": "coordinates on a root with no window to capture",
+			"op": "prepare",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 800,
+										"h": 40
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "editor",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 10,
+										"y": 50,
+										"w": 400,
+										"h": 300
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "save",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 700,
+										"y": 10,
+										"w": 60,
+										"h": 21
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "menuonly",
+									"role": "AXImage",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "Logo",
+									"value": "",
+									"actions": [
+										"AXShowMenu",
+										"AXScrollToVisible"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 20,
+										"y": 400,
+										"w": 31,
+										"h": 31
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "custom",
+									"role": "AXGroup",
+									"subrole": "",
+									"identifier": "",
+									"title": "Custom",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCustom"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 100,
+										"y": 400,
+										"w": 10,
+										"h": 10
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "ocr",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Text",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 200,
+										"y": 500,
+										"w": 101,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": true,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "far",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Far",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 900,
+										"y": 10,
+										"w": 20,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"role": "AXGroup",
+									"subrole": "",
+									"identifier": "",
+									"title": "No wire ref",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 300,
+										"y": 300,
+										"w": 20,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e10",
+											"wireRef": "nested-text",
+											"role": "AXStaticText",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "inside",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": {
+					"action": "click",
+					"x": 1,
+					"y": 1
+				},
 				"headless": false
 			},
 			"output": {
-				"stderr": "error invalid_arguments: Coordinates require an image-bearing state. Observe with --image always, or act on a ref.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: Coordinates are read off a state's image, and this root has no window to capture.\nrecovery: Act on a ref or a find locator instead.\n",
 				"exitCode": 2
+			}
+		},
+		{
+			"name": "a ref falls back to its center without an image",
+			"op": "prepare",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "window",
+							"role": "AXWindow",
+							"subrole": "AXStandardWindow",
+							"identifier": "",
+							"title": "Fixture",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "toolbar",
+									"role": "AXToolbar",
+									"subrole": "",
+									"identifier": "",
+									"title": "Toolbar",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 800,
+										"h": 40
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "editor",
+									"role": "AXTextArea",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": true,
+									"rect": {
+										"x": 10,
+										"y": 50,
+										"w": 400,
+										"h": 300
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e4",
+									"wireRef": "save",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Save",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 700,
+										"y": 10,
+										"w": 60,
+										"h": 21
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e5",
+									"wireRef": "menuonly",
+									"role": "AXImage",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "Logo",
+									"value": "",
+									"actions": [
+										"AXShowMenu",
+										"AXScrollToVisible"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 20,
+										"y": 400,
+										"w": 31,
+										"h": 31
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e6",
+									"wireRef": "custom",
+									"role": "AXGroup",
+									"subrole": "",
+									"identifier": "",
+									"title": "Custom",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXCustom"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 100,
+										"y": 400,
+										"w": 10,
+										"h": 10
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e7",
+									"wireRef": "ocr",
+									"role": "AXStaticText",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "",
+									"value": "Text",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 200,
+										"y": 500,
+										"w": 101,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": true,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e8",
+									"wireRef": "far",
+									"role": "AXButton",
+									"subrole": "",
+									"identifier": "",
+									"title": "Far",
+									"description": "",
+									"value": "",
+									"actions": [
+										"AXPress"
+									],
+									"canPress": true,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 900,
+										"y": 10,
+										"w": 20,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e9",
+									"role": "AXGroup",
+									"subrole": "",
+									"identifier": "",
+									"title": "No wire ref",
+									"description": "",
+									"value": "",
+									"actions": [],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": false,
+									"canDecrement": false,
+									"isTextInput": false,
+									"rect": {
+										"x": 300,
+										"y": 300,
+										"w": 20,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": [
+										{
+											"ref": "@e10",
+											"wireRef": "nested-text",
+											"role": "AXStaticText",
+											"subrole": "",
+											"identifier": "",
+											"title": "",
+											"description": "",
+											"value": "inside",
+											"actions": [],
+											"canPress": false,
+											"canFocus": false,
+											"canSetValue": false,
+											"canScroll": false,
+											"canIncrement": false,
+											"canDecrement": false,
+											"isTextInput": false,
+											"rect": {
+												"x": 0,
+												"y": 0,
+												"w": 0,
+												"h": 0
+											},
+											"focused": false,
+											"offscreen": false,
+											"pictureOnly": false,
+											"truncated": false,
+											"children": []
+										}
+									]
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"action": {
+					"action": "click",
+					"ref": "@e2"
+				},
+				"headless": false
+			},
+			"output": {
+				"prepared": "{\"action\":\"click\",\"params\":{\"button\":\"left\",\"clickCount\":1},\"target\":{\"x\":400,\"y\":20}}"
 			}
 		},
 		{

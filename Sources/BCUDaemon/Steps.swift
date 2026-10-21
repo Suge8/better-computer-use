@@ -79,7 +79,7 @@ extension Daemon {
 				case .found(let ref):
 					var resolved = action
 					(resolved.ref, resolved.find, resolved.expect) = (ref, nil, nil)
-					let environment = ActionEnvironment(outline: outline, image: observation.image, headless: headless)
+					let environment = ActionEnvironment(outline: outline, image: observation.image, capturableRoot: root.capturableRef, headless: headless)
 					let prepared = try prepareAction(resolved, environment: environment)
 					return try self.resolvedStep(prepared, outline: outline, observation: observation, root: root)
 				case .ambiguous(let error): throw error
@@ -235,7 +235,7 @@ extension Daemon {
 		let root = target(best, appName: base.appName, bundleId: base.bundleId)
 		let observation: Observation
 		do {
-			observation = try await capture(root, readText: .never).observation
+			observation = try await capture(root).observation
 		} catch {
 			if try await isLive(root) { throw error }
 			return nil

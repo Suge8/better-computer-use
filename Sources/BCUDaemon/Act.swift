@@ -143,7 +143,7 @@ extension Daemon {
 		// Scope refs belong to the base state, so they are resolved before the UI moves.
 		let scope = try trimmed(params.expect?.scope).map { try observation.outline.handle(of: try node($0, in: outline)) }
 		let target = try await current(observation.target)
-		let environment = ActionEnvironment(outline: outline, image: observation.image, headless: headless)
+		let environment = ActionEnvironment(outline: outline, image: observation.image, capturableRoot: observation.target.capturableRef, headless: headless)
 		let looksForOpened = actions.contains { $0.find?.root == .opened || $0.expect?.root == .opened }
 		let known = looksForOpened ? Set(try await roots(pid: target.pid).map(\.handle)) : []
 		var steps: [PlannedStep] = []

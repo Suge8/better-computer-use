@@ -120,7 +120,6 @@ public struct LookGeometry: Sendable {
 	public let windowFrame: CGRect
 	public let imageWidth: Int
 	public let imageHeight: Int
-	public let hasImage: Bool
 	/// The window was read from the screen: Accessibility says (almost) nothing in it, so a
 	/// press there may leave no evidence but its pixels.
 	public let readScreen: Bool
@@ -181,8 +180,8 @@ public struct LookResult {
 	public let outline: LookNode
 	public let geometry: LookGeometry
 	public let timings: LookTimings
-	/// Whether the screen was read; nil for a picture-only popup menu.
-	public let readText: (requested: ReadTextMode, executed: Bool)?
+	/// Whether the screen was read.
+	public let readText: (requested: ReadTextMode, executed: Bool)
 	public let image: LookImage?
 	/// A browser window whose page the browser exposed no accessibility tree for.
 	public let webContentMissing: Bool

@@ -135,9 +135,6 @@ extension Platform {
 		case .focus:
 			break
 		case .point(let x, let y):
-			guard record.hasImage else {
-				throw BCUError(.actionFailed, "Coordinate targeting is unavailable for this outline-only root")
-			}
 			let point = lookPoint(record, x: x, y: y)
 			rawPoint = point
 			// A plain click over a native discrete control takes the same ladder as its ref,
@@ -303,9 +300,6 @@ extension Platform {
 		}
 
 		func executeCoordinates(_ point: CGPoint) throws {
-			guard element != nil || record.hasImage else {
-				throw BCUError(.actionFailed, "Coordinate grounding is unavailable for this outline-only root")
-			}
 			if delivery == .pid, Tk.isMapped(pid: pid) {
 				throw ForegroundRequired(message: "Tk drops pointer events sent to a background app, so this needs the real pointer")
 			}
