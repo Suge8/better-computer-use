@@ -105,7 +105,9 @@ extension Daemon {
 		let nothingToActOn = hits.allSatisfy { !$0.canPress && !$0.canFocus && !$0.canSetValue && $0.actions.isEmpty && !$0.pictureOnly }
 		guard nothingToActOn, state.payload.readText != .never, !state.payload.readScreen else { return found }
 		try await ensureUnlocked()
-		let read = try await runtime.read(from: state.stateId) { state, lane in
+		// The screen is read into a new state and no ref of this one is resolved, so an action
+		// since this state was observed changes nothing: the new look is taken as things are now.
+		let read = try await runtime.live(pid: state.pid) { lane in
 			let target = try await self.current(state.payload.target)
 			// Lines read from the screen are pressed by coordinates, which need the picture.
 			return try lane.save(try await self.capture(target, readText: .always, includeImage: true, maxDimension: automaticImageDimension, base: state.payload).observation)
@@ -189,14 +191,21 @@ extension Daemon {
 			guard clock.remainingMs > 0 else { throw conditionTimedOut(params, timeoutMs: timeoutMs) }
 		}
 		let scope = try trimmed(params.scope).map { try state.payload.outline.handle(of: try node($0, in: state.payload.outline.outline())) }
+		// A scope is a ref, and a ref belongs to the state that made it: that state must still be
+		// current, before the wait and after it. Without one, the state only names the root; an
+		// action since, the one that makes the condition hold included, does not fail the wait.
+		if scope != nil { try await runtime.read(from: state.stateId) { _, _ in } }
 		let target = try await current(state.payload.target)
 		let gone = params.gone == true
 		let request = WaitForRequest(pid: target.pid, root: target.root.handle, role: role, text: text, gone: gone, scope: scope, timeoutMs: clock.remainingMs)
 		let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
 		guard outcome == .found || outcome == .gone else { throw conditionTimedOut(params, timeoutMs: timeoutMs) }
-		let successor = try await runtime.read(from: state.stateId) { state, lane in
+		let look: @Sendable (Lane<Observation>) async throws -> StoredState<Observation> = { lane in
 			try lane.save(try await self.capture(target, base: state.payload, until: clock.deadline).observation)
 		}
+		let successor = scope == nil
+			? try await runtime.live(pid: state.pid, look)
+			: try await runtime.read(from: state.stateId) { _, lane in try await look(lane) }
 		let view = successorView(base: state.payload.outline.outline(), next: successor.payload.outline.outline())
 		return BCUCore.WaitForResult(stateId: successor.stateId, found: true, gone: outcome == .gone ? true : nil, changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total)
 	}

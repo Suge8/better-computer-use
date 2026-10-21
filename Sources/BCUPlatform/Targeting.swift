@@ -10,7 +10,7 @@ extension Platform {
 	func refindElement(_ snapshot: ElementSnapshot, pid: Int32, windowId: UInt32) -> AXUIElement? {
 		guard let window = resolveRoot(pid: pid, windowId: windowId) else { return nil }
 		let targetCenter = CGPoint(x: snapshot.rect.midX, y: snapshot.rect.midY)
-		let candidates = collectDescendants(startingAt: window, maxDepth: 8).filter { candidate in
+		let candidates = collectDescendants(startingAt: window).filter { candidate in
 			let role = stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) ?? ""
 			guard role == snapshot.role else { return false }
 			let identifier = stringAttribute(candidate, attribute: "AXIdentifier" as CFString) ?? ""
@@ -48,7 +48,7 @@ extension Platform {
 		}
 		var hit = hitTestElement(at: point).flatMap { pidForElement($0) == pid && !isWindowOrApp($0) ? $0 : nil }
 		if hit == nil, let root = resolveRoot(pid: pid, windowId: windowId) {
-			hit = collectDescendants(startingAt: root, maxDepth: 20)
+			hit = collectDescendants(startingAt: root)
 				.filter { !isWindowOrApp($0) && (frameForElement($0)?.contains(point) ?? false) }
 				.min { (frameForElement($0).map { $0.width * $0.height } ?? .infinity) < (frameForElement($1).map { $0.width * $0.height } ?? .infinity) }
 		}

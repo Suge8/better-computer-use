@@ -49,7 +49,7 @@ extension Platform {
 		// A look cut short proves a match but not its absence.
 		let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1000)
 		func found() -> Bool? {
-			containsDescendant(startingAt: rootElement, maxDepth: Self.waitSearchDepth, maxNodes: Self.waitSearchNodes, until: deadline, where: matches)
+			containsDescendant(startingAt: rootElement, until: deadline, where: matches)
 		}
 		let settled = try awaitChange(in: pid, timeout: Double(timeoutMs) / 1000) {
 			request.gone ? found() == false : found() == true
@@ -109,9 +109,6 @@ extension Platform {
 	/// out asks for 0: the condition is checked once.
 	static let defaultWaitTimeoutMs = 10_000
 	static let waitTimeoutRange = 0...60_000
-	/// How much of the root a wait searches each time it looks.
-	static let waitSearchDepth = 12
-	static let waitSearchNodes = 2_000
 
 	/// A page of an element's text value, counted in characters. Secure fields are refused.
 	public func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage {

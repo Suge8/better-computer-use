@@ -113,7 +113,8 @@ find-roots → observe-ui → cached query → act-ui → successor state
 - 同一 pid 的实时工作顺序执行，不同 pid 并行；
 - 缓存查询只读保存的状态，不进道：`inspect-ui`、`search-ui`，以及 `expand-ui` 展开已经读到的子树；
 - 观察保存在它所在道的当前 epoch 上；
-- 要读实时界面的查询在状态所在的道里执行，要求 epoch 没变，也不推进它：`read-text`、`wait-for`、`expand-ui` 补读截断的子树、`search-ui` 补做 OCR。epoch 变了就是 `stale_state`。
+- 要读实时界面的查询在状态所在的道里执行，不推进 epoch。用到状态里的 ref 或往状态里添东西的，要求 epoch 没变，变了就是 `stale_state`：`read-text`、带 `--scope` 的 `wait-for`（等之前和等之后各查一次）、`expand-ui` 补读截断的子树。只拿状态指认根、把新看到的存成新状态的，按此刻的 epoch 看：不带 `--scope` 的 `wait-for` 的后继观察、`search-ui` 补做的 OCR。它们不解析旧 ref，期间别人的动作（包括让条件成立的那个）不该让它们失败；
+- 用选择器代替 `--state` 的命令（`act-ui`、`wait-for`、`search-ui`）各自拥有那次新鲜观察，调用方从没拿到过它的 ref。`act-ui` 在投递的同一个道次里观察，观察与投递之间插不进别的动作；投递后的后继观察也在这个道次里，不会过期，动作从不重放。
 
 `act-ui` 先整体校验并准备动作数组，全部通过后 epoch 才前进，然后投递。被拒绝的请求（参数错误、目标不在状态里、坐标越界）不推进 epoch，原 `stateId` 照样可用；已经开始投递的动作即使中途失败，epoch 也已前进，之前的状态一律失效。两个调用从同一状态并发写入时，第一个先推进 epoch，第二个在投递前收到 `stale_state`。不确定是否已经执行的物理动作不会自动重放。
 
@@ -125,7 +126,7 @@ find-roots → observe-ui → cached query → act-ui → successor state
 - Accessibility 大纲，以及每个节点背后的平台句柄；
 - 可选的图片和 OCR 行。
 
-完整大纲只存在状态库里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 查询完整大纲，因此被投影省略或折叠的节点照样可达。搜索文本、`wait-for` 与 `--expect-text` 不区分大小写，并把三个句点读作 macOS 标题结尾的省略号（`Save As...` 找到 `Save As…`），两侧都折叠，其余字符照常匹配。节点被平台截断时，`expand-ui` 在该状态所在 pid 的道里、以相同 epoch 补读这棵子树，不会把并发动作之后的数据嫁接到旧状态上。
+完整大纲只存在状态库里；命令返回的是它的投影。实时读界面的地方——观察、`wait-for` 与 `--expect-*` 的条件、换了无障碍对象后重找元素、坐标落不到元素时找包含它的最小元素——都走同一棵树：从根开始广度优先、每个元素一次、最多 2000 个，不限深度；Chromium 自己的页面（`chrome://inspect`、错误页）和框架里的内容在第 13 层以下，深度上限会让观察看得到的元素条件看不到。`search-ui`、`expand-ui`、`inspect-ui` 查询完整大纲，因此被投影省略或折叠的节点照样可达。搜索文本、`wait-for` 与 `--expect-text` 不区分大小写，并把三个句点读作 macOS 标题结尾的省略号（`Save As...` 找到 `Save As…`），两侧都折叠，其余字符照常匹配。节点被平台截断时，`expand-ui` 在该状态所在 pid 的道里、以相同 epoch 补读这棵子树，不会把并发动作之后的数据嫁接到旧状态上。
 
 `observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，平台自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。截了图的观察都把截图文件交给 agent（结果带 `image`，文本视图末行 `image <path> (WxH)`）：OCR 读不到空输入框这类无字区域，agent 要看图按坐标点；没截图的窗口不会为此多截。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点和截图。
 
