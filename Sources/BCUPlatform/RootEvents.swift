@@ -5,6 +5,8 @@ import os
 struct RootAXEvent: Sendable {
 	let sequence: UInt64
 	let notification: String
+	/// The element whose value or title changed; kept only for those two notifications.
+	let element: AXElement?
 }
 
 /// A count of changes that waiters compare and sleep on: whoever records a change bumps it,
@@ -76,9 +78,9 @@ final class AppNotifications: Sendable {
 		log.withLock { $0.lastUsed = Date() }
 	}
 
-	func record(_ notification: String) {
+	func record(_ notification: String, element: AXElement? = nil) {
 		log.withLock { log in
-			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification))
+			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification, element: element))
 			log.nextSequence += 1
 			if log.events.count > Self.retainedEvents { log.events.removeFirst(log.events.count - Self.retainedEvents) }
 		}
@@ -285,9 +287,11 @@ extension Platform {
 		let appElement = AXUIElementCreateApplication(app.pid)
 		AXUIElementSetMessagingTimeout(appElement, quickMessagingTimeout)
 		var observer: AXObserver?
-		let createStatus = AXObserverCreate(app.pid, { _, _, notification, refcon in
+		let createStatus = AXObserverCreate(app.pid, { _, element, notification, refcon in
 			guard let refcon else { return }
-			Unmanaged<AppNotifications>.fromOpaque(refcon).takeUnretainedValue().record(notification as String)
+			let name = notification as String
+			let changed = name == kAXValueChangedNotification || name == kAXTitleChangedNotification
+			Unmanaged<AppNotifications>.fromOpaque(refcon).takeUnretainedValue().record(name, element: changed ? AXElement(element: element) : nil)
 		}, &observer)
 		guard createStatus == .success, let observer else { return nil }
 		// Unretained: the observer thread holds `app` for as long as the observer can call back.

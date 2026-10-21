@@ -78,7 +78,7 @@ extension Platform {
 		func finish(_ response: ActionReport) throws -> ActionReport {
 			if deferRootDelta { return response }
 			var result = response
-			let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+			let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature, wait: !response.settled)
 			result.performed.deltaSource = observed.source
 			result.rootDelta = observed.delta
 			if rootDeltaIsEvidence(observed.delta, pid: pid), result.outcome == .unknown {
@@ -356,16 +356,38 @@ extension Platform {
 			return refreshed
 		}
 
-		/// Judges the outcome on the evidence rules; see docs/architecture.md.
+		/// Judges the outcome on the evidence rules; see docs/architecture.md. Every effect the
+		/// delivery may have is awaited in one window: the subject's facts, an announcement of
+		/// the window, a root signal. The first ends it, and the roots are then diffed without
+		/// waiting again.
 		func verdict() throws -> ActionReport {
-			let afterSheetCount = resolveRoot(pid: pid, windowId: record.windowId).map { sheetElements(of: $0).count } ?? beforeSheetCount
+			let deliveredAt = Date()
+			let root = resolveRoot(pid: pid, windowId: record.windowId)
+			let subject = element ?? evidenceElement
+			var after = subject.flatMap(evidenceSnapshot)
+			var announced: ActEvidence?
+			var unread = eventCursor
+			_ = notifications.wait(until: deliveredAt.addingTimeInterval(Self.rootChangeTimeout)) {
+				if let subject, let before = beforeEvidence {
+					after = evidenceSnapshot(subject)
+					guard let after else { return true }
+					if evidenceDifference(before: before, after: after) != nil { return true }
+				}
+				// Each notification is looked at once, however many the app posts while it settles.
+				let next = notifications.cursor
+				announced = root.flatMap { announcement(notifications, since: unread, in: $0) }
+				unread = next
+				// A batch takes no root baseline per step; it diffs the roots once, after the last.
+				return announced != nil || (!deferRootDelta && rootSignal(notifications, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature, beforeFrontmostPid: beforeFrontmostPid) != nil)
+			}
+			performed.effectsAwaited = true
+			let afterSheetCount = root.map { sheetElements(of: $0).count } ?? beforeSheetCount
 			let windowChanged = beforeFocusedWindow != focusedWindowSummary(pid: pid) || beforeSheetCount != afterSheetCount
 			var outcome = ActOutcome.unknown
 			var verification: ActEvidence?
 			// The element that was acted on speaks first: its own value, selection or focus
 			// moving is proof no window-level summary can contradict.
-			if let subject = element ?? evidenceElement, let before = beforeEvidence {
-				let after = try evidenceAfterAction(subject, pid: pid, before: before)
+			if let subject, let before = beforeEvidence {
 				if let after, let difference = evidenceDifference(before: before, after: after) {
 					outcome = .worked
 					verification = difference
@@ -387,8 +409,12 @@ extension Platform {
 				outcome = .worked
 				verification = ActEvidence(source: .root)
 			}
+			if outcome == .unknown, let announced {
+				outcome = .worked
+				verification = announced
+			}
 			// Weakest evidence, and the slowest to read: only for a subject with no AX fact.
-			if outcome == .unknown, let screenBefore, screenChanged(since: screenBefore) {
+			if outcome == .unknown, let screenBefore, screenChanged(since: screenBefore, deliveredAt: deliveredAt) {
 				outcome = .worked
 				verification = ActEvidence(source: .screen, field: .changed)
 			}
@@ -430,7 +456,9 @@ extension Platform {
 				if requiresFrontmost { try activateForMenuBar(element) }
 				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String ? try openMenusAbove(element) : nil
 				let cursorPoint = try? coordinatePoint()
-				if !inWebContent, !hasReadableEvidence(element) { screenBefore = screenBaseline(windowId: record.windowId) }
+				// Pixels are the evidence of last resort, and capturing them before the press costs
+				// as much as the press itself: only a window Accessibility cannot describe needs them.
+				if record.readScreen, !inWebContent, !hasReadableEvidence(element) { screenBefore = screenBaseline(windowId: record.windowId) }
 				var status = AXUIElementPerformAction(element, kAXPressAction as CFString)
 				if status == .invalidUIElement, let refreshed = refreshElement(), supportsAction(refreshed, action: kAXPressAction as CFString) {
 					status = AXUIElementPerformAction(refreshed, kAXPressAction as CFString)
@@ -596,7 +624,8 @@ extension Platform {
 			}
 		}
 		let outcomes = steps.map(\.outcome)
-		let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature)
+		let settled = steps.allSatisfy { if case .completed(let report) = $0 { report.settled } else { true } }
+		let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature, wait: !settled)
 		var result = BatchReport(
 			outcome: outcomes.contains(.didnt) ? .didnt : (outcomes.contains(.unknown) ? .unknown : .worked),
 			steps: steps,
