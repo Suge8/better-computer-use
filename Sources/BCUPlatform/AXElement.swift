@@ -179,6 +179,17 @@ extension Platform {
 		role == "AXSecureTextField" || subrole == "AXSecureTextField"
 	}
 
+	/// A secure field or anything inside it: its field editor and text area carry the typed
+	/// text without the secure subrole.
+	func isInSecureField(_ element: AXUIElement) -> Bool {
+		var current: AXUIElement? = element
+		while let candidate = current {
+			if isSecureTextElement(role: stringAttribute(candidate, attribute: kAXRoleAttribute as CFString) ?? "", subrole: stringAttribute(candidate, attribute: kAXSubroleAttribute as CFString) ?? "") { return true }
+			current = parentElement(candidate)
+		}
+		return false
+	}
+
 	/// Toggles carry their state in a numeric AXValue, so a value is rendered whatever
 	/// its type: an agent that cannot read `0`/`1` cannot tell a checked box from a clear one.
 	func displayValue(_ element: AXUIElement, role: String, subrole: String) -> String {

@@ -42,19 +42,25 @@ extension Platform {
 	}
 
 	/// The newest value or title an element of `root` announced since `cursor`, as it reads
-	/// now: a press whose control keeps no fact of its own (a calculator key) moves one
-	/// elsewhere in the window. A secure field's value is never evidence.
-	func announcement(_ notifications: AppNotifications, since cursor: UInt64, in root: AXUIElement) -> ActEvidence? {
+	/// now, preferring one that reads as something: a press whose control keeps no fact of its
+	/// own (a calculator key) moves one elsewhere in the window. Nothing a secure field or its
+	/// insides announce is evidence, nor is anything in `ticking`, which was changing on its
+	/// own before the delivery.
+	func announcement(_ notifications: AppNotifications, since cursor: UInt64, in root: AXUIElement, ticking: Set<AXElement>) -> ActEvidence? {
+		var blank: ActEvidence?
 		for event in notifications.events(since: cursor).reversed() {
-			guard let element = event.element?.element, isElement(element, descendantOf: root) else { continue }
+			guard let announcer = event.element, !ticking.contains(announcer) else { continue }
+			let element = announcer.element
+			guard isElement(element, descendantOf: root), !isInSecureField(element) else { continue }
 			let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
 			let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
-			guard subrole != kAXSecureTextFieldSubrole as String else { continue }
 			let title = event.notification == kAXTitleChangedNotification ? stringAttribute(element, attribute: kAXTitleAttribute as CFString) ?? "" : ""
 			let text = title.isEmpty ? displayValue(element, role: role, subrole: subrole) : title
-			return ActEvidence(source: .ax, field: .announced, to: evidenceExcerpt(text))
+			let evidence = ActEvidence(source: .ax, field: .announced, to: evidenceExcerpt(text))
+			if !text.isEmpty { return evidence }
+			blank = blank ?? evidence
 		}
-		return nil
+		return blank
 	}
 
 	/// What a press does to the element's value; the projection gives the same elements `toggle`.
@@ -98,6 +104,12 @@ extension Platform {
 		guard let facts = evidenceSnapshot(element) else { return false }
 		return facts.keys.contains { $0 != "focused" }
 	}
+
+	/// How far back an element counts as changing on its own: a clock ticks once a second, a
+	/// progress bar or timer faster, so two seconds see each of them at least once. An element
+	/// quieter than that (a chat that gets a message now and then) can still coincide with a
+	/// delivery. History starts when bcu starts observing the app, at its first look.
+	static let selfChangeLookback: TimeInterval = 2
 
 	/// Screen evidence: how long to wait for the window to repaint, how often to capture it
 	/// meanwhile, how far a channel must move for a pixel to count, and the share of content

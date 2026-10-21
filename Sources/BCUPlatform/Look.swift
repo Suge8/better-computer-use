@@ -70,6 +70,7 @@ extension Platform {
 			throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 		}
 		let accessibility = requestAccessibility(pid: pid)
+		startObserving(pid)
 		let rootElement: AXUIElement
 		let scope = request.scope
 		if let scope {

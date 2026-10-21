@@ -7,6 +7,7 @@ struct RootAXEvent: Sendable {
 	let notification: String
 	/// The element whose value or title changed; kept only for those two notifications.
 	let element: AXElement?
+	let at: Date
 }
 
 /// A count of changes that waiters compare and sleep on: whoever records a change bumps it,
@@ -52,13 +53,16 @@ final class ChangeSignal: Sendable {
 final class AppNotifications: Sendable {
 	private struct Log: Sendable {
 		var events: [RootAXEvent] = []
+		/// When bcu itself was acting on the app, effects included; newest last.
+		var ownActions: [ClosedRange<Date>] = []
 		var nextSequence: UInt64 = 1
 		var lastUsed = Date()
 	}
 
-	/// Notifications kept for readers behind; one action reads back what it caused, which is
-	/// far fewer.
-	private static let retainedEvents = 64
+	/// Notifications kept for readers behind: what one action caused, and what the app
+	/// announced on its own in the seconds before it (a busy window posts dozens a second).
+	private static let retainedEvents = 256
+	private static let retainedActions = 32
 
 	let pid: Int32
 	private let log = OSAllocatedUnfairLock(initialState: Log())
@@ -80,7 +84,7 @@ final class AppNotifications: Sendable {
 
 	func record(_ notification: String, element: AXElement? = nil) {
 		log.withLock { log in
-			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification, element: element))
+			log.events.append(RootAXEvent(sequence: log.nextSequence, notification: notification, element: element, at: Date()))
 			log.nextSequence += 1
 			if log.events.count > Self.retainedEvents { log.events.removeFirst(log.events.count - Self.retainedEvents) }
 		}
@@ -95,6 +99,23 @@ final class AppNotifications: Sendable {
 
 	func events(since cursor: UInt64) -> [RootAXEvent] {
 		log.withLock { $0.events.filter { $0.sequence >= cursor } }
+	}
+
+	/// The elements that announced a new value or title on their own over `span`: what they
+	/// announced while bcu was acting on the app was bcu's doing.
+	func announcers(over span: ClosedRange<Date>) -> Set<AXElement> {
+		let (events, own) = log.withLock { ($0.events, $0.ownActions) }
+		return Set(events.filter { event in
+			span.contains(event.at) && !own.contains { $0.contains(event.at) }
+		}.compactMap(\.element))
+	}
+
+	/// Records that bcu acted on the app over `span`.
+	func acted(over span: ClosedRange<Date>) {
+		log.withLock { log in
+			log.ownActions.append(span)
+			if log.ownActions.count > Self.retainedActions { log.ownActions.removeFirst(log.ownActions.count - Self.retainedActions) }
+		}
 	}
 
 	/// Re-checks `condition` each time a notification arrives or the front app changes, until
@@ -263,6 +284,13 @@ extension Platform {
 			throw BCUError(.actionFailed, "The app accepts no accessibility observer, so bcu cannot wait for a change in it.")
 		}
 		return app
+	}
+
+	/// Starts recording the app's notifications if nothing does yet: what it announces from
+	/// a look on is the history an action on it is judged against (see `selfChangeLookback`).
+	/// An app that accepts no observer is looked at all the same.
+	func startObserving(_ pid: Int32) {
+		_ = rootObservers.ensure(pid, start: startObserver)
 	}
 
 	/// Re-checks `condition` whenever the app posts an accessibility notification or an app
