@@ -273,12 +273,16 @@ let ownedCapabilities: [ActionName: [Capability]] = [
 public struct ActionEnvironment {
 	public let outline: Outline
 	public let image: ImageSize?
+	/// The state's root as an `@r` ref when it has a window to capture: where a state with an
+	/// image comes from.
+	public let capturableRoot: String?
 	public let headless: Bool
 	private let owners: [String: [String: String]]
 
-	public init(outline: Outline, image: ImageSize?, headless: Bool) {
+	public init(outline: Outline, image: ImageSize?, capturableRoot: String?, headless: Bool) {
 		self.outline = outline
 		self.image = image
+		self.capturableRoot = capturableRoot
 		self.headless = headless
 		var owners: [String: [String: String]] = [:]
 		for node in project(outline, .unfolded).nodes { owners[node.ref] = node.owners }
@@ -294,13 +298,20 @@ public struct ActionEnvironment {
 		return node
 	}
 
+	/// An element's centre is in the state's own coordinates, image or not.
 	func center(_ node: OutlineNode) throws -> Point {
 		guard let rect = node.rect else { throw BCUError(.elementNotFound, "Ref '\(node.ref)' has no coordinates in the current state. Observe the root again.") }
 		return Point(x: rect.x + rect.w / 2, y: rect.y + rect.h / 2)
 	}
 
+	/// Coordinates the caller wrote: only an image shows the caller where they are.
 	func validate(_ point: Point, label: String = "Coordinates") throws {
-		guard let image else { throw invalid("\(label) require an image-bearing state. Observe with --image always, or act on a ref.") }
+		guard let image else {
+			guard let capturableRoot else {
+				throw BCUError(.invalidArguments, "Coordinates are read off a state's image, and this root has no window to capture.", recovery: "Act on a ref or a find locator instead.")
+			}
+			throw BCUError(.invalidArguments, "Coordinates are read off a state's image, and this state has none.", recovery: "Run 'bcu observe-ui --root \(capturableRoot) --image always' and act on its stateId with coordinates from its image, or act on a ref.")
+		}
 		guard point.x.isFinite, point.y.isFinite else { throw invalid("\(label) must be finite numbers.") }
 		if point.x < 0 || point.y < 0 || point.x >= Double(image.width) || point.y >= Double(image.height) {
 			let shown = "\(Text.number(point.x.rounded())),\(Text.number(point.y.rounded()))"
@@ -326,9 +337,7 @@ private func nativeTarget(_ action: UiAction, _ operation: ActionName, _ environ
 		   !semanticClick || node.canPress || node.canFocus || node.canSetValue || !onlyIncidental {
 			return .ref(wireRef)
 		}
-		let point = try environment.center(node)
-		try environment.validate(point)
-		return .point(point)
+		return .point(try environment.center(node))
 	}
 	if let x = action.x, let y = action.y, x.isFinite, y.isFinite {
 		let point = Point(x: x, y: y)

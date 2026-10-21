@@ -71,8 +71,19 @@ private struct ParsedOptions {
 
 	func noPositionals() throws {
 		guard let first = positionals.first else { return }
-		if first.hasPrefix("@e") { throw invalid("Unexpected argument '\(first)'. Pass an element ref with --ref.") }
 		throw invalid("Unexpected argument '\(first)'.")
+	}
+
+	/// The element ref of a command on one element: its one argument, or `--ref`.
+	func elementRef() throws -> String {
+		if positionals.count > 1 { throw invalid("Unexpected argument '\(positionals[1])'.") }
+		if let argument = positionals.first, values["ref"] != nil {
+			throw invalid("The element ref is given twice, as '\(argument)' and with --ref; pass it once.")
+		}
+		guard let ref = Text.trimmedOrNil(positionals.first ?? raw("ref")) else {
+			throw invalid("An element ref is required, e.g. @e12, as the argument or with --ref.")
+		}
+		return ref
 	}
 
 	var selector: RootSelector {
@@ -90,7 +101,9 @@ private let selectorOptions = [
 	OptionSpec(flag: "--root", key: "root", kind: .string(nil), doc: "@r ref from find-roots, or a numeric window id"),
 ]
 private let subjectOptions = [OptionSpec(flag: "--state", key: "stateId", kind: .string(nil), doc: "stateId from observe-ui; or observe a root first, selected by:")] + selectorOptions
-private let refOption = OptionSpec(flag: "--ref", key: "ref", kind: .string(nil), doc: "element ref from the same state, e.g. @e12 (required)")
+private let refOption = OptionSpec(flag: "--ref", key: "ref", kind: .string(nil), doc: "the element ref, instead of the argument")
+/// Commands on one element take its ref as their argument or with --ref.
+private let refArgument = "<ref>"
 private let imageOption = OptionSpec(flag: "--image", key: "image", kind: .string(ImageMode.allCases.map(\.rawValue)), doc: "write a screenshot artifact (default never)")
 private let timeoutOption = OptionSpec(flag: "--timeout", key: "timeoutMs", kind: .integer, doc: "condition timeout in ms (default 10000, max 60000)")
 private let scopeOption = OptionSpec(flag: "--scope", key: "scope", kind: .string(nil), doc: "limit the condition to this element subtree, e.g. @e12")
@@ -120,12 +133,12 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 		OptionSpec(flag: "--action", key: "action", kind: .string(nil), doc: "capability, e.g. press, setText, scroll"),
 		OptionSpec(flag: "--limit", key: "limit", kind: .integer, doc: "maximum matches to return (default 12, max 50)"),
 	]),
-	.expandUi: CommandSpec(summary: "Expand one element of a saved state, walking the live UI when the subtree was cut short.", options: [
+	.expandUi: CommandSpec(summary: "Expand one element of a saved state, walking the live UI when the subtree was cut short.", arguments: refArgument, options: [
 		stateOption,
 		refOption,
 		OptionSpec(flag: "--depth", key: "depth", kind: .integer, doc: "levels to unfold below the element (default 3, max 8)"),
 	]),
-	.inspectUi: CommandSpec(summary: "Print every raw accessibility field of one element, including the ones the projection hides.", options: [stateOption, refOption]),
+	.inspectUi: CommandSpec(summary: "Print every raw accessibility field of one element, including the ones the projection hides.", arguments: refArgument, options: [stateOption, refOption]),
 	.actUi: CommandSpec(summary: "Run a checked action array against one state and return the successor state.", arguments: "<actions-json>|-", options: subjectOptions + [
 		OptionSpec(flag: "--headless", key: "headless", kind: .flag, doc: "never activate, focus or move the pointer physically"),
 		OptionSpec(flag: "--foreground", key: "foreground", kind: .flag, doc: "start in the foreground: activate the app and use real input"),
@@ -137,7 +150,7 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 		scopeOption,
 		timeoutOption,
 	]),
-	.readText: CommandSpec(summary: "Read the full text of one element, a slice at a time.", options: [
+	.readText: CommandSpec(summary: "Read the full text of one element, a slice at a time.", arguments: refArgument, options: [
 		stateOption,
 		refOption,
 		OptionSpec(flag: "--offset", key: "offset", kind: .integer, doc: "first character to read (default 0)"),
@@ -234,16 +247,13 @@ private func request(_ name: CommandName, _ parsed: ParsedOptions, stdin: () thr
 		let selector = try parsed.subjectSelector(.searchUi)
 		return .searchUi(SearchUiParams(stateId: parsed.raw("stateId"), selector: selector, text: parsed.raw("text"), role: parsed.raw("role"), action: parsed.raw("action"), limit: parsed.integer("limit")))
 	case .expandUi:
-		try parsed.noPositionals()
-		return .expandUi(ExpandUiParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.required("ref", "--ref"), depth: parsed.integer("depth")))
+		return .expandUi(ExpandUiParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.elementRef(), depth: parsed.integer("depth")))
 	case .inspectUi:
-		try parsed.noPositionals()
-		return .inspectUi(InspectUiParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.required("ref", "--ref")))
+		return .inspectUi(InspectUiParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.elementRef()))
 	case .actUi:
 		return .actUi(try actParams(parsed, stdin: stdin))
 	case .readText:
-		try parsed.noPositionals()
-		return .readText(ReadTextParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.required("ref", "--ref"), offset: parsed.integer("offset"), limit: parsed.integer("limit")))
+		return .readText(ReadTextParams(stateId: try parsed.required("stateId", "--state"), ref: try parsed.elementRef(), offset: parsed.integer("offset"), limit: parsed.integer("limit")))
 	case .waitFor:
 		try parsed.noPositionals()
 		let selector = try parsed.subjectSelector(.waitFor)

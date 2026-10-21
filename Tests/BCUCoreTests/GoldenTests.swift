@@ -160,12 +160,12 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		return ["ok": .string(try JSONCoding.string(actions))]
 	case "prepare":
 		let action = try JSONCoding.decode(UiAction.self, from: input["action"]!)
-		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: input["headless"]!.bool!)
+		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), capturableRoot: input["root"]?.string, headless: input["headless"]!.bool!)
 		let prepared = try prepareAction(action, environment: environment)
 		return ["prepared": .string(try JSONCoding.string(prepared))]
 	case "deliver":
 		let actions = try validateActions([input["action"]!])
-		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), headless: false)
+		let environment = ActionEnvironment(outline: try loadOutline(input["outline"]!), image: image(input["image"]), capturableRoot: nil, headless: false)
 		let prepared = try prepareAction(actions[0], environment: environment)
 		return ["request": .string(try JSONCoding.string(Delivered(action: prepared.action, target: prepared.target, params: prepared.params)))]
 	case "locate":

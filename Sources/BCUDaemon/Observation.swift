@@ -27,6 +27,8 @@ struct Target: Sendable {
 	var pid: Int32 { root.pid }
 	var title: String { root.title.isEmpty ? "(untitled)" : root.title }
 	var windowId: Int? { root.windowId.map(Int.init).flatMap { $0 > 0 ? $0 : nil } }
+	/// Only a root with a window has a picture to take.
+	var capturableRef: String? { windowId == nil ? nil : ref }
 
 	var appearance: RootAppearance {
 		RootAppearance(ref: ref, kind: root.kind, app: appName, title: title)
@@ -41,7 +43,7 @@ struct Observation: StatePayload {
 	let outline: ObservedOutline
 	let geometry: LookGeometry
 	let image: ImageSize?
-	let readText: ReadTextMode?
+	let readText: ReadTextMode
 	let readScreen: Bool
 	let webContentMissing: Bool
 	let frame: Frame

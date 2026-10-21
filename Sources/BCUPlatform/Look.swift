@@ -13,19 +13,28 @@ extension Platform {
 	/// JPEG quality of the look's picture: small enough to hand over, sharp enough to read.
 	static let imageQuality = 0.8
 
-	/// A popup menu Accessibility never exposed still has screen geometry, so callers get a
-	/// picture-only root rather than a failure they cannot act on.
-	func popupMenuLook(windowId: UInt32, capturedAt: Date) -> LookResult {
-		let frame = windowInfo(windowId: windowId)?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
-		let outline = LookNode(handle: nil, name: "\(popupMenuName)\(windowId)", role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: max(1, frame.width), height: max(1, frame.height)), pictureOnly: true)
+	/// A popup menu Accessibility never exposed is only its picture, so its lines are read from
+	/// the screen like any window Accessibility says nothing about, and pressed by coordinates.
+	func popupMenuLook(windowId: UInt32, capture: CapturedWindowImage?, request: LookRequest, readsScreen: Bool, capturedAt: Date, captureMs: Int) throws -> LookResult {
+		let frame = capture?.frame ?? windowInfo(windowId: windowId)?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+		let picture = capture.map { downscaledImage($0.image, maxDimension: request.maxDimension.map { max(1, $0) }) ?? $0.image }
+		let width = picture?.width ?? max(1, Int(frame.width))
+		let height = picture?.height ?? max(1, Int(frame.height))
+		let outline = LookNode(handle: nil, name: "\(popupMenuName)\(windowId)", role: "AXMenu", subrole: "", identifier: "", title: "Menu", description: "", value: "", actions: [], canPress: false, canFocus: false, canSetValue: false, canScroll: false, canIncrement: false, canDecrement: false, isTextInput: false, rect: CGRect(x: 0, y: 0, width: width, height: height), pictureOnly: true)
+		var readTextMs = 0
+		if let capture, readsScreen {
+			let started = Date()
+			attachOCR(try recognizeText(in: capture.image, pixelsPerPoint: Double(capture.image.width) / capture.frame.width, outputWidth: width, outputHeight: height), to: outline)
+			readTextMs = elapsedMs(started)
+		}
 		return LookResult(
 			capturedAt: capturedAt,
-			window: LookWindow(windowId: windowId, kind: .menu, framePoints: frame, scaleFactor: displayScaleFactor(for: frame), isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .low, score: 0), sheetCount: 0), role: "AXMenu", subrole: ""),
+			window: LookWindow(windowId: windowId, kind: .menu, framePoints: frame, scaleFactor: frame.width > 0 ? Double(width) / frame.width : displayScaleFactor(for: frame), isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .low, score: 0), sheetCount: 0), role: "AXMenu", subrole: ""),
 			outline: outline,
-			geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false, readScreen: true),
-			timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
-			readText: nil,
-			image: nil,
+			geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: width, imageHeight: height, readScreen: true),
+			timings: LookTimings(captureMs: captureMs, describeMs: 0, readTextMs: readTextMs),
+			readText: (request.readText, readsScreen && capture != nil),
+			image: try picture.flatMap { request.includeImage || readsScreen ? try lookImage($0) : nil },
 			webContentMissing: false
 		)
 	}
@@ -50,7 +59,7 @@ extension Platform {
 		let captureStart = Date()
 		var captureMs = 0
 		func capturedWindow() throws -> CapturedWindowImage? {
-			guard !isMenuRoot, let windowId else { return nil }
+			guard let windowId else { return nil }
 			let started = Date()
 			defer { captureMs = elapsedMs(started) }
 			return try captureWindow(windowId: windowId).capture
@@ -64,7 +73,9 @@ extension Platform {
 				throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 			}
 			requestAccessibility(pid: menuPid)
-			return popupMenuLook(windowId: menuWindowId, capturedAt: captureStart)
+			let readsScreen = readText != .never && !expired()
+			if readsScreen, capture == nil { capture = try capturedWindow() }
+			return try popupMenuLook(windowId: menuWindowId, capture: capture, request: request, readsScreen: readsScreen, capturedAt: captureStart, captureMs: captureMs)
 		}
 		guard let pid = pidForElement(window) else {
 			throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
@@ -106,7 +117,7 @@ extension Platform {
 		}
 		// A window that says (almost) nothing through Accessibility is read from the screen,
 		// so the same observe → act loop still has something to act on.
-		let readsScreen = !expired() && (readText == .always || readText == .auto && scope == nil && !webContentMissing && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
+		let readsScreen = !expired() && (readText == .always || readText == .auto && !isMenuRoot && scope == nil && !webContentMissing && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
 		var describeMs = elapsedMs(describeStart)
 		if readsScreen && capture == nil, let captured = try capturedWindow() {
 			capture = captured
@@ -119,12 +130,7 @@ extension Platform {
 		let imageHeight = frame.height
 		var image: LookImage?
 		// OCR nodes are pressed by coordinates, and coordinates need the image they belong to.
-		if let picture = frame.image, includeImage || readsScreen {
-			guard let jpeg = jpegData(image: picture, quality: Self.imageQuality) else {
-				throw BCUError(.internalError, "Failed to encode look image as JPEG")
-			}
-			image = LookImage(jpeg: jpeg, width: picture.width, height: picture.height)
-		}
+		if let picture = frame.image, includeImage || readsScreen { image = try lookImage(picture) }
 
 		var readTextMs = 0
 		var readTextExecuted = false
@@ -144,7 +150,6 @@ extension Platform {
 			windowFrame: base?.windowFrame ?? capture?.frame ?? rootFrame,
 			imageWidth: base?.imageWidth ?? imageWidth,
 			imageHeight: base?.imageHeight ?? imageHeight,
-			hasImage: base?.hasImage ?? (capture != nil),
 			readScreen: base?.readScreen ?? readTextExecuted
 		)
 		let scale = (capture?.frame.width ?? rootFrame.width) > 0 ? Double(imageWidth) / (capture?.frame.width ?? rootFrame.width) : displayScaleFactor(for: rootFrame)
@@ -171,6 +176,13 @@ extension Platform {
 			image: image,
 			webContentMissing: webContentMissing
 		)
+	}
+
+	func lookImage(_ picture: CGImage) throws -> LookImage {
+		guard let jpeg = jpegData(image: picture, quality: Self.imageQuality) else {
+			throw BCUError(.internalError, "Failed to encode look image as JPEG")
+		}
+		return LookImage(jpeg: jpeg, width: picture.width, height: picture.height)
 	}
 
 	func rectTransform(windowFrame: CGRect, imageWidth: Int, imageHeight: Int) -> (CGRect) -> CGRect {

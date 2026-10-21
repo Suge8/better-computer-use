@@ -181,7 +181,7 @@ func lookResult(_ outline: LookNode, frame: CGRect = CGRect(x: 0, y: 0, width: 8
 		capturedAt: Date(),
 		window: LookWindow(windowId: windowId, kind: kind, framePoints: frame, scaleFactor: 2, isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .exact, score: 110), sheetCount: 0), role: "AXWindow", subrole: "AXStandardWindow"),
 		outline: outline,
-		geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: Int(frame.width), imageHeight: Int(frame.height), hasImage: jpeg != nil, readScreen: false),
+		geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: Int(frame.width), imageHeight: Int(frame.height), readScreen: false),
 		timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
 		readText: (readText, readScreen),
 		image: jpeg,
