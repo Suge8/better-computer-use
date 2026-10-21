@@ -13,26 +13,29 @@ extension Platform {
 		return ["chrome", "chromium", "brave", "edge", "vivaldi", "opera", "firefox", "helium"].contains { name.contains($0) }
 	}
 
-	/// Whether the root or a descendant, searched breadth first, each element once, `matches`;
-	/// nil when the deadline stopped the search before it found one or saw them all. No
-	/// element is read after the deadline.
-	func containsDescendant(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int, until deadline: Date, where matches: (AXUIElement) -> Bool) -> Bool? {
-		var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
+	/// Whether an element of the observed tree under `root` (see `collectDescendants`)
+	/// `matches`; nil when the deadline stopped the search before it found one or saw them all.
+	/// No element is read after the deadline.
+	func containsDescendant(startingAt root: AXUIElement, until deadline: Date, where matches: (AXUIElement) -> Bool) -> Bool? {
+		var queue = [root]
 		var seen = Set<ObjectIdentifier>()
 		var index = 0
-		while index < queue.count && seen.count < maxNodes {
+		while index < queue.count && seen.count < Self.outlineNodeLimit {
 			guard Date() < deadline else { return nil }
-			let (element, depth) = queue[index]
+			let element = queue[index]
 			index += 1
 			guard seen.insert(ObjectIdentifier(element)).inserted else { continue }
 			if matches(element) { return true }
-			if depth < maxDepth { queue += axElementArray(element, attribute: kAXChildrenAttribute as CFString).map { ($0, depth + 1) } }
+			queue += axElementArray(element, attribute: kAXChildrenAttribute as CFString)
 		}
 		return false
 	}
 
-	/// The root and its descendants, breadth first, each element once.
-	func collectDescendants(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXUIElement] {
+	/// The root and its descendants, breadth first, each element once. Without a depth, this is
+	/// the tree an observation describes: the same walk with the same node limit, so whatever
+	/// observe-ui shows a wait, a re-find or a coordinate can reach. Web content sits a dozen
+	/// levels deep or more (Chromium's own pages, frames), so no depth short of that is safe.
+	func collectDescendants(startingAt root: AXUIElement, maxDepth: Int = .max, maxNodes: Int = outlineNodeLimit) -> [AXUIElement] {
 		let nodeLimit = max(1, maxNodes)
 		var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
 		var seen = Set<ObjectIdentifier>()

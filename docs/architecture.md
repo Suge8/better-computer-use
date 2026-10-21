@@ -125,7 +125,7 @@ find-roots → observe-ui → cached query → act-ui → successor state
 - Accessibility 大纲，以及每个节点背后的平台句柄；
 - 可选的图片和 OCR 行。
 
-完整大纲只存在状态库里；命令返回的是它的投影。`search-ui`、`expand-ui`、`inspect-ui` 查询完整大纲，因此被投影省略或折叠的节点照样可达。搜索文本、`wait-for` 与 `--expect-text` 不区分大小写，并把三个句点读作 macOS 标题结尾的省略号（`Save As...` 找到 `Save As…`），两侧都折叠，其余字符照常匹配。节点被平台截断时，`expand-ui` 在该状态所在 pid 的道里、以相同 epoch 补读这棵子树，不会把并发动作之后的数据嫁接到旧状态上。
+完整大纲只存在状态库里；命令返回的是它的投影。实时读界面的地方——观察、`wait-for` 与 `--expect-*` 的条件、换了无障碍对象后重找元素、坐标落不到元素时找包含它的最小元素——都走同一棵树：从根开始广度优先、每个元素一次、最多 2000 个，不限深度；Chromium 自己的页面（`chrome://inspect`、错误页）和框架里的内容在第 13 层以下，深度上限会让观察看得到的元素条件看不到。`search-ui`、`expand-ui`、`inspect-ui` 查询完整大纲，因此被投影省略或折叠的节点照样可达。搜索文本、`wait-for` 与 `--expect-text` 不区分大小写，并把三个句点读作 macOS 标题结尾的省略号（`Save As...` 找到 `Save As…`），两侧都折叠，其余字符照常匹配。节点被平台截断时，`expand-ui` 在该状态所在 pid 的道里、以相同 epoch 补读这棵子树，不会把并发动作之后的数据嫁接到旧状态上。
 
 `observe-ui` 默认 `--mode semantic --read-text auto`：窗口有无障碍内容时不取图、不做 OCR，延迟与只走无障碍一样（TextEdit、Chrome、Ghostty 实测 captureMs 与 readTextMs 均为 0）。窗口的无障碍内容少于 2 个节点时，平台自动截图并做 OCR，这样微信、Qt、游戏这类自绘窗口仍能用同一个 observe → act 循环操作。计数不含红绿灯按钮和标题栏自己的图标与标题文字，只数有名称或可操作的节点。阈值按 macOS 27 实测标定：微信、IINA、自绘按钮夹具都是 0，Ghostty 终端 3，TextEdit 约 40，Chrome 窗口 16 以上。`--read-text never` 关掉它，`always` 总是做。截了图的观察都把截图文件交给 agent（结果带 `image`，文本视图末行 `image <path> (WxH)`）：OCR 读不到空输入框这类无字区域，agent 要看图按坐标点；没截图的窗口不会为此多截。`act-ui` 的后继观察沿用同一策略，自绘窗口按完之后仍看得到 OCR 节点和截图。
 
