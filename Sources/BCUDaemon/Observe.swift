@@ -222,7 +222,7 @@ private func answering<T: Sendable>(by deadline: Date, else overrun: BCUError, _
 			answer(.failure(overrun))
 		}
 		Task {
-			answer(await Result { try await body() })
+			do { answer(.success(try await body())) } catch { answer(.failure(error)) }
 			timer.cancel()
 		}
 	}
