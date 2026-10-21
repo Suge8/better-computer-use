@@ -303,6 +303,25 @@ extension Platform {
 	}
 
 
+	/// An observer that bumps `signal` when the app opens, retitles or focuses a window; nil
+	/// for this process, a background-only process, or an app that takes no observer.
+	func rootObserver(pid: Int32, signal: ChangeSignal) -> AXObserver? {
+		guard pid != getpid(), NSRunningApplication(processIdentifier: pid)?.activationPolicy != .prohibited else { return nil }
+		let appElement = AXUIElementCreateApplication(pid)
+		AXUIElementSetMessagingTimeout(appElement, quickMessagingTimeout)
+		var observer: AXObserver?
+		guard AXObserverCreate(pid, { _, _, _, refcon in
+			guard let refcon else { return }
+			Unmanaged<ChangeSignal>.fromOpaque(refcon).takeUnretainedValue().bump()
+		}, &observer) == .success, let observer else { return nil }
+		// Unretained: the desktop signal lives as long as the platform.
+		let context = UnsafeMutableRawPointer(Unmanaged.passUnretained(signal).toOpaque())
+		let registered = [kAXWindowCreatedNotification, kAXTitleChangedNotification, kAXFocusedWindowChangedNotification].filter {
+			[.success, .notificationAlreadyRegistered].contains(AXObserverAddNotification(observer, appElement, $0 as CFString, context))
+		}
+		return registered.isEmpty ? nil : observer
+	}
+
 	/// The pid's onscreen window ids: 1–2 ms to read, so it is re-read on every wake where a
 	/// full accessibility enumeration is not.
 	func cgRootSignature(pid: Int32) -> Set<UInt32> {

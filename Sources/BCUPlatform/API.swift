@@ -368,6 +368,17 @@ public struct ChangeMark: Sendable {
 	let generation: UInt64
 }
 
+/// Observers of the windows some apps open, retitle or focus, kept while one wait for a root runs.
+public struct RootWatch: Sendable {
+	/// Where the desktop's changes stood once the observers were in place.
+	public let mark: ChangeMark
+	let thread: RunLoopThread?
+
+	public func stop() {
+		thread?.stop()
+	}
+}
+
 public enum WaitOutcome: Sendable {
 	case found
 	case gone

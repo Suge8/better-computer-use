@@ -14,7 +14,7 @@ protocol Desktop: Sendable {
 	func waitFor(_ request: WaitForRequest) throws -> WaitOutcome
 	func changeMark(pid: Int32) throws -> ChangeMark
 	func waitForChange(pid: Int32, since mark: ChangeMark, timeoutMs: Int) throws
-	func desktopMark(watching pids: [Int32]) -> ChangeMark
+	func watchRoots(of pids: [Int32]) -> RootWatch
 	func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int)
 	func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage
 	func diagnostics() -> Diagnostics

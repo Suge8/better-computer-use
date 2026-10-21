@@ -3,7 +3,9 @@ import AppKit
 /// What asking an app for its full accessibility tree found out, kept for the process's lifetime.
 struct AccessibilityRequest: Sendable {
 	/// The app builds web content: a browser, or an app that took AXManualAccessibility (Chromium, Electron).
-	let buildsWebContent: Bool
+	var buildsWebContent: Bool
+	/// When the app last failed to answer the request; it is asked again once the backoff has passed.
+	var failedAt: Date?
 	/// When a window's web content last failed to appear in time; it is not waited for again
 	/// before the backoff has passed.
 	var timedOutAt: Date?
@@ -20,20 +22,28 @@ extension Platform {
 	/// Chromium posts its notifications while it builds the tree and fills the web area a
 	/// moment after the last one, so between notifications the window is looked at again this often.
 	static let webContentRecheck: TimeInterval = 0.1
-	/// A process whose web content timed out is not waited for again before this.
+	/// A process whose web content timed out, or that did not answer the request, is not
+	/// waited for or asked again before this.
 	static let webContentBackoff: TimeInterval = 30
 	/// How deep and how wide the look for a web area goes.
 	static let webAreaDepth = 10
 	static let webAreaVisits = 400
 
-	/// Asks the app for its full accessibility tree, once per process lifetime; nil when the
-	/// process is gone or too busy to answer, and then it is asked again next time.
+	/// Asks the app for its full accessibility tree, once per process lifetime; nil only when
+	/// the process is gone. An app too busy to answer is asked again after the backoff; a
+	/// browser counts as building web content whether or not it answered, so its windows are
+	/// still waited for and reported.
 	@discardableResult
 	func requestAccessibility(pid: Int32) -> AccessibilityRequest? {
 		guard let process = ProcessIdentity(pid: pid) else { return nil }
-		if let known = accessibilityRequests.withLock({ $0[process] }) { return known }
-		guard let manual = assertAccessibility(pid: pid) else { return nil }
-		let request = AccessibilityRequest(buildsWebContent: manual || isBrowser(pid: pid))
+		let known = accessibilityRequests.withLock { $0[process] }
+		if let known, known.failedAt.map({ Date().timeIntervalSince($0) < Self.webContentBackoff }) ?? true { return known }
+		let manual = assertAccessibility(pid: pid)
+		let request = AccessibilityRequest(
+			buildsWebContent: manual == true || known?.buildsWebContent == true || isBrowser(pid: pid),
+			failedAt: manual == nil ? Date() : nil,
+			timedOutAt: known?.timedOutAt
+		)
 		accessibilityRequests.withLock { $0[process] = request }
 		return request
 	}

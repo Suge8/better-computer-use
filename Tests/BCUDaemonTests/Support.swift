@@ -112,8 +112,8 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		Thread.sleep(forTimeInterval: min(0.005, Double(timeoutMs) / 1000))
 	}
 
-	func desktopMark(watching pids: [Int32]) -> ChangeMark {
-		ChangeMark(generation: 0)
+	func watchRoots(of pids: [Int32]) -> RootWatch {
+		RootWatch(mark: ChangeMark(generation: 0), thread: nil)
 	}
 
 	func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int) {

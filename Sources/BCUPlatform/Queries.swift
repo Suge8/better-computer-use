@@ -65,13 +65,20 @@ extension Platform {
 		_ = app.wait(until: Date().addingTimeInterval(Double(timeoutMs) / 1000)) { app.generation != mark.generation }
 	}
 
-	/// Where the desktop's changes stand: apps launching, quitting or taking the front, and the
-	/// notifications of observed apps. The `watching` apps are observed first, so a window they
-	/// open or retitle after the mark is a change; an app that accepts no observer still counts
-	/// when it takes the front. Take it before looking for a root.
-	public func desktopMark(watching pids: [Int32]) -> ChangeMark {
-		for pid in pids { _ = try? observedApp(pid) }
-		return ChangeMark(generation: rootObservers.desktop.generation)
+	/// Starts watching the apps for the windows they open, retitle or focus, and returns where
+	/// the desktop's changes stand from then on: such a window, an app launching, quitting or
+	/// taking the front, or a notification of an observed app. One thread hosts an observer per
+	/// app (an app that takes none, or runs as a background-only process, is left out); stop
+	/// the watch when the wait is over.
+	public func watchRoots(of pids: [Int32]) -> RootWatch {
+		let signal = rootObservers.desktop
+		guard !pids.isEmpty else { return RootWatch(mark: ChangeMark(generation: signal.generation), thread: nil) }
+		let thread = RunLoopThread.start { [self] in
+			let observers = pids.compactMap { rootObserver(pid: $0, signal: signal) }
+			for observer in observers { CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes) }
+			return observers.isEmpty ? nil : observers as NSArray
+		}
+		return RootWatch(mark: ChangeMark(generation: signal.generation), thread: thread)
 	}
 
 	/// Returns after a desktop change since `mark`, or after `timeoutMs`; the caller looks again either way.

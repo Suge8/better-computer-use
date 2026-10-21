@@ -113,23 +113,33 @@ extension Daemon {
 	}
 
 	/// The root a selector names, waited for while it does not exist yet: an app still
-	/// launching, a window not yet open or titled. Each attempt is made after a desktop mark
-	/// that watches the apps that may show it (those the selector names; for a title alone,
-	/// the front app and every app launched since the wait began), so an app launching or
-	/// taking the front, or a window those apps open or retitle, wakes the wait at once. An
-	/// `@r` ref, a window id and a pid never come back, so they are not waited for.
+	/// launching, a window not yet open or titled. Once a look misses, the apps that may show
+	/// it are watched (those the selector names; for a title alone, every running app; apps
+	/// launched later join on the next miss), so an app launching or taking the front, or a
+	/// window those apps open or retitle, wakes the wait at once. Every look after the first is
+	/// made after a mark taken with the watches in place, so nothing that happens during a look
+	/// is missed. An `@r` ref, a window id and a pid never come back, so they are not waited for.
 	func awaitRoot(_ selector: RootSelector, _ clock: Countdown, timeoutMs: Int) async throws -> Target {
-		let before = Set(try await apps().map(\.pid))
+		var watches: [RootWatch] = []
+		defer { watches.forEach { $0.stop() } }
+		var watched = Set<Int32>()
+		var mark: ChangeMark?
 		while true {
-			let watched = try await watchedPids(selector, launchedAfter: before)
-			let mark = try await offload { [desktop = self.desktop] in desktop.desktopMark(watching: watched) }
 			do {
 				return try await observedTarget(selector)
 			} catch let error as BCUError where mayAppear(error, selector) {
 				guard clock.remainingMs > 0 else {
 					throw BCUError(.actionTimeout, "No root matching the selector appeared within \(timeoutMs)ms. \(error.message)")
 				}
-				try await offload { [desktop = self.desktop] in desktop.waitForDesktopChange(since: mark, timeoutMs: clock.remainingMs) }
+				let fresh = try await watchedPids(selector).filter { !watched.contains($0) }
+				if let since = mark, fresh.isEmpty {
+					try await offload { [desktop = self.desktop] in desktop.waitForDesktopChange(since: since, timeoutMs: clock.remainingMs) }
+				}
+				// New apps are watched before the mark; with none, the watch only takes the mark.
+				let watch = try await offload { [desktop = self.desktop] in desktop.watchRoots(of: fresh) }
+				watches.append(watch)
+				watched.formUnion(fresh)
+				mark = watch.mark
 			}
 		}
 	}
@@ -139,12 +149,11 @@ extension Daemon {
 		return error.code == .windowStale || (error.code == .appNotFound && selector.pid == nil)
 	}
 
-	private func watchedPids(_ selector: RootSelector, launchedAfter before: Set<Int32>) async throws -> [Int32] {
+	private func watchedPids(_ selector: RootSelector) async throws -> [Int32] {
 		let running = try await apps()
 		let app = trimmed(selector.app)
 		if app != nil || selector.pid != nil { return appsMatching(running, app: app, bundleId: nil, pid: selector.pid).map(\.pid) }
-		let front = try await offload { [desktop = self.desktop] in try desktop.frontmost() }.pid
-		return [front] + running.map(\.pid).filter { !before.contains($0) && $0 != front }
+		return running.map(\.pid)
 	}
 
 	private func target(named selector: String) async throws -> Target {
