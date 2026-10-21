@@ -113,7 +113,8 @@ find-roots → observe-ui → cached query → act-ui → successor state
 - 同一 pid 的实时工作顺序执行，不同 pid 并行；
 - 缓存查询只读保存的状态，不进道：`inspect-ui`、`search-ui`，以及 `expand-ui` 展开已经读到的子树；
 - 观察保存在它所在道的当前 epoch 上；
-- 要读实时界面的查询在状态所在的道里执行，要求 epoch 没变，也不推进它：`read-text`、`wait-for`、`expand-ui` 补读截断的子树、`search-ui` 补做 OCR。epoch 变了就是 `stale_state`。
+- 要读实时界面的查询在状态所在的道里执行，不推进 epoch。用到状态里的 ref 或往状态里添东西的，要求 epoch 没变，变了就是 `stale_state`：`read-text`、带 `--scope` 的 `wait-for`（等之前和等之后各查一次）、`expand-ui` 补读截断的子树。只拿状态指认根、把新看到的存成新状态的，按此刻的 epoch 看：不带 `--scope` 的 `wait-for` 的后继观察、`search-ui` 补做的 OCR。它们不解析旧 ref，期间别人的动作（包括让条件成立的那个）不该让它们失败；
+- 用选择器代替 `--state` 的命令（`act-ui`、`wait-for`、`search-ui`）各自拥有那次新鲜观察，调用方从没拿到过它的 ref。`act-ui` 在投递的同一个道次里观察，观察与投递之间插不进别的动作；投递后的后继观察也在这个道次里，不会过期，动作从不重放。
 
 `act-ui` 先整体校验并准备动作数组，全部通过后 epoch 才前进，然后投递。被拒绝的请求（参数错误、目标不在状态里、坐标越界）不推进 epoch，原 `stateId` 照样可用；已经开始投递的动作即使中途失败，epoch 也已前进，之前的状态一律失效。两个调用从同一状态并发写入时，第一个先推进 epoch，第二个在投递前收到 `stale_state`。不确定是否已经执行的物理动作不会自动重放。
 

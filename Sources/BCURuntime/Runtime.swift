@@ -46,8 +46,14 @@ public actor Runtime<Payload: StatePayload> {
 		}
 	}
 
-	/// Live work against a state that must still be current, such as waiting for a condition;
-	/// it leaves the epoch alone.
+	/// Live work at the pid's epoch as it is now, for work that resolves nothing of an earlier
+	/// state; it leaves the epoch alone.
+	public func live<T: Sendable>(pid: Int, _ work: @escaping @Sendable (Lane<Payload>) async throws -> T) async throws -> T {
+		try await enqueue(pid) { try await work(await self.lane(pid)) }
+	}
+
+	/// Live work against a state that must still be current, because it resolves the state's
+	/// refs or adds to the state; it leaves the epoch alone.
 	public func read<T: Sendable>(from stateId: String, _ work: @escaping @Sendable (StoredState<Payload>, Lane<Payload>) async throws -> T) async throws -> T {
 		let state = try state(stateId)
 		return try await enqueue(state.pid) {
@@ -65,6 +71,17 @@ public actor Runtime<Payload: StatePayload> {
 			_ = try await self.current(state)
 			let prepared = try await prepare(state)
 			return try await deliver(prepared, await self.advance(state.pid))
+		}
+	}
+
+	/// An action from an observation taken for it in the same turn of the pid's lane, so no other
+	/// action can come between the look and the delivery.
+	@discardableResult
+	public func act<Prepared: Sendable, T: Sendable>(observing pid: Int, _ capture: @escaping @Sendable (Int) async throws -> Payload, prepare: @escaping @Sendable (StoredState<Payload>) async throws -> Prepared, deliver: @escaping @Sendable (Prepared, Lane<Payload>) async throws -> T) async throws -> T {
+		try await enqueue(pid) {
+			let lane = await self.lane(pid)
+			let prepared = try await prepare(try lane.save(try await capture(lane.epoch)))
+			return try await deliver(prepared, await self.advance(pid))
 		}
 	}
 

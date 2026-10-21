@@ -118,15 +118,21 @@ extension Daemon {
 		if let expect = params.expect, trimmed(expect.text) == nil, trimmed(expect.role) == nil, trimmed(expect.value) == nil {
 			throw BCUError(.invalidArguments, "act-ui expectations require --expect-text, --expect-role, or --expect-value.")
 		}
-		let stateId = switch subject {
-		case .state(let stateId): stateId
-		case .fresh(let selector): try await observation(of: try await observedTarget(selector)).state.stateId
-		}
-		return try await runtime.act(from: stateId, prepare: { state in
+		let prepare: @Sendable (StoredState<Observation>) async throws -> Transaction = { state in
 			try await self.prepare(actions, params: params, headless: headless, state: state)
-		}, deliver: { transaction, lane in
+		}
+		let deliver: @Sendable (Transaction, Lane<Observation>) async throws -> BCUCore.ActResult = { transaction, lane in
 			try await self.deliver(transaction, actions: actions, params: params, headless: headless, image: image, lane: lane)
-		})
+		}
+		switch subject {
+		case .state(let stateId):
+			return try await runtime.act(from: stateId, prepare: prepare, deliver: deliver)
+		case .fresh(let selector):
+			// The command's own look is taken in the turn that delivers: another client's action
+			// cannot come between them and stale a state nobody else holds.
+			let target = try await observedTarget(selector)
+			return try await runtime.act(observing: Int(target.pid), { _ in try await self.capture(target).observation }, prepare: prepare, deliver: deliver)
+		}
 	}
 
 	private func prepare(_ actions: [UiAction], params: ActParams, headless: Bool, state: StoredState<Observation>) async throws -> Transaction {
