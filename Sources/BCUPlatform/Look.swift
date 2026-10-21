@@ -127,7 +127,9 @@ extension Platform {
 
 		var readTextMs = 0
 		var readTextExecuted = false
-		if let capture, readsScreen {
+		// The capture and the second description may have used the caller's time up; the picture
+		// is kept, since the outline is measured in it, but nothing is read from it.
+		if let capture, readsScreen, !expired() {
 			readTextExecuted = true
 			let textStart = Date()
 			let boxes = try recognizeText(in: capture.image, pixelsPerPoint: Double(capture.image.width) / capture.frame.width, outputWidth: imageWidth, outputHeight: imageHeight)
