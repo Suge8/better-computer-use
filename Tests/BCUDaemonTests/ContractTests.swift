@@ -157,7 +157,7 @@ private extension Harness {
 		world.sheetOpen = true
 		desktop.update { $0.roots[fixtureApp.pid] = [fixtureWindow, menuBarRoot, sheetRoot] }
 		let sheet = try #require(try await roots(#"{"app":"Fixture","kind":"sheet"}"#).first)
-		let view = try await observe(#"{"root":"\#(sheet.ref)"}"#)
+		let view = try await observe(#"{"selector":{"root":"\#(sheet.ref)"}}"#)
 		func button(_ name: String) throws -> String { try #require(view.nodes.first { $0.name == name }?.ref) }
 		return (sheet, view, try button("仍要保存"), try button("取消"))
 	}
@@ -188,14 +188,14 @@ private func matches(_ text: String, _ pattern: String) -> Bool {
 struct ContractTests {
 	@Test func queriesOverOneStateKeepTheirShapes() async throws {
 		let (harness, _) = try contract()
-		let observed = try await harness.json(#"{"command":"observe-ui","params":{"app":"Fixture"}}"#)
+		let observed = try await harness.json(#"{"command":"observe-ui","params":{"selector":{"app":"Fixture"}}}"#)
 		#expect(keys(observed) == ["nodes", "root", "shown", "stateId", "total"])
 		#expect(observed["total"] == .number(47))
 		#expect(observed["nodes"]?.array?.first?["role"] == .string("window"))
 		#expect(!matches(observed.serialized(), #""AX|_NS:"#), "observe-ui JSON leaks raw accessibility names")
 		#expect(harness.shotFiles().isEmpty, "observe-ui wrote a screenshot without being asked")
 
-		let header = lines(try await harness.text(#"{"command":"observe-ui","params":{"app":"Fixture"}}"#))[0]
+		let header = lines(try await harness.text(#"{"command":"observe-ui","params":{"selector":{"app":"Fixture"}}}"#))[0]
 		#expect(matches(header, #"^@r\d+ Fixture — 未命名2 · state [0-9a-z]{8} · 47 nodes, \d+ shown$"#), "observe-ui header drifted: \(header)")
 
 		let stateId = try #require(observed["stateId"]?.string)
@@ -226,7 +226,7 @@ struct ContractTests {
 
 	@Test func aVerifiedActionReportsItsEvidenceAndDiff() async throws {
 		let (harness, _) = try contract()
-		let state = try await harness.observe(#"{"app":"Fixture"}"#)
+		let state = try await harness.observe(#"{"selector":{"app":"Fixture"}}"#)
 		let editorRef = try #require(state.nodes.first { $0.role == "textarea" }?.ref)
 		let acted = try await harness.json(harness.actRequest(state.stateId, #"[{"action":"setText","ref":"\#(editorRef)","text":"typed"}]"#, #","expect":{"value":"typed","timeoutMs":1000}"#))
 		#expect(keys(acted) == ["baseStateId", "changes", "delivery", "outcome", "stateId", "verification"])
@@ -247,7 +247,7 @@ struct ContractTests {
 	/// A root the action opened is the agent's next target, handed over with a usable @r.
 	@Test func anOpenedRootIsHandedOverWithARef() async throws {
 		let (harness, _) = try contract()
-		let state = try await harness.observe(#"{"app":"Fixture"}"#)
+		let state = try await harness.observe(#"{"selector":{"app":"Fixture"}}"#)
 		let editorRef = try #require(state.nodes.first { $0.role == "textarea" }?.ref)
 		let opened = try await harness.act(state.stateId, #"[{"action":"press","ref":"\#(editorRef)"}]"#)
 		let menu = try #require(opened.roots?.first)
@@ -262,7 +262,7 @@ struct ContractTests {
 	/// An unjudged action is not a failure; a step that did nothing stops the array and fails it.
 	@Test func unjudgedStepsContinueAndNoOpsFail() async throws {
 		let (harness, _) = try contract()
-		let state = try await harness.observe(#"{"app":"Fixture"}"#)
+		let state = try await harness.observe(#"{"selector":{"app":"Fixture"}}"#)
 		let editorRef = try #require(state.nodes.first { $0.role == "textarea" }?.ref)
 		let unjudged = #"{"action":"keypress","ref":"\#(editorRef)","keys":["\#(unjudgedKey)"]}"#
 		let text = lines(try await harness.text(harness.actRequest(state.stateId, "[\(unjudged)]")))
@@ -285,7 +285,7 @@ struct ContractTests {
 		#expect(!harness.desktop.scene.acts.contains { $0.action == .setText })
 
 		// A satisfied postcondition is the evidence an unjudged action lacked.
-		let fresh = try await harness.observe(#"{"app":"Fixture"}"#)
+		let fresh = try await harness.observe(#"{"selector":{"app":"Fixture"}}"#)
 		let expected = try await harness.act(fresh.stateId, "[\(unjudged)]", #","expect":{"value":"after unknown","scope":"\#(editorRef)","timeoutMs":1000}"#)
 		#expect(expected.outcome == .worked)
 		#expect(expected.verification.status == .verified)
@@ -294,7 +294,7 @@ struct ContractTests {
 	/// Offscreen elements outside the view are one summary line; a visible change keeps its own.
 	@Test func offscreenNoiseIsSummarized() async throws {
 		let (harness, world) = try contract()
-		let view = try await harness.observe(#"{"app":"Fixture"}"#)
+		let view = try await harness.observe(#"{"selector":{"app":"Fixture"}}"#)
 		let editorRef = try #require(view.nodes.first { $0.role == "textarea" }?.ref)
 		let folded = try #require(view.nodes.first { $0.hidden != nil })
 		guard case .inspectUi(let parent) = try await harness.run(#"{"command":"inspect-ui","params":{"stateId":"\#(view.stateId)","ref":"\#(folded.ref)"}}"#) else { Issue.record(); return }
@@ -322,7 +322,7 @@ struct ContractTests {
 		#expect(closed.next?.kind == .window && closed.next?.title == "未命名2")
 		#expect(closed.stateId.map { matches($0, "^[0-9a-z]{8}$") } == true)
 		#expect((closed.nodes?.count ?? 0) > 0)
-		let next = try await harness.observe(#"{"root":"\#(try #require(closed.next?.ref))"}"#)
+		let next = try await harness.observe(#"{"selector":{"root":"\#(try #require(closed.next?.ref))"}}"#)
 		#expect(next.root.title == "未命名2")
 
 		sheet = try await harness.openSheet(world)
@@ -359,7 +359,7 @@ struct ContractTests {
 
 	@Test func searchByCapabilityFindsWhatTheViewPromises() async throws {
 		let (harness, _) = try contract()
-		let web = try await harness.observe(#"{"app":"Web"}"#)
+		let web = try await harness.observe(#"{"selector":{"app":"Web"}}"#)
 		for capability in ["scroll", "menu"] {
 			guard case .searchUi(let found) = try await harness.run(#"{"command":"search-ui","params":{"stateId":"\#(web.stateId)","action":"\#(capability)","limit":50}}"#) else { Issue.record(); return }
 			#expect(found.matches.allSatisfy { $0.node.caps.contains(Capability(rawValue: capability)!) })
@@ -368,7 +368,7 @@ struct ContractTests {
 		#expect(scroll.matches.map(\.node.name) == ["Scroll area"])
 
 		// A line folded into a text input is still found; the input speaks for it.
-		let editor = try await harness.observe(#"{"app":"Editor"}"#)
+		let editor = try await harness.observe(#"{"selector":{"app":"Editor"}}"#)
 		guard case .searchUi(let line) = try await harness.run(#"{"command":"search-ui","params":{"stateId":"\#(editor.stateId)","text":"Fifth line"}}"#) else { Issue.record(); return }
 		#expect(line.matches.map { "\($0.node.role) \($0.node.name)" } == ["textarea Editor"])
 	}
@@ -376,19 +376,19 @@ struct ContractTests {
 	@Test func appsWithoutAControllableRootAreStaleWindows() async throws {
 		let (harness, _) = try contract()
 		do {
-			_ = try await harness.observe(#"{"app":"Empty"}"#)
+			_ = try await harness.observe(#"{"selector":{"app":"Empty"}}"#)
 			Issue.record("an app without windows was observed")
 		} catch let error as BCUError {
 			#expect(error.code == .windowStale)
 			#expect(error.message.hasPrefix("App 'Empty' is running but has no controllable window"))
 		}
-		#expect(await expectCode(.windowStale) { _ = try await harness.observe(#"{"app":"Desktop"}"#) })
+		#expect(await expectCode(.windowStale) { _ = try await harness.observe(#"{"selector":{"app":"Desktop"}}"#) })
 	}
 
 	@Test func aFoldedRowIsPressedThroughTheElementThatOwnsTheCapability() async throws {
 		let (harness, _) = try contract()
-		let rows = try await harness.observe(#"{"app":"Rows"}"#)
-		let text = try await harness.text(#"{"command":"observe-ui","params":{"app":"Rows"}}"#)
+		let rows = try await harness.observe(#"{"selector":{"app":"Rows"}}"#)
+		let text = try await harness.text(#"{"command":"observe-ui","params":{"selector":{"app":"Rows"}}}"#)
 		#expect(lines(text.trimmingCharacters(in: .whitespacesAndNewlines)).count == rows.nodes.count + 1)
 		guard case .searchUi(let found) = try await harness.run(#"{"command":"search-ui","params":{"stateId":"\#(rows.stateId)","text":"下载"}}"#) else { Issue.record(); return }
 		let row = try #require(found.matches.first?.node)
@@ -404,23 +404,23 @@ struct ContractTests {
 	/// The screenshot taken to read a window is part of the result, in the JSON and the text view.
 	@Test func aWindowReadFromTheScreenHandsOverItsScreenshot() async throws {
 		let (harness, _) = try contract()
-		let drawn = try await harness.observe(#"{"app":"Drawn"}"#)
+		let drawn = try await harness.observe(#"{"selector":{"app":"Drawn"}}"#)
 		let image = try #require(drawn.image)
 		#expect(image.mime == "image/jpeg" && image.width == 400 && image.height == 300)
 		#expect((FileManager.default.contents(atPath: image.path)?.count ?? 0) > 0)
-		let text = try await harness.text(#"{"command":"observe-ui","params":{"app":"Drawn"}}"#)
+		let text = try await harness.text(#"{"command":"observe-ui","params":{"selector":{"app":"Drawn"}}}"#)
 		#expect(matches(lines(text.trimmingCharacters(in: .whitespacesAndNewlines)).last!, #"^image \S+\.jpg \(400x300\)$"#))
 		let acted = try await harness.act(drawn.stateId, #"[{"action":"keypress","keys":["\#(unjudgedKey)"],"x":330,"y":260}]"#)
 		#expect(acted.image?.mime == "image/jpeg")
 
-		let fused = try await harness.observe(#"{"app":"Fixture","mode":"fused"}"#)
+		let fused = try await harness.observe(#"{"selector":{"app":"Fixture"},"mode":"fused"}"#)
 		#expect(fused.image?.mime == "image/jpeg")
 		#expect((FileManager.default.contents(atPath: try #require(fused.image?.path))?.count ?? 0) > 0)
 	}
 
 	@Test func refsFromAnotherStateOrNoneAreRefused() async throws {
 		let (harness, _) = try contract()
-		let state = try await harness.observe(#"{"app":"Fixture"}"#)
+		let state = try await harness.observe(#"{"selector":{"app":"Fixture"}}"#)
 		#expect(await expectCode(.staleState) { _ = try await harness.run(#"{"command":"inspect-ui","params":{"stateId":"00000000","ref":"@e2"}}"#) })
 		#expect(await expectCode(.elementNotFound) { _ = try await harness.run(#"{"command":"inspect-ui","params":{"stateId":"\#(state.stateId)","ref":"@e999"}}"#) })
 		#expect(await expectCode(.elementNotFound) { _ = try await harness.run(#"{"command":"read-text","params":{"stateId":"\#(state.stateId)","ref":"@e999"}}"#) })

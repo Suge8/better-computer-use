@@ -15,6 +15,21 @@ final class Handoff<Value: Sendable>: Sendable {
 	}
 }
 
+/// One process lifetime: a pid is reused by later processes, its start time is not.
+struct ProcessIdentity: Hashable, Sendable {
+	let pid: Int32
+	let started: UInt64
+
+	/// Nil once the process is gone.
+	init?(pid: Int32) {
+		var info = proc_bsdinfo()
+		let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+		guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
+		self.pid = pid
+		started = info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
+	}
+}
+
 extension Platform {
 	func processPath(pid: pid_t) -> String? {
 		var buffer = [CChar](repeating: 0, count: 4096)

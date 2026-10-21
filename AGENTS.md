@@ -19,6 +19,6 @@
 ## 什么时候读什么
 
 - 改投递、判定、投影、状态或根模型前读 `docs/architecture.md`；代码注释按小节名引用它。
-- 从上游 `injaneity/pi-computer-use` 移植引擎改动前读 `docs/adr/0001-upstream-tracking-fork.md`。
+- 从 trycua/cua 的 macOS 驱动移植引擎改动前读 `docs/adr/0001-upstream-tracking-fork.md`，移植后在那里记下提交。
 - 加或改配置项、`BCU_*` 变量：同一改动更新 `docs/configuration.md`。
 - 命令、参数、输出格式或动作字段变了：同一改动更新用法 skill，它是用法的唯一事实源，在 `~/Project/friedbun/skills/operations/better-computer-use/SKILL.md`（仓库 Suge8/friedbun）。README 只讲是什么、怎么装，不写用法细节。

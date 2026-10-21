@@ -6,7 +6,7 @@ extension Platform {
 	/// `gone`, until none does), re-reading the tree whenever the app reports a change.
 	public func waitFor(_ request: WaitForRequest) throws -> WaitOutcome {
 		let pid = request.pid
-		ensureEnhancedAccessibility(pid: pid)
+		requestAccessibility(pid: pid)
 		let role = request.role?.trimmingCharacters(in: .whitespacesAndNewlines)
 		let text = request.text.map { foldedForSearch($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
 		let expectedValue = request.value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -63,6 +63,27 @@ extension Platform {
 	public func waitForChange(pid: Int32, since mark: ChangeMark, timeoutMs: Int) throws {
 		let app = try observedApp(pid)
 		_ = app.wait(until: Date().addingTimeInterval(Double(timeoutMs) / 1000)) { app.generation != mark.generation }
+	}
+
+	/// Starts watching the apps for the windows they open, retitle or focus, and returns where
+	/// the desktop's changes stand from then on: such a window, an app launching, quitting or
+	/// taking the front, or a notification of an observed app. One thread hosts an observer per
+	/// app (an app that takes none, or runs as a background-only process, is left out); stop
+	/// the watch when the wait is over.
+	public func watchRoots(of pids: [Int32]) -> RootWatch {
+		let signal = rootObservers.desktop
+		guard !pids.isEmpty else { return RootWatch(mark: ChangeMark(generation: signal.generation), thread: nil) }
+		let thread = RunLoopThread.start { [self] in
+			let observers = pids.compactMap { rootObserver(pid: $0, signal: signal) }
+			for observer in observers { CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes) }
+			return observers.isEmpty ? nil : observers as NSArray
+		}
+		return RootWatch(mark: ChangeMark(generation: signal.generation), thread: thread)
+	}
+
+	/// Returns after a desktop change since `mark`, or after `timeoutMs`; the caller looks again either way.
+	public func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int) {
+		rootObservers.desktop.wait(since: mark.generation, until: Date().addingTimeInterval(Double(timeoutMs) / 1000))
 	}
 
 	/// A wait lasts 10 s unless asked otherwise, and between 0.1 s and 60 s.

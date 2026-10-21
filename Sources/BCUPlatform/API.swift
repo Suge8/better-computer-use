@@ -177,6 +177,8 @@ public struct LookResult {
 	/// Whether the screen was read; nil for a picture-only popup menu.
 	public let readText: (requested: ReadTextMode, executed: Bool)?
 	public let image: LookImage?
+	/// A browser window whose page the browser exposed no accessibility tree for.
+	public let webContentMissing: Bool
 }
 
 // MARK: Act
@@ -190,6 +192,8 @@ public enum ActTarget: Sendable {
 	case element(Handle)
 	/// A point in the look's image coordinates.
 	case point(x: Double, y: Double)
+	/// Wherever the app's keyboard focus is: typing that an earlier step aimed.
+	case focus
 }
 
 /// The rung of the delivery ladder a call may start from; see docs/architecture.md.
@@ -207,12 +211,10 @@ public struct ActionInput: Sendable {
 	public let path: [CGPoint]?
 	public let text: String
 	public let keys: [String]
-	/// Deliver to the element's current focus instead of focusing the target first.
-	public let preserveFocus: Bool
 	/// Post raw input to the process rather than through the HID event stream.
 	public let pidDelivery: Bool
 
-	public init(button: CGMouseButton = .left, clickCount: Int = 1, scrollX: Int = 0, scrollY: Int = 0, path: [CGPoint]? = nil, text: String = "", keys: [String] = [], preserveFocus: Bool = false, pidDelivery: Bool = false) {
+	public init(button: CGMouseButton = .left, clickCount: Int = 1, scrollX: Int = 0, scrollY: Int = 0, path: [CGPoint]? = nil, text: String = "", keys: [String] = [], pidDelivery: Bool = false) {
 		self.button = button
 		self.clickCount = clickCount
 		self.scrollX = scrollX
@@ -220,7 +222,6 @@ public struct ActionInput: Sendable {
 		self.path = path
 		self.text = text
 		self.keys = keys
-		self.preserveFocus = preserveFocus
 		self.pidDelivery = pidDelivery
 	}
 }
@@ -365,6 +366,17 @@ public struct WaitForRequest: Sendable {
 
 public struct ChangeMark: Sendable {
 	let generation: UInt64
+}
+
+/// Observers of the windows some apps open, retitle or focus, kept while one wait for a root runs.
+public struct RootWatch: Sendable {
+	/// Where the desktop's changes stood once the observers were in place.
+	public let mark: ChangeMark
+	let thread: RunLoopThread?
+
+	public func stop() {
+		thread?.stop()
+	}
 }
 
 public enum WaitOutcome: Sendable {

@@ -160,7 +160,7 @@ struct BatchTests {
 	@Test func aMenuOpenedByAPressComesBackObserved() async throws {
 		let notes = Notes()
 		let harness = notesApp(notes)
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let font = try ref(window.nodes, "Font")
 		let pressed = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(font)"}]"#)
 		let opened = try #require(pressed.opened)
@@ -171,7 +171,7 @@ struct BatchTests {
 		#expect(pressed.changes == [], "the menu is reported once, as opened, not again as changes of the window")
 
 		// The view is what observe-ui would have shown of that root.
-		let observed = try await harness.observe(#"{"root":"\#(opened.root.ref)"}"#)
+		let observed = try await harness.observe(#"{"selector":{"root":"\#(opened.root.ref)"}}"#)
 		#expect(observed.nodes == opened.nodes)
 
 		// Both states are live until one of them acts; acting from the menu's stales the other.
@@ -189,10 +189,10 @@ struct BatchTests {
 	@Test func closingTheStatesRootDoesNotEndTheArray() async throws {
 		let notes = Notes()
 		let harness = notesApp(notes)
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		_ = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(try ref(window.nodes, "New"))"}]"#)
 		let sheet = try #require(try await harness.roots(#"{"app":"Notes","kind":"sheet"}"#).first)
-		let view = try await harness.observe(#"{"root":"\#(sheet.ref)"}"#)
+		let view = try await harness.observe(#"{"selector":{"root":"\#(sheet.ref)"}}"#)
 		let steps = #"[{"action":"press","ref":"\#(try ref(view.nodes, "Open document"))"},{"action":"typeText","text":"hello","find":{"role":"textarea","root":"app"}}]"#
 		let result = try await harness.act(view.stateId, steps)
 		#expect(delivered(harness) == [Handle("new"), Handle("open-doc"), Handle("body")])
@@ -206,12 +206,12 @@ struct BatchTests {
 	/// attached, and all of them are still listed.
 	@Test func onlyOneTransientRootIsAttached() async throws {
 		let harness = notesApp(Notes())
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let both = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(try ref(window.nodes, "Both"))"}]"#)
 		#expect(both.roots?.count == 2)
 		#expect(both.opened?.root.kind == .sheet, "the modal sheet outranks the menu")
 
-		let again = try await harness.observe(#"{"root":"@r1"}"#)
+		let again = try await harness.observe(#"{"selector":{"root":"@r1"}}"#)
 		let another = try await harness.act(again.stateId, #"[{"action":"press","ref":"\#(try ref(again.nodes, "Another"))"}]"#)
 		#expect(another.roots?.map(\.kind) == [.window])
 		#expect(another.opened == nil, "a new window is observed on request, not attached")
@@ -222,7 +222,7 @@ struct BatchTests {
 	@Test func aBatchCrossesIntoTheRootItOpens() async throws {
 		let notes = Notes()
 		let harness = notesApp(notes)
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let steps = """
 		[{"action":"press","find":{"role":"button","name":"New"}},
 		 {"action":"setText","text":"Report","find":{"role":"textfield","name":"Name","root":"opened"}},
@@ -244,7 +244,7 @@ struct BatchTests {
 		let notes = Notes()
 		notes.createAppearsAtLook = 4
 		let harness = notesApp(notes)
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let steps = #"[{"action":"press","find":{"name":"New"}},{"action":"press","find":{"name":"Create","root":"app","timeoutMs":5000}}]"#
 		_ = try await harness.act(window.stateId, steps)
 		#expect(delivered(harness).last == Handle("create"))
@@ -255,7 +255,7 @@ struct BatchTests {
 	/// state is still good for another try.
 	@Test func anAmbiguousFirstStepRefusesWithoutSpendingTheState() async throws {
 		let harness = notesApp(Notes())
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		do {
 			_ = try await harness.act(window.stateId, #"[{"action":"press","find":{"role":"button","name":"Share"}}]"#)
 			Issue.record("an ambiguous locator was acted on")
@@ -272,7 +272,7 @@ struct BatchTests {
 	/// taken back: the state they came from is stale.
 	@Test func aLaterStepThatCannotBeFoundStopsTheArray() async throws {
 		let harness = notesApp(Notes())
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let steps = #"[{"action":"press","ref":"\#(try ref(window.nodes, "New"))"},{"action":"press","find":{"name":"Nope","root":"opened","timeoutMs":0}}]"#
 		do {
 			_ = try await harness.act(window.stateId, steps)
@@ -287,14 +287,14 @@ struct BatchTests {
 
 	@Test func aStepsOwnPostconditionGatesTheNextStep() async throws {
 		let harness = notesApp(Notes())
-		let window = try await harness.observe(#"{"app":"Notes"}"#)
+		let window = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let popup = try ref(window.nodes, "Font"), another = try ref(window.nodes, "Another")
 		#expect(await expectCode(.actionFailed) {
 			_ = try await harness.act(window.stateId, #"[{"action":"press","ref":"\#(popup)","expect":{"text":"__never__","timeoutMs":100}},{"action":"press","ref":"\#(another)"}]"#)
 		})
 		#expect(delivered(harness) == [Handle("popup")], "the step after a failed postcondition was not delivered")
 
-		let fresh = try await harness.observe(#"{"app":"Notes"}"#)
+		let fresh = try await harness.observe(#"{"selector":{"app":"Notes"}}"#)
 		let held = try await harness.act(fresh.stateId, #"[{"action":"press","ref":"\#(try ref(fresh.nodes, "Font"))","expect":{"text":"Times","root":"opened","timeoutMs":1000}}]"#)
 		#expect(held.verification.status == .verified && held.outcome == .worked)
 		#expect(harness.desktop.scene.waits.last?.root == Handle("font-menu"))

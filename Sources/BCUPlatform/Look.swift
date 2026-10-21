@@ -25,7 +25,8 @@ extension Platform {
 			geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false),
 			timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
 			readText: nil,
-			image: nil
+			image: nil,
+			webContentMissing: false
 		)
 	}
 
@@ -60,13 +61,13 @@ extension Platform {
 			guard let menuWindowId = popupMenuWindowId, let menuPid = pidForWindowId(menuWindowId) else {
 				throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 			}
-			ensureEnhancedAccessibility(pid: menuPid)
+			requestAccessibility(pid: menuPid)
 			return popupMenuLook(windowId: menuWindowId, capturedAt: captureStart)
 		}
 		guard let pid = pidForElement(window) else {
 			throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 		}
-		ensureEnhancedAccessibility(pid: pid)
+		let accessibility = requestAccessibility(pid: pid)
 		let rootElement: AXUIElement
 		let scope = request.scope
 		if let scope {
@@ -92,9 +93,17 @@ extension Platform {
 		let describeStart = Date()
 		var frame = geometry()
 		var outline = buildLookOutline(root: rootElement, transform: frame.transform)
+		// A browser window without its page waits for the browser to build it; one that still
+		// has none says so rather than pass the browser's chrome off as the page or read it
+		// from the screen.
+		var webContentMissing = false
+		if scope == nil, lacksWebContent(outline, window: window, request: accessibility) {
+			if awaitWebContent(pid: pid, window: window) { outline = buildLookOutline(root: rootElement, transform: frame.transform) }
+			webContentMissing = lacksWebContent(outline, window: window, request: accessibility)
+		}
 		// A window that says (almost) nothing through Accessibility is read from the screen,
 		// so the same observe → act loop still has something to act on.
-		let readsScreen = readText == .always || (readText == .auto && scope == nil && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
+		let readsScreen = readText == .always || (readText == .auto && scope == nil && !webContentMissing && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
 		var describeMs = elapsedMs(describeStart)
 		if readsScreen && capture == nil, let captured = try capturedWindow() {
 			capture = captured
@@ -153,7 +162,8 @@ extension Platform {
 			geometry: geometry,
 			timings: LookTimings(captureMs: captureMs, describeMs: describeMs, readTextMs: readTextMs),
 			readText: (readText, readTextExecuted),
-			image: image
+			image: image,
+			webContentMissing: webContentMissing
 		)
 	}
 

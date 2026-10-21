@@ -45,7 +45,7 @@ private let lookCapMs = 400
 /// Kinds of root an action leaves open that the agent continues in; a new window is observed on request.
 private let attachedKinds: Set<RootKind> = [.menu, .sheet, .popover, .dialog]
 
-private struct Countdown {
+struct Countdown {
 	private let clock = ContinuousClock()
 	private let deadline: ContinuousClock.Instant
 
@@ -77,7 +77,7 @@ extension Daemon {
 					var resolved = action
 					(resolved.ref, resolved.find, resolved.expect) = (ref, nil, nil)
 					let environment = ActionEnvironment(outline: outline, image: observation.image, headless: headless)
-					let prepared = try prepareAction(resolved, state: ActionState(currentFocus: false), environment: environment)
+					let prepared = try prepareAction(resolved, environment: environment)
 					return try self.resolvedStep(prepared, outline: outline, observation: observation, root: root)
 				case .ambiguous(let error): throw error
 				case .missing(let error):
@@ -89,7 +89,6 @@ extension Daemon {
 	}
 
 	func resolvedStep(_ prepared: PreparedAction, outline: Outline, observation: Observation, root: Target) throws -> ResolvedStep {
-		var preserveFocus = false
 		let target: ActTarget
 		switch prepared.target {
 		case .ref(let wireRef):
@@ -97,28 +96,26 @@ extension Daemon {
 			target = .element(try observation.outline.handle(of: node))
 		case .point(let point):
 			target = .point(x: point.x, y: point.y)
-		case .focus(let x, let y):
-			// Typing into whatever an earlier click focused; the point only anchors the input.
-			target = .point(x: Double(x), y: Double(y))
-			preserveFocus = true
+		case .focus:
+			target = .focus
 		case nil:
 			throw BCUError(.internalError, "Action \(prepared.action.rawValue) was prepared without a target.")
 		}
 		guard let action = ActAction(rawValue: prepared.action.rawValue) else {
 			throw BCUError(.invalidArguments, "Action \(prepared.action.rawValue) cannot be delivered.")
 		}
-		return ResolvedStep(action: action, target: target, input: actionInput(prepared.params, preserveFocus: preserveFocus), root: root, rootElement: observation.outline.rootElement, geometry: observation.geometry)
+		return ResolvedStep(action: action, target: target, input: actionInput(prepared.params), root: root, rootElement: observation.outline.rootElement, geometry: observation.geometry)
 	}
 
-	private func actionInput(_ params: PreparedParams, preserveFocus: Bool) -> ActionInput {
+	private func actionInput(_ params: PreparedParams) -> ActionInput {
 		switch params {
 		case .click(let button, let clickCount):
-			ActionInput(button: button == .right ? .right : button == .middle ? .center : .left, clickCount: clickCount, preserveFocus: preserveFocus)
-		case .text(let text): ActionInput(text: text, preserveFocus: preserveFocus)
-		case .keys(let keys): ActionInput(keys: keys, preserveFocus: preserveFocus)
-		case .scroll(let x, let y): ActionInput(scrollX: x, scrollY: y, preserveFocus: preserveFocus)
-		case .drag(let path): ActionInput(path: path.map { CGPoint(x: $0.x, y: $0.y) }, preserveFocus: preserveFocus)
-		case .none, .wait: ActionInput(preserveFocus: preserveFocus)
+			ActionInput(button: button == .right ? .right : button == .middle ? .center : .left, clickCount: clickCount)
+		case .text(let text): ActionInput(text: text)
+		case .keys(let keys): ActionInput(keys: keys)
+		case .scroll(let x, let y): ActionInput(scrollX: x, scrollY: y)
+		case .drag(let path): ActionInput(path: path.map { CGPoint(x: $0.x, y: $0.y) })
+		case .none, .wait: ActionInput()
 		}
 	}
 

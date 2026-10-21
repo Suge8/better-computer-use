@@ -5,6 +5,7 @@ func render(_ result: CommandResult) throws -> String {
 	case .findRoots(let result): result.roots.isEmpty ? "no roots are visible to bcu" : result.roots.map(rootLine).joined(separator: "\n")
 	case .observeUi(let result): lines([
 			renderObservation(ObservationView(stateId: result.stateId, root: ObservationRoot(ref: result.root.ref, app: result.root.app, title: result.root.title), nodes: result.nodes, shown: result.shown, total: result.total)),
+			result.webContentMissing == true ? webContentMissingLine : "",
 			imageLine(result.image),
 		])
 	case .searchUi(let result): (["\(result.matches.count) of \(result.total) matches · state \(result.stateId)"] + result.matches.map { match in
@@ -20,6 +21,8 @@ func render(_ result: CommandResult) throws -> String {
 		])
 	}
 }
+
+private let webContentMissingLine = "web content not exposed: the browser has not built this page's accessibility tree, as happens while its window is minimized or when the browser did not answer bcu's request for it; read the page with a CDP browser tool"
 
 /// Non-empty lines joined.
 private func lines(_ parts: [String]) -> String {

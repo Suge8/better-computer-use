@@ -25,6 +25,7 @@ private let actionFields: [ActionName: [String]] = [
 
 private let requiredFields: [ActionName: [String]] = [.setText: ["text"], .typeText: ["text"], .keypress: ["keys"], .drag: ["path"]]
 private let targetRequiredActions: Set<ActionName> = [.press, .click, .doubleClick, .setText, .scroll, .moveMouse]
+private let focusingActions: Set<ActionName> = [.press, .click, .doubleClick, .typeText, .keypress]
 
 private func finite(_ value: JSONValue) -> Double? {
 	value.number.flatMap { $0.isFinite ? $0 : nil }
@@ -134,11 +135,26 @@ public func validateActions(_ values: [JSONValue]) throws -> [UiAction] {
 			throw invalid("\(name.rawValue) without a target requires an earlier focus-establishing action.")
 		}
 		if targetRequiredActions.contains(name), !targeted { throw invalid("\(name.rawValue) requires ref, find, or both x and y.") }
-		// What a found element is, and so whether its click focused anything, is known only
-		// when its step runs; typing after it names its own target.
-		if [.press, .click, .doubleClick].contains(name), pointed { focusMayExist = true }
+		// A click, or typing into an element, may leave the keyboard focus there; untargeted
+		// typing after it goes wherever the focus is when its step runs.
+		if focusingActions.contains(name), targeted { focusMayExist = true }
 	}
 	return try values.map { try JSONCoding.decode(UiAction.self, from: $0) }
+}
+
+/// A root selector acts on an observation made for this call, which no ref, coordinates or
+/// drag path the caller wrote can belong to; steps name their elements with `find`, and
+/// untargeted typing goes to the focus an earlier step left.
+public func requireStateFree(_ actions: [UiAction], scope: String?) throws {
+	if Text.trimmedOrNil(scope) != nil { throw stateRefs("--scope") }
+	for (index, action) in actions.enumerated() {
+		let uses = action.ref != nil ? "a ref" : action.x != nil ? "coordinates" : action.path != nil ? "a drag path" : nil
+		if let uses { throw stateRefs("Step \(index + 1) (\(action.action.rawValue)) uses \(uses), which") }
+	}
+}
+
+public func stateRefs(_ subject: String) -> BCUError {
+	BCUError(.invalidArguments, "\(subject) depends on an earlier observation, but a root selector acts on a fresh one.", recovery: "Run observe-ui and pass its stateId with --state, or name the element with find.")
 }
 
 // MARK: - preparation
@@ -161,8 +177,8 @@ public struct Point: Codable, Sendable, Equatable {
 public enum ActionTarget: Codable, Sendable, Equatable {
 	case ref(String)
 	case point(Point)
-	/// The window's current keyboard focus, clicked at the image center.
-	case focus(x: Int, y: Int)
+	/// Wherever the app's keyboard focus is when the step runs.
+	case focus
 
 	enum CodingKeys: String, CodingKey { case ref, x, y, focus }
 
@@ -171,16 +187,10 @@ public enum ActionTarget: Codable, Sendable, Equatable {
 		if let ref = try container.decodeIfPresent(String.self, forKey: .ref) {
 			self = .ref(ref)
 		} else if container.contains(.focus) {
-			let focus = try container.decode(Point.self, forKey: .focus)
-			self = .focus(x: Int(focus.x), y: Int(focus.y))
+			self = .focus
 		} else {
 			self = .point(try Point(from: decoder))
 		}
-	}
-
-	var isPoint: Bool {
-		if case .point = self { return true }
-		return false
 	}
 
 	public func encode(to encoder: any Encoder) throws {
@@ -188,7 +198,7 @@ public enum ActionTarget: Codable, Sendable, Equatable {
 		switch self {
 		case .ref(let ref): try container.encode(ref, forKey: .ref)
 		case .point(let point): try point.encode(to: encoder)
-		case .focus(let x, let y): try container.encode(Point(x: Double(x), y: Double(y)), forKey: .focus)
+		case .focus: try container.encode(true, forKey: .focus)
 		}
 	}
 }
@@ -246,18 +256,6 @@ public struct PreparedAction: Codable, Sendable, Equatable {
 	public var action: ActionName
 	public var target: ActionTarget?
 	public var params: PreparedParams
-	/// A click that put keyboard focus somewhere later untargeted typing may use: into an
-	/// editable element, or wherever a click delivered at coordinates landed (OCR text, a node
-	/// without an accessibility element, an x/y click), where the platform cannot say.
-	public var establishesFocus: Bool
-}
-
-public struct ActionState: Sendable {
-	public var currentFocus: Bool
-
-	public init(currentFocus: Bool) {
-		self.currentFocus = currentFocus
-	}
 }
 
 /// Semantic actions are delivered to the element that owns the capability the view promised.
@@ -341,26 +339,21 @@ private func nativeTarget(_ action: UiAction, _ operation: ActionName, _ environ
 	throw invalid("\(operation.rawValue) requires ref, find, or both x and y.")
 }
 
-private func focusedTarget(_ environment: ActionEnvironment) throws -> ActionTarget {
-	guard let image = environment.image else {
-		throw BCUError(.actionFailed, "Focused keyboard input requires an image-bearing state. Observe with --image always and retry.")
-	}
-	return .focus(x: image.width / 2, y: image.height / 2)
+/// Untargeted typing goes to the app's keyboard focus. Headless cannot type into it: the clicks
+/// that put focus somewhere are background accessibility presses there, which need not move it.
+private func focusTarget(_ operation: ActionName, _ environment: ActionEnvironment) throws -> ActionTarget {
+	if environment.headless { throw invalid("\(operation.rawValue) without a target types into the keyboard focus, which headless does not use; give it a ref or find.") }
+	return .focus
 }
 
-private func containsEditable(_ node: OutlineNode) -> Bool {
-	node.canSetValue || node.role.lowercased().contains("text") || node.children.contains(where: containsEditable)
-}
-
-public func prepareAction(_ action: UiAction, state: ActionState, environment: ActionEnvironment) throws -> PreparedAction {
+/// Validated arrays only reach here with untargeted typing after a step that may have focused something.
+public func prepareAction(_ action: UiAction, environment: ActionEnvironment) throws -> PreparedAction {
 	if action.action == .wait {
-		return PreparedAction(action: .wait, params: .wait(ms: Int((action.ms ?? defaultWaitMs).rounded())), establishesFocus: false)
+		return PreparedAction(action: .wait, params: .wait(ms: Int((action.ms ?? defaultWaitMs).rounded())))
 	}
 	let operation = action.action == .doubleClick ? .click : action.action
-	let ref = action.ref ?? ""
-	let intoCurrentFocus = !environment.headless && state.currentFocus && ref.isEmpty && (operation == .typeText || operation == .keypress)
-	let target = intoCurrentFocus ? try focusedTarget(environment) : try nativeTarget(action, operation, environment)
-	let establishesFocus = try !environment.headless && (operation == .click || operation == .press) && (target.isPoint || !ref.isEmpty && containsEditable(environment.node(ref, for: action.action)))
+	let untargeted = Text.trimmedOrNil(action.ref) == nil && action.x == nil && (operation == .typeText || operation == .keypress)
+	let target = untargeted ? try focusTarget(operation, environment) : try nativeTarget(action, operation, environment)
 	let params: PreparedParams = switch operation {
 	case .press, .click: .click(button: action.button ?? .left, clickCount: action.action == .doubleClick ? 2 : action.clickCount ?? 1)
 	case .setText, .typeText: .text(action.text ?? "")
@@ -369,10 +362,7 @@ public func prepareAction(_ action: UiAction, state: ActionState, environment: A
 	case .drag: .drag(try dragPath(action.path ?? [], environment))
 	case .moveMouse, .doubleClick, .wait: .none
 	}
-	return PreparedAction(
-		action: operation, target: target, params: params,
-		establishesFocus: establishesFocus
-	)
+	return PreparedAction(action: operation, target: target, params: params)
 }
 
 // MARK: - outcomes

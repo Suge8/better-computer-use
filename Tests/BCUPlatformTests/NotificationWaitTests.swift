@@ -40,13 +40,13 @@ private func waiting(on app: AppNotifications, for seconds: Double, _ condition:
 struct NotificationWaitTests {
 	@Test func withoutNotificationsTheConditionIsNotPolled() {
 		let condition = Condition()
-		let answer = waiting(on: AppNotifications(pid: 1), for: 1, condition)
+		let answer = waiting(on: AppNotifications(pid: 1, desktop: ChangeSignal()), for: 1, condition)
 		#expect(answer() == false)
 		#expect(condition.checks <= 2, "checked \(condition.checks) times without a notification")
 	}
 
 	@Test func aNotificationWakesTheWaiter() {
-		let app = AppNotifications(pid: 1)
+		let app = AppNotifications(pid: 1, desktop: ChangeSignal())
 		let condition = Condition()
 		let started = Date()
 		let answer = waiting(on: app, for: 5, condition)

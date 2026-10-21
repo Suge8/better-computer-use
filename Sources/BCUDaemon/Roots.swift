@@ -83,14 +83,12 @@ extension Daemon {
 
 	// MARK: observe-ui selection
 
-	/// The root `observe-ui` names by `--root`, by `--app` and `--window-title`, or, with
-	/// neither, the frontmost app's most prominent window.
-	func observedTarget(_ params: ObserveParams) async throws -> Target {
-		if let root = params.root { return try await target(named: root) }
-		let app = trimmed(params.app)
-		let windowTitle = trimmed(params.windowTitle)
-		if let app {
-			let chosen = try chooseApp(try await apps(), query: app)
+	/// The root `observe-ui` names by `--root`, by `--app` or `--pid` and `--window-title`, or,
+	/// with none, the frontmost app's most prominent window.
+	func observedTarget(_ selector: RootSelector) async throws -> Target {
+		if let root = selector.root { return try await target(named: root) }
+		let windowTitle = trimmed(selector.windowTitle)
+		if let chosen = try await selectedApp(selector) {
 			let windows = try await roots(pid: chosen.pid)
 			if windows.isEmpty { throw noControllableRoot(chosen.appName) }
 			let window = try windowTitle.map { try chooseWindow(windows.filter(isSelectable), title: $0, appName: chosen.appName) } ?? choosePreferred(windows, appName: chosen.appName)
@@ -98,6 +96,64 @@ extension Daemon {
 		}
 		if let windowTitle { return try await target(titled: windowTitle) }
 		return try await frontmostTarget()
+	}
+
+	/// The app `--pid` or `--app` names; `--pid` picks it the way `--app` does, and both must agree.
+	private func selectedApp(_ selector: RootSelector) async throws -> RunningApp? {
+		let app = trimmed(selector.app)
+		guard let pid = selector.pid else {
+			guard let app else { return nil }
+			return try chooseApp(try await apps(), query: app)
+		}
+		guard let chosen = try await apps().first(where: { Int($0.pid) == pid }) else {
+			throw BCUError(.appNotFound, "No running app has pid \(pid).", recovery: "Run 'bcu find-roots' to see the running apps and their pids.")
+		}
+		if let app, !appMatches(chosen, app) { throw BCUError(.invalidArguments, "Pid \(pid) is \(chosen.appName), not '\(app)'. Give one of --app and --pid.") }
+		return chosen
+	}
+
+	/// The root a selector names, waited for while it does not exist yet: an app still
+	/// launching, a window not yet open or titled. Once a look misses, the apps that may show
+	/// it are watched (those the selector names; for a title alone, every running app; apps
+	/// launched later join on the next miss), so an app launching or taking the front, or a
+	/// window those apps open or retitle, wakes the wait at once. Every look after the first is
+	/// made after a mark taken with the watches in place, so nothing that happens during a look
+	/// is missed. An `@r` ref, a window id and a pid never come back, so they are not waited for.
+	func awaitRoot(_ selector: RootSelector, _ clock: Countdown, timeoutMs: Int) async throws -> Target {
+		var watches: [RootWatch] = []
+		defer { watches.forEach { $0.stop() } }
+		var watched = Set<Int32>()
+		var mark: ChangeMark?
+		while true {
+			do {
+				return try await observedTarget(selector)
+			} catch let error as BCUError where mayAppear(error, selector) {
+				guard clock.remainingMs > 0 else {
+					throw BCUError(.actionTimeout, "No root matching the selector appeared within \(timeoutMs)ms. \(error.message)")
+				}
+				let fresh = try await watchedPids(selector).filter { !watched.contains($0) }
+				if let since = mark, fresh.isEmpty {
+					try await offload { [desktop = self.desktop] in desktop.waitForDesktopChange(since: since, timeoutMs: clock.remainingMs) }
+				}
+				// New apps are watched before the mark; with none, the watch only takes the mark.
+				let watch = try await offload { [desktop = self.desktop] in desktop.watchRoots(of: fresh) }
+				watches.append(watch)
+				watched.formUnion(fresh)
+				mark = watch.mark
+			}
+		}
+	}
+
+	private func mayAppear(_ error: BCUError, _ selector: RootSelector) -> Bool {
+		guard trimmed(selector.root) == nil else { return false }
+		return error.code == .windowStale || (error.code == .appNotFound && selector.pid == nil)
+	}
+
+	private func watchedPids(_ selector: RootSelector) async throws -> [Int32] {
+		let running = try await apps()
+		let app = trimmed(selector.app)
+		if app != nil || selector.pid != nil { return appsMatching(running, app: app, bundleId: nil, pid: selector.pid).map(\.pid) }
+		return running.map(\.pid)
 	}
 
 	private func target(named selector: String) async throws -> Target {

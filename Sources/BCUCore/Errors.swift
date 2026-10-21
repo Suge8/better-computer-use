@@ -11,6 +11,7 @@ public enum ErrorCode: String, CaseIterable, Codable, Sendable {
 	case actionFailed = "action_failed"
 	case residentUnavailable = "resident_unavailable"
 	case stateTooLarge = "state_too_large"
+	case screenLocked = "screen_locked"
 	case internalError = "internal_error"
 
 	public var exitCode: Int32 {
@@ -25,6 +26,7 @@ public enum ErrorCode: String, CaseIterable, Codable, Sendable {
 		case .actionTimeout: 8
 		case .actionFailed: 9
 		case .residentUnavailable: 10
+		case .screenLocked: 11
 		case .stateTooLarge: 13
 		}
 	}
@@ -41,6 +43,7 @@ public enum ErrorCode: String, CaseIterable, Codable, Sendable {
 		case .actionFailed: "Observe the current UI before deciding whether the action is safe to retry."
 		case .residentUnavailable: "Run 'bcu doctor'. If a stale process remains, run 'bcu stop' and retry."
 		case .stateTooLarge: "Observe a smaller root or narrow the UI before retrying."
+		case .screenLocked: "Unlock the Mac, then retry. Foreground input would only reach the lock screen."
 		case .internalError: "Run 'bcu doctor' and retry. If it repeats, report the full error."
 		}
 	}

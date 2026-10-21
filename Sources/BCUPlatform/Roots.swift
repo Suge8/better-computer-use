@@ -186,7 +186,7 @@ extension Platform {
 
 	/// The app's windows and their sheets, in the app's own window order.
 	func listWindows(pid: Int32, appName: String, bundleId: String?, cgEntries: [[String: Any]]? = nil, spaces: SpaceView? = SpaceView(), includingStaleViews: Bool = true, messagingTimeout: Float = messagingTimeout) -> [Root] {
-		ensureEnhancedAccessibility(pid: pid)
+		requestAccessibility(pid: pid)
 		let appElement = AXUIElementCreateApplication(pid)
 		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
 		let windows = Array(axElementArray(appElement, attribute: kAXWindowsAttribute as CFString).prefix(128))

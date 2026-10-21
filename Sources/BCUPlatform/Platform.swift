@@ -20,8 +20,8 @@ public final class Platform: Sendable {
 	let browserBundleIds: Set<String> = [
 		"com.apple.Safari", "com.google.Chrome", "org.chromium.Chromium", "company.thebrowser.Browser", "com.brave.Browser", "com.microsoft.edgemac", "com.vivaldi.Vivaldi", "net.imput.helium", "org.mozilla.firefox",
 	]
-	/// Apps already told to build their full accessibility tree.
-	let enhancedAccessibilityPids = OSAllocatedUnfairLock(initialState: Set<Int32>())
+	/// Apps told to build their full accessibility tree, by process lifetime.
+	let accessibilityRequests = OSAllocatedUnfairLock(initialState: [ProcessIdentity: AccessibilityRequest]())
 	let rootObservers = RootObservers()
 	let grants: any PrivacyGrants
 

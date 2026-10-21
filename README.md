@@ -58,7 +58,8 @@ npx skills add Suge8/friedbun --skill better-computer-use
 - 需要 macOS 14 或更新版本。
 - 有的界面只在应用处于前台时才有反应（例如微信搜索框的下拉结果）。bcu 从外面分不出来，agent 需要明确改用前台模式，这时会激活应用、占用键盘并移动真实鼠标。
 - 后台点击和打字用到了 macOS 未公开的接口，系统升级后可能失效。
-- 屏幕锁定时系统不再报告窗口内容，bcu 什么也找不到，解锁后恢复。
+- 屏幕锁定时系统不再报告窗口内容，需要界面的命令以 `screen_locked` 报错，解锁后恢复。
+- 浏览器窗口最小化时，浏览器可能不给网页内容建无障碍树；bcu 会明说，页面内容改用浏览器工具。
 
 出问题先跑 `bcu doctor`，再看 [故障排查](./docs/troubleshooting.md)。
 
@@ -68,4 +69,4 @@ npx skills add Suge8/friedbun --skill better-computer-use
 
 ## License
 
-MIT。macOS 引擎源自 [injaneity/pi-computer-use](https://github.com/injaneity/pi-computer-use)（MIT），后台输入移植自 [trycua/cua](https://github.com/trycua/cua)（MIT）。
+MIT。macOS 引擎起源于 [injaneity/pi-computer-use](https://github.com/injaneity/pi-computer-use)（MIT），后台输入与引擎修正移植自 [trycua/cua](https://github.com/trycua/cua)（MIT）。

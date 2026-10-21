@@ -105,7 +105,16 @@ extension Platform {
 			throw BCUError(.invalidArguments, "Drag requires at least two points")
 		}
 		if delivery == .pid {
-			try SkyLight.drag(points, along: route)
+			// A drag that starts a macOS drag-and-drop session (reordering a list, moving a
+			// file, an HTML5 draggable) is tracked with the real pointer, so it cannot drop at
+			// the requested point in the background. AppKit shows the session's drag image in a
+			// window of the source app at the dragging level; once one appears the drag is
+			// released at once and handed to the foreground (ported from trycua/cua).
+			let before = dragImageWindows(pid: pid)
+			let finished = try SkyLight.drag(points, along: route) { dragImageWindows(pid: pid).isSubset(of: before) }
+			if !finished || !dragImageWindows(pid: pid).isSubset(of: before) {
+				throw ForegroundRequired(message: "The drag started a macOS drag-and-drop session, which follows the real pointer; bcu released it at once")
+			}
 			return
 		}
 		physicalInputLock.lock()
@@ -131,6 +140,18 @@ extension Platform {
 			throw BCUError(.actionFailed, "Failed to create mouse up event")
 		}
 		try postEvent(up, pid: pid, delivery: delivery)
+	}
+
+	/// The pid's onscreen windows at the dragging level: the images of drag-and-drop sessions.
+	func dragImageWindows(pid: Int32) -> Set<UInt32> {
+		let level = Int(CGWindowLevelForKey(.draggingWindow))
+		guard let entries = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else { return [] }
+		return Set(entries.compactMap { entry in
+			guard (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid,
+				(entry[kCGWindowLayer as String] as? NSNumber)?.intValue == level
+			else { return nil }
+			return (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value
+		})
 	}
 
 	func postScrollWheel(at point: CGPoint, deltaX: Int, deltaY: Int, pid: Int32, route: SkyLight.PointerRoute, delivery: Delivery = .hid) throws {

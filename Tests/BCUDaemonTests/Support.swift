@@ -12,6 +12,7 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		var apps: [RunningApp] = []
 		var roots: [Int32: [Root]] = [:]
 		var permissions = true
+		var locked = false
 		/// Element values actions changed, by handle name.
 		var values: [String: String] = [:]
 		var looks: [LookRequest] = []
@@ -111,6 +112,14 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		Thread.sleep(forTimeInterval: min(0.005, Double(timeoutMs) / 1000))
 	}
 
+	func watchRoots(of pids: [Int32]) -> RootWatch {
+		RootWatch(mark: ChangeMark(generation: 0), thread: nil)
+	}
+
+	func waitForDesktopChange(since mark: ChangeMark, timeoutMs: Int) {
+		Thread.sleep(forTimeInterval: min(0.005, Double(timeoutMs) / 1000))
+	}
+
 	func readText(_ handle: Handle, offset: Int, limit: Int) throws -> TextPage {
 		let read = update { scene in
 			scene.reads.append(handle)
@@ -123,6 +132,8 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 	func diagnostics() -> Diagnostics {
 		Diagnostics(accessibility: scene.permissions, screenRecording: scene.permissions, pid: 1, parentPid: 1, parentPath: nil, parentAppName: nil, parentBundleId: nil, executablePath: "/Applications/bcu.app/Contents/MacOS/bcu", macOS: "27", arch: "arm64")
 	}
+
+	func screenLocked() -> Bool { scene.locked }
 
 	func checkPermissions() -> PermissionStatus {
 		let granted = scene.permissions
@@ -173,7 +184,8 @@ func lookResult(_ outline: LookNode, frame: CGRect = CGRect(x: 0, y: 0, width: 8
 		geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: Int(frame.width), imageHeight: Int(frame.height), hasImage: jpeg != nil),
 		timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
 		readText: (readText, readScreen),
-		image: jpeg
+		image: jpeg,
+		webContentMissing: false
 	)
 }
 

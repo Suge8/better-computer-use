@@ -12,7 +12,7 @@ import path from "node:path";
 import { appPath, launchTextEdit, makeTemporaryRoot, monitorProcess, request, residentEnvironment, runCli, stopTextEdit, waitForAxWindow, withTimeout } from "./lib/harness.mjs";
 
 /** The only capability words the view may show; see Capability in Sources/BCUCore/Projection.swift. */
-const CAPABILITIES = ["press", "toggle", "setText", "typeText", "menu", "open", "expand", "scroll", "increment", "decrement", "raise"];
+const CAPABILITIES = ["press", "toggle", "setText", "typeText", "menu", "open", "expand", "scroll", "increment", "decrement"];
 /** Several lines of plain text the text area exposes, so OCR has lines it must not repeat. */
 const FIXTURE_TEXT = "bcu live observe fixture\nsecond line of fixture text\nthird line of fixture text\n";
 

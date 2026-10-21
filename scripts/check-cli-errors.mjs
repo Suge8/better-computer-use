@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // The CLI failure surface, against the bcu executable built from this checkout with no
 // resident able to start: every command documents itself, malformed arguments and action
-// payloads are rejected as invalid_arguments before anything is started or connected, a
-// valid payload gets as far as starting the resident, a resident that cannot start is
+// payloads are rejected as invalid_arguments before anything is started or connected (so are
+// refs, coordinates and scopes on act-ui with a root selector, which acts on a fresh
+// observation), a valid payload, given on stdin or as the argument, gets as far as starting the resident, a resident that cannot start is
 // reported as resident_unavailable (so is a client that sits in no app and has no
 // BCU_APP_PATH), and setup refuses a terminal nobody can answer. Failures write nothing to stdout and name their code and recovery on stderr.
 import assert from "node:assert/strict";
@@ -75,6 +76,12 @@ try {
 	];
 	for (const [label, action] of invalidActions) assertFailure(await act([action]), "invalid_arguments", label);
 	assertFailure(await act([]), "invalid_arguments", "an empty action array");
+	const selected = (actions, ...extra) => run(["act-ui", "--app", "TextEdit", ...extra, JSON.stringify(actions)]);
+	assertFailure(await selected([{ action: "press", ref: "@e1" }]), "invalid_arguments", "a ref on a selected root");
+	assertFailure(await selected([{ action: "click", x: 1, y: 1 }]), "invalid_arguments", "coordinates on a selected root");
+	assertFailure(await selected([{ action: "press", find: { name: "OK" } }], "--expect-text", "x", "--scope", "@e1"), "invalid_arguments", "a scope on a selected root");
+	assertFailure(await run(["act-ui", "--state", "abcd1234", "--app", "TextEdit", "-"], "[]"), "invalid_arguments", "a state and a selector");
+	assertFailure(await run(["search-ui", "--text", "x"]), "invalid_arguments", "search-ui without a state or a selector");
 	assertFailure(await act(Array.from({ length: 21 }, () => ({ action: "wait" }))), "invalid_arguments", "21 actions");
 	assert(!existsSync(socketDirectory), "a rejected command reached for the resident");
 
@@ -88,6 +95,9 @@ try {
 		[{ action: "click", x: 10, y: 10 }, { action: "typeText", text: "focused" }],
 		[{ action: "press", ref: "@e1" }, { action: "keypress", keys: ["return"] }],
 	]) assertFailure(await act(actions), "resident_unavailable", `valid actions ${JSON.stringify(actions)}`);
+	const located = [{ action: "press", find: { role: "textfield" } }, { action: "typeText", text: "hi" }, { action: "keypress", keys: ["return"] }];
+	assertFailure(await run(["act-ui", "--state", "abcd1234", JSON.stringify(located)]), "resident_unavailable", "actions as the argument");
+	assertFailure(await run(["act-ui", "--pid", "1", JSON.stringify(located)]), "resident_unavailable", "located actions on a selected root");
 	const unstartable = await run(["find-roots"]);
 	assertFailure(unstartable, "resident_unavailable", "a command whose resident cannot start");
 	assert(unstartable.stderr.includes(missingApp), `the failure does not name the missing app: ${unstartable.stderr}`);

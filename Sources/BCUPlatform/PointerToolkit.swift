@@ -23,25 +23,16 @@ enum Tk {
 	/// port is needed. A process is looked at once: the answer is kept for as long as that
 	/// process lives.
 	static func isMapped(pid: Int32) -> Bool {
-		guard let started = startTime(pid: pid) else { return false }
-		let key = Identity(pid: pid, started: started)
+		guard let key = ProcessIdentity(pid: pid) else { return false }
 		if let known = known.withLock({ $0[key] }) { return known }
 		let found = mapsTk(pid: pid)
 		known.withLock { $0[key] = found }
 		return found
 	}
 
-	private struct Identity: Hashable { let pid: Int32; let started: UInt64 }
-	private static let known = OSAllocatedUnfairLock(initialState: [Identity: Bool]())
+	private static let known = OSAllocatedUnfairLock(initialState: [ProcessIdentity: Bool]())
 	/// Bounds the walk, so a pathological address space cannot stall a click.
 	private static let regionLimit = 65_536
-
-	private static func startTime(pid: Int32) -> UInt64? {
-		var info = proc_bsdinfo()
-		let size = Int32(MemoryLayout<proc_bsdinfo>.size)
-		guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
-		return info.pbi_start_tvsec * 1_000_000 + info.pbi_start_tvusec
-	}
 
 	/// Same walk as PROC_PIDREGIONPATHINFO, but only over the regions backed by files.
 	private static let fileRegionFlavor: Int32 = 22

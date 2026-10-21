@@ -32,18 +32,57 @@ public struct FindParams: Codable, Sendable, Equatable {
 	public var kind: RootKind?
 }
 
-public struct ObserveParams: Codable, Sendable, Equatable {
+/// A root picked the way observe-ui picks it: by `root` (an `@r` ref from find-roots or a
+/// numeric window id), else by app (`app` or `pid`) and `windowTitle`; empty picks the
+/// frontmost app's most prominent window.
+public struct RootSelector: Codable, Sendable, Equatable {
 	public var app: String?
+	public var pid: Int?
 	public var windowTitle: String?
-	/// An `@r` ref from find-roots, or a numeric window id.
 	public var root: String?
+
+	public init(app: String? = nil, pid: Int? = nil, windowTitle: String? = nil, root: String? = nil) {
+		self.app = app
+		self.pid = pid
+		self.windowTitle = windowTitle
+		self.root = root
+	}
+
+	public var isEmpty: Bool {
+		Text.trimmedOrNil(app) == nil && pid == nil && Text.trimmedOrNil(windowTitle) == nil && Text.trimmedOrNil(root) == nil
+	}
+}
+
+/// What a command that reads or acts on a state runs against: a saved state, or a root it
+/// observes first.
+public enum Subject: Sendable, Equatable {
+	case state(String)
+	case fresh(RootSelector)
+
+	/// Exactly one of the two; a blank stateId or an empty selector counts as absent.
+	public init(_ command: CommandName, stateId: String?, selector: RootSelector?) throws {
+		let selector = selector.flatMap { $0.isEmpty ? nil : $0 }
+		switch (Text.trimmedOrNil(stateId), selector) {
+		case (let stateId?, nil): self = .state(stateId)
+		case (nil, let selector?): self = .fresh(selector)
+		case (_?, _?): throw invalid("\(command.rawValue) takes --state or a root selector (\(selectorFlags)), not both.")
+		case (nil, nil): throw invalid("\(command.rawValue) needs --state, or a root selector (\(selectorFlags)) to observe first.")
+		}
+	}
+}
+
+let selectorFlags = "--app, --pid, --window-title, --root"
+
+public struct ObserveParams: Codable, Sendable, Equatable {
+	public var selector: RootSelector
 	public var mode: ObserveMode?
 	public var image: ImageMode?
 	public var readText: ReadTextMode?
 }
 
 public struct SearchUiParams: Codable, Sendable, Equatable {
-	public var stateId: String
+	public var stateId: String?
+	public var selector: RootSelector?
 	public var text: String?
 	public var role: String?
 	public var action: String?
@@ -156,7 +195,10 @@ public struct Expectation: Codable, Sendable, Equatable {
 }
 
 public struct ActParams: Codable, Sendable, Equatable {
-	public var stateId: String
+	public var stateId: String?
+	/// Acts on a fresh observation of this root instead of a saved state; steps then name
+	/// their elements with `find`.
+	public var selector: RootSelector?
 	public var actions: [UiAction]
 	/// Prohibits foreground fallback when true. Background is always attempted first.
 	public var headless: Bool?
@@ -175,7 +217,9 @@ public struct ReadTextParams: Codable, Sendable, Equatable {
 }
 
 public struct WaitForParams: Codable, Sendable, Equatable {
-	public var stateId: String
+	public var stateId: String?
+	/// Waits for this root to exist, then for the condition in a fresh observation of it.
+	public var selector: RootSelector?
 	public var text: String?
 	public var role: String?
 	public var scope: String?
@@ -295,6 +339,8 @@ public struct ObserveResult: Codable, Sendable, Equatable {
 	public var shown: Int
 	public var total: Int
 	public var image: ImageInfo?
+	/// A browser window whose page the browser exposed no accessibility tree for.
+	public var webContentMissing: Bool?
 }
 
 /// A projected node with its projected ancestry, outermost first.
