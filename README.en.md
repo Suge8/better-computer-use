@@ -59,7 +59,7 @@ Usage lives in the [skill](https://github.com/Suge8/friedbun/blob/main/skills/op
 - Some UI only reacts while its app is in front (WeChat's search results dropdown, for one). bcu cannot tell from outside, so the agent has to switch to foreground mode explicitly, which activates the app, takes the keyboard and moves the real pointer.
 - Background clicks and typing use private macOS interfaces that a system update may break.
 - While the screen is locked macOS stops reporting window contents; commands that need the UI fail with `screen_locked` and work again on unlock.
-- A browser may build no accessibility tree for a page whose window is minimized, covered or in the background; bcu says so, and page content then belongs to a browser tool.
+- A browser may build no accessibility tree for a page whose window is minimized; bcu says so, and page content then belongs to a browser tool.
 
 When something is off, run `bcu doctor` first, then see [troubleshooting](./docs/troubleshooting.md) (Chinese).
 

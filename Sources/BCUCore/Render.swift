@@ -22,7 +22,7 @@ func render(_ result: CommandResult) throws -> String {
 	}
 }
 
-private let webContentMissingLine = "web content not exposed: the browser has not built this page's accessibility tree, as happens while its window is minimized, covered or in the background; read the page with a CDP browser tool"
+private let webContentMissingLine = "web content not exposed: the browser has not built this page's accessibility tree, as happens while its window is minimized or when the browser did not answer bcu's request for it; read the page with a CDP browser tool"
 
 /// Non-empty lines joined.
 private func lines(_ parts: [String]) -> String {
