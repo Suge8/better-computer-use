@@ -56,6 +56,9 @@ export function runCli(args, { input = "", env = process.env } = {}) {
 		child.stderr.on("data", (chunk) => { stderr += chunk; });
 		child.on("error", reject);
 		child.on("close", (code) => resolve({ code, stdout, stderr }));
+		// A command refused before it reads stdin closes the pipe first; its streams and exit
+		// code are the result, not the write that found the pipe closed.
+		child.stdin.on("error", (error) => { if (error.code !== "EPIPE") reject(error); });
 		child.stdin.end(input);
 	});
 }

@@ -139,8 +139,18 @@ private let structuralRoles: Set<String> = ["group", "splitgroup", "scrollarea",
 /// Roles that speak through the content they wrap; a window or a list never does.
 private let absorbingRoles = structuralRoles.union(["row", "listitem", "tab", "link", "menuitem", "button", "checkbox", "radio"])
 private let textRoles: Set<String> = ["textfield", "textarea", "combobox", "searchfield"]
-/// Role words whose press flips a value. The platform judges the same family by AX role and subrole.
-private let toggleRoles: Set<String> = ["checkbox", "radio", "switch", "disclosuretriangle", "togglebutton", "segment"]
+/// What pressing a control does to its value: a checkbox, switch or disclosure triangle flips
+/// it; a radio button, tab or segment selects itself, so one already selected stays as it is.
+public enum PressEffect: Sendable { case flips, selects }
+
+/// The one rule for controls whose press moves their value: the projection gives them the
+/// `toggle` capability, and the platform judges a press on them by that value.
+public func pressEffect(role: String, subrole: String) -> PressEffect? {
+	let role = word(role), subrole = word(subrole)
+	if subrole == "switch" { return .flips }
+	if role == "radiobutton" || ["segment", "tabbutton"].contains(subrole) { return .selects }
+	return ["checkbox", "switch", "disclosuretriangle", "togglebutton"].contains(role) ? .flips : nil
+}
 
 private struct Tree {
 	var ref: String
@@ -165,11 +175,24 @@ private func word(_ value: String) -> String {
 }
 
 private func roleWord(_ node: OutlineNode) -> String {
-	let main = roleAliases[word(node.role)] ?? word(node.role)
-	let sub = word(node.subrole)
+	roleWord(role: node.role, subrole: node.subrole)
+}
+
+/// The view's role word for an accessibility role and subrole.
+private func roleWord(role: String, subrole: String) -> String {
+	let main = roleAliases[word(role)] ?? word(role)
+	let sub = word(subrole)
 	if sub.isEmpty { return main.isEmpty ? "unknown" : main }
 	let specific = roleAliases[sub] ?? sub
 	return specific == main ? main : specific
+}
+
+/// The one rule for a role a caller names (find, search-ui, wait-for, expect): the view's role
+/// word, or the accessibility role or subrole with or without `AX`, compared exactly, ignoring
+/// case, spaces, underscores and hyphens.
+public func roleMatches(_ wanted: String, role: String, subrole: String) -> Bool {
+	let query = normalizedSearchRole(wanted)
+	return [roleWord(role: role, subrole: subrole), role, subrole].contains { normalizedSearchRole($0) == query }
 }
 
 private func clean(_ value: String, _ limit: Int) -> String {
@@ -242,7 +265,7 @@ private func capabilitiesOf(_ node: OutlineNode, role: String, web: Bool) -> [Ca
 		if node.canSetValue { found.insert(.setText) }
 		if node.isTextInput { found.insert(.typeText) }
 	}
-	if toggleRoles.contains(role), found.remove(.press) != nil || node.canSetValue { found.insert(.toggle) }
+	if pressEffect(role: node.role, subrole: node.subrole) != nil, found.remove(.press) != nil || node.canSetValue { found.insert(.toggle) }
 	// Chromium answers AXShowMenu on every web node and every menu item answers AXPick;
 	// neither opens anything an agent would choose.
 	if web || role == "menuitem" { found.remove(.menu) }

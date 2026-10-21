@@ -73,15 +73,17 @@ extension Platform {
 
 	/// Waits until the window's web area has children; whether it does. Notifications of the
 	/// app end each wait at once; a process whose content timed out within the backoff is not
-	/// waited for, and the timeout is recorded with the process, never for good.
-	func awaitWebContent(pid: Int32, window: AXUIElement) -> Bool {
+	/// waited for, and the timeout is recorded with the process, never for good. A caller with
+	/// a nearer deadline shortens the wait; running out of its time records nothing.
+	func awaitWebContent(pid: Int32, window: AXUIElement, until callerDeadline: Date? = nil) -> Bool {
 		guard let process = ProcessIdentity(pid: pid) else { return false }
 		if let last = accessibilityRequests.withLock({ $0[process]?.timedOutAt }), Date().timeIntervalSince(last) < Self.webContentBackoff {
 			return false
 		}
 		let notifications = try? observedApp(pid)
 		let start = Date()
-		let deadline = start.addingTimeInterval(Self.webContentTimeout)
+		let ownDeadline = start.addingTimeInterval(Self.webContentTimeout)
+		let deadline = min(ownDeadline, callerDeadline ?? ownDeadline)
 		var reasserted = false
 		while true {
 			let generation = notifications?.generation
@@ -99,7 +101,7 @@ extension Platform {
 			let next = min(deadline, now.addingTimeInterval(Self.webContentRecheck))
 			if let notifications, let generation { notifications.wait(since: generation, until: next) } else { Thread.sleep(until: next) }
 		}
-		accessibilityRequests.withLock { $0[process]?.timedOutAt = Date() }
+		if deadline == ownDeadline { accessibilityRequests.withLock { $0[process]?.timedOutAt = Date() } }
 		return false
 	}
 
@@ -118,7 +120,7 @@ extension Platform {
 				guard visits > 0 else { return false }
 				visits -= 1
 				switch stringAttribute(child, attribute: kAXRoleAttribute as CFString) {
-				case kAXMenuBarRole as String: continue
+				case kAXMenuBarRole: continue
 				case "AXWebArea": if !axElementArray(child, attribute: kAXChildrenAttribute as CFString).isEmpty { return true }
 				default: if search(child, depth: depth - 1) { return true }
 				}

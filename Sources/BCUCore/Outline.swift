@@ -241,13 +241,15 @@ public final class Outline {
 		var assigned = Set<ObjectIdentifier>()
 		var byWireRef: [String: String] = [:]
 		var structuralGroups: [String: [OutlineNode]] = [:]
+		let baseKeys = structuralKeys(base.root)
 		for node in base.nodes {
 			if let wireRef = node.wireRef, !wireRef.isEmpty { byWireRef[wireRef] = node.ref }
-			structuralGroups[structuralKey(node), default: []].append(node)
+			structuralGroups[baseKeys[ObjectIdentifier(node)] ?? "", default: []].append(node)
 		}
 		var nextIndex = max(0, base.highestRefNumber) + 1
+		let keys = structuralKeys(root)
 		for node in nodes {
-			let matches = structuralGroups[structuralKey(node)] ?? []
+			let matches = structuralGroups[keys[ObjectIdentifier(node)] ?? ""] ?? []
 			let stable = node.wireRef.flatMap { byWireRef[$0] } ?? (matches.count == 1 ? matches[0].ref : nil)
 			guard let stable, !reserved.contains(stable) else { continue }
 			node.ref = stable
@@ -337,27 +339,32 @@ private func structuralToken(_ node: OutlineNode) -> String {
 	[node.role, node.subrole, node.identifier, node.title, node.description].map { Text.trim($0).lowercased() }.joined(separator: "|")
 }
 
-/// The node's path from the root as role and label tokens, each with its index among same-token siblings.
-private func structuralKey(_ node: OutlineNode) -> String {
-	var parts: [String] = []
-	var current: OutlineNode? = node
-	while let node = current {
-		let token = structuralToken(node)
-		let peers = (node.parent?.children ?? [node]).filter { structuralToken($0) == token }
-		parts.append("\(token)#\(peers.firstIndex { $0 === node } ?? 0)")
-		current = node.parent
+/// Each node's path from the root as role and label tokens, each with its index among
+/// same-token siblings; one pass, since a window may hold thousands of siblings.
+private func structuralKeys(_ root: OutlineNode) -> [ObjectIdentifier: String] {
+	var keys = [ObjectIdentifier(root): "\(structuralToken(root))#0"]
+	var pending = [root]
+	while let parent = pending.popLast() {
+		let path = keys[ObjectIdentifier(parent)] ?? ""
+		var counts: [String: Int] = [:]
+		for child in parent.children {
+			let token = structuralToken(child)
+			let index = counts[token, default: 0]
+			counts[token] = index + 1
+			keys[ObjectIdentifier(child)] = "\(path)>\(token)#\(index)"
+			pending.append(child)
+		}
 	}
-	return parts.reversed().joined(separator: ">")
+	return keys
 }
 
 /// Matches anywhere in the outline, depth first; role accepts short words as well as AX names.
 public func searchOutline(_ outline: Outline, text: String?, role: String?) -> [OutlineNode] {
 	let query = text.map { foldedForSearch(Text.trim($0)) } ?? ""
-	let roleQuery = role.map(normalizedSearchRole)
 	return outline.root.preorder.filter { node in
 		let haystack = foldedForSearch([node.role, node.subrole, node.identifier, node.title, node.description, node.value].joined(separator: " "))
 		if !query.isEmpty, !haystack.contains(query) { return false }
-		if let roleQuery, !roleQuery.isEmpty, normalizedSearchRole(node.role) != roleQuery, normalizedSearchRole(node.subrole) != roleQuery { return false }
+		if let role, !Text.trim(role).isEmpty, !roleMatches(role, role: node.role, subrole: node.subrole) { return false }
 		return true
 	}
 }

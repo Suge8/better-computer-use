@@ -187,6 +187,14 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 	case "error":
 		let error = BCUError(ErrorCode(rawValue: input["code"]!.string!)!, input["message"]!.string!, recovery: input["recovery"]?.string)
 		return ["stderr": .string(error.formatted), "exitCode": .number(Double(error.exitCode))]
+	case "roles":
+		return Dictionary(uniqueKeysWithValues: members(input["cases"]).map { name, entry in
+			(name, JSONValue.string(roleMatches(entry["wanted"]!.string!, role: entry["role"]!.string!, subrole: entry["subrole"]!.string!) ? "true" : "false"))
+		})
+	case "pressEffects":
+		return Dictionary(uniqueKeysWithValues: members(input["cases"]).map { name, entry in
+			(name, JSONValue.string(pressEffect(role: entry["role"]!.string!, subrole: entry["subrole"]!.string!).map { "\($0)" } ?? "none"))
+		})
 	case "cli":
 		return try cliCase(input)
 	case "query":

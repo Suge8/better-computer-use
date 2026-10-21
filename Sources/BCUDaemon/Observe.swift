@@ -25,14 +25,15 @@ extension Daemon {
 	/// same root, refs of what is still there are kept.
 	/// `image` asks for a picture at the size an explicit request gets; the platform may take
 	/// one anyway to read the screen.
-	func capture(_ target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never, base: Observation? = nil) async throws -> (observation: Observation, image: LookImage?) {
-		try await capture(target, readText: readText, includeImage: image == .always, maxDimension: image == .always ? explicitImageDimension : automaticImageDimension, base: base)
+	/// `until` ends a wait for a browser's web content at the caller's own deadline.
+	func capture(_ target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never, base: Observation? = nil, until deadline: Date? = nil) async throws -> (observation: Observation, image: LookImage?) {
+		try await capture(target, readText: readText, includeImage: image == .always, maxDimension: image == .always ? explicitImageDimension : automaticImageDimension, base: base, until: deadline)
 	}
 
-	func capture(_ target: Target, readText: ReadTextMode, includeImage: Bool, maxDimension: Int, base: Observation?) async throws -> (observation: Observation, image: LookImage?) {
+	func capture(_ target: Target, readText: ReadTextMode, includeImage: Bool, maxDimension: Int, base: Observation?, until deadline: Date? = nil) async throws -> (observation: Observation, image: LookImage?) {
 		let request = LookRequest(
 			root: target.root.handle, windowId: target.root.windowId.flatMap { $0 > 0 ? $0 : nil },
-			maxDimension: maxDimension, readText: readText, includeImage: includeImage
+			maxDimension: maxDimension, readText: readText, includeImage: includeImage, deadline: deadline
 		)
 		let look = try await offload { [desktop = self.desktop] in try desktop.look(request) }
 		let baseOutline = base.flatMap { $0.target.root.handle == target.root.handle ? $0.outline.current : nil }
@@ -74,10 +75,10 @@ extension Daemon {
 	}
 
 	/// Looks at a root and saves the look as a live state in its app's lane.
-	func observation(of target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never) async throws -> (state: StoredState<Observation>, image: LookImage?) {
+	func observation(of target: Target, readText: ReadTextMode = .auto, image: ImageMode = .never, until deadline: Date? = nil) async throws -> (state: StoredState<Observation>, image: LookImage?) {
 		let picture = CapturedImage()
 		let state = try await runtime.observe(pid: Int(target.pid)) { _ in
-			let captured = try await self.capture(target, readText: readText, image: image)
+			let captured = try await self.capture(target, readText: readText, image: image, until: deadline)
 			picture.value = captured.image
 			return captured.observation
 		}
@@ -170,28 +171,66 @@ extension Daemon {
 		let timeoutMs = waitTimeout(params.timeoutMs)
 		guard text != nil || role != nil else { throw BCUError(.invalidArguments, "wait-for requires --text or --role.") }
 		let clock = Countdown(timeoutMs: timeoutMs)
+		let overrun = BCUError(.actionTimeout, "wait-for did not finish within \(timeoutMs)ms: the app was too slow to answer.", recovery: "Observe the root again, or retry with a longer --timeout.")
+		return try await answering(by: clock.deadline.addingTimeInterval(waitGrace), else: overrun) {
+			try await self.waitFor(params, text: text, role: role, timeoutMs: timeoutMs, clock: clock)
+		}
+	}
+
+	private func waitFor(_ params: WaitForParams, text: String?, role: String?, timeoutMs: Int, clock: Countdown) async throws -> BCUCore.WaitForResult {
 		let state: StoredState<Observation>
 		switch try Subject(.waitFor, stateId: params.stateId, selector: params.selector) {
 		case .state(let stateId): state = try runtime.state(stateId)
 		case .fresh(let selector):
 			if trimmed(params.scope) != nil { throw stateRefs("--scope") }
-			state = try await observation(of: try await awaitRoot(selector, clock, timeoutMs: timeoutMs)).state
+			let root = try await awaitRoot(selector, clock, timeoutMs: timeoutMs)
+			state = try await observation(of: root, until: clock.deadline).state
+			// The observation used the time up; looking for the condition would only overrun it.
+			guard clock.remainingMs > 0 else { throw conditionTimedOut(params, timeoutMs: timeoutMs) }
 		}
 		let scope = try trimmed(params.scope).map { try state.payload.outline.handle(of: try node($0, in: state.payload.outline.outline())) }
 		let target = try await current(state.payload.target)
 		let gone = params.gone == true
 		let request = WaitForRequest(pid: target.pid, root: target.root.handle, role: role, text: text, gone: gone, scope: scope, timeoutMs: clock.remainingMs)
 		let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
-		guard outcome == .found || outcome == .gone else {
-			let inside = params.scope.map { " inside \($0)" } ?? ""
-			throw BCUError(.actionTimeout, "The condition \(gone ? "still held" : "did not appear") within \(timeoutMs)ms\(inside).")
-		}
+		guard outcome == .found || outcome == .gone else { throw conditionTimedOut(params, timeoutMs: timeoutMs) }
 		let successor = try await runtime.read(from: state.stateId) { state, lane in
-			try lane.save(try await self.capture(target, base: state.payload).observation)
+			try lane.save(try await self.capture(target, base: state.payload, until: clock.deadline).observation)
 		}
 		let view = successorView(base: state.payload.outline.outline(), next: successor.payload.outline.outline())
 		return BCUCore.WaitForResult(stateId: successor.stateId, found: true, gone: outcome == .gone ? true : nil, changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total)
 	}
+}
+
+/// Past the deadline, how long a wait-for may take to finish what it started before it answers
+/// anyway: the look in progress stops at the deadline, but not inside an accessibility request,
+/// which an app slow to answer holds for up to its messaging timeout.
+private let waitGrace: TimeInterval = 1
+
+/// Runs `body`, but answers by `deadline` whatever it is doing: a platform call blocks in an
+/// accessibility request for as long as the app takes to answer, up to its messaging timeout,
+/// and nothing can interrupt it. What it started then finishes unheeded; its lane stays busy
+/// until it does.
+private func answering<T: Sendable>(by deadline: Date, else overrun: BCUError, _ body: @escaping @Sendable () async throws -> T) async throws -> T {
+	try await withCheckedThrowingContinuation { continuation in
+		let answered = OSAllocatedUnfairLock(initialState: false)
+		let answer: @Sendable (Result<T, any Error>) -> Void = { result in
+			if answered.withLock({ done in defer { done = true }; return !done }) { continuation.resume(with: result) }
+		}
+		let timer = Task {
+			try await Task.sleep(for: .seconds(max(0, deadline.timeIntervalSinceNow)))
+			answer(.failure(overrun))
+		}
+		Task {
+			answer(await Result { try await body() })
+			timer.cancel()
+		}
+	}
+}
+
+private func conditionTimedOut(_ params: WaitForParams, timeoutMs: Int) -> BCUError {
+	let inside = params.scope.map { " inside \($0)" } ?? ""
+	return BCUError(.actionTimeout, "The condition \(params.gone == true ? "still held" : "did not appear") within \(timeoutMs)ms\(inside).")
 }
 
 /// Condition timeouts: 10 s unless given, between 0.1 s and 60 s.

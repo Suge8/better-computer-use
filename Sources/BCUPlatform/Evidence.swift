@@ -54,14 +54,14 @@ extension Platform {
 		return after
 	}
 
-	/// Elements whose press flips a value. The projection (BCUCore) promises these the `toggle`
-	/// capability from the same role and subrole families.
-	func isToggleLike(_ element: AXUIElement) -> Bool {
-		let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
-		let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
-		let roles: Set<String> = ["AXCheckBox", "AXRadioButton", "AXSwitch", "AXDisclosureTriangle", "AXToggleButton"]
-		let subroles: Set<String> = ["AXSwitch", "AXSegment"]
-		return roles.contains(role) || subroles.contains(subrole)
+	/// What a press does to the element's value; the projection gives the same elements `toggle`.
+	func pressEffect(_ element: AXUIElement) -> PressEffect? {
+		BCUCore.pressEffect(role: stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? "", subrole: stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? "")
+	}
+
+	/// A radio, tab or segment that is selected: pressing it asks for what already holds.
+	func isAlreadySelected(_ element: AXUIElement, before: [String: String]?) -> Bool {
+		before?["value"] == "1" && pressEffect(element) == .selects
 	}
 
 	func focusedWindowSummary(pid: Int32) -> String {

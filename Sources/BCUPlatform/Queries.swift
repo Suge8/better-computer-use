@@ -28,7 +28,7 @@ extension Platform {
 		}
 		func matches(_ element: AXUIElement) -> Bool {
 			let candidateRole = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
-			if let role, !role.isEmpty, candidateRole != role { return false }
+			if let role, !role.isEmpty, !roleMatches(role, role: candidateRole, subrole: stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? "") { return false }
 			if let text, !text.isEmpty {
 				let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
 				let haystack = foldedForSearch([
@@ -45,8 +45,14 @@ extension Platform {
 			return true
 		}
 
+		// Every look stops at the deadline, also the one a wait with no time left still makes.
+		// A look cut short proves a match but not its absence.
+		let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1000)
+		func found() -> Bool? {
+			containsDescendant(startingAt: rootElement, maxDepth: Self.waitSearchDepth, maxNodes: Self.waitSearchNodes, until: deadline, where: matches)
+		}
 		let settled = try awaitChange(in: pid, timeout: Double(timeoutMs) / 1000) {
-			collectDescendants(startingAt: rootElement, maxDepth: Self.waitSearchDepth, maxNodes: Self.waitSearchNodes).contains(where: matches) != request.gone
+			request.gone ? found() == false : found() == true
 		}
 		guard settled else { return .timedOut }
 		return request.gone ? .gone : .found
@@ -66,19 +72,32 @@ extension Platform {
 	}
 
 	/// Starts watching the apps for the windows they open, retitle or focus, and returns where
-	/// the desktop's changes stand from then on: such a window, an app launching, quitting or
-	/// taking the front, or a notification of an observed app. One thread hosts an observer per
-	/// app (an app that takes none, or runs as a background-only process, is left out); stop
-	/// the watch when the wait is over.
+	/// the desktop's changes stood when it started: such a window, an app launching, quitting
+	/// or taking the front, or a notification of an observed app counts as a change. Apps that
+	/// show windows are watched: regular apps, and others that own a window now; agents and
+	/// helpers without one are left out, they take the front when they open one. One thread
+	/// hosts an observer per app and registers them without the caller waiting: registering
+	/// waits on each app's answer, a hung app's for the messaging timeout. Its end counts as a
+	/// change, so a window opened before its app was registered is looked for again. Stop the
+	/// watch when the wait is over.
 	public func watchRoots(of pids: [Int32]) -> RootWatch {
 		let signal = rootObservers.desktop
-		guard !pids.isEmpty else { return RootWatch(mark: ChangeMark(generation: signal.generation), thread: nil) }
+		let mark = ChangeMark(generation: signal.generation)
+		let owners = Set(cgWindowOwners(entries: nil).map(\.pid))
+		let watched = pids.filter { owners.contains($0) || NSRunningApplication(processIdentifier: $0)?.activationPolicy == .regular }
+		guard !watched.isEmpty else { return RootWatch(mark: mark, thread: nil) }
 		let thread = RunLoopThread.start { [self] in
-			let observers = pids.compactMap { rootObserver(pid: $0, signal: signal) }
-			for observer in observers { CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes) }
-			return observers.isEmpty ? nil : observers as NSArray
+			let observers = NSMutableArray()
+			CFRunLoopPerformBlock(CFRunLoopGetCurrent(), CFRunLoopMode.commonModes.rawValue) {
+				for observer in watched.compactMap({ self.rootObserver(pid: $0, signal: signal) }) {
+					observers.add(observer)
+					CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)
+				}
+				signal.bump()
+			}
+			return observers
 		}
-		return RootWatch(mark: ChangeMark(generation: signal.generation), thread: thread)
+		return RootWatch(mark: mark, thread: thread)
 	}
 
 	/// Returns after a desktop change since `mark`, or after `timeoutMs`; the caller looks again either way.
@@ -86,9 +105,10 @@ extension Platform {
 		rootObservers.desktop.wait(since: mark.generation, until: Date().addingTimeInterval(Double(timeoutMs) / 1000))
 	}
 
-	/// A wait lasts 10 s unless asked otherwise, and between 0.1 s and 60 s.
+	/// A wait lasts 10 s unless asked otherwise, and at most 60 s. A caller whose own time has run
+	/// out asks for 0: the condition is checked once.
 	static let defaultWaitTimeoutMs = 10_000
-	static let waitTimeoutRange = 100...60_000
+	static let waitTimeoutRange = 0...60_000
 	/// How much of the root a wait searches each time it looks.
 	static let waitSearchDepth = 12
 	static let waitSearchNodes = 2_000

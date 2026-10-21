@@ -13,6 +13,24 @@ extension Platform {
 		return ["chrome", "chromium", "brave", "edge", "vivaldi", "opera", "firefox", "helium"].contains { name.contains($0) }
 	}
 
+	/// Whether the root or a descendant, searched breadth first, each element once, `matches`;
+	/// nil when the deadline stopped the search before it found one or saw them all. No
+	/// element is read after the deadline.
+	func containsDescendant(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int, until deadline: Date, where matches: (AXUIElement) -> Bool) -> Bool? {
+		var queue: [(element: AXUIElement, depth: Int)] = [(root, 0)]
+		var seen = Set<ObjectIdentifier>()
+		var index = 0
+		while index < queue.count && seen.count < maxNodes {
+			guard Date() < deadline else { return nil }
+			let (element, depth) = queue[index]
+			index += 1
+			guard seen.insert(ObjectIdentifier(element)).inserted else { continue }
+			if matches(element) { return true }
+			if depth < maxDepth { queue += axElementArray(element, attribute: kAXChildrenAttribute as CFString).map { ($0, depth + 1) } }
+		}
+		return false
+	}
+
 	/// The root and its descendants, breadth first, each element once.
 	func collectDescendants(startingAt root: AXUIElement, maxDepth: Int, maxNodes: Int = 5000) -> [AXUIElement] {
 		let nodeLimit = max(1, maxNodes)

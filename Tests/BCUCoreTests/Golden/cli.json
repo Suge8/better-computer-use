@@ -5036,6 +5036,73 @@
 			"output": {
 				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"press\",\"find\":{\"name\":\"New\",\"role\":\"button\"}},{\"action\":\"setText\",\"expect\":{\"root\":\"opened\",\"text\":\"Saved\"},\"find\":{\"name\":\"Name\",\"role\":\"textfield\",\"root\":\"opened\"},\"text\":\"x\"}],\"stateId\":\"s\"}}"
 			}
+		},
+		{
+			"name": "render act-ui press on an already selected control",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"press\",\"ref\":\"@e3\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "alreadySelected"
+						}
+					},
+					"delivery": "ax",
+					"changes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"press\",\"ref\":\"@e3\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · already selected\n(no element changes)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui press on an already selected control --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"press\",\"ref\":\"@e3\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "alreadySelected"
+						}
+					},
+					"delivery": "ax",
+					"changes": []
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"press\",\"ref\":\"@e3\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"baseStateId\":\"s\",\"changes\":[],\"delivery\":\"ax\",\"outcome\":\"worked\",\"stateId\":\"t\",\"verification\":{\"evidence\":{\"field\":\"alreadySelected\",\"source\":\"ax\"},\"status\":\"none\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
 		}
 	]
 }

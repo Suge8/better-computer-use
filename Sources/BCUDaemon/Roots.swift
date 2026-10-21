@@ -128,12 +128,13 @@ extension Daemon {
 			do {
 				return try await observedTarget(selector)
 			} catch let error as BCUError where mayAppear(error, selector) {
-				guard clock.remainingMs > 0 else {
-					throw BCUError(.actionTimeout, "No root matching the selector appeared within \(timeoutMs)ms. \(error.message)")
-				}
+				let timedOut = BCUError(.actionTimeout, "No root matching the selector appeared within \(timeoutMs)ms. \(error.message)")
+				guard clock.remainingMs > 0 else { throw timedOut }
 				let fresh = try await watchedPids(selector).filter { !watched.contains($0) }
 				if let since = mark, fresh.isEmpty {
 					try await offload { [desktop = self.desktop] in desktop.waitForDesktopChange(since: since, timeoutMs: clock.remainingMs) }
+					// Woken by the deadline rather than a change: one more look would only overrun it.
+					guard clock.remainingMs > 0 else { throw timedOut }
 				}
 				// New apps are watched before the mark; with none, the watch only takes the mark.
 				let watch = try await offload { [desktop = self.desktop] in desktop.watchRoots(of: fresh) }
@@ -187,11 +188,11 @@ extension Daemon {
 		}
 		for root in try await roots(title: title) where root.pid > 0 { collect(root, appName: root.appName, bundleId: root.bundleId) }
 		// A freshly created or off-Space window can be missing from the window server's title
-		// index for a moment; complete discovery is the cold fallback, not a false miss.
+		// index for a moment, so a miss there falls back to the roots of every app that shows a
+		// window, as find-roots lists them; asking every running app, helpers included, takes
+		// seconds when some of them do not answer.
 		if exact.isEmpty && partial.isEmpty {
-			for app in try await apps() {
-				for root in try await roots(pid: app.pid) { collect(root, appName: app.appName, bundleId: app.bundleId) }
-			}
+			for root in try await roots() where root.pid > 0 { collect(root, appName: root.appName, bundleId: root.bundleId) }
 		}
 		let ranked = stableSorted(exact.isEmpty ? partial : exact) { selectionScore($0.root) > selectionScore($1.root) }
 		guard let best = ranked.first else { throw BCUError(.windowStale, "Window '\(title)' was not found in any running app.") }

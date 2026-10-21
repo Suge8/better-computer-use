@@ -47,14 +47,17 @@ private let attachedKinds: Set<RootKind> = [.menu, .sheet, .popover, .dialog]
 
 struct Countdown {
 	private let clock = ContinuousClock()
-	private let deadline: ContinuousClock.Instant
+	private let end: ContinuousClock.Instant
+	/// The same moment on the wall clock, for the platform.
+	let deadline: Date
 
 	init(timeoutMs: Int) {
-		deadline = clock.now + .milliseconds(timeoutMs)
+		end = clock.now + .milliseconds(timeoutMs)
+		deadline = Date().addingTimeInterval(Double(timeoutMs) / 1000)
 	}
 
 	var remainingMs: Int {
-		let left = deadline - clock.now
+		let left = end - clock.now
 		return max(0, Int(left.components.seconds * 1_000 + left.components.attoseconds / 1_000_000_000_000_000))
 	}
 }

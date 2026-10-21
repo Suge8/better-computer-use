@@ -74,6 +74,7 @@ private func evidenceWords(_ evidence: ActEvidence?) -> String {
 	guard let evidence else { return "" }
 	if evidence.source == .screen { return " · screen changed" }
 	if evidence.source == .root, evidence.field == .closed { return " · root closed" }
+	if evidence.field == .alreadySelected { return " · already selected" }
 	if let field = evidence.field, let from = evidence.from, let to = evidence.to { return " · \(field.rawValue) \(from)→\(to)" }
 	return " · \(evidence.field?.rawValue ?? evidence.source.rawValue)"
 }

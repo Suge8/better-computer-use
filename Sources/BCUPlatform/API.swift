@@ -133,8 +133,11 @@ public struct LookRequest: Sendable {
 	public let includeImage: Bool
 	/// An element of the root to describe instead of the whole root.
 	public let scope: Handle?
+	/// When the caller's own time runs out; a wait for a browser window's web content ends
+	/// there when that is sooner than the platform's own limit.
+	public let deadline: Date?
 
-	public init(root: Handle, windowId: UInt32? = nil, maxDimension: Int? = nil, readText: ReadTextMode = .auto, baseGeometry: LookGeometry? = nil, includeImage: Bool = true, scope: Handle? = nil) {
+	public init(root: Handle, windowId: UInt32? = nil, maxDimension: Int? = nil, readText: ReadTextMode = .auto, baseGeometry: LookGeometry? = nil, includeImage: Bool = true, scope: Handle? = nil, deadline: Date? = nil) {
 		self.root = root
 		self.windowId = windowId
 		self.maxDimension = maxDimension
@@ -142,6 +145,7 @@ public struct LookRequest: Sendable {
 		self.baseGeometry = baseGeometry
 		self.includeImage = includeImage
 		self.scope = scope
+		self.deadline = deadline
 	}
 }
 
