@@ -45,17 +45,17 @@ extension Platform {
 	/// the window server's list only say when to diff early. They are read again on every
 	/// notification of the app and every change of front app; with no signal, the diff runs
 	/// at the timeout.
-	func awaitRootDelta(before: [String: Root], beforeFrontmostPid: pid_t?, pid: Int32, eventCursor: UInt64, beforeCgSignature: Set<UInt32>) throws -> (source: DeltaSource, delta: [RootChange]) {
-		// AXUIElementDestroyed is not a signal: it fires for every rebuilt list row; a closed
-		// root also leaves the window list.
-		let signals: Set<String> = [kAXWindowCreatedNotification, kAXSheetCreatedNotification, kAXMenuOpenedNotification, kAXMenuClosedNotification, kAXFocusedWindowChangedNotification]
+	/// `wait` false: the action's effects were already waited for, or it proved one; the roots
+	/// are diffed now, and only a signal that already fired earns the catch-up.
+	func awaitRootDelta(before: [String: Root], beforeFrontmostPid: pid_t?, pid: Int32, eventCursor: UInt64, beforeCgSignature: Set<UInt32>, wait: Bool = true) throws -> (source: DeltaSource, delta: [RootChange]) {
 		let notifications = try observedApp(pid)
-		var source = DeltaSource.snapshot
-		_ = try awaitChange(in: pid, timeout: Self.rootChangeTimeout) {
-			if cgRootSignature(pid: pid) != beforeCgSignature { source = .windowList }
-			else if let beforeFrontmostPid, NSWorkspace.shared.frontmostApplication?.processIdentifier != beforeFrontmostPid { source = .windowList }
-			else if notifications.events(since: eventCursor).contains(where: { signals.contains($0.notification) }) { source = .events }
-			return source != .snapshot
+		func signal() -> DeltaSource { rootSignal(notifications, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature, beforeFrontmostPid: beforeFrontmostPid) ?? .snapshot }
+		var source = signal()
+		if wait, source == .snapshot {
+			_ = notifications.wait(until: Date().addingTimeInterval(Self.rootChangeTimeout)) {
+				source = signal()
+				return source != .snapshot
+			}
 		}
 		var delta = rootDelta(before: before, beforeFrontmostPid: beforeFrontmostPid, pid: pid)
 		if delta.isEmpty && source != .snapshot {
@@ -69,14 +69,30 @@ extension Platform {
 		return (source, delta)
 	}
 
+	/// What says the roots may have changed since the baseline: the window list, the front app,
+	/// or a notification of a root opening, closing or taking focus. AXUIElementDestroyed is
+	/// not one: it fires for every rebuilt list row, and a closed root also leaves the window list.
+	func rootSignal(_ notifications: AppNotifications, eventCursor: UInt64, beforeCgSignature: Set<UInt32>, beforeFrontmostPid: pid_t?) -> DeltaSource? {
+		let signals: Set<String> = [kAXWindowCreatedNotification, kAXSheetCreatedNotification, kAXMenuOpenedNotification, kAXMenuClosedNotification, kAXFocusedWindowChangedNotification]
+		if cgRootSignature(pid: notifications.pid) != beforeCgSignature { return .windowList }
+		if let beforeFrontmostPid, NSWorkspace.shared.frontmostApplication?.processIdentifier != beforeFrontmostPid { return .windowList }
+		if notifications.events(since: eventCursor).contains(where: { signals.contains($0.notification) }) { return .events }
+		return nil
+	}
+
 	/// Some actions leave no trace on the element they target: pressing a menu item closes
 	/// the menu. A root that appeared, closed or took focus inside the action's window is
 	/// then the only evidence the action landed. Another app taking the front is not:
-	/// activation hand-offs and the user do that on their own.
-	func rootDeltaIsEvidence(_ delta: [RootChange], pid: Int32) -> Bool {
+	/// activation hand-offs and the user do that on their own. Nor, for input into a secure
+	/// field, is a root appearing or taking focus: focusing the field makes the system attach
+	/// its own windows to it (the password AutoFill popup, at menu level, often after the
+	/// baseline), which say nothing about what was typed. A root that closed still does.
+	func rootDeltaIsEvidence(_ delta: [RootChange], pid: Int32, typedIntoSecureField: Bool) -> Bool {
 		delta.contains { change in
-			if case .frontApp(_, let appPid) = change { return appPid == pid }
-			return true
+			switch change {
+			case .frontApp(_, let appPid): !typedIntoSecureField && appPid == pid
+			case .root(let kind, _): !typedIntoSecureField || kind == .closed
+			}
 		}
 	}
 }

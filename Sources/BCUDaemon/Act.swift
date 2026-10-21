@@ -63,6 +63,7 @@ private struct Execution {
 		openedMenus = steps.contains(where: \.openedMenus)
 		actionCount = steps.count
 		verified = steps.last { $0.verified != nil }?.verified
+		settled = steps.last?.settled ?? false
 	}
 
 	/// One step, as the platform reported it.
@@ -81,6 +82,7 @@ private struct Execution {
 
 	init(waited: Void) {
 		outcome = .worked
+		settled = true
 		quiet = true
 		actionCount = 1
 	}

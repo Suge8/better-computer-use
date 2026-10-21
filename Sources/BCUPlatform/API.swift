@@ -121,6 +121,9 @@ public struct LookGeometry: Sendable {
 	public let imageWidth: Int
 	public let imageHeight: Int
 	public let hasImage: Bool
+	/// The window was read from the screen: Accessibility says (almost) nothing in it, so a
+	/// press there may leave no evidence but its pixels.
+	public let readScreen: Bool
 }
 
 public struct LookRequest: Sendable {
@@ -292,6 +295,10 @@ public struct ActPerformed: Sendable {
 	public internal(set) var openedMenus = false
 	/// Background pointer input without evidence; the caller must verify the effect.
 	public internal(set) var callerMustVerify = false
+	/// The platform waited for the delivery's effects, so the roots need no wait of their own.
+	public internal(set) var effectsAwaited = false
+	/// The input went into a secure field, whose own windows are no evidence.
+	public internal(set) var typedIntoSecureField = false
 	public internal(set) var deltaSource: DeltaSource?
 
 	init(delivery: Delivery) {
@@ -320,6 +327,9 @@ public struct ActionReport: Sendable {
 		self.performed = performed
 		self.verification = verification
 	}
+
+	/// Nothing is left to wait for: the effects were awaited, or one was proven.
+	var settled: Bool { performed.effectsAwaited || outcome == .worked }
 }
 
 public enum ActStep: Sendable {

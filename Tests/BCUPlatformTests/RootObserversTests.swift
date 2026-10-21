@@ -15,12 +15,12 @@ private final class Kept: Sendable {
 
 /// An observer thread that runs until stopped; a timer far in the future keeps its run loop
 /// busy, as the observer's own source does.
-private func observerThread(signalling released: DispatchSemaphore = DispatchSemaphore(value: 0)) -> RunLoopThread? {
+private func observerThread(signalling released: DispatchSemaphore = DispatchSemaphore(value: 0)) -> RootObservers.Started? {
 	RunLoopThread.start {
 		let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + 3_600, 0, 0, 0) { _ in }
 		CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer, .commonModes)
 		return [timer as AnyObject, Kept(released)] as NSArray
-	}
+	}.map { RootObservers.Started(thread: $0, complete: true) }
 }
 
 /// Apps to observe: running processes, since an app that is not running is dropped at once.

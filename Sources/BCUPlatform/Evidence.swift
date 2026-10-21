@@ -41,17 +41,26 @@ extension Platform {
 		return nil
 	}
 
-	/// Accessibility facts settle a run loop turn after delivery; they are read again as the
-	/// app announces changes, until one moved or the evidence timeout passes. A dead element
-	/// yields no evidence at all.
-	func evidenceAfterAction(_ element: AXUIElement, pid: Int32, before: [String: String]) throws -> [String: String]? {
-		var after = evidenceSnapshot(element)
-		_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
-			after = evidenceSnapshot(element)
-			guard let after else { return true }
-			return evidenceDifference(before: before, after: after) != nil
+	/// The newest value or title an element of `root` announced since `cursor`, as it reads
+	/// now, preferring one that reads as something: a press whose control keeps no fact of its
+	/// own (a calculator key) moves one elsewhere in the window. Nothing a secure field or its
+	/// insides announce is evidence, nor is an element that was changing on its own before
+	/// the delivery.
+	func announcement(_ notifications: AppNotifications, since cursor: UInt64, in root: AXUIElement, deliveredAt: Date) -> ActEvidence? {
+		var blank: ActEvidence?
+		for event in notifications.events(since: cursor).reversed() {
+			guard let announcer = event.element, !notifications.changesOnItsOwn(announcer, before: deliveredAt) else { continue }
+			let element = announcer.element
+			guard isElement(element, descendantOf: root), !isInSecureField(element) else { continue }
+			let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
+			let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
+			let title = event.notification == kAXTitleChangedNotification ? stringAttribute(element, attribute: kAXTitleAttribute as CFString) ?? "" : ""
+			let text = title.isEmpty ? displayValue(element, role: role, subrole: subrole) : title
+			let evidence = ActEvidence(source: .ax, field: .announced, to: evidenceExcerpt(text))
+			if !text.isEmpty { return evidence }
+			blank = blank ?? evidence
 		}
-		return after
+		return blank
 	}
 
 	/// What a press does to the element's value; the projection gives the same elements `toggle`.
@@ -114,7 +123,7 @@ extension Platform {
 	/// Whether the window's content area changed since the baseline within the evidence
 	/// timeout. Nothing announces that pixels changed, so this is the one place that captures
 	/// on an interval; the window is looked up once, in the baseline, and only captured here.
-	func screenChanged(since baseline: ScreenBaseline) -> Bool {
+	func screenChanged(since baseline: ScreenBaseline, deliveredAt: Date) -> Bool {
 		let before = baseline.image
 		let pixelsPerPoint = baseline.capturer.frame.width > 0 ? Double(before.width) / baseline.capturer.frame.width : 1
 		let titleBarPixels = Int((Self.screenEvidenceTitleBarPoints * pixelsPerPoint).rounded())
@@ -129,7 +138,7 @@ extension Platform {
 			} }
 			return Double(changed) / Double(width * (height - titleBarPixels))
 		}
-		let deadline = Date().addingTimeInterval(Self.screenEvidenceTimeout)
+		let deadline = deliveredAt.addingTimeInterval(Self.screenEvidenceTimeout)
 		while Date() < deadline {
 			guard let after = try? captureAgain(baseline.capturer, within: deadline.timeIntervalSinceNow) else { return false }
 			if changedShare(after) >= Self.screenEvidenceChangedShare { return true }

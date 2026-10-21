@@ -140,7 +140,7 @@ private let structuralRoles: Set<String> = ["group", "splitgroup", "scrollarea",
 private let absorbingRoles = structuralRoles.union(["row", "listitem", "tab", "link", "menuitem", "button", "checkbox", "radio"])
 private let textRoles: Set<String> = ["textfield", "textarea", "combobox", "searchfield"]
 /// What pressing a control does to its value: a checkbox, switch or disclosure triangle flips
-/// it; a radio button, tab or segment selects itself, so one already selected stays as it is.
+/// it; a radio button or tab selects itself, so one already selected stays as it is.
 public enum PressEffect: Sendable { case flips, selects }
 
 /// The one rule for controls whose press moves their value: the projection gives them the
@@ -148,7 +148,9 @@ public enum PressEffect: Sendable { case flips, selects }
 public func pressEffect(role: String, subrole: String) -> PressEffect? {
 	let role = word(role), subrole = word(subrole)
 	if subrole == "switch" { return .flips }
-	if role == "radiobutton" || ["segment", "tabbutton"].contains(subrole) { return .selects }
+	// A segment carries the role of its control's tracking mode: a radio button when it
+	// selects one, a checkbox when any (a format bar's bold), a button when momentary.
+	if role == "radiobutton" || subrole == "tabbutton" { return .selects }
 	return ["checkbox", "switch", "disclosuretriangle", "togglebutton"].contains(role) ? .flips : nil
 }
 

@@ -29,6 +29,10 @@ export async function makeTemporaryRoot(label) {
 }
 
 /** Isolates a test resident on its own socket so it never touches the user's resident. */
+/**
+ * The environment of a gate's own resident. Every CLI call names its socket: the default
+ * one belongs to the user's installed resident, which a gate must neither reach nor replace.
+ */
 export function residentEnvironment(socketPath, idleMs) {
 	return { ...process.env, BCU_SOCKET_PATH: socketPath, BCU_IDLE_MS: String(idleMs) };
 }
@@ -44,8 +48,9 @@ export function withTimeout(promise, description, milliseconds) {
 	return Promise.race([promise, rejectAfter(description, milliseconds)]);
 }
 
-/** Runs the public CLI and captures its exit code and streams. */
-export function runCli(args, { input = "", env = process.env } = {}) {
+/** Runs the public CLI against the resident on `env.BCU_SOCKET_PATH`, and captures its exit code and streams. */
+export function runCli(args, { input = "", env }) {
+	if (!env?.BCU_SOCKET_PATH) throw new Error(`bcu ${args[0]} names no socket of its own; the default one is the user's resident.`);
 	return new Promise((resolve, reject) => {
 		const child = spawn(cliPath, args, { cwd: repoRoot, env, stdio: ["pipe", "pipe", "pipe"] });
 		let stdout = "";
@@ -79,7 +84,7 @@ function optionArgs(entries, flagFor) {
  * through the public CLI: options become flags, act-ui actions go to stdin. Resolves with the
  * JSON result; rejects with an error carrying the exit code and both streams.
  */
-export async function request(command, params = {}, env = process.env) {
+export async function request(command, params, env) {
 	const { actions, expect, ...options } = params;
 	const args = [command, ...optionArgs(Object.entries(options), flag), ...optionArgs(Object.entries(expect ?? {}), (key) => EXPECT_FLAGS[key])];
 	if (command === "act-ui") args.push("-");
@@ -171,6 +176,12 @@ export async function launchDrawnInput(directory, logPath, title, eventsPath) {
  */
 export async function launchBatchForm(directory, logPath, title) {
 	const { pid, exited } = await launchSwiftFixture(directory, "batch-form", [logPath, title], "the batch form window");
+	return { pid, exited };
+}
+
+/** Starts scripts/fixtures/counter.swift; `logPath` receives `pressed` once per handled press. */
+export async function launchCounter(directory, logPath, title) {
+	const { pid, exited } = await launchSwiftFixture(directory, "counter", [logPath, title], "the counter window");
 	return { pid, exited };
 }
 

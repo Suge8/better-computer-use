@@ -5103,6 +5103,91 @@
 				"stderr": "",
 				"exitCode": 0
 			}
+		},
+		{
+			"name": "render act-ui evidence another element of the window announced",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"press\",\"ref\":\"@e3\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "announced",
+							"to": "9,999"
+						}
+					},
+					"delivery": "ax",
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e66",
+							"fields": {
+								"value": "9,999"
+							}
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"press\",\"ref\":\"@e3\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · worked via ax · announced \"9,999\"\n~ @e66 =\"9,999\"\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui evidence another element of the window announced --json",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-",
+					"--json"
+				],
+				"stdin": "[{\"action\":\"press\",\"ref\":\"@e3\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "worked",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "announced",
+							"to": "9,999"
+						}
+					},
+					"delivery": "ax",
+					"changes": [
+						{
+							"type": "updated",
+							"ref": "@e66",
+							"fields": {
+								"value": "9,999"
+							}
+						}
+					]
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":true,\"params\":{\"actions\":[{\"action\":\"press\",\"ref\":\"@e3\"}],\"stateId\":\"s\"}}",
+				"stdout": "{\"baseStateId\":\"s\",\"changes\":[{\"fields\":{\"value\":\"9,999\"},\"ref\":\"@e66\",\"type\":\"updated\"}],\"delivery\":\"ax\",\"outcome\":\"worked\",\"stateId\":\"t\",\"verification\":{\"evidence\":{\"field\":\"announced\",\"source\":\"ax\",\"to\":\"9,999\"},\"status\":\"none\"}}\n",
+				"stderr": "",
+				"exitCode": 0
+			}
 		}
 	]
 }

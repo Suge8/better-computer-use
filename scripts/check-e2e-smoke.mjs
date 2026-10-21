@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { launchTextEdit, makeTemporaryRoot, monitorProcess, request, runCli, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
+import { launchTextEdit, makeTemporaryRoot, monitorProcess, request, residentEnvironment, runCli, stopTextEdit, waitForAxWindow } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP TextEdit smoke (set BCU_LIVE=1)");
@@ -22,6 +22,7 @@ const fixtureDirectory = await makeTemporaryRoot("e2e-smoke");
 const fixtureTitle = `bcu-smoke-${randomUUID()}`;
 const fixtureName = `${fixtureTitle}.rtf`;
 const fixturePath = path.join(fixtureDirectory, fixtureName);
+const env = residentEnvironment(path.join(fixtureDirectory, "resident.sock"), 30_000);
 // Rich text is what makes TextEdit show its format bar, the one real toolbar of toggles.
 const initialText = [
 	"{\\rtf1\\ansi\\ansicpg1252\\cocoartf2709",
@@ -39,7 +40,7 @@ let createdPid;
 let processMonitor;
 
 async function expectCliFailure(stateId, action) {
-	const result = await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([action])}\n` });
+	const result = await runCli(["act-ui", "--state", stateId, "-", "--json"], { input: `${JSON.stringify([action])}\n`, env });
 	assert.equal(result.code, 2, `${action.action} invalid payload exited ${result.code}`);
 	assert.equal(result.stdout, "", `${action.action} invalid payload wrote stdout`);
 	assert.match(result.stderr, /^error invalid_arguments: .+/m);
@@ -48,7 +49,7 @@ async function expectCliFailure(stateId, action) {
 
 /** Runs one act-ui through the public CLI, requires it to succeed, and returns its text view. */
 async function expectSuccess(stateId, action, label) {
-	const result = await runCli(["act-ui", "--state", stateId, "-"], { input: `${JSON.stringify([action])}\n` });
+	const result = await runCli(["act-ui", "--state", stateId, "-"], { input: `${JSON.stringify([action])}\n`, env });
 	assert.equal(result.code, 0, `${label} exited ${result.code}: ${result.stderr}`);
 	return result.stdout;
 }
@@ -71,14 +72,14 @@ async function waitForFileText(filePath, text, timeoutMs) {
 }
 
 async function cliJson(args) {
-	const result = await runCli([...args, "--json"]);
+	const result = await runCli([...args, "--json"], { env });
 	assert.equal(result.code, 0, `bcu ${args[0]} exited ${result.code}: ${result.stderr}`);
 	return JSON.parse(result.stdout);
 }
 
 async function expectFailure(command, args, code) {
 	try {
-		await request(command, args);
+		await request(command, args, env);
 		assert.fail(`${command} unexpectedly succeeded`);
 	} catch (error) {
 		assert.notEqual(error.code, 0, `${command} exited zero`);
@@ -94,16 +95,16 @@ try {
 	processMonitor = await monitorProcess(createdPid);
 	await waitForAxWindow(createdPid, processMonitor.exited, fixtureTitle);
 
-	const found = await request("find-roots", { pid: createdPid, kind: "window" });
+	const found = await request("find-roots", { pid: createdPid, kind: "window" }, env);
 	// TextEdit restores earlier documents into a fresh instance, so the fixture window is
 	// the one named after the fixture, not simply the first root of this pid.
 	const window = found.roots.find((candidate) => candidate.pid === createdPid && candidate.title.startsWith(fixtureTitle));
 	assert(window, `TextEdit pid ${createdPid} did not expose a root titled ${fixtureTitle}`);
-	const observed = await request("observe-ui", { root: window.ref, mode: "semantic" });
+	const observed = await request("observe-ui", { root: window.ref, mode: "semantic" }, env);
 	assert.equal(observed.root.pid, createdPid, "observe-ui returned another root");
 	assert(observed.nodes.every((node) => !/^ax/i.test(node.role)), "observation leaked raw accessibility roles");
 	assert.equal(observed.image, undefined, "semantic observation produced an image");
-	const editable = await request("search-ui", { stateId: observed.stateId, action: "setText", limit: 5 });
+	const editable = await request("search-ui", { stateId: observed.stateId, action: "setText", limit: 5 }, env);
 	const editor = editable.matches.find((match) => match.caps.includes("setText"));
 	assert(editor, "TextEdit observation did not expose an editable element");
 	for (const invalidAction of [
@@ -113,10 +114,10 @@ try {
 		{ action: "scroll", ref: editor.ref, scrollY: "abc" },
 		{ action: "wait", ms: "soon" },
 	]) await expectCliFailure(observed.stateId, invalidAction);
-	const searched = await request("search-ui", { stateId: observed.stateId, role: "textarea", limit: 50 });
+	const searched = await request("search-ui", { stateId: observed.stateId, role: "textarea", limit: 50 }, env);
 	assert.equal(searched.stateId, observed.stateId, "search-ui did not read the observed state");
 	assert(searched.matches.length > 0, "search-ui did not return the observed text area");
-	const waited = await request("wait-for", { stateId: observed.stateId, role: "AXTextArea", timeoutMs: 1_000 });
+	const waited = await request("wait-for", { stateId: observed.stateId, role: "AXTextArea", timeoutMs: 1_000 }, env);
 	assert.equal(waited.found, true, "wait-for did not find the existing text area");
 	assert.doesNotThrow(() => JSON.stringify(waited), "wait-for returned a circular result");
 	await expectFailure("wait-for", {
@@ -130,8 +131,8 @@ try {
 		expect: { value: expectedText, scope: editor.ref, timeoutMs: 5_000 },
 	};
 	const concurrent = await Promise.allSettled([
-		request("act-ui", action),
-		request("act-ui", action),
+		request("act-ui", action, env),
+		request("act-ui", action, env),
 	]);
 	const worked = concurrent.filter((result) => result.status === "fulfilled");
 	const stale = concurrent.filter((result) => result.status === "rejected" && result.reason?.stderr?.includes("stale_state:"));
@@ -149,8 +150,8 @@ try {
 	}, "action_failed");
 	// Nothing an agent can read moves when TextEdit ignores a key: it still exits zero, as
 	// unverified. Save succeeds either way, and the file on disk is the witness that it ran.
-	const keyState = await request("observe-ui", { root: window.ref, mode: "semantic" });
-	const keyTarget = (await request("search-ui", { stateId: keyState.stateId, role: "textarea", limit: 1 })).matches[0];
+	const keyState = await request("observe-ui", { root: window.ref, mode: "semantic" }, env);
+	const keyTarget = (await request("search-ui", { stateId: keyState.stateId, role: "textarea", limit: 1 }, env)).matches[0];
 	assert(keyTarget, "the document exposed no text area to send a key to");
 	const keyLine = (await expectSuccess(keyState.stateId, { action: "keypress", ref: keyTarget.ref, keys: [INERT_KEY] }, `keypress ${INERT_KEY}`)).split("\n")[0];
 	assert.match(keyLine, / · unverified via \w+$/, `keypress ${INERT_KEY} is not reported as unverified: ${keyLine}`);
@@ -171,31 +172,32 @@ try {
 
 	// Evidence: a toggle proves itself by its own value, and a click that only places a
 	// caret proves itself by reaching the element that then holds focus.
-	const formatted = await request("observe-ui", { root: window.ref, mode: "semantic" });
-	const toggles = await request("search-ui", { stateId: formatted.stateId, role: "segment", limit: 20 });
+	const formatted = await request("observe-ui", { root: window.ref, mode: "semantic" }, env);
+	const toggles = await request("search-ui", { stateId: formatted.stateId, role: "segment", limit: 20 }, env);
 	const toggle = toggles.matches.find((match) => match.caps.includes("toggle") && match.value === "0");
 	assert(toggle, `the TextEdit format bar exposed no clear toggle: ${toggles.matches.map((match) => `${match.role} ${match.name}=${match.value} {${match.caps}}`).join(", ")}`);
-	const toggled = await request("act-ui", { stateId: formatted.stateId, actions: [{ action: "press", ref: toggle.ref }] });
+	const toggled = await request("act-ui", { stateId: formatted.stateId, actions: [{ action: "press", ref: toggle.ref }] }, env);
 	assert.equal(toggled.outcome, "worked", `pressing toggle '${toggle.name}' was not reported as worked`);
 	assert.deepEqual(
 		{ source: toggled.verification.evidence?.source, field: toggled.verification.evidence?.field, from: toggled.verification.evidence?.from, to: toggled.verification.evidence?.to },
 		{ source: "ax", field: "value", from: "0", to: "1" },
 		`pressing toggle '${toggle.name}' did not report the value that moved: ${JSON.stringify(toggled.verification.evidence)}`,
 	);
-	const restored = await request("act-ui", { stateId: toggled.stateId, actions: [{ action: "press", ref: toggle.ref }] });
+	const restored = await request("act-ui", { stateId: toggled.stateId, actions: [{ action: "press", ref: toggle.ref }] }, env);
 	assert.equal(restored.verification.evidence?.to, "0", `toggle '${toggle.name}' did not return to its original value`);
 
-	const caretState = await request("observe-ui", { root: window.ref, mode: "semantic" });
-	const textArea = caretState.nodes.find((node) => node.role === "textarea") ?? (await request("search-ui", { stateId: caretState.stateId, role: "textarea", limit: 1 })).matches[0];
+	const caretState = await request("observe-ui", { root: window.ref, mode: "semantic" }, env);
+	const textArea = caretState.nodes.find((node) => node.role === "textarea") ?? (await request("search-ui", { stateId: caretState.stateId, role: "textarea", limit: 1 }, env)).matches[0];
 	assert(textArea, "the RTF document exposed no text area to click into");
-	const firstClick = await request("act-ui", { stateId: caretState.stateId, actions: [{ action: "click", ref: textArea.ref }] });
+	const firstClick = await request("act-ui", { stateId: caretState.stateId, actions: [{ action: "click", ref: textArea.ref }] }, env);
 	assert.equal(firstClick.outcome, "worked", "clicking into the text area was not reported as worked");
-	const secondClick = await request("act-ui", { stateId: firstClick.stateId, actions: [{ action: "click", ref: textArea.ref }] });
+	const secondClick = await request("act-ui", { stateId: firstClick.stateId, actions: [{ action: "click", ref: textArea.ref }] }, env);
 	assert.equal(secondClick.outcome, "worked", "a repeated click into the focused text area lost its evidence");
 	assert.equal(secondClick.verification.evidence?.source, "focus", `a caret-only click reported ${JSON.stringify(secondClick.verification.evidence)} instead of reaching the focused element`);
 
 	console.log(`PASS TextEdit stdin validation → wait errors → concurrent act → postcondition error → unverified key and a Save that wrote the file → toggle and caret evidence in isolated pid ${createdPid}`);
 } finally {
+	await runCli(["stop"], { env }).catch(() => undefined);
 	if (createdPid) await stopTextEdit(createdPid, processMonitor);
 	await fs.rm(fixtureDirectory, { recursive: true, force: true });
 }

@@ -22,7 +22,7 @@ extension Platform {
 			capturedAt: capturedAt,
 			window: LookWindow(windowId: windowId, kind: .menu, framePoints: frame, scaleFactor: displayScaleFactor(for: frame), isModal: false, metadata: RootMetadata(pairing: RootPairing(confidence: .low, score: 0), sheetCount: 0), role: "AXMenu", subrole: ""),
 			outline: outline,
-			geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false),
+			geometry: LookGeometry(windowId: windowId, windowFrame: frame, imageWidth: max(1, Int(frame.width)), imageHeight: max(1, Int(frame.height)), hasImage: false, readScreen: true),
 			timings: LookTimings(captureMs: 0, describeMs: 0, readTextMs: 0),
 			readText: nil,
 			image: nil,
@@ -70,6 +70,7 @@ extension Platform {
 			throw BCUError(.windowStale, "Root reference is stale. Call find-roots again.")
 		}
 		let accessibility = requestAccessibility(pid: pid)
+		startObserving(pid)
 		let rootElement: AXUIElement
 		let scope = request.scope
 		if let scope {
@@ -143,7 +144,8 @@ extension Platform {
 			windowFrame: base?.windowFrame ?? capture?.frame ?? rootFrame,
 			imageWidth: base?.imageWidth ?? imageWidth,
 			imageHeight: base?.imageHeight ?? imageHeight,
-			hasImage: base?.hasImage ?? (capture != nil)
+			hasImage: base?.hasImage ?? (capture != nil),
+			readScreen: base?.readScreen ?? readTextExecuted
 		)
 		let scale = (capture?.frame.width ?? rootFrame.width) > 0 ? Double(imageWidth) / (capture?.frame.width ?? rootFrame.width) : displayScaleFactor(for: rootFrame)
 		let pairing = pairingForWindow(window, pid: pid)
