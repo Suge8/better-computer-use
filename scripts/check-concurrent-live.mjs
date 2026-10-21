@@ -2,7 +2,8 @@
 // Several clients on one app at once, on a real window with an "Add one" button and the
 // "count N" label it raises. A selector wait-for that is waiting while another client acts
 // (the press that makes its condition hold included) returns found with a state of its own
-// instead of failing stale. Selector act-ui calls fired together all succeed and each press
+// instead of failing stale; that it was waiting is shown by the app, which logs the waiter
+// reading "count 2" when nudged before the last press. Selector act-ui calls fired together all succeed and each press
 // reaches the app exactly once, counted by the app itself. A ref still belongs to the state
 // that made it: once another action stales that state, act-ui --state, wait-for --scope and
 // read-text with its refs fail with stale_state.
@@ -31,8 +32,25 @@ async function bcu(args, input) {
 	return JSON.parse(result.stdout);
 }
 
+async function logLines() {
+	return (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
+}
+
 async function presses() {
-	return (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean).length;
+	return (await logLines()).filter((line) => line === "pressed").length;
+}
+
+/** Resolves once the app logs `line` after its first `from` lines. */
+async function logged(line, from) {
+	const holds = async () => (await logLines()).slice(from).includes(line);
+	const stop = new AbortController();
+	try {
+		const events = fs.watch(logPath, { signal: stop.signal });
+		if (await holds()) return;
+		for await (const _event of events) if (await holds()) return;
+	} finally {
+		stop.abort();
+	}
 }
 
 async function expectStale(description, args, input) {
@@ -51,6 +69,10 @@ try {
 	const waiting = runCli(["wait-for", "--pid", pid, "--text", "count 3", "--timeout", "20000", "--json"], { env }).finally(() => { settled = true; });
 	await bcu(["act-ui", "--pid", pid, "-"], press);
 	await bcu(["act-ui", "--pid", pid, "-"], press);
+	// The waiter is the only reader left: the label read after a nudge is its own.
+	const nudgedAt = (await logLines()).length;
+	killProcess(counter.pid, "SIGUSR1");
+	await withTimeout(logged("read count 2", nudgedAt), "the waiting wait-for to read count 2", 10_000);
 	assert.equal(settled, false, "wait-for returned before its condition held");
 	await bcu(["act-ui", "--pid", pid, "-"], press);
 	const waited = await withTimeout(waiting, "wait-for to return", 20_000);
