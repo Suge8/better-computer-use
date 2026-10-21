@@ -174,6 +174,12 @@ export async function launchBatchForm(directory, logPath, title) {
 	return { pid, exited };
 }
 
+/** Starts scripts/fixtures/counter.swift; `logPath` receives `pressed` once per handled press. */
+export async function launchCounter(directory, logPath, title) {
+	const { pid, exited } = await launchSwiftFixture(directory, "counter", [logPath, title], "the counter window");
+	return { pid, exited };
+}
+
 /**
  * Starts scripts/fixtures/delivery-fields.swift: a chat-style text field that clears on
  * Return, a secure field, and a button that runs an NSAlert modally.
