@@ -297,6 +297,8 @@ public struct ActPerformed: Sendable {
 	public internal(set) var callerMustVerify = false
 	/// The platform waited for the delivery's effects, so the roots need no wait of their own.
 	public internal(set) var effectsAwaited = false
+	/// The input went into a secure field, whose own windows are no evidence.
+	public internal(set) var typedIntoSecureField = false
 	public internal(set) var deltaSource: DeltaSource?
 
 	init(delivery: Delivery) {

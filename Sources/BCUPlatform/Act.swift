@@ -28,6 +28,11 @@ extension Platform {
 
 	/// `deferRootDelta` leaves the root changes to the batch that runs this step.
 	func act(_ request: ActRequest, deferRootDelta: Bool) throws -> ActionReport {
+		// What the app announces while bcu acts, and just after, may be the action's doing.
+		try observedApp(request.pid).acting(lingering: Self.rootChangeTimeout) { try deliver(request, deferRootDelta: deferRootDelta) }
+	}
+
+	private func deliver(_ request: ActRequest, deferRootDelta: Bool) throws -> ActionReport {
 		let record = request.geometry
 		let pid = request.pid
 		let action = request.action
@@ -54,11 +59,6 @@ extension Platform {
 		var hitVerified = false
 		var screenBefore: ScreenBaseline?
 		let notifications = try observedApp(pid)
-		// What the app announces while bcu acts is the action's, not the app's own. The span
-		// ends with the act, which has waited for its effects: a margin after it would hide
-		// a clock between two quick actions.
-		let actedFrom = Date()
-		defer { notifications.acted(over: actedFrom...Date()) }
 		var beforeFrontmostPid: pid_t?
 		var eventCursor: UInt64 = 0
 		var beforeRootSnapshot: [String: Root] = [:]
@@ -80,20 +80,18 @@ extension Platform {
 			if let subject = element ?? evidenceElement { beforeEvidence = evidenceSnapshot(subject) }
 		}
 		takeBaseline()
-		/// Focusing a secure field makes the system attach its own windows to it (the password
-		/// AutoFill popup, at menu level, often after the baseline): their appearing, or taking
-		/// focus, says nothing about what was typed. A root that closed still does.
+		/// Typing into a secure field: see `rootDeltaIsEvidence`.
 		func typingIntoSecureField() -> Bool {
 			[.typeText, .keypress].contains(action) && (element.map(isInSecureField) ?? false)
 		}
 		func finish(_ response: ActionReport) throws -> ActionReport {
-			if deferRootDelta { return response }
 			var result = response
+			result.performed.typedIntoSecureField = typingIntoSecureField()
+			if deferRootDelta { return result }
 			let observed = try awaitRootDelta(before: beforeRootSnapshot, beforeFrontmostPid: beforeFrontmostPid, pid: pid, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature, wait: !response.settled)
 			result.performed.deltaSource = observed.source
 			result.rootDelta = observed.delta
-			let evidence = typingIntoSecureField() ? observed.delta.filter { if case .root(.closed, _) = $0 { true } else { false } } : observed.delta
-			if rootDeltaIsEvidence(evidence, pid: pid), result.outcome == .unknown {
+			if rootDeltaIsEvidence(observed.delta, pid: pid, typedIntoSecureField: result.performed.typedIntoSecureField), result.outcome == .unknown {
 				result.outcome = .worked
 				result.verification = ActEvidence(source: .root)
 			}
@@ -379,7 +377,6 @@ extension Platform {
 			var after = subject.flatMap(evidenceSnapshot)
 			var announced: ActEvidence?
 			var unread = eventCursor
-			let ticking = notifications.announcers(over: actedFrom.addingTimeInterval(-Self.selfChangeLookback)...actedFrom)
 			_ = notifications.wait(until: deliveredAt.addingTimeInterval(Self.rootChangeTimeout)) {
 				if let subject, let before = beforeEvidence {
 					after = evidenceSnapshot(subject)
@@ -388,7 +385,7 @@ extension Platform {
 				}
 				// Each notification is looked at once, however many the app posts while it settles.
 				let next = notifications.cursor
-				announced = root.flatMap { announcement(notifications, since: unread, in: $0, ticking: ticking) }
+				announced = root.flatMap { announcement(notifications, since: unread, in: $0, deliveredAt: deliveredAt) }
 				unread = next
 				// A batch takes no root baseline per step; it diffs the roots once, after the last.
 				return announced != nil || (!deferRootDelta && rootSignal(notifications, eventCursor: eventCursor, beforeCgSignature: beforeCgSignature, beforeFrontmostPid: beforeFrontmostPid) != nil)
@@ -647,7 +644,8 @@ extension Platform {
 			verification: nil,
 			rootDelta: observed.delta
 		)
-		if rootDeltaIsEvidence(observed.delta, pid: pid), result.outcome == .unknown {
+		let typedIntoSecureField = steps.contains { if case .completed(let report) = $0 { report.performed.typedIntoSecureField } else { false } }
+		if rootDeltaIsEvidence(observed.delta, pid: pid, typedIntoSecureField: typedIntoSecureField), result.outcome == .unknown {
 			result.outcome = .worked
 			result.verification = ActEvidence(source: .root)
 		}

@@ -83,11 +83,16 @@ extension Platform {
 	/// Some actions leave no trace on the element they target: pressing a menu item closes
 	/// the menu. A root that appeared, closed or took focus inside the action's window is
 	/// then the only evidence the action landed. Another app taking the front is not:
-	/// activation hand-offs and the user do that on their own.
-	func rootDeltaIsEvidence(_ delta: [RootChange], pid: Int32) -> Bool {
+	/// activation hand-offs and the user do that on their own. Nor, for input into a secure
+	/// field, is a root appearing or taking focus: focusing the field makes the system attach
+	/// its own windows to it (the password AutoFill popup, at menu level, often after the
+	/// baseline), which say nothing about what was typed. A root that closed still does.
+	func rootDeltaIsEvidence(_ delta: [RootChange], pid: Int32, typedIntoSecureField: Bool) -> Bool {
 		delta.contains { change in
-			if case .frontApp(_, let appPid) = change { return appPid == pid }
-			return true
+			switch change {
+			case .frontApp(_, let appPid): !typedIntoSecureField && appPid == pid
+			case .root(let kind, _): !typedIntoSecureField || kind == .closed
+			}
 		}
 	}
 }

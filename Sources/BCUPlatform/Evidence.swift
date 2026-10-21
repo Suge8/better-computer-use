@@ -44,12 +44,12 @@ extension Platform {
 	/// The newest value or title an element of `root` announced since `cursor`, as it reads
 	/// now, preferring one that reads as something: a press whose control keeps no fact of its
 	/// own (a calculator key) moves one elsewhere in the window. Nothing a secure field or its
-	/// insides announce is evidence, nor is anything in `ticking`, which was changing on its
-	/// own before the delivery.
-	func announcement(_ notifications: AppNotifications, since cursor: UInt64, in root: AXUIElement, ticking: Set<AXElement>) -> ActEvidence? {
+	/// insides announce is evidence, nor is an element that was changing on its own before
+	/// the delivery.
+	func announcement(_ notifications: AppNotifications, since cursor: UInt64, in root: AXUIElement, deliveredAt: Date) -> ActEvidence? {
 		var blank: ActEvidence?
 		for event in notifications.events(since: cursor).reversed() {
-			guard let announcer = event.element, !ticking.contains(announcer) else { continue }
+			guard let announcer = event.element, !notifications.changesOnItsOwn(announcer, before: deliveredAt) else { continue }
 			let element = announcer.element
 			guard isElement(element, descendantOf: root), !isInSecureField(element) else { continue }
 			let role = stringAttribute(element, attribute: kAXRoleAttribute as CFString) ?? ""
@@ -104,12 +104,6 @@ extension Platform {
 		guard let facts = evidenceSnapshot(element) else { return false }
 		return facts.keys.contains { $0 != "focused" }
 	}
-
-	/// How far back an element counts as changing on its own: a clock ticks once a second, a
-	/// progress bar or timer faster, so two seconds see each of them at least once. An element
-	/// quieter than that (a chat that gets a message now and then) can still coincide with a
-	/// delivery. History starts when bcu starts observing the app, at its first look.
-	static let selfChangeLookback: TimeInterval = 2
 
 	/// Screen evidence: how long to wait for the window to repaint, how often to capture it
 	/// meanwhile, how far a channel must move for a pixel to count, and the share of content

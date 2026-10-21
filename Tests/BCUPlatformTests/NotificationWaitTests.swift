@@ -64,7 +64,7 @@ struct NotificationWaitTests {
 				let timer = CFRunLoopTimerCreateWithHandler(nil, CFAbsoluteTimeGetCurrent() + 3_600, 0, 0, 0) { _ in }
 				CFRunLoopAddTimer(CFRunLoopGetCurrent(), timer, .commonModes)
 				return timer
-			}
+			}.map { RootObservers.Started(thread: $0, complete: true) }
 		})
 		let condition = Condition()
 		let started = Date()
