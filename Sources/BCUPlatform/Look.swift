@@ -55,7 +55,9 @@ extension Platform {
 			defer { captureMs = elapsedMs(started) }
 			return try captureWindow(windowId: windowId).capture
 		}
-		var capture = includeImage || readText == .always ? try capturedWindow() : nil
+		/// The caller's time ran out: nothing is captured or read from the screen any more.
+		func expired() -> Bool { request.deadline.map { Date() >= $0 } ?? false }
+		var capture = (includeImage || readText == .always) && !expired() ? try capturedWindow() : nil
 
 		guard let window = requestedRoot else {
 			guard let menuWindowId = popupMenuWindowId, let menuPid = pidForWindowId(menuWindowId) else {
@@ -92,24 +94,24 @@ extension Platform {
 		}
 		let describeStart = Date()
 		var frame = geometry()
-		var outline = buildLookOutline(root: rootElement, transform: frame.transform)
+		var outline = buildLookOutline(root: rootElement, transform: frame.transform, until: request.deadline)
 		// A browser window without its page waits for the browser to build it; one that still
 		// has none says so rather than pass the browser's chrome off as the page or read it
 		// from the screen.
 		var webContentMissing = false
 		if scope == nil, lacksWebContent(outline, window: window, request: accessibility) {
-			if awaitWebContent(pid: pid, window: window, until: request.deadline) { outline = buildLookOutline(root: rootElement, transform: frame.transform) }
+			if awaitWebContent(pid: pid, window: window, until: request.deadline) { outline = buildLookOutline(root: rootElement, transform: frame.transform, until: request.deadline) }
 			webContentMissing = lacksWebContent(outline, window: window, request: accessibility)
 		}
 		// A window that says (almost) nothing through Accessibility is read from the screen,
 		// so the same observe → act loop still has something to act on.
-		let readsScreen = readText == .always || (readText == .auto && scope == nil && !webContentMissing && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
+		let readsScreen = !expired() && (readText == .always || readText == .auto && scope == nil && !webContentMissing && accessibleContentCount(outline, windowTitle: stringAttribute(window, attribute: kAXTitleAttribute as CFString) ?? "") < Self.sparseContentLimit)
 		var describeMs = elapsedMs(describeStart)
 		if readsScreen && capture == nil, let captured = try capturedWindow() {
 			capture = captured
 			frame = geometry()
 			let redescribeStart = Date()
-			outline = buildLookOutline(root: rootElement, transform: frame.transform)
+			outline = buildLookOutline(root: rootElement, transform: frame.transform, until: request.deadline)
 			describeMs += elapsedMs(redescribeStart)
 		}
 		let imageWidth = frame.width
@@ -189,20 +191,27 @@ extension Platform {
 		return CGRect(x: x1, y: y1, width: max(0, x2 - x1), height: max(0, y2 - y1))
 	}
 
-	func buildLookOutline(root: AXUIElement, transform: @escaping (CGRect) -> CGRect) -> LookNode {
+	/// Stops at `callerDeadline` too when it is sooner. Nodes not walked are truncated; past the
+	/// deadline their children are not even counted, so a leaf may be marked truncated too.
+	func buildLookOutline(root: AXUIElement, transform: @escaping (CGRect) -> CGRect, until callerDeadline: Date? = nil) -> LookNode {
 		let rootNode = lookNode(element: root, transform: transform, offscreen: false)
 		let nodeLimit = Self.outlineNodeLimit
-		let deadline = Date().addingTimeInterval(Self.outlineTimeout)
+		let ownDeadline = Date().addingTimeInterval(Self.outlineTimeout)
+		let deadline = min(ownDeadline, callerDeadline ?? ownDeadline)
 		var walked = 1
 		var seen = Set<ObjectIdentifier>([ObjectIdentifier(root)])
 		var queue: [(AXUIElement, LookNode)] = [(root, rootNode)]
 		var index = 0
 		while index < queue.count {
+			guard Date() < deadline else {
+				queue[index...].forEach { $0.1.truncated = true }
+				break
+			}
 			let (element, node) = queue[index]
 			index += 1
 			let children = axElementArray(element, attribute: kAXChildrenAttribute as CFString)
 			if children.isEmpty { continue }
-			if walked >= nodeLimit || Date() >= deadline {
+			if walked >= nodeLimit {
 				node.truncated = true
 				continue
 			}

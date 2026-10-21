@@ -45,8 +45,14 @@ extension Platform {
 			return true
 		}
 
+		// Every look stops at the deadline, also the one a wait with no time left still makes.
+		// A look cut short proves a match but not its absence.
+		let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1000)
+		func found() -> Bool? {
+			containsDescendant(startingAt: rootElement, maxDepth: Self.waitSearchDepth, maxNodes: Self.waitSearchNodes, until: deadline, where: matches)
+		}
 		let settled = try awaitChange(in: pid, timeout: Double(timeoutMs) / 1000) {
-			collectDescendants(startingAt: rootElement, maxDepth: Self.waitSearchDepth, maxNodes: Self.waitSearchNodes).contains(where: matches) != request.gone
+			request.gone ? found() == false : found() == true
 		}
 		guard settled else { return .timedOut }
 		return request.gone ? .gone : .found
