@@ -2213,7 +2213,7 @@
 			},
 			"output": {
 				"request": "{\"command\":\"observe-ui\",\"json\":false,\"params\":{\"selector\":{\"pid\":202}}}",
-				"stdout": "@r4 Google Chrome for Testing — bcu probe A - Google Chrome for Testing · state 5e6f7a8b · 40 nodes, 2 shown\n@e1 window \"bcu probe A - Google Chrome for Testing\"\n  @e2 group \"bcu probe A\" ▸ 13 hidden: button×9 tab×3 textfield×1\nweb content not exposed: the browser has not built this page's accessibility tree, as happens while its window is minimized, covered or in the background; read the page with a CDP browser tool\n",
+				"stdout": "@r4 Google Chrome for Testing — bcu probe A - Google Chrome for Testing · state 5e6f7a8b · 40 nodes, 2 shown\n@e1 window \"bcu probe A - Google Chrome for Testing\"\n  @e2 group \"bcu probe A\" ▸ 13 hidden: button×9 tab×3 textfield×1\nweb content not exposed: the browser has not built this page's accessibility tree, as happens while its window is minimized or when the browser did not answer bcu's request for it; read the page with a CDP browser tool\n",
 				"stderr": "",
 				"exitCode": 0
 			}
