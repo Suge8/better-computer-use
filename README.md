@@ -18,7 +18,7 @@ bcu setup
 再给 agent 装上用法说明（一个 skill，教它怎么用 bcu）：
 
 ```bash
-npx skills add Suge8/friedbun --skill better-computer-use
+npx skills add Suge8/friedbun --skill desktop
 ```
 
 然后直接跟 agent 说要做什么，比如“用计算器算一下 86.4 除以 4，把结果写进文本编辑”。
@@ -41,7 +41,7 @@ npx skills add Suge8/friedbun --skill better-computer-use
 
 **别的桌面空间、全屏应用里的窗口也能操作**，不会把你的屏幕切过去。
 
-具体用法写在 [skill](https://github.com/Suge8/friedbun/blob/main/skills/operations/better-computer-use/SKILL.md) 里，每条命令的参数用 `bcu <命令> --help` 查看。
+具体用法写在 [skill](https://github.com/Suge8/friedbun/blob/main/skills/operations/desktop/SKILL.md) 里，每条命令的参数用 `bcu <命令> --help` 查看。
 
 ## 常见问题
 
@@ -51,7 +51,7 @@ npx skills add Suge8/friedbun --skill better-computer-use
 
 **不想让它碰前台？** 在 `~/.config/bcu/config.json` 里写 `{"headless": true}`，所有动作只走后台，代价是有些应用的操作会失败。其它配置见 [配置](./docs/configuration.md)。
 
-**网页呢？** 浏览器窗口可以像普通窗口一样点和输入。页面里的 DOM、网络请求、控制台交给 [better-browser-use](https://github.com/Suge8/friedbun/tree/main/skills/operations/better-browser-use)。
+**网页呢？** 浏览器窗口可以像普通窗口一样点和输入。页面里的 DOM、网络请求、控制台交给 [browser](https://github.com/Suge8/friedbun/tree/main/skills/operations/browser)。
 
 ## 限制
 

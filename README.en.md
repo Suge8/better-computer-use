@@ -18,7 +18,7 @@ bcu setup
 Then give your agent the usage guide (a skill that teaches it bcu):
 
 ```bash
-npx skills add Suge8/friedbun --skill better-computer-use
+npx skills add Suge8/friedbun --skill desktop
 ```
 
 Now tell the agent what you want, for example "divide 86.4 by 4 in Calculator and write the result into TextEdit".
@@ -41,7 +41,7 @@ The orange arrow is the agent's cursor. It is only drawn on screen so you can fo
 
 **Reaches windows on other Spaces and full-screen apps** without switching your screen to them.
 
-Usage lives in the [skill](https://github.com/Suge8/friedbun/blob/main/skills/operations/better-computer-use/SKILL.md); `bcu <command> --help` lists each command's options.
+Usage lives in the [skill](https://github.com/Suge8/friedbun/blob/main/skills/operations/desktop/SKILL.md); `bcu <command> --help` lists each command's options.
 
 ## FAQ
 
@@ -51,7 +51,7 @@ Usage lives in the [skill](https://github.com/Suge8/friedbun/blob/main/skills/op
 
 **Keep it out of the foreground entirely?** Put `{"headless": true}` in `~/.config/bcu/config.json`. Every action then stays in the background, and some will fail in apps that only react to real input. Other settings: [configuration](./docs/configuration.md) (Chinese).
 
-**What about web pages?** Browser windows can be clicked and typed into like any window. DOM, network and console work belongs to [better-browser-use](https://github.com/Suge8/friedbun/tree/main/skills/operations/better-browser-use).
+**What about web pages?** Browser windows can be clicked and typed into like any window. DOM, network and console work belongs to [browser](https://github.com/Suge8/friedbun/tree/main/skills/operations/browser).
 
 ## Limits
 
