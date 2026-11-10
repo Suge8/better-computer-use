@@ -633,6 +633,118 @@
 			}
 		},
 		{
+			"name": "a slider whose value can be written takes setText",
+			"op": "project",
+			"input": {
+				"outline": {
+					"outline": {
+						"root": {
+							"ref": "@e1",
+							"wireRef": "win",
+							"role": "AXWindow",
+							"subrole": "",
+							"identifier": "",
+							"title": "控制中心",
+							"description": "",
+							"value": "",
+							"actions": [],
+							"canPress": false,
+							"canFocus": false,
+							"canSetValue": false,
+							"canScroll": false,
+							"canIncrement": false,
+							"canDecrement": false,
+							"isTextInput": false,
+							"rect": {
+								"x": 0,
+								"y": 0,
+								"w": 0,
+								"h": 0
+							},
+							"focused": false,
+							"offscreen": false,
+							"pictureOnly": false,
+							"truncated": false,
+							"children": [
+								{
+									"ref": "@e2",
+									"wireRef": "volume",
+									"role": "AXSlider",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "音量",
+									"value": "0.43",
+									"actions": [
+										"AXIncrement",
+										"AXDecrement"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": true,
+									"canScroll": false,
+									"canIncrement": true,
+									"canDecrement": true,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								},
+								{
+									"ref": "@e3",
+									"wireRef": "fixed",
+									"role": "AXSlider",
+									"subrole": "",
+									"identifier": "",
+									"title": "",
+									"description": "亮度",
+									"value": "1",
+									"actions": [
+										"AXIncrement",
+										"AXDecrement"
+									],
+									"canPress": false,
+									"canFocus": false,
+									"canSetValue": false,
+									"canScroll": false,
+									"canIncrement": true,
+									"canDecrement": true,
+									"isTextInput": false,
+									"rect": {
+										"x": 0,
+										"y": 0,
+										"w": 200,
+										"h": 20
+									},
+									"focused": false,
+									"offscreen": false,
+									"pictureOnly": false,
+									"truncated": false,
+									"children": []
+								}
+							]
+						}
+					},
+					"numbering": "saved"
+				},
+				"options": {
+					"maxDepth": 8
+				}
+			},
+			"output": {
+				"json": "{\"nodes\":[{\"caps\":[],\"depth\":0,\"name\":\"控制中心\",\"ref\":\"@e1\",\"role\":\"window\"},{\"caps\":[\"setText\",\"increment\",\"decrement\"],\"depth\":1,\"name\":\"音量\",\"parent\":\"@e1\",\"ref\":\"@e2\",\"role\":\"slider\",\"value\":\"0.43\"},{\"caps\":[\"increment\",\"decrement\"],\"depth\":1,\"name\":\"亮度\",\"parent\":\"@e1\",\"ref\":\"@e3\",\"role\":\"slider\",\"value\":\"1\"}],\"shown\":3,\"total\":3,\"truncated\":false}",
+				"text": "@e1 window \"控制中心\"\n  @e2 slider \"音量\" =\"0.43\" {setText,increment,decrement}\n  @e3 slider \"亮度\" =\"1\" {increment,decrement}"
+			}
+		},
+		{
 			"name": "developer strings never name a node",
 			"op": "project",
 			"input": {
