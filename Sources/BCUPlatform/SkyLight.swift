@@ -188,12 +188,12 @@ enum SkyLight {
 	/// A press at the first point, drag events along the path, a release at the last. A move
 	/// primes the window's idea of where the pointer is; every event carries the route and
 	/// one click group, and each segment is walked in short steps, because views track a drag
-	/// by the dragged events between press and release. `continuing` is asked after every
-	/// dragged event; when it says no, the button is released where the drag got to and the
-	/// drag reports that it stopped early.
-	static func drag(_ points: [CGPoint], along route: PointerRoute, continuing: () -> Bool) throws -> Bool {
+	/// by the dragged events between press and release. A drag-and-drop session the drag
+	/// starts (a list reorder) follows these events too, so the whole path is sent; see
+	/// "投递梯子" in docs/architecture.md.
+	static func drag(_ points: [CGPoint], along route: PointerRoute) throws {
 		let symbols = try require()
-		guard let first = points.first, let last = points.last else { return true }
+		guard let first = points.first, let last = points.last else { return }
 		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)
 		func send(_ type: CGEventType, at location: CGPoint, clickState: Int64) throws {
 			guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: location, mouseButton: .left) else {
@@ -214,15 +214,10 @@ enum SkyLight {
 				let point = CGPoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t)
 				try send(.leftMouseDragged, at: point, clickState: 1)
 				usleep(Pacing.step)
-				if !continuing() {
-					try send(.leftMouseUp, at: point, clickState: 1)
-					return false
-				}
 			}
 		}
 		usleep(ClickPacing.dragToRelease)
 		try send(.leftMouseUp, at: last, clickState: 1)
-		return true
 	}
 	private static let dragStepPoints: CGFloat = 10
 	private static let dragMaxSteps = 30

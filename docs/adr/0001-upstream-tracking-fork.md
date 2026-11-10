@@ -31,7 +31,10 @@ Ported so far, reviewed up to `864fd4e52`:
 - `8a66f0d8d`, `8347d6cd8`: confirm keyboard focus on the target before targeted keys, the
   element's own AXFocused counting as confirmation.
 - `1dc9b52bd`: a background drag that starts a drag-and-drop session releases at once and
-  needs the foreground. Not ported: the brief foreground drag.
+  needs the foreground. Not ported: the brief foreground drag. Later taken out again: on
+  macOS 27 a session started by pid-routed events follows them, and a list reorder (the
+  cua-driver-bench MB-09 table) drops where the path ends, in the background; releasing at
+  the first drag image sent every such drag to the foreground.
 - `b1633ef91`: a locked screen is its own error. Not ported: keeping the display awake.
 - `f87f19152`: background mouse events carry explicit, empty modifier flags.
 - `e32127764`: the defocus half of focus-without-raise was already dropped here. Not
