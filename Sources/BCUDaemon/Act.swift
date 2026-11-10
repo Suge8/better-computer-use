@@ -187,7 +187,8 @@ extension Daemon {
 			if let windowsBefore {
 				let panels = try await rootsOpened(elsewhere: target.pid, since: windowsBefore)
 				execution.appeared = merged(execution.appeared + panels)
-				if !panels.isEmpty, execution.outcome == .unknown {
+				// A root appearing or closing proves the step that did it, not a value only its element shows.
+				if !panels.isEmpty, execution.outcome == .unknown, !execution.unconfirmed {
 					execution.outcome = .worked
 					execution.evidence = BCUCore.ActEvidence(source: .root)
 				}
@@ -200,7 +201,7 @@ extension Daemon {
 			var gone = touched.filter { !live.contains($0.target.root.handle) }
 			if !gone.isEmpty {
 				execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed)
-				if execution.outcome == .unknown { execution.outcome = .worked }
+				if execution.outcome == .unknown, !execution.unconfirmed { execution.outcome = .worked }
 			}
 			let verification = try await verification(params.expect, transaction: transaction, execution: &execution, baseLive: live.contains(target.root.handle))
 			let successor = try await successor(of: transaction, baseLive: live.contains(target.root.handle), image: image)
