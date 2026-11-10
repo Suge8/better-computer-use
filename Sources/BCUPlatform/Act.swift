@@ -446,11 +446,14 @@ extension Platform {
 			// Only the frontmost app opens its menus: a background app accepts a press on a menu
 			// bar item and does nothing with it, so activation is a precondition, not a fallback.
 			// An item inside its menus runs its command when pressed as it is, closed menus and
-			// all, with the app left in the background. A status bar is a menu bar too, but its
-			// items open their menus and panels from the background.
+			// all, with the app left in the background, unless it reads as disabled: AppKit
+			// validates items only when their menu opens, so that may be stale (Save in a document
+			// never shown in front), and the press would be dropped; the menus are opened in front
+			// to find out. A status bar is a menu bar too, but its items open their menus and
+			// panels from the background.
 			let inMenuBar = ancestor(of: element, role: kAXMenuBarRole as String).map { !isStatusBar($0, pid: pid) } ?? false
 			let frontmost = NSRunningApplication(processIdentifier: pid)?.isActive ?? false
-			let requiresFrontmost = inMenuBar && !frontmost && elementRole != kAXMenuItemRole as String
+			let requiresFrontmost = inMenuBar && !frontmost && (elementRole != kAXMenuItemRole as String || boolAttribute(element, attribute: kAXEnabledAttribute as CFString) == false)
 			// Headless (`ax_only`) may not activate, so it gets the refusal as well instead of a
 			// press that silently does nothing.
 			if requiresFrontmost && policy != .foreground {
@@ -464,7 +467,7 @@ extension Platform {
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { try activateForMenuBar(element) }
-				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String && frontmost ? try openMenusAbove(element) : nil
+				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String && (frontmost || requiresFrontmost) ? try openMenusAbove(element) : nil
 				let cursorPoint = try? coordinatePoint()
 				// Pixels are the evidence of last resort, and capturing them before the press costs
 				// as much as the press itself: only a window Accessibility cannot describe needs them.
