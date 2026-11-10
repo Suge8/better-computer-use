@@ -181,7 +181,7 @@ extension Daemon {
 		do {
 			// A status item opens its panel in another process (Control Center's in ControlCenter).
 			let windowsBefore = target.root.kind == .statusbar ? desktop.panelWindows() : nil
-			var execution = try await dispatch(transaction, actions: actions, headless: headless, startsInForeground: params.foreground ?? false)
+			var execution = try await dispatch(transaction, actions: actions, headless: headless, startsInForeground: params.foreground ?? false, panelsBefore: windowsBefore)
 			delivered = execution
 			if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
 			if let windowsBefore {
@@ -193,8 +193,10 @@ extension Daemon {
 				}
 			}
 			// A root that is gone is a fact like any other; the roots the array touched are checked once, here.
-			let live = Set(try await roots(pid: target.pid).map(\.handle))
 			let touched = distinct([ActedRoot(target: target, element: transaction.base.outline.rootElement)] + execution.acted)
+			// A step may act in a panel another process opened; each root is looked for in its own app.
+			var live = Set<Handle>()
+			for pid in Set(touched.map(\.target.pid)) { live.formUnion(try await roots(pid: pid).map(\.handle)) }
 			var gone = touched.filter { !live.contains($0.target.root.handle) }
 			if !gone.isEmpty {
 				execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed)
@@ -297,7 +299,7 @@ extension Daemon {
 	}
 
 	/// The roots other apps show in windows that appeared since `before`.
-	private func rootsOpened(elsewhere pid: Int32, since before: [UInt32: Int32]) async throws -> [Root] {
+	func rootsOpened(elsewhere pid: Int32, since before: [UInt32: Int32]) async throws -> [Root] {
 		let appeared = desktop.panelWindows().filter { before[$0.key] == nil && $0.value != pid }
 		var roots: [Root] = []
 		for owner in Set(appeared.values).sorted() {
@@ -336,7 +338,7 @@ extension Daemon {
 	/// in the foreground; a step that names its element is found just before its turn. A root
 	/// a step acts in must still be there when its turn comes; a root that closed is no reason
 	/// to stop, and the steps after it go where they say.
-	private func dispatch(_ transaction: Transaction, actions: [UiAction], headless: Bool, startsInForeground: Bool) async throws -> Execution {
+	private func dispatch(_ transaction: Transaction, actions: [UiAction], headless: Bool, startsInForeground: Bool, panelsBefore: [UInt32: Int32]?) async throws -> Execution {
 		let target = transaction.target
 		let count = actions.count
 		let batch = transaction.steps.compactMap { planned -> ResolvedStep? in
@@ -345,7 +347,7 @@ extension Daemon {
 		}
 		if headless && batch.count == transaction.steps.count { return try await deliverAsBatch(batch, count: count) }
 		var done: [Execution] = []
-		var trail = Trail(known: transaction.known)
+		var trail = Trail(known: transaction.known, panelsBefore: panelsBefore)
 		// What the steps delivered so far did to the desktop, for an error a later one ends in.
 		var activated = false, movedPointer = false
 		do {

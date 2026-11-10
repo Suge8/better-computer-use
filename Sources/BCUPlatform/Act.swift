@@ -517,11 +517,24 @@ extension Platform {
 			if let route = finderRenameRoute(for: element, pid: pid) {
 				throw BCUError(.actionFailed, "Writing a Finder file name changes what Finder shows, not the file's name.", recovery: route)
 			}
+			// A slider's value is a number: a string written to it is accepted and ignored. It
+			// may round what it is given, so the readback counts within 1% of its range.
+			let slider = stringAttribute(element, attribute: kAXRoleAttribute as CFString) == kAXSliderRole as String
+			let number = slider ? Double(text.trimmingCharacters(in: .whitespaces)) : nil
+			if slider && number == nil {
+				throw BCUError(.invalidArguments, "A slider takes a number for setText, such as 0.5, not \(JSONValue.string(text).serialized()).")
+			}
+			let tolerance = number == nil ? 0 : 0.01 * sliderSpan(element)
+			func holds(_ value: String) -> Bool {
+				guard let number else { return value == text }
+				return Double(value).map { abs($0 - number) <= tolerance } ?? false
+			}
+			let written: CFTypeRef = number.map { NSNumber(value: $0) } ?? text as CFString
 			var targetElement = element
-			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
+			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, written)
 			if status != .success, let refreshed = refreshElement() {
 				targetElement = refreshed
-				status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, text as CFTypeRef)
+				status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, written)
 			}
 			if status == .success {
 				performed.grounding = .description
@@ -529,19 +542,19 @@ extension Platform {
 				// Chromium applies the write a moment later: read at once, the old value is still there.
 				var value = ""
 				_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
-					value = stringAttribute(targetElement, attribute: kAXValueAttribute as CFString) ?? ""
-					return value == text
+					value = attributeSignature(targetElement, attribute: kAXValueAttribute as CFString) ?? ""
+					return holds(value)
 				}
-				if value != text && policy != .foreground {
+				if !holds(value) && policy != .foreground {
 					throw ForegroundRequired(message: "The background accessibility value write was accepted but did not take effect")
 				}
 				// A page takes an input's value with the input event Chromium sends, but a
 				// text area may be an editor that commits on Return or on losing the focus (a
 				// note title that renames its file): the value is there, the app has not taken it.
-				let uncommitted = value == text && stringAttribute(targetElement, attribute: kAXRoleAttribute as CFString) == kAXTextAreaRole as String && hasAncestorRole(targetElement, role: "AXWebArea")
+				let uncommitted = holds(value) && !slider && stringAttribute(targetElement, attribute: kAXRoleAttribute as CFString) == kAXTextAreaRole as String && hasAncestorRole(targetElement, role: "AXWebArea")
 				performed.valueUncommitted = uncommitted
 				return try finish(ActionReport(
-					outcome: value != text ? .didnt : uncommitted ? .unknown : .worked,
+					outcome: !holds(value) ? .didnt : uncommitted ? .unknown : .worked,
 					performed: performed,
 					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
 				))
@@ -612,6 +625,13 @@ extension Platform {
 		}
 
 		return try finish(try verdict())
+	}
+
+	/// How far a slider's value runs, 1 when it does not say.
+	func sliderSpan(_ slider: AXUIElement) -> Double {
+		func number(_ attribute: String) -> Double? { (copyAttribute(slider, attribute: attribute as CFString) as? NSNumber)?.doubleValue }
+		guard let low = number(kAXMinValueAttribute), let high = number(kAXMaxValueAttribute), high > low else { return 1 }
+		return high - low
 	}
 
 	func isStatusBar(_ bar: AXUIElement, pid: Int32) -> Bool {

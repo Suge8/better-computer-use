@@ -30,9 +30,11 @@ struct PlannedStep: Sendable {
 }
 
 /// What the steps delivered so far opened: the roots the app had before the array started,
-/// and the roots each step reported appearing.
+/// and the roots each step reported appearing. An array on a status bar also has the windows
+/// shown before it, since its icons open their panels in another process (Control Center).
 struct Trail: Sendable {
 	var known: Set<Handle>
+	var panelsBefore: [UInt32: Int32]?
 	var appeared: [[Root]] = []
 }
 
@@ -148,7 +150,11 @@ extension Daemon {
 		return try await awaiting(pid: base.pid, Countdown(timeoutMs: timeoutMs), timeout: { missing }) {
 			let live = try await roots(pid: base.pid)
 			let reported = trail.appeared.reversed().lazy.compactMap { step in mostProminent(live.filter { root in step.contains { $0.handle == root.handle } }) }.first
-			return (reported ?? mostProminent(live.filter { !trail.known.contains($0.handle) })).map { target($0, appName: base.appName, bundleId: base.bundleId) }
+			if let reported { return target(reported, appName: base.appName, bundleId: base.bundleId) }
+			if let before = trail.panelsBefore, let panel = mostProminent(try await rootsOpened(elsewhere: base.pid, since: before)) {
+				return target(panel, appName: panel.appName, bundleId: panel.bundleId)
+			}
+			return mostProminent(live.filter { !trail.known.contains($0.handle) }).map { target($0, appName: base.appName, bundleId: base.bundleId) }
 		}
 	}
 

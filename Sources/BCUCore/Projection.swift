@@ -263,7 +263,8 @@ private func capabilitiesOf(_ node: OutlineNode, role: String, web: Bool) -> [Ca
 	if node.canScroll { found.insert(.scroll) }
 	if node.canIncrement { found.insert(.increment) }
 	if node.canDecrement { found.insert(.decrement) }
-	if node.isTextInput || textRoles.contains(role) {
+	// A slider takes a number written as its value.
+	if node.isTextInput || textRoles.contains(role) || role == "slider" {
 		if node.canSetValue { found.insert(.setText) }
 		if node.isTextInput { found.insert(.typeText) }
 	}

@@ -211,6 +211,8 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 `setText` 写值后读回：读回等于新值是 `worked`，证据是值从什么变成什么。Chromium 晚一刻才应用这次写入，立即读到的还是旧值，所以在 250 ms 内等值到达（值变化的通知唤醒），不把晚到当成没生效。网页里的 `<input>`（textfield）收到 Chromium 随写入派发的 input 事件，页面据此更新（实测 Obsidian 快速切换框写入后结果列表随之过滤），读回就是页面收下的状态；网页里的文本区（textarea 角色，包括 contenteditable 编辑器）可能只在回车或失焦时提交（实测 Obsidian 的标题写入后读回正确，文件却没有改名，回车后才改名），读回只说明字段里有了，结果记为 `unknown`（`unverified via ax · value 未命名→…`），后继状态读回的值也不把它升级成 `worked`；调用方接着按回车或点别处，用 `--expect-*` 确认应用侧的变化。
 
+滑块的值是数：值可写的滑块在投影里带 `setText`，`text` 是数（"0.2"），平台把它作为数写入（写字符串会被接受后忽略），读回在滑块范围的 1% 之内算到达（滑块可能取整），不是数的 `text` 以 `invalid_arguments` 拒绝。实测控制中心音量滑块写 0.2 读回 0.19999998，系统音量随之变成 20。
+
 投影里带 `toggle` 能力的元素就是平台按第 5 条判定的那一类，两侧调用同一个规则（BCUCore 的 `pressEffect`），它也区分翻转类与选择类。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
 
 只有被证明无效的动作才失败：`didnt` 和后置条件未满足在动作事务里抛出 `action_failed`，退出码 9，stdout 为空。`unknown` 退出 0，结果行写作 `unverified via ax`，照常返回后继状态和变化，没有变化时写出 `(no element changes)`；`--json` 的 `outcome` 仍是 `"unknown"`。菜单命令、没有可读效果的快捷键、自绘窗口里的按下都落在这里，它们大多已经生效，逼 agent 为每一个再观察一轮得不偿失。带 `--expect-*` 且条件满足时结果是 `worked`：后置条件就是那份缺失的证据。`--scope @eN` 把后置条件限定在一个子树内。变化行必须说出变了什么：值和名字按原格式，状态写成它变成了什么（`~ @e51 onscreen`、`~ @e51 focused`）。只是 offscreen↔onscreen 翻转、而该节点本来就不在首屏视图里的变化不输出。
@@ -233,7 +235,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 ### 跨界面的步骤
 
-动作项可以用 `find: {role?, name?, nth?, root?, timeoutMs?}` 代替 ref（与 ref、坐标互斥，至少给 role 或 name），让一个数组走完“打开对话框 → 填写 → 确认”。步骤执行时才对它的根做新鲜观察，等到唯一匹配再投递。根由 `root` 选：`state`（默认）是状态所在的根；`opened` 是前面步骤最近打开的根，还没有时等它出现；`app` 是应用此刻会被 `observe-ui` 选中的根（模态优先）。匹配对象是视图里的节点：role 取视图的角色词，也认无障碍 role 与 subrole（带不带 AX 都行），一律精确；`search-ui --role`、`wait-for --role`、`--expect-role` 与步骤的 `expect.role` 用同一条规则；name 先精确、没有精确的再按子串，忽略大小写和多余空白，`...` 与 `…` 相同。并列时先留屏上的元素，再留动作需要的能力（setText 要 setText，press 要 press、toggle 或 open），所以对 setText 来说“Reason”是输入框而不是它的标签；规则都分不开，没有 `nth` 就失败，并列出候选（`nth i: 节点 in 父节点`，`nth` 从 0 起算候选）。没找到则等到 `timeoutMs`（默认 3 s）再失败，列出最接近的元素；并列不等待，它不会自己消失。等待由目标应用的无障碍通知唤醒，没有通知时每 400 ms 再看一次（sheet 出现不发通知），应用不接受观察者时直接以 `action_failed` 报错。cua 把 role 按家族折叠（textfield 也匹配 textarea）再靠精确 role 消歧，bcu 的 role 本来就精确，不需要这一步；也不接受形状不对的参数。
+动作项可以用 `find: {role?, name?, nth?, root?, timeoutMs?}` 代替 ref（与 ref、坐标互斥，至少给 role 或 name），让一个数组走完“打开对话框 → 填写 → 确认”。步骤执行时才对它的根做新鲜观察，等到唯一匹配再投递。根由 `root` 选：`state`（默认）是状态所在的根；`opened` 是前面步骤最近打开的根，还没有时等它出现，状态栏根上的数组还包括别的进程在数组开始后新开的面板（控制中心），所以按图标和调面板里的滑块是一个数组；`app` 是应用此刻会被 `observe-ui` 选中的根（模态优先）。匹配对象是视图里的节点：role 取视图的角色词，也认无障碍 role 与 subrole（带不带 AX 都行），一律精确；`search-ui --role`、`wait-for --role`、`--expect-role` 与步骤的 `expect.role` 用同一条规则；name 先精确、没有精确的再按子串，忽略大小写和多余空白，`...` 与 `…` 相同。并列时先留屏上的元素，再留动作需要的能力（setText 要 setText，press 要 press、toggle 或 open），所以对 setText 来说“Reason”是输入框而不是它的标签；规则都分不开，没有 `nth` 就失败，并列出候选（`nth i: 节点 in 父节点`，`nth` 从 0 起算候选）。没找到则等到 `timeoutMs`（默认 3 s）再失败，列出最接近的元素；并列不等待，它不会自己消失。等待由目标应用的无障碍通知唤醒，没有通知时每 400 ms 再看一次（sheet 出现不发通知），应用不接受观察者时直接以 `action_failed` 报错。cua 把 role 按家族折叠（textfield 也匹配 textarea）再靠精确 role 消歧，bcu 的 role 本来就精确，不需要这一步；也不接受形状不对的参数。
 
 第一步是定位器时在 epoch 前进之前就找：找不到或并列就拒绝，状态仍然可用。之后的步骤在投递过程中找，失败的错误以“Step N of M”开头，recovery 说明前面哪几步已经投递且不会重放——此时状态已过期。
 
