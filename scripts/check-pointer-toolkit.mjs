@@ -68,10 +68,11 @@ try {
 	const found = await bcu(["find-roots", "--pid", String(tk.pid), "--kind", "window"]);
 	const window = found.roots.find((candidate) => candidate.title === title);
 	assert(window, `bcu found no window titled ${title}`);
-	const state = await bcu(["observe-ui", "--root", window.ref]);
-	// The canvas fills the window below its title bar; the card is centred at (210, 110) in it.
-	const { rect } = (await bcu(["inspect-ui", "--state", state.stateId, "--ref", state.nodes[0].ref])).node;
-	const point = { x: rect.x + 210, y: rect.y + rect.h - CANVAS_HEIGHT + 110 };
+	const state = await bcu(["observe-ui", "--root", window.ref, "--image", "always"]);
+	// The canvas fills the window below its title bar; the card is centred at (210, 110) in it,
+	// in points. The state's coordinates are its image's pixels, two to a point on a Retina screen.
+	const scale = state.image.width / window.frame.w;
+	const point = { x: Math.round(210 * scale), y: Math.round((window.frame.h - CANVAS_HEIGHT + 110) * scale) };
 	const run = await runCli(["act-ui", "--state", state.stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "click", ...point }])}\n`, env });
 	assert.equal(run.code, 0, `click exited ${run.code}: ${run.stderr.trim()}`);
 	const logged = (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
