@@ -3592,6 +3592,74 @@
 			}
 		},
 		{
+			"name": "render act-ui bcu took the front and the pointer",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "unknown",
+					"verification": {
+						"status": "none"
+					},
+					"delivery": "hid",
+					"changes": [],
+					"foreground": {
+						"activated": true,
+						"from": "访达",
+						"to": "BenchLab",
+						"pointer": true
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · unverified via hid\n! foreground: bcu activated BenchLab (front was 访达), moved the real pointer\n(no element changes)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
+			"name": "render act-ui the app took the front itself",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"wait\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "unknown",
+					"verification": {
+						"status": "none"
+					},
+					"delivery": "ax",
+					"changes": [],
+					"foreground": {
+						"from": "访达",
+						"to": "BenchLab"
+					}
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"wait\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · unverified via ax\n! foreground: front app 访达 → BenchLab\n(no element changes)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
 			"name": "render act-ui unverified --json",
 			"op": "cli",
 			"input": {
