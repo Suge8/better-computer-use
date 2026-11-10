@@ -284,6 +284,8 @@ private func outcomeCase(_ input: JSONValue) throws -> String {
 	switch input["fn"]!.string! {
 	case "canRetryInForeground":
 		return JSONValue.bool(canRetryInForeground(current, headless: args[1].bool!)).serialized()
+	case "conditionConfirms":
+		return JSONValue.bool(conditionConfirms(current, unconfirmed: args[1].bool!, value: args[2].string)).serialized()
 	default:
 		return JSONValue.string(outcomeAfterCheck(current, CheckResult(rawValue: args[1].string!)!).rawValue).serialized()
 	}

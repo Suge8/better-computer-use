@@ -48,8 +48,8 @@ private struct Execution {
 	/// bcu activated the app, or moved the real pointer, to deliver.
 	var activated = false
 	var movedPointer = false
-	/// A value written into a web text area that the app may not have taken yet.
-	var uncommitted = false
+	/// A value written that only the element shows; the app may not have taken it.
+	var unconfirmed = false
 	var actionCount: Int
 	/// The step closed the root it acted in.
 	var rootClosed = false
@@ -68,7 +68,7 @@ private struct Execution {
 		openedMenus = steps.contains(where: \.openedMenus)
 		activated = steps.contains(where: \.activated)
 		movedPointer = steps.contains(where: \.movedPointer)
-		uncommitted = steps.contains(where: \.uncommitted)
+		unconfirmed = steps.contains(where: \.unconfirmed)
 		actionCount = steps.count
 		verified = steps.last { $0.verified != nil }?.verified
 		settled = steps.last?.settled ?? false
@@ -86,7 +86,7 @@ private struct Execution {
 		openedMenus = report.performed.openedMenus
 		activated = report.performed.activated == true
 		movedPointer = report.performed.movedPointer
-		uncommitted = report.performed.valueUncommitted
+		unconfirmed = report.performed.valueUnconfirmed
 		actionCount = 1
 		rootClosed = report.rootDelta.contains { if case .root(.closed, let root) = $0 { root.handle == step.root.root.handle } else { false } }
 	}
@@ -217,8 +217,8 @@ extension Daemon {
 			}
 			let saved = try lane.save(successor.observation)
 			let next = saved.payload.outline.outline()
-			// A value read back from a web text area is no more than its own step's readback was.
-			let outcome = execution.uncommitted ? execution.outcome : outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
+			// A value only the element shows is no more than its own step's readback was.
+			let outcome = execution.unconfirmed ? execution.outcome : outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
 			if outcome == .didnt { throw failure(execution) }
 			let attached = try await attachOpened(stillOpen, base: target, lane: lane)
 			// A root hanging under another root's tree is reported as itself, in neither tree's changes.
@@ -372,8 +372,10 @@ extension Daemon {
 				trail.appeared.append(result.appeared)
 				if result.outcome != .didnt, let expect = planned.expect {
 					try await verifyStep(expect, index: index, count: count, acted: acted, base: target, closed: result.rootClosed, trail: trail)
-					result.outcome = outcomeAfterCheck(result.outcome, .verified)
-					result.verified = expect
+					if conditionConfirms(result.outcome, unconfirmed: result.unconfirmed, value: trimmed(expect.value)) {
+						result.outcome = outcomeAfterCheck(result.outcome, .verified)
+						result.verified = expect
+					}
 				}
 				done.append(result)
 				if result.outcome == .didnt { break }
@@ -463,6 +465,9 @@ extension Daemon {
 		guard try await conditionHolds(expect, in: transaction.target, scope: transaction.scope, timeoutMs: timeoutMs) else {
 			execution.outcome = outcomeAfterCheck(execution.outcome, .failed)
 			throw BCUError(.actionFailed, "The action was delivered but its postcondition was not satisfied within \(timeoutMs)ms\(scope.map { " inside \($0)" } ?? ""). Observe the root again before retrying.")
+		}
+		guard conditionConfirms(execution.outcome, unconfirmed: execution.unconfirmed, value: value) else {
+			return Verification(status: .none, evidence: execution.evidence)
 		}
 		execution.outcome = outcomeAfterCheck(execution.outcome, .verified)
 		return Verification(status: .verified, evidence: execution.evidence, text: text, role: role, value: value, scope: scope, gone: gone ? true : nil, timeoutMs: timeoutMs, preexisting: presentBefore != gone ? true : nil)

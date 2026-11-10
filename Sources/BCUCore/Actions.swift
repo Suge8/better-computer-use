@@ -387,6 +387,13 @@ public func canRetryInForeground(_ outcome: ActOutcome, headless: Bool) -> Bool 
 	!headless && outcome == .didnt
 }
 
+/// Whether a met condition proves the action. A value written that the element only shows
+/// (`unconfirmed`) may not have reached the app: a value condition reads that same display,
+/// so it proves nothing; a condition on text, a role or a closed root reads something else.
+public func conditionConfirms(_ current: ActOutcome, unconfirmed: Bool, value: String?) -> Bool {
+	current != .didnt && !(unconfirmed && value != nil)
+}
+
 public func outcomeAfterCheck(_ current: ActOutcome, _ check: CheckResult) -> ActOutcome {
 	switch check {
 	case .verified: .worked

@@ -547,10 +547,12 @@ extension Platform {
 				// A page takes an input's value with the input event Chromium sends, but a
 				// text area may be an editor that commits on Return or on losing the focus (a
 				// note title that renames its file): the value is there, the app has not taken it.
-				let uncommitted = holds(value) && !slider && stringAttribute(targetElement, attribute: kAXRoleAttribute as CFString) == kAXTextAreaRole as String && hasAncestorRole(targetElement, role: "AXWebArea")
-				performed.valueUncommitted = uncommitted
+				// A slider reads back what it was given either way: Control Center's volume
+				// slider read 0.2 while the system volume stayed put (docs/architecture.md, Action transaction).
+				let unconfirmed = holds(value) && (slider || stringAttribute(targetElement, attribute: kAXRoleAttribute as CFString) == kAXTextAreaRole as String && hasAncestorRole(targetElement, role: "AXWebArea"))
+				performed.valueUnconfirmed = unconfirmed
 				return try finish(ActionReport(
-					outcome: !holds(value) ? .didnt : uncommitted ? .unknown : .worked,
+					outcome: !holds(value) ? .didnt : unconfirmed ? .unknown : .worked,
 					performed: performed,
 					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
 				))
