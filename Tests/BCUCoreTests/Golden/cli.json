@@ -3627,6 +3627,42 @@
 			}
 		},
 		{
+			"name": "render act-ui a value only the element shows",
+			"op": "cli",
+			"input": {
+				"argv": [
+					"act-ui",
+					"--state",
+					"s",
+					"-"
+				],
+				"stdin": "[{\"action\":\"setText\",\"ref\":\"@e34\",\"text\":\"0.2\"}]",
+				"result": {
+					"stateId": "t",
+					"baseStateId": "s",
+					"outcome": "unknown",
+					"verification": {
+						"status": "none",
+						"evidence": {
+							"source": "ax",
+							"field": "value",
+							"from": "0.43",
+							"to": "0.2"
+						}
+					},
+					"delivery": "ax",
+					"changes": [],
+					"unconfirmed": true
+				}
+			},
+			"output": {
+				"request": "{\"command\":\"act-ui\",\"json\":false,\"params\":{\"actions\":[{\"action\":\"setText\",\"ref\":\"@e34\",\"text\":\"0.2\"}],\"stateId\":\"s\"}}",
+				"stdout": "state t ← s · unverified via ax · value 0.43→0.2\n! the value is what the element shows; the app may not have taken it. Confirm where it takes effect.\n(no element changes)\n",
+				"stderr": "",
+				"exitCode": 0
+			}
+		},
+		{
 			"name": "render act-ui the app took the front itself",
 			"op": "cli",
 			"input": {
