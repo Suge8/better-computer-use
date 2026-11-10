@@ -443,11 +443,13 @@ extension Platform {
 			// Native text views place the caret only under a real pointer; Chromium's
 			// AXPress focuses a web text field by itself.
 			let requiresPointerFocus = textRoles.contains(elementRole) && !inWebContent
-			// Only the frontmost app owns the menu bar. A background app accepts a press on a
-			// menu bar item, or on an item of one of its menus, and does nothing with it, so
-			// activation is a precondition, not a fallback.
+			// Only the frontmost app opens its menus: a background app accepts a press on a menu
+			// bar item and does nothing with it, so activation is a precondition, not a fallback.
+			// An item inside its menus runs its command when pressed as it is, closed menus and
+			// all, with the app left in the background.
 			let inMenuBar = hasAncestorRole(element, role: kAXMenuBarRole as String)
-			let requiresFrontmost = inMenuBar && !(NSRunningApplication(processIdentifier: pid)?.isActive ?? false)
+			let frontmost = NSRunningApplication(processIdentifier: pid)?.isActive ?? false
+			let requiresFrontmost = inMenuBar && !frontmost && elementRole != kAXMenuItemRole as String
 			// Headless (`ax_only`) may not activate, so it gets the refusal as well instead of a
 			// press that silently does nothing.
 			if requiresFrontmost && policy != .foreground {
@@ -461,7 +463,7 @@ extension Platform {
 				}
 			} else if supportsAction(element, action: kAXPressAction as CFString) {
 				if requiresFrontmost { try activateForMenuBar(element) }
-				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String ? try openMenusAbove(element) : nil
+				let openedMenu = inMenuBar && elementRole == kAXMenuItemRole as String && frontmost ? try openMenusAbove(element) : nil
 				let cursorPoint = try? coordinatePoint()
 				// Pixels are the evidence of last resort, and capturing them before the press costs
 				// as much as the press itself: only a window Accessibility cannot describe needs them.
