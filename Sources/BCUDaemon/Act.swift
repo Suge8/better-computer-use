@@ -178,7 +178,7 @@ extension Daemon {
 		let frontBefore = desktop.frontAppName()
 		// A status item opens its panel in another process (Control Center's in ControlCenter).
 		let windowsBefore = target.root.kind == .statusbar ? desktop.panelWindows() : nil
-		var execution = try await dispatch(transaction, count: actions.count, headless: headless, startsInForeground: params.foreground ?? false)
+		var execution = try await dispatch(transaction, actions: actions, headless: headless, startsInForeground: params.foreground ?? false)
 		if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
 		if let windowsBefore {
 			let panels = try await rootsOpened(elsewhere: target.pid, since: windowsBefore)
@@ -322,8 +322,9 @@ extension Daemon {
 	/// in the foreground; a step that names its element is found just before its turn. A root
 	/// a step acts in must still be there when its turn comes; a root that closed is no reason
 	/// to stop, and the steps after it go where they say.
-	private func dispatch(_ transaction: Transaction, count: Int, headless: Bool, startsInForeground: Bool) async throws -> Execution {
+	private func dispatch(_ transaction: Transaction, actions: [UiAction], headless: Bool, startsInForeground: Bool) async throws -> Execution {
 		let target = transaction.target
+		let count = actions.count
 		let batch = transaction.steps.compactMap { planned -> ResolvedStep? in
 			guard planned.expect == nil, case .deliver(let step) = planned.step, step.root.root.handle == target.root.handle else { return nil }
 			return step
@@ -341,11 +342,11 @@ extension Daemon {
 			case .deliver(let step):
 				acted = step.root
 				if index > 0 { try await requireLive(step.root, index: index, count: count) }
-				result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
+				result = try await climb(step, headless: headless, startsInForeground: startsInForeground, rest: Array(actions[index...]), index: index, count: count)
 			case .locate(let action, let locator):
 				let step = try await locateStep(action, locator, index: index, count: count, base: target, trail: trail, headless: headless)
 				acted = step.root
-				result = try await climb(step, headless: headless, startsInForeground: startsInForeground)
+				result = try await climb(step, headless: headless, startsInForeground: startsInForeground, rest: Array(actions[index...]), index: index, count: count)
 			}
 			trail.appeared.append(result.appeared)
 			if result.outcome != .didnt, let expect = planned.expect {
@@ -380,8 +381,19 @@ extension Daemon {
 
 	/// The ladder of docs/architecture.md: background first; the foreground only after a
 	/// background rung proved it changed nothing (`didnt`) or refused as needing it, or
-	/// when the caller asked to start there.
-	private func climb(_ step: ResolvedStep, headless: Bool, startsInForeground: Bool) async throws -> Execution {
+	/// when the caller asked to start there. A drag never climbs on its own: it would hold
+	/// the real pointer and the user's front app for its whole path, so the caller is told how
+	/// to ask for that instead. `rest` is the array from this step on, for that command.
+	private func climb(_ step: ResolvedStep, headless: Bool, startsInForeground: Bool, rest: [UiAction], index: Int, count: Int) async throws -> Execution {
+		func refusingTheForeground(_ reason: String) -> BCUError {
+			let retry = (try? JSONCoding.string(rest)) ?? "[]"
+			return stepFailure(BCUError(
+				.actionFailed,
+				"\(reason). A drag goes to the foreground only with --foreground, since it takes the user's front app and real pointer.",
+				recovery: "Observe again with 'bcu observe-ui --root \(step.root.ref) --image always', then run it in the foreground on that stateId: bcu act-ui --state <stateId> --foreground '\(retry.replacingOccurrences(of: "'", with: "'\\''"))'"
+			), index: index, count: count)
+		}
+		let climbs = step.action != .drag
 		let foreground = request(step, .foreground)
 		let first = request(step, headless ? .axOnly : .background)
 		func inForeground() async throws -> Execution {
@@ -397,10 +409,12 @@ extension Daemon {
 			report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
 		} catch let refusal as ForegroundRequired {
 			guard !headless else { throw BCUError(.actionFailed, refusal.message) }
+			guard climbs else { throw refusingTheForeground(refusal.message) }
 			try await ensureUnlocked()
 			return try await inForeground()
 		}
 		if canRetryInForeground(report.outcome, headless: headless) {
+			guard climbs else { throw refusingTheForeground("The drag was delivered in the background and changed nothing") }
 			try await ensureUnlocked()
 			return try await inForeground()
 		}

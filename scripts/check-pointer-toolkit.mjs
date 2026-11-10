@@ -3,8 +3,10 @@
 // so a background click on it lands wherever the real pointer is and bcu could only call it
 // unverified. A Tk window (tkinter on Tk 8.6 or later) is such a target: a coordinate click
 // on its card must reach the card, which only the foreground, moving the real pointer, can
-// do. The gate is skipped where no python3 has a working tkinter on Tk 8.6 or later; the
-// system python3 (Tk 8.5) takes background clicks, so it does not count.
+// do. A drag in the default mode does not go there on its own: it is refused with a recovery
+// that asks for --foreground, and the user's front app keeps the front and its key window. The
+// gate is skipped where no python3 has a working tkinter on Tk 8.6 or later; the system
+// python3 (Tk 8.5) takes background clicks, so it does not count.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -63,7 +65,7 @@ try {
 		throw SKIPPED;
 	}
 	await waitForAxWindow(tk.pid, tk.exited, title);
-	await holder.takeFront();
+	const settled = (await holder.takeFront()).length;
 
 	const found = await bcu(["find-roots", "--pid", String(tk.pid), "--kind", "window"]);
 	const window = found.roots.find((candidate) => candidate.title === title);
@@ -73,7 +75,19 @@ try {
 	// in points. The state's coordinates are its image's pixels, two to a point on a Retina screen.
 	const scale = state.image.width / window.frame.w;
 	const point = { x: Math.round(210 * scale), y: Math.round((window.frame.h - CANVAS_HEIGHT + 110) * scale) };
-	const run = await runCli(["act-ui", "--state", state.stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "click", ...point }])}\n`, env });
+
+	const drag = { action: "drag", path: [[point.x, point.y], [point.x + 60, point.y], [point.x + 120, point.y]] };
+	const dragged = await runCli(["act-ui", "--state", state.stateId, "-"], { input: `${JSON.stringify([drag])}\n`, env });
+	assert.equal(dragged.code, 9, `a default-mode drag on Tk exited ${dragged.code}: ${dragged.stdout}${dragged.stderr}`);
+	assert.match(dragged.stderr, /^error action_failed: .+--foreground/m);
+	assert.match(dragged.stderr, /^recovery: .*bcu observe-ui --root @r\d+ --image always.*bcu act-ui --state <stateId> --foreground '\[\{"action":"drag"/m);
+	assert.deepEqual((await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean), [], "the refused drag reached the Tk window");
+	const lost = (await holder.logged()).length - settled;
+	assert.equal(lost, 0, `the front app lost key ${lost} times to a drag bcu refused`);
+	console.log("PASS a default-mode drag that needs the foreground is refused, with the --foreground command to run");
+
+	const fresh = await bcu(["observe-ui", "--root", window.ref, "--image", "always"]);
+	const run = await runCli(["act-ui", "--state", fresh.stateId, "-", "--json"], { input: `${JSON.stringify([{ action: "click", ...point }])}\n`, env });
 	assert.equal(run.code, 0, `click exited ${run.code}: ${run.stderr.trim()}`);
 	const logged = (await fs.readFile(logPath, "utf8")).split("\n").filter(Boolean);
 	assert.deepEqual(logged, ["card"], `the click did not reach the Tk card; the fixture logged ${JSON.stringify(logged)}, bcu reported ${run.stdout.trim()}`);
