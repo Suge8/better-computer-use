@@ -97,7 +97,7 @@
 				]
 			},
 			"output": {
-				"stdout": "bcu find-roots [options]\n\nList controllable roots: windows, sheets, dialogs and open menus.\n\nOptions:\n  --query <value>           match app name or window title\n  --app <value>             restrict to one app name or bundle id; an exact name excludes longer names containing it\n  --bundle-id <value>       restrict to one exact bundle id\n  --pid <n>                 restrict to one process id\n  --kind window|menubar|menu|sheet|popover|dialog restrict to one root kind; menubar roots are listed only when this or an app names them\n  --json                    emit one JSON object on stdout\n",
+				"stdout": "bcu find-roots [options]\n\nList controllable roots: windows, sheets, dialogs and open menus.\n\nOptions:\n  --query <value>           match app name or window title\n  --app <value>             restrict to one app name or bundle id; an exact name excludes longer names containing it\n  --bundle-id <value>       restrict to one exact bundle id\n  --pid <n>                 restrict to one process id\n  --kind window|menubar|statusbar|menu|sheet|popover|dialog restrict to one root kind; menubar and statusbar roots are listed only when this or an app names them\n  --json                    emit one JSON object on stdout\n",
 				"stderr": "",
 				"exitCode": 0
 			}
@@ -458,7 +458,7 @@
 			},
 			"output": {
 				"stdout": "",
-				"stderr": "error invalid_arguments: Option '--kind' must be one of: window, menubar, menu, sheet, popover, dialog.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
+				"stderr": "error invalid_arguments: Option '--kind' must be one of: window, menubar, statusbar, menu, sheet, popover, dialog.\nrecovery: Run 'bcu --help' and correct the command arguments.\n",
 				"exitCode": 2
 			}
 		},
