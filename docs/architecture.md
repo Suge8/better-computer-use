@@ -213,7 +213,7 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 滑块的值是数：值可写的滑块在投影里带 `setText`，`text` 是数（"0.2"），平台把它作为数写入（写字符串会被接受后忽略），读回在滑块范围的 1% 之内算到达（滑块可能取整，读回是浮点数：0.2 读作 0.199999988079071）；`--expect-value`与步骤的 `expect.value` 在值是数的元素上用同一条规则（`valueReaches`），其他元素照旧按文字比，不是数的 `text` 以 `invalid_arguments` 拒绝。滑块读回的只是它自己显示的值，应用收没收下它不说：实测控制中心音量滑块写 0.2 多数时候读回 0.19999998、系统音量随之变成 20，但有一次（一个 iOS 模拟器的音频设备刚接入、扬声器刚重新起停）读回 0.2，ControlCenter 却没有向 CoreAudio 发出这次设置（系统日志里只有之后写回 0.43 的那次），系统音量一直是 43。从元素上分不出这两种情况，所以滑块的 setText 与网页文本区一样记为 `unknown`。
 
-只有元素自己显示的写入（网页文本区、滑块），值条件（`--expect-value`、步骤的 `expect.value`）读的正是这个显示，满足了也不把结果升级为 `worked`、不报 `verified`（`conditionConfirms`）；条件仍须满足，不满足照旧失败。文字、角色、根关闭的条件读的是别处，照常确认。要确认滑块生效，看它驱动的东西：别的元素显示的派生状态（`--expect-text`），或应用之外的事实（系统音量用 `osascript -e 'output volume of (get volume settings)'`）。
+只有元素自己显示的写入（网页文本区、滑块），值条件（`--expect-value`、步骤的 `expect.value`）读的正是这个显示，满足了也不把结果升级为 `worked`、不报 `verified`（`conditionConfirms`）；条件仍须满足，不满足照旧失败。文字、角色、根关闭的条件读的是别处，照常确认。同一数组里根的出现或关闭只证明造成它的那步，也不升级这类写入。结果带 `unconfirmed: true`，文字输出多一行 `! the value is what the element shows; …`：实测 agent 只看到 `unverified` 时会再读一遍滑块就当确认了，结果行本身得说清读回证明不了什么。要确认滑块生效，看它驱动的东西：别的元素显示的派生状态（`--expect-text`），或应用之外的事实（系统音量用 `osascript -e 'output volume of (get volume settings)'`）。
 
 投影里带 `toggle` 能力的元素就是平台按第 5 条判定的那一类，两侧调用同一个规则（BCUCore 的 `pressEffect`），它也区分翻转类与选择类。文本视图把证据接在结果行上，例如 `worked via ax · value 0→1`。
 

@@ -97,6 +97,7 @@ private func renderAct(_ result: ActResult) -> String {
 	let outcome = result.outcome == .unknown ? "unverified" : result.outcome.rawValue
 	var parts = ["state \(result.stateId ?? "none") ← \(result.baseStateId) · \(outcome) via \(result.delivery)\(evidenceWords(result.verification.evidence))\(verified)"]
 	parts.append(result.foreground.map(foregroundLine) ?? "")
+	if result.unconfirmed == true { parts.append("! the value is what the element shows; the app may not have taken it. Confirm where it takes effect.") }
 	parts += (result.closed ?? []).map { "- root \(rootWords($0))" }
 	parts += (result.roots ?? []).map { "+ root \(rootWords($0))" }
 	if let next = result.next {

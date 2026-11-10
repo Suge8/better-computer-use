@@ -510,6 +510,9 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var delivery: String
 	/// What the actions did to the user's desktop outside the target; absent when nothing.
 	public var foreground: ForegroundEffects?
+	/// A value was written that only its element shows (a slider, a web text area); the app
+	/// may not have taken it, and nothing bcu reads from the element can tell.
+	public var unconfirmed: Bool?
 	/// Roots the transaction opened: menus, sheets, dialogs and new windows.
 	public var roots: [RootAppearance]?
 	/// Roots the actions acted in, or the state's own root, that are gone now.
@@ -527,13 +530,14 @@ public struct ActResult: Codable, Sendable, Equatable {
 	public var total: Int?
 	public var image: ImageInfo?
 
-	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, foreground: ForegroundEffects? = nil, roots: [RootAppearance]? = nil, closed: [RootAppearance]? = nil, next: RootAppearance? = nil, opened: OpenedRoot? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
+	public init(stateId: String? = nil, baseStateId: String, outcome: ActOutcome, verification: Verification, delivery: String, foreground: ForegroundEffects? = nil, unconfirmed: Bool? = nil, roots: [RootAppearance]? = nil, closed: [RootAppearance]? = nil, next: RootAppearance? = nil, opened: OpenedRoot? = nil, changes: [Change]? = nil, offscreen: OffscreenChanges? = nil, nodes: [ProjectedNode]? = nil, shown: Int? = nil, total: Int? = nil, image: ImageInfo? = nil) {
 		self.stateId = stateId
 		self.baseStateId = baseStateId
 		self.outcome = outcome
 		self.verification = verification
 		self.delivery = delivery
 		self.foreground = foreground
+		self.unconfirmed = unconfirmed
 		self.roots = roots
 		self.closed = closed
 		self.next = next

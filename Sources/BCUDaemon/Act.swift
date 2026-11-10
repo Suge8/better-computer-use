@@ -214,7 +214,7 @@ extension Daemon {
 			let closed = gone.isEmpty ? nil : gone.map(\.target.appearance)
 			guard let successor else {
 				if execution.outcome == .didnt { throw failure(execution) }
-				return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed)
+				return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, unconfirmed: execution.unconfirmed ? true : nil, roots: roots.isEmpty ? nil : roots, closed: closed)
 			}
 			let saved = try lane.save(successor.observation)
 			let next = saved.payload.outline.outline()
@@ -234,7 +234,7 @@ extension Daemon {
 			}
 			return BCUCore.ActResult(
 				stateId: saved.stateId, baseStateId: transaction.baseStateId, outcome: outcome, verification: verification,
-				delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed,
+				delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, unconfirmed: execution.unconfirmed ? true : nil, roots: roots.isEmpty ? nil : roots, closed: closed,
 				next: successor.root.root.handle == target.root.handle ? nil : successor.root.appearance,
 				opened: attached?.opened,
 				changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
@@ -376,6 +376,7 @@ extension Daemon {
 					if conditionConfirms(result.outcome, unconfirmed: result.unconfirmed, value: trimmed(expect.value)) {
 						result.outcome = outcomeAfterCheck(result.outcome, .verified)
 						result.verified = expect
+						result.unconfirmed = false
 					}
 				}
 				done.append(result)
@@ -471,6 +472,7 @@ extension Daemon {
 			return Verification(status: .none, evidence: execution.evidence)
 		}
 		execution.outcome = outcomeAfterCheck(execution.outcome, .verified)
+		execution.unconfirmed = false
 		return Verification(status: .verified, evidence: execution.evidence, text: text, role: role, value: value, scope: scope, gone: gone ? true : nil, timeoutMs: timeoutMs, preexisting: presentBefore != gone ? true : nil)
 	}
 
