@@ -35,7 +35,7 @@ extension Daemon {
 			root: target.root.handle, windowId: target.root.windowId.flatMap { $0 > 0 ? $0 : nil },
 			maxDimension: maxDimension, readText: readText, includeImage: includeImage, deadline: deadline
 		)
-		let look = try await offload { [desktop = self.desktop] in try desktop.look(request) }
+		let look = try await reading(target) { try await offload { [desktop = self.desktop] in try desktop.look(request) } }
 		let baseOutline = base.flatMap { $0.target.root.handle == target.root.handle ? $0.outline.current : nil }
 		let (outline, handles) = adopt(look.outline, base: baseOutline)
 		outline.stabilizeRefs(against: baseOutline.map { Outline(restoring: $0.outline) })
@@ -129,7 +129,7 @@ extension Daemon {
 				let outline = observation.outline.outline()
 				guard let node = outline.node(ref) else { throw BCUError(.elementNotFound, "Ref '\(ref)' is not in the current state.") }
 				let request = LookRequest(root: target.root.handle, windowId: target.root.windowId, maxDimension: 1, readText: .auto, baseGeometry: observation.geometry, includeImage: false, scope: try observation.outline.handle(of: node))
-				let look = try await offload { [desktop = self.desktop] in try desktop.look(request) }
+				let look = try await self.reading(target) { try await offload { [desktop = self.desktop] in try desktop.look(request) } }
 				let scoped = adopt(look.outline, base: observation.outline.current)
 				try outline.graft(scoped.outline, at: node.ref)
 				observation.outline.replace(outline, adding: scoped.handles)
@@ -160,7 +160,7 @@ extension Daemon {
 		let offset = max(0, params.offset ?? 0)
 		let limit = max(1, min(100_000, params.limit ?? 4_000))
 		let page = try await runtime.read(from: state.stateId) { _, _ in
-			try await offload { [desktop = self.desktop] in try desktop.readText(handle, offset: offset, limit: limit) }
+			try await self.reading(state.payload.target) { try await offload { [desktop = self.desktop] in try desktop.readText(handle, offset: offset, limit: limit) } }
 		}
 		return BCUCore.ReadTextResult(stateId: state.stateId, ref: ref, offset: page.offset, limit: page.limit, total: page.totalChars, text: page.text)
 	}
@@ -198,7 +198,7 @@ extension Daemon {
 		let target = try await current(state.payload.target)
 		let gone = params.gone == true
 		let request = WaitForRequest(pid: target.pid, root: target.root.handle, role: role, text: text, gone: gone, scope: scope, timeoutMs: clock.remainingMs)
-		let outcome = try await offload { [desktop = self.desktop] in try desktop.waitFor(request) }
+		let outcome = try await reading(target) { try await offload { [desktop = self.desktop] in try desktop.waitFor(request) } }
 		guard outcome == .found || outcome == .gone else { throw conditionTimedOut(params, timeoutMs: timeoutMs) }
 		let look: @Sendable (Lane<Observation>) async throws -> StoredState<Observation> = { lane in
 			try lane.save(try await self.capture(target, base: state.payload, until: clock.deadline).observation)

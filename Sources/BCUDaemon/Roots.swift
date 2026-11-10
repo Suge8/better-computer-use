@@ -234,6 +234,19 @@ extension Daemon {
 		try await roots(pid: observed.pid).contains { $0.handle == observed.root.handle }
 	}
 
+	/// A read of a root that fails because the root went away under it says so: a closing
+	/// panel's capture fails as a stream that would not start, its elements as unreadable.
+	/// Only the failures a vanished window causes are looked at; a locked screen also reads
+	/// as no windows, and its own code stands.
+	func reading<T>(_ observed: Target, _ body: () async throws -> T) async throws -> T {
+		do {
+			return try await body()
+		} catch let error as BCUError where error.code == .actionFailed || error.code == .actionTimeout {
+			if try await isLive(observed) { throw error }
+			throw BCUError(.windowStale, "Root \(observed.ref) closed while bcu was reading it.")
+		}
+	}
+
 	/// The root bcu would pick in the app of a closed root now, if the app still shows one.
 	func preferredRoot(after closed: Target) async throws -> Target? {
 		let selectable = try await roots(pid: closed.pid).filter { isSelectable($0) && $0.handle != closed.root.handle }
