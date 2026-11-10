@@ -12634,6 +12634,50 @@
 					"exitCode": 7
 				}
 			}
+		},
+		{
+			"name": "a value reaches the one asked for: a number on a number element within 1% of its range, text as it is",
+			"op": "valueReaches",
+			"input": {
+				"cases": {
+					"a slider's float readback reaches the number asked": {
+						"value": "0.199999988079071",
+						"wanted": "0.2",
+						"span": 1
+					},
+					"a slider value 2% of its range away does not": {
+						"value": "0.18",
+						"wanted": "0.2",
+						"span": 1
+					},
+					"the tolerance follows the range": {
+						"value": "43.4",
+						"wanted": "44",
+						"span": 100
+					},
+					"a number element is not reached by words": {
+						"value": "0.5",
+						"wanted": "half",
+						"span": 1
+					},
+					"a text element compares the text, a number in it included": {
+						"value": "0.199999988079071",
+						"wanted": "0.2"
+					},
+					"a text element reaches the same text": {
+						"value": "saved",
+						"wanted": "saved"
+					}
+				}
+			},
+			"output": {
+				"a slider's float readback reaches the number asked": "true",
+				"a slider value 2% of its range away does not": "false",
+				"the tolerance follows the range": "true",
+				"a number element is not reached by words": "false",
+				"a text element compares the text, a number in it included": "false",
+				"a text element reaches the same text": "true"
+			}
 		}
 	]
 }
