@@ -11252,6 +11252,51 @@
 			}
 		},
 		{
+			"name": "conditionConfirms a value condition confirms a write the app took",
+			"op": "outcome",
+			"input": {
+				"fn": "conditionConfirms",
+				"args": [
+					"unknown",
+					false,
+					"0.2"
+				]
+			},
+			"output": {
+				"result": "true"
+			}
+		},
+		{
+			"name": "conditionConfirms a value condition reads the same control as a write only that control shows",
+			"op": "outcome",
+			"input": {
+				"fn": "conditionConfirms",
+				"args": [
+					"unknown",
+					true,
+					"0.2"
+				]
+			},
+			"output": {
+				"result": "false"
+			}
+		},
+		{
+			"name": "conditionConfirms a text condition reads something else and confirms it",
+			"op": "outcome",
+			"input": {
+				"fn": "conditionConfirms",
+				"args": [
+					"unknown",
+					true,
+					null
+				]
+			},
+			"output": {
+				"result": "true"
+			}
+		},
+		{
 			"name": "outcomeAfterObservedValues setText value observed",
 			"op": "observedValues",
 			"input": {
