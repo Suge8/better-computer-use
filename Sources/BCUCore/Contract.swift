@@ -2,7 +2,7 @@
 /// resident process and the wire between them; property order is the JSON key order.
 
 public enum RootKind: String, Codable, Sendable, CaseIterable {
-	case window, menubar, menu, sheet, popover, dialog
+	case window, menubar, statusbar, menu, sheet, popover, dialog
 }
 
 public enum ImageMode: String, Codable, Sendable, CaseIterable {

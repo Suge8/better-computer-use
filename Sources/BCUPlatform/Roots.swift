@@ -1,5 +1,6 @@
 import AppKit
 import BCUCore
+import os
 
 /// The pairing score of a window whose WindowServer id its accessibility element reported itself.
 private let recoveredPairingScore = 100.0
@@ -117,6 +118,58 @@ extension Platform {
 		)
 	}
 
+	/// The status area right of the menu bar: Wi‑Fi, Control Center, the clock (MenuBarAgent
+	/// owns these), and each app's own status item, every process holding its own extras
+	/// menu bar. Like the menu bar it is observed on request; its title is the items' names,
+	/// which is what a status icon is known by.
+	func statusBarRoot(pid: Int32, appName: String, bundleId: String?, messagingTimeout: Float = messagingTimeout) -> Root? {
+		let appElement = AXUIElementCreateApplication(pid)
+		AXUIElementSetMessagingTimeout(appElement, messagingTimeout)
+		guard let bar = copyAttribute(appElement, attribute: "AXExtrasMenuBar" as CFString).flatMap(asAXElement) else { return nil }
+		AXUIElementSetMessagingTimeout(bar, messagingTimeout)
+		let items = collectDescendants(startingAt: bar, maxDepth: 2).filter { stringAttribute($0, attribute: kAXRoleAttribute as CFString) == kAXMenuBarItemRole as String }
+		guard !items.isEmpty else { return nil }
+		let names = items.compactMap { item in
+			[kAXTitleAttribute, kAXDescriptionAttribute].lazy.compactMap { self.stringAttribute(item, attribute: $0 as CFString) }.first { !$0.isEmpty }
+		}
+		let frame = items.map(frameForWindow).reduce(CGRect.null) { $0.union($1) }
+		return Root(
+			kind: .statusbar,
+			handle: .root(bar),
+			windowId: nil,
+			zOrder: Int.max,
+			title: names.isEmpty ? (NSRunningApplication(processIdentifier: pid)?.localizedName ?? appName) : names.joined(separator: ", "),
+			role: "AXMenuBar",
+			subrole: "AXExtrasMenuBar",
+			isModal: false,
+			framePoints: frame,
+			scaleFactor: displayScaleFactor(for: frame),
+			isMinimized: false,
+			isOnscreen: true,
+			isMain: false,
+			isFocused: false,
+			metadata: nil,
+			pid: pid,
+			appName: appName,
+			bundleId: bundleId
+		)
+	}
+
+	/// Every process's status bar. No window lists them, so every app that may have a status
+	/// item is asked, all at once: one at a time, the apps that do not answer cost 5 s (measured,
+	/// 79 apps); together the slowest answer bounds it, about 0.65 s.
+	public func listStatusBars() -> [Root] {
+		let apps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy != .prohibited && $0.processIdentifier != getpid() }
+		let found = OSAllocatedUnfairLock(initialState: [Int: Root]())
+		DispatchQueue.concurrentPerform(iterations: apps.count) { index in
+			let app = apps[index]
+			let name = app.localizedName ?? processName(pid: app.processIdentifier) ?? "Unknown App"
+			guard let bar = statusBarRoot(pid: app.processIdentifier, appName: name, bundleId: app.bundleIdentifier, messagingTimeout: 0.5) else { return }
+			found.withLock { $0[index] = bar }
+		}
+		return found.withLock { bars in bars.keys.sorted().map { bars[$0]! } }
+	}
+
 	/// The apps a root search covers; `appName` is nil when only the pid is known.
 	private struct RootOwner {
 		let pid: Int32
@@ -154,10 +207,11 @@ extension Platform {
 		var roots: [Root] = []
 		for owner in owners {
 			let appPid = owner.pid
-			let appName = owner.appName ?? processName(pid: appPid) ?? "Unknown App"
+			let appName = owner.appName ?? NSRunningApplication(processIdentifier: appPid)?.localizedName ?? processName(pid: appPid) ?? "Unknown App"
 			let bundleId = owner.bundleId
 			roots += listWindows(pid: appPid, appName: appName, bundleId: bundleId, cgEntries: entries, spaces: spaces, includingStaleViews: !isBroadDiscovery, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
-			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries)
+			let windowIds = Set(roots.compactMap(\.windowId))
+			let popupCandidates = cgPopupMenuCandidates(pid: appPid, entries: entries).filter { !windowIds.contains($0.windowId) }
 			let menuElements = popupCandidates.isEmpty ? [] : openMenuElements(pid: appPid, messagingTimeout: isBroadDiscovery ? quickMessagingTimeout : messagingTimeout)
 			for candidate in popupCandidates {
 				let menuElement = menuElement(drawnBy: candidate, among: menuElements)
@@ -183,6 +237,7 @@ extension Platform {
 				))
 			}
 			if let bar = menuBarRoot(pid: appPid, appName: appName, bundleId: bundleId) { roots.append(bar) }
+			if pid != nil, let bar = statusBarRoot(pid: appPid, appName: appName, bundleId: bundleId) { roots.append(bar) }
 		}
 		roots.sort { $0.zOrder < $1.zOrder }
 		return roots
@@ -202,6 +257,15 @@ extension Platform {
 			pairings[ObjectIdentifier(window.element)] = WindowPairing(candidate: window.candidate, score: recoveredPairingScore, confidence: .exact)
 		}
 		let elsewhereIds = Set(recovered.filter(\.isElsewhere).map(\.candidate.windowId))
+		// A panel at the pop-up menu level (Control Center's) is an AXWindow drawn by a window
+		// no normal-level candidate covers; its frame names it.
+		let popups = cgPopupMenuCandidates(pid: pid, entries: cgEntries ?? allCGWindowEntries())
+		for window in windows where pairings[ObjectIdentifier(window)]?.candidate == nil {
+			let frame = frameForWindow(window)
+			if let popup = popups.first(where: { abs($0.bounds.minX - frame.minX) <= 1 && abs($0.bounds.minY - frame.minY) <= 1 && abs($0.bounds.width - frame.width) <= 1 && abs($0.bounds.height - frame.height) <= 1 }) {
+				pairings[ObjectIdentifier(window)] = WindowPairing(candidate: popup, score: recoveredPairingScore, confidence: .exact)
+			}
+		}
 
 		var output: [Root] = []
 		for (zIndex, window) in (windows + recovered.map(\.element)).enumerated() {

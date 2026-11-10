@@ -27,6 +27,14 @@ extension Platform {
 		(CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []
 	}
 
+	public func panelWindows() -> [UInt32: Int32] {
+		let entries = (CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]]) ?? []
+		return entries.reduce(into: [:]) { windows, entry in
+			guard ((entry[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0) > 0, let id = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value, let pid = (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value else { return }
+			windows[id] = pid
+		}
+	}
+
 	func cgWindowOwners(entries suppliedEntries: [[String: Any]]? = nil) -> [CGWindowOwnerSummary] {
 		let entries = suppliedEntries ?? allCGWindowEntries()
 		var seen = Set<Int32>()

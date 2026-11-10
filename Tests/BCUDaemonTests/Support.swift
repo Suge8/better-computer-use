@@ -56,6 +56,10 @@ final class FakeDesktop: Desktop, @unchecked Sendable {
 		return Frontmost(appName: app.appName, pid: app.pid, bundleId: app.bundleId, window: scene.roots[app.pid]?.first)
 	}
 
+	func listStatusBars() -> [Root] { [] }
+
+	func panelWindows() -> [UInt32: Int32] { [:] }
+
 	func frontAppName() -> String? { scene.apps.first { $0.isFrontmost }?.appName }
 
 	func look(_ request: LookRequest) throws -> sending LookResult {

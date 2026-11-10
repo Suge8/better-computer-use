@@ -120,7 +120,7 @@ private let commandSpecs: [CommandName: CommandSpec] = [
 		OptionSpec(flag: "--app", key: "app", kind: .string(nil), doc: "restrict to one app name or bundle id; an exact name excludes longer names containing it"),
 		OptionSpec(flag: "--bundle-id", key: "bundleId", kind: .string(nil), doc: "restrict to one exact bundle id"),
 		OptionSpec(flag: "--pid", key: "pid", kind: .integer, doc: "restrict to one process id"),
-		OptionSpec(flag: "--kind", key: "kind", kind: .string(RootKind.allCases.map(\.rawValue)), doc: "restrict to one root kind; menubar roots are listed only when this or an app names them"),
+		OptionSpec(flag: "--kind", key: "kind", kind: .string(RootKind.allCases.map(\.rawValue)), doc: "restrict to one root kind; menubar and statusbar roots are listed only when this or an app names them"),
 	]),
 	.observeUi: CommandSpec(summary: "Observe one root and return a stateId with the projected element tree.", options: selectorOptions + [
 		OptionSpec(flag: "--mode", key: "mode", kind: .string(ObserveMode.allCases.map(\.rawValue)), doc: "semantic: accessibility only (default); fused: also capture an image and OCR"),

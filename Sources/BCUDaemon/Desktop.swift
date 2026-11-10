@@ -6,6 +6,9 @@ import Foundation
 protocol Desktop: Sendable {
 	func listApps() -> [RunningApp]
 	func listRoots(pid: Int32?, title: String?) -> [Root]
+	func listStatusBars() -> [Root]
+	/// Every onscreen window above the normal level (panels, menus), by id, with its pid.
+	func panelWindows() -> [UInt32: Int32]
 	func frontmost() throws -> Frontmost
 	/// The front app's name, without reading its windows.
 	func frontAppName() -> String?

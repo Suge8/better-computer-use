@@ -446,8 +446,9 @@ extension Platform {
 			// Only the frontmost app opens its menus: a background app accepts a press on a menu
 			// bar item and does nothing with it, so activation is a precondition, not a fallback.
 			// An item inside its menus runs its command when pressed as it is, closed menus and
-			// all, with the app left in the background.
-			let inMenuBar = hasAncestorRole(element, role: kAXMenuBarRole as String)
+			// all, with the app left in the background. A status bar is a menu bar too, but its
+			// items open their menus and panels from the background.
+			let inMenuBar = ancestor(of: element, role: kAXMenuBarRole as String).map { !isStatusBar($0, pid: pid) } ?? false
 			let frontmost = NSRunningApplication(processIdentifier: pid)?.isActive ?? false
 			let requiresFrontmost = inMenuBar && !frontmost && elementRole != kAXMenuItemRole as String
 			// Headless (`ax_only`) may not activate, so it gets the refusal as well instead of a
@@ -586,6 +587,10 @@ extension Platform {
 		}
 
 		return try finish(try verdict())
+	}
+
+	func isStatusBar(_ bar: AXUIElement, pid: Int32) -> Bool {
+		copyAttribute(AXUIElementCreateApplication(pid), attribute: "AXExtrasMenuBar" as CFString).flatMap(asAXElement).map { sameElement($0, bar) } ?? false
 	}
 
 	/// The element says it is focused, or the app's focused element is it or inside it.

@@ -41,8 +41,13 @@ extension Daemon {
 		let bundleId = trimmed(params.bundleId)
 		let broad = app == nil && bundleId == nil && params.pid == nil
 		var discovered: [Target]
+		let query = normalized(params.query)
 		if broad {
-			discovered = try await roots().filter { $0.pid > 0 }.map { target($0, appName: $0.appName, bundleId: $0.bundleId) }
+			// A status icon is known by its name, so a search by name reads the status bars too.
+			let statusBars = params.kind == .statusbar || (params.kind == nil && !query.isEmpty)
+			let windows = params.kind == .statusbar ? [] : try await roots().filter { $0.pid > 0 }
+			let bars = statusBars ? try await offload { [desktop = self.desktop] in desktop.listStatusBars() } : []
+			discovered = (windows + bars).map { target($0, appName: $0.appName, bundleId: $0.bundleId) }
 		} else {
 			discovered = []
 			for match in appsMatching(try await apps(), app: app, bundleId: bundleId, pid: params.pid) {
@@ -55,11 +60,10 @@ extension Daemon {
 			if lhs.appName != rhs.appName { return lhs.appName.localizedCompare(rhs.appName) == .orderedAscending }
 			return lhs.title.localizedCompare(rhs.title) == .orderedAscending
 		}
-		// A menu bar only answers in the frontmost app, so an undirected listing would fill up
-		// with roots the agent cannot press. It appears when an app or the kind names it.
+		// An undirected listing would fill up with every app's menu bar. A menu bar, and a status
+		// bar (which only a listing of that kind or of its app reads), appear when named.
 		let wantsMenuBars = !broad || params.kind == .menubar
 		let forest = discovered.filter { (wantsMenuBars || $0.root.kind != .menubar) && (params.kind == nil || $0.root.kind == params.kind) }
-		let query = normalized(params.query)
 		let exact = query.isEmpty ? [] : forest.filter { normalized($0.appName) == query || normalized($0.title) == query }
 		let fuzzy = query.isEmpty || !exact.isEmpty ? [] : forest.filter { "\(normalized($0.appName)) \(normalized($0.title))".contains(query) }
 		let listed = stableSorted(!exact.isEmpty ? exact : !fuzzy.isEmpty ? fuzzy : forest) { lhs, rhs in
@@ -253,9 +257,9 @@ func selectionScore(_ root: Root) -> Int {
 	return score
 }
 
-/// The desktop and an app's menu bar are roots an agent can observe on request, never ones bcu picks for it.
+/// The desktop and an app's menu and status bars are roots an agent can observe on request, never ones bcu picks for it.
 private func isSelectable(_ root: Root) -> Bool {
-	root.subrole != "AXDesktop" && root.kind != .menubar
+	root.subrole != "AXDesktop" && root.kind != .menubar && root.kind != .statusbar
 }
 
 /// The app is alive but shows nothing bcu can drive; that is a window problem, not a bug.

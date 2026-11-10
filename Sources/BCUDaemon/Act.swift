@@ -172,8 +172,18 @@ extension Daemon {
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
 		let target = transaction.target
 		let frontBefore = desktop.frontAppName()
+		// A status item opens its panel in another process (Control Center's in ControlCenter).
+		let windowsBefore = target.root.kind == .statusbar ? desktop.panelWindows() : nil
 		var execution = try await dispatch(transaction, count: actions.count, headless: headless, startsInForeground: params.foreground ?? false)
 		if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
+		if let windowsBefore {
+			let panels = try await rootsOpened(elsewhere: target.pid, since: windowsBefore)
+			execution.appeared = merged(execution.appeared + panels)
+			if !panels.isEmpty, execution.outcome == .unknown {
+				execution.outcome = .worked
+				execution.evidence = BCUCore.ActEvidence(source: .root)
+			}
+		}
 		// A root that is gone is a fact like any other; the roots the array touched are checked once, here.
 		let live = Set(try await roots(pid: target.pid).map(\.handle))
 		let touched = distinct([ActedRoot(target: target, element: transaction.base.outline.rootElement)] + execution.acted)
@@ -265,6 +275,16 @@ extension Daemon {
 			}
 		}
 		return nil
+	}
+
+	/// The roots other apps show in windows that appeared since `before`.
+	private func rootsOpened(elsewhere pid: Int32, since before: [UInt32: Int32]) async throws -> [Root] {
+		let appeared = desktop.panelWindows().filter { before[$0.key] == nil && $0.value != pid }
+		var roots: [Root] = []
+		for owner in Set(appeared.values).sorted() {
+			roots += try await self.roots(pid: owner).filter { $0.windowId.map { appeared[$0] != nil } ?? false }
+		}
+		return roots
 	}
 
 	/// What the actions did to the user's desktop: bcu's own activation and pointer, and a
