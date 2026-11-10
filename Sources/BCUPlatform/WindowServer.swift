@@ -101,13 +101,17 @@ extension Platform {
 
 	func cgBroadRootOwners(entries: [[String: Any]]) -> [CGWindowOwnerSummary] {
 		let popupLevel = Int(CGWindowLevelForKey(.popUpMenuWindow))
+		// System dialogs float above windows from background-only processes: the Apple Account
+		// sign-in request (FollowUpUI), permission prompts (UserNotificationCenter) sit at the
+		// modal panel level, and are found only when listed with the open windows.
+		let panelLevels = 1...Int(CGWindowLevelForKey(.modalPanelWindow))
 		var seen = Set<Int32>()
 		return entries.compactMap { entry -> CGWindowOwnerSummary? in
 			let layer = (entry[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
-			guard layer == 0 || layer == popupLevel,
+			guard layer == 0 || layer == popupLevel || panelLevels.contains(layer),
 				let pid = (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value
 			else { return nil }
-			if layer == popupLevel {
+			if layer != 0 {
 				guard (entry[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true else { return nil }
 			} else {
 				guard let boundsDict = entry[kCGWindowBounds as String] as? [String: Any],
