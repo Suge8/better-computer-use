@@ -39,8 +39,11 @@ extension Platform {
 				if !haystack.contains(text) { return false }
 			}
 			if let expectedValue, !expectedValue.isEmpty {
+				// A value that is a number (a slider's) is compared as one, by the rule setText reads back by.
+				let numeric = copyAttribute(element, attribute: kAXValueAttribute as CFString) is NSNumber
 				let subrole = stringAttribute(element, attribute: kAXSubroleAttribute as CFString) ?? ""
-				if displayValue(element, role: candidateRole, subrole: subrole).trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != expectedValue { return false }
+				let shown = displayValue(element, role: candidateRole, subrole: subrole)
+				if !valueReaches(shown.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), wanted: expectedValue, span: numeric ? numericSpan(element) : nil) { return false }
 			}
 			return true
 		}

@@ -395,6 +395,16 @@ public func outcomeAfterCheck(_ current: ActOutcome, _ check: CheckResult) -> Ac
 	}
 }
 
+/// Whether a value read from an element is the one asked for. `span` is the range of an
+/// element whose value is a number (a slider): a number there counts within 1% of the range,
+/// since the control may round what it is given and reads back as a float (0.2 is
+/// 0.199999988079071). A text element, `span` nil, holds exactly the text asked for.
+public func valueReaches(_ value: String, wanted: String, span: Double?) -> Bool {
+	guard let span else { return value == wanted }
+	guard let number = Double(value), let target = Double(wanted) else { return false }
+	return abs(number - target) <= 0.01 * span
+}
+
 /// setText-only transactions are proven by the values the successor state reads back.
 public func outcomeAfterObservedValues(_ current: ActOutcome, actions: [UiAction], valueForRef: (String) -> String?) -> ActOutcome {
 	let meaningful = actions.filter { $0.action != .wait }

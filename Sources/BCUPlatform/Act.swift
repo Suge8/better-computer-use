@@ -517,18 +517,14 @@ extension Platform {
 			if let route = finderRenameRoute(for: element, pid: pid) {
 				throw BCUError(.actionFailed, "Writing a Finder file name changes what Finder shows, not the file's name.", recovery: route)
 			}
-			// A slider's value is a number: a string written to it is accepted and ignored. It
-			// may round what it is given, so the readback counts within 1% of its range.
+			// A slider's value is a number: a string written to it is accepted and ignored.
 			let slider = stringAttribute(element, attribute: kAXRoleAttribute as CFString) == kAXSliderRole as String
 			let number = slider ? Double(text.trimmingCharacters(in: .whitespaces)) : nil
 			if slider && number == nil {
 				throw BCUError(.invalidArguments, "A slider takes a number for setText, such as 0.5, not \(JSONValue.string(text).serialized()).")
 			}
-			let tolerance = number == nil ? 0 : 0.01 * sliderSpan(element)
-			func holds(_ value: String) -> Bool {
-				guard let number else { return value == text }
-				return Double(value).map { abs($0 - number) <= tolerance } ?? false
-			}
+			let span = slider ? numericSpan(element) : nil
+			func holds(_ value: String) -> Bool { valueReaches(value, wanted: text, span: span) }
 			let written: CFTypeRef = number.map { NSNumber(value: $0) } ?? text as CFString
 			var targetElement = element
 			var status = AXUIElementSetAttributeValue(targetElement, kAXValueAttribute as CFString, written)
@@ -627,9 +623,9 @@ extension Platform {
 		return try finish(try verdict())
 	}
 
-	/// How far a slider's value runs, 1 when it does not say.
-	func sliderSpan(_ slider: AXUIElement) -> Double {
-		func number(_ attribute: String) -> Double? { (copyAttribute(slider, attribute: attribute as CFString) as? NSNumber)?.doubleValue }
+	/// How far a numeric element's value runs, 1 when it does not say.
+	func numericSpan(_ element: AXUIElement) -> Double {
+		func number(_ attribute: String) -> Double? { (copyAttribute(element, attribute: attribute as CFString) as? NSNumber)?.doubleValue }
 		guard let low = number(kAXMinValueAttribute), let high = number(kAXMaxValueAttribute), high > low else { return 1 }
 		return high - low
 	}
