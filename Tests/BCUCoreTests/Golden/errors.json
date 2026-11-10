@@ -169,6 +169,41 @@
 			}
 		},
 		{
+			"name": "a failed action names what it did to the desktop",
+			"op": "error",
+			"input": {
+				"code": "action_failed",
+				"message": "The action did not produce the requested result. It was delivered via hid.",
+				"foreground": {
+					"activated": true,
+					"from": "访达",
+					"to": "文本编辑",
+					"pointer": true
+				}
+			},
+			"output": {
+				"stderr": "error action_failed: The action did not produce the requested result. It was delivered via hid.\n! foreground: bcu activated 文本编辑 (front was 访达), moved the real pointer\nrecovery: Observe the current UI before deciding whether the action is safe to retry.\n",
+				"exitCode": 9
+			}
+		},
+		{
+			"name": "a timed-out step names the front app that changed",
+			"op": "error",
+			"input": {
+				"code": "action_failed",
+				"message": "Step 1 of 2: The step was delivered but its postcondition was not satisfied within 2000ms.",
+				"recovery": "Observe the current UI before deciding whether the step is safe to retry.",
+				"foreground": {
+					"from": "访达",
+					"to": "BenchLab"
+				}
+			},
+			"output": {
+				"stderr": "error action_failed: Step 1 of 2: The step was delivered but its postcondition was not satisfied within 2000ms.\n! foreground: front app 访达 → BenchLab\nrecovery: Observe the current UI before deciding whether the step is safe to retry.\n",
+				"exitCode": 9
+			}
+		},
+		{
 			"name": "custom recovery",
 			"op": "error",
 			"input": {
