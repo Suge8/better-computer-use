@@ -340,6 +340,11 @@ extension Platform {
 	/// The app's notifications, observing it first if it is not yet.
 	func observedApp(_ pid: Int32) throws -> AppNotifications {
 		guard let app = rootObservers.ensure(pid, start: startObserver) else {
+			// A one-shot system window (the Apple Account code panel) quits its app as it closes,
+			// and an app on its way out refuses the observer: nothing was delivered.
+			if !pidIsAlive(pid) || listRoots(pid: pid).allSatisfy({ $0.kind == .menubar || $0.kind == .statusbar }) {
+				throw BCUError(.windowStale, "The app closed its windows before bcu could act; nothing was delivered.")
+			}
 			throw BCUError(.actionFailed, "The app accepts no accessibility observer, so bcu cannot wait for a change in it.")
 		}
 		return app
