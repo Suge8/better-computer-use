@@ -80,11 +80,23 @@ private func evidenceWords(_ evidence: ActEvidence?) -> String {
 	return " · \(evidence.field?.rawValue ?? evidence.source.rawValue)"
 }
 
+private func foregroundLine(_ effects: ForegroundEffects) -> String {
+	var words: [String] = []
+	if effects.activated == true {
+		words.append("bcu activated \(effects.to ?? "the app")" + (effects.from.map { " (front was \($0))" } ?? ""))
+	} else if let from = effects.from, let to = effects.to {
+		words.append("front app \(from) → \(to)")
+	}
+	if effects.pointer == true { words.append("moved the real pointer") }
+	return "! foreground: " + words.joined(separator: ", ")
+}
+
 /// Roots that closed lead, since refs of theirs went with them; then where to go next.
 private func renderAct(_ result: ActResult) -> String {
 	let verified = result.verification.status == .verified ? " · verified" + (result.verification.preexisting == true ? " (preexisting)" : "") : ""
 	let outcome = result.outcome == .unknown ? "unverified" : result.outcome.rawValue
 	var parts = ["state \(result.stateId ?? "none") ← \(result.baseStateId) · \(outcome) via \(result.delivery)\(evidenceWords(result.verification.evidence))\(verified)"]
+	parts.append(result.foreground.map(foregroundLine) ?? "")
 	parts += (result.closed ?? []).map { "- root \(rootWords($0))" }
 	parts += (result.roots ?? []).map { "+ root \(rootWords($0))" }
 	if let next = result.next {

@@ -286,6 +286,8 @@ public struct ActPerformed: Sendable {
 	public internal(set) var activated: Bool?
 	/// Result of raising the window, when it had to be raised.
 	public internal(set) var raised: Bool?
+	/// Pointer events went through the real pointer.
+	public internal(set) var movedPointer = false
 	/// The element took keyboard focus before input.
 	public internal(set) var focused = false
 	/// Cmd-A selected the element's text through Accessibility first.

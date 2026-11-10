@@ -327,7 +327,10 @@ extension Platform {
 				try focusTargetForBackgroundInput()
 			}
 			if screenTarget { screenBefore = screenBaseline(windowId: record.windowId) }
-			if delivery == .hid { try preflight(point) }
+			if delivery == .hid {
+				try preflight(point)
+				performed.movedPointer = true
+			}
 			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
 			switch action {
 			case .press, .click:

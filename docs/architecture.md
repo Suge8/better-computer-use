@@ -223,6 +223,8 @@ caps 是对该 ref 的承诺。条目折叠会把子节点的能力合并到外�
 
 `headless` 是严格边界。启用后禁止窗口激活、焦点切换、原始键鼠和前台回退。
 
+用户的桌面是共享的，动作对它的副作用不沉默：bcu 为投递激活了应用（前台一级、菜单栏），或经真实指针投递了指针事件，或数组执行前后前台应用变了（不论是谁变的：应用自己弹 sheet 时也可能把自己带到前面），结果带 `foreground: {activated?, from?, to?, pointer?}`，文本在结果行下写一行 `! foreground: bcu activated BenchLab (front was 访达), moved the real pointer`，或 `! foreground: front app 访达 → BenchLab`。前台在数组前和后继观察之后各读一次；用户在这期间自己切换应用也会被写出，它说的是这段时间里变了什么，不是归因。都没发生时没有这一项。
+
 ### 跨界面的步骤
 
 动作项可以用 `find: {role?, name?, nth?, root?, timeoutMs?}` 代替 ref（与 ref、坐标互斥，至少给 role 或 name），让一个数组走完“打开对话框 → 填写 → 确认”。步骤执行时才对它的根做新鲜观察，等到唯一匹配再投递。根由 `root` 选：`state`（默认）是状态所在的根；`opened` 是前面步骤最近打开的根，还没有时等它出现；`app` 是应用此刻会被 `observe-ui` 选中的根（模态优先）。匹配对象是视图里的节点：role 取视图的角色词，也认无障碍 role 与 subrole（带不带 AX 都行），一律精确；`search-ui --role`、`wait-for --role`、`--expect-role` 与步骤的 `expect.role` 用同一条规则；name 先精确、没有精确的再按子串，忽略大小写和多余空白，`...` 与 `…` 相同。并列时先留屏上的元素，再留动作需要的能力（setText 要 setText，press 要 press、toggle 或 open），所以对 setText 来说“Reason”是输入框而不是它的标签；规则都分不开，没有 `nth` 就失败，并列出候选（`nth i: 节点 in 父节点`，`nth` 从 0 起算候选）。没找到则等到 `timeoutMs`（默认 3 s）再失败，列出最接近的元素；并列不等待，它不会自己消失。等待由目标应用的无障碍通知唤醒，没有通知时每 400 ms 再看一次（sheet 出现不发通知），应用不接受观察者时直接以 `action_failed` 报错。cua 把 role 按家族折叠（textfield 也匹配 textarea）再靠精确 role 消歧，bcu 的 role 本来就精确，不需要这一步；也不接受形状不对的参数。

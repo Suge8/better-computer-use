@@ -45,6 +45,9 @@ private struct Execution {
 	/// Every step went through background accessibility.
 	var quiet: Bool
 	var openedMenus = false
+	/// bcu activated the app, or moved the real pointer, to deliver.
+	var activated = false
+	var movedPointer = false
 	var actionCount: Int
 	/// The step closed the root it acted in.
 	var rootClosed = false
@@ -61,6 +64,8 @@ private struct Execution {
 		delivery = steps.last?.delivery
 		quiet = steps.allSatisfy(\.quiet)
 		openedMenus = steps.contains(where: \.openedMenus)
+		activated = steps.contains(where: \.activated)
+		movedPointer = steps.contains(where: \.movedPointer)
 		actionCount = steps.count
 		verified = steps.last { $0.verified != nil }?.verified
 		settled = steps.last?.settled ?? false
@@ -76,6 +81,8 @@ private struct Execution {
 		settled = report.performed.deltaSource != nil
 		quiet = headless || report.performed.delivery == .ax
 		openedMenus = report.performed.openedMenus
+		activated = report.performed.activated == true
+		movedPointer = report.performed.movedPointer
 		actionCount = 1
 		rootClosed = report.rootDelta.contains { if case .root(.closed, let root) = $0 { root.handle == step.root.root.handle } else { false } }
 	}
@@ -164,6 +171,7 @@ extension Daemon {
 
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
 		let target = transaction.target
+		let frontBefore = desktop.frontAppName()
 		var execution = try await dispatch(transaction, count: actions.count, headless: headless, startsInForeground: params.foreground ?? false)
 		if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
 		// A root that is gone is a fact like any other; the roots the array touched are checked once, here.
@@ -176,6 +184,7 @@ extension Daemon {
 		}
 		let verification = try await verification(params.expect, transaction: transaction, execution: &execution, baseLive: live.contains(target.root.handle))
 		let successor = try await successor(of: transaction, baseLive: live.contains(target.root.handle), image: image)
+		let foreground = foregroundEffects(execution, before: frontBefore, after: desktop.frontAppName())
 		if let successor, successor.root.root.handle != target.root.handle, !gone.contains(where: { $0.target.root.handle == target.root.handle }) {
 			gone.append(touched[0])
 		}
@@ -184,7 +193,7 @@ extension Daemon {
 		let closed = gone.isEmpty ? nil : gone.map(\.target.appearance)
 		guard let successor else {
 			if execution.outcome == .didnt { throw failure(execution) }
-			return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed)
+			return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed)
 		}
 		let saved = try lane.save(successor.observation)
 		let next = saved.payload.outline.outline()
@@ -203,7 +212,7 @@ extension Daemon {
 		}
 		return BCUCore.ActResult(
 			stateId: saved.stateId, baseStateId: transaction.baseStateId, outcome: outcome, verification: verification,
-			delivery: execution.delivery ?? Delivery.ax.rawValue, roots: roots.isEmpty ? nil : roots, closed: closed,
+			delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed,
 			next: successor.root.root.handle == target.root.handle ? nil : successor.root.appearance,
 			opened: attached?.opened,
 			changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
@@ -256,6 +265,19 @@ extension Daemon {
 			}
 		}
 		return nil
+	}
+
+	/// What the actions did to the user's desktop: bcu's own activation and pointer, and a
+	/// front app that changed while they ran, whoever changed it (a sheet can bring its app
+	/// forward). Nothing is left unsaid, and nothing is said when nothing changed.
+	private func foregroundEffects(_ execution: Execution, before: String?, after: String?) -> ForegroundEffects? {
+		let changed = before != after
+		guard execution.activated || execution.movedPointer || changed else { return nil }
+		return ForegroundEffects(
+			activated: execution.activated ? true : nil,
+			from: changed ? before : nil, to: changed || execution.activated ? after : nil,
+			pointer: execution.movedPointer ? true : nil
+		)
 	}
 
 	/// The array's own evidence, and the last step condition it met.

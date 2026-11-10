@@ -7,6 +7,8 @@ protocol Desktop: Sendable {
 	func listApps() -> [RunningApp]
 	func listRoots(pid: Int32?, title: String?) -> [Root]
 	func frontmost() throws -> Frontmost
+	/// The front app's name, without reading its windows.
+	func frontAppName() -> String?
 	/// The look is built for this call and handed over, not shared.
 	func look(_ request: LookRequest) throws -> sending LookResult
 	func act(_ request: ActRequest) throws -> ActionReport

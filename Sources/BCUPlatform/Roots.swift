@@ -51,6 +51,10 @@ extension Platform {
 		return Frontmost(appName: appName, pid: pid, bundleId: app.bundleIdentifier, window: windows.sorted { windowScore($0) > windowScore($1) }.first)
 	}
 
+	public func frontAppName() -> String? {
+		NSWorkspace.shared.frontmostApplication.map { $0.localizedName ?? processName(pid: $0.processIdentifier) ?? "Unknown App" }
+	}
+
 	func windowScore(_ window: Root) -> Int {
 		var score = 0
 		if window.isFocused { score += 100 }
