@@ -286,6 +286,8 @@ public struct ActPerformed: Sendable {
 	public internal(set) var activated: Bool?
 	/// Result of raising the window, when it had to be raised.
 	public internal(set) var raised: Bool?
+	/// setText left its value in a web text area, which may commit only on Return or blur.
+	public internal(set) var valueUncommitted = false
 	/// Pointer events went through the real pointer.
 	public internal(set) var movedPointer = false
 	/// The element took keyboard focus before input.

@@ -511,12 +511,22 @@ extension Platform {
 			if status == .success {
 				performed.grounding = .description
 				performed.delivery = .ax
-				let value = stringAttribute(targetElement, attribute: kAXValueAttribute as CFString) ?? ""
+				// Chromium applies the write a moment later: read at once, the old value is still there.
+				var value = ""
+				_ = try awaitChange(in: pid, timeout: Self.evidenceTimeout) {
+					value = stringAttribute(targetElement, attribute: kAXValueAttribute as CFString) ?? ""
+					return value == text
+				}
 				if value != text && policy != .foreground {
 					throw ForegroundRequired(message: "The background accessibility value write was accepted but did not take effect")
 				}
+				// A page takes an input's value with the input event Chromium sends, but a
+				// text area may be an editor that commits on Return or on losing the focus (a
+				// note title that renames its file): the value is there, the app has not taken it.
+				let uncommitted = value == text && stringAttribute(targetElement, attribute: kAXRoleAttribute as CFString) == kAXTextAreaRole as String && hasAncestorRole(targetElement, role: "AXWebArea")
+				performed.valueUncommitted = uncommitted
 				return try finish(ActionReport(
-					outcome: value == text ? .worked : .didnt,
+					outcome: value != text ? .didnt : uncommitted ? .unknown : .worked,
 					performed: performed,
 					verification: ActEvidence(source: .ax, field: .value, from: evidenceExcerpt(beforeEvidence?["value"] ?? ""), to: evidenceExcerpt(value))
 				))

@@ -48,6 +48,8 @@ private struct Execution {
 	/// bcu activated the app, or moved the real pointer, to deliver.
 	var activated = false
 	var movedPointer = false
+	/// A value written into a web text area that the app may not have taken yet.
+	var uncommitted = false
 	var actionCount: Int
 	/// The step closed the root it acted in.
 	var rootClosed = false
@@ -66,6 +68,7 @@ private struct Execution {
 		openedMenus = steps.contains(where: \.openedMenus)
 		activated = steps.contains(where: \.activated)
 		movedPointer = steps.contains(where: \.movedPointer)
+		uncommitted = steps.contains(where: \.uncommitted)
 		actionCount = steps.count
 		verified = steps.last { $0.verified != nil }?.verified
 		settled = steps.last?.settled ?? false
@@ -83,6 +86,7 @@ private struct Execution {
 		openedMenus = report.performed.openedMenus
 		activated = report.performed.activated == true
 		movedPointer = report.performed.movedPointer
+		uncommitted = report.performed.valueUncommitted
 		actionCount = 1
 		rootClosed = report.rootDelta.contains { if case .root(.closed, let root) = $0 { root.handle == step.root.root.handle } else { false } }
 	}
@@ -207,7 +211,8 @@ extension Daemon {
 		}
 		let saved = try lane.save(successor.observation)
 		let next = saved.payload.outline.outline()
-		let outcome = outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
+		// A value read back from a web text area is no more than its own step's readback was.
+		let outcome = execution.uncommitted ? execution.outcome : outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
 		if outcome == .didnt { throw failure(execution) }
 		let attached = try await attachOpened(stillOpen, base: target, lane: lane)
 		// A root hanging under another root's tree is reported as itself, in neither tree's changes.
