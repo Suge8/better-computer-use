@@ -53,11 +53,14 @@ public struct BCUError: Error, Codable, Sendable, Equatable {
 	public let code: ErrorCode
 	public let message: String
 	public let recovery: String
+	/// What an action that failed had already done to the user's desktop.
+	public var foreground: ForegroundEffects?
 
-	public init(_ code: ErrorCode, _ message: String, recovery: String? = nil) {
+	public init(_ code: ErrorCode, _ message: String, recovery: String? = nil, foreground: ForegroundEffects? = nil) {
 		self.code = code
 		self.message = message
 		self.recovery = recovery ?? code.recovery
+		self.foreground = foreground
 	}
 
 	public var exitCode: Int32 { code.exitCode }
@@ -65,7 +68,7 @@ public struct BCUError: Error, Codable, Sendable, Equatable {
 	/// What the CLI writes to stderr; stdout stays empty on failure.
 	public var formatted: String {
 		let message = Text.normalized(message)
-		return "error \(code.rawValue): \(message.isEmpty ? "Unknown failure." : message)\nrecovery: \(recovery)\n"
+		return "error \(code.rawValue): \(message.isEmpty ? "Unknown failure." : message)\n\(foreground.map { foregroundLine($0) + "\n" } ?? "")recovery: \(recovery)\n"
 	}
 
 	/// An error that reaches the CLI without a code is a bug, not a recoverable state.

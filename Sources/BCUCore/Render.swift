@@ -80,7 +80,7 @@ private func evidenceWords(_ evidence: ActEvidence?) -> String {
 	return " · \(evidence.field?.rawValue ?? evidence.source.rawValue)"
 }
 
-private func foregroundLine(_ effects: ForegroundEffects) -> String {
+func foregroundLine(_ effects: ForegroundEffects) -> String {
 	var words: [String] = []
 	if effects.activated == true {
 		words.append("bcu activated \(effects.to ?? "the app")" + (effects.from.map { " (front was \($0))" } ?? ""))

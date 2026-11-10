@@ -8,6 +8,8 @@ import BCUCore
 /// not allow; the caller may retry it in the foreground.
 public struct ForegroundRequired: Error, Sendable {
 	public let message: String
+	/// What bcu had done to the desktop before it refused.
+	public internal(set) var foreground: ForegroundEffects?
 }
 
 // MARK: Diagnostics and permissions

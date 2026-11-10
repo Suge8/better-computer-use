@@ -185,7 +185,7 @@ private func perform(_ op: String, _ input: JSONValue) throws -> [String: JSONVa
 		let outcome = outcomeAfterObservedValues(ActOutcome(rawValue: input["current"]!.string!)!, actions: actions) { values[$0]?.string }
 		return ["result": .string(JSONValue.string(outcome.rawValue).serialized())]
 	case "error":
-		let error = BCUError(ErrorCode(rawValue: input["code"]!.string!)!, input["message"]!.string!, recovery: input["recovery"]?.string)
+		let error = BCUError(ErrorCode(rawValue: input["code"]!.string!)!, input["message"]!.string!, recovery: input["recovery"]?.string, foreground: try input["foreground"].map { try JSONCoding.decode(ForegroundEffects.self, from: $0) })
 		return ["stderr": .string(error.formatted), "exitCode": .number(Double(error.exitCode))]
 	case "roles":
 		return Dictionary(uniqueKeysWithValues: members(input["cases"]).map { name, entry in

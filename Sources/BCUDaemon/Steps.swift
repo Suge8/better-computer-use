@@ -215,7 +215,7 @@ extension Daemon {
 	func stepFailure(_ error: BCUError, index: Int, count: Int) -> BCUError {
 		guard count > 1 else { return error }
 		let delivered = index == 0 ? "" : index == 1 ? " Step 1 was already delivered and is not replayed." : " Steps 1–\(index) were already delivered and are not replayed."
-		return BCUError(error.code, "Step \(index + 1) of \(count): \(error.message)", recovery: error.recovery + delivered)
+		return BCUError(error.code, "Step \(index + 1) of \(count): \(error.message)", recovery: error.recovery + delivered, foreground: error.foreground)
 	}
 
 	/// A step that acts by ref or coordinates cannot be delivered once the root they belong to

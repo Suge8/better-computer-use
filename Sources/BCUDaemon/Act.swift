@@ -176,63 +176,77 @@ extension Daemon {
 	private func deliver(_ transaction: Transaction, actions: [UiAction], params: ActParams, headless: Bool, image: ImageMode, lane: Lane<Observation>) async throws -> BCUCore.ActResult {
 		let target = transaction.target
 		let frontBefore = desktop.frontAppName()
-		// A status item opens its panel in another process (Control Center's in ControlCenter).
-		let windowsBefore = target.root.kind == .statusbar ? desktop.panelWindows() : nil
-		var execution = try await dispatch(transaction, actions: actions, headless: headless, startsInForeground: params.foreground ?? false)
-		if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
-		if let windowsBefore {
-			let panels = try await rootsOpened(elsewhere: target.pid, since: windowsBefore)
-			execution.appeared = merged(execution.appeared + panels)
-			if !panels.isEmpty, execution.outcome == .unknown {
-				execution.outcome = .worked
-				execution.evidence = BCUCore.ActEvidence(source: .root)
+		// Set once the steps are in; an error before that carries what the steps did itself.
+		var delivered: Execution?
+		do {
+			// A status item opens its panel in another process (Control Center's in ControlCenter).
+			let windowsBefore = target.root.kind == .statusbar ? desktop.panelWindows() : nil
+			var execution = try await dispatch(transaction, actions: actions, headless: headless, startsInForeground: params.foreground ?? false)
+			delivered = execution
+			if params.expect == nil, !execution.settled { try await pause(execution.quiet ? settleAfterAccessibility : settleAfterRawInput) }
+			if let windowsBefore {
+				let panels = try await rootsOpened(elsewhere: target.pid, since: windowsBefore)
+				execution.appeared = merged(execution.appeared + panels)
+				if !panels.isEmpty, execution.outcome == .unknown {
+					execution.outcome = .worked
+					execution.evidence = BCUCore.ActEvidence(source: .root)
+				}
 			}
+			// A root that is gone is a fact like any other; the roots the array touched are checked once, here.
+			let live = Set(try await roots(pid: target.pid).map(\.handle))
+			let touched = distinct([ActedRoot(target: target, element: transaction.base.outline.rootElement)] + execution.acted)
+			var gone = touched.filter { !live.contains($0.target.root.handle) }
+			if !gone.isEmpty {
+				execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed)
+				if execution.outcome == .unknown { execution.outcome = .worked }
+			}
+			let verification = try await verification(params.expect, transaction: transaction, execution: &execution, baseLive: live.contains(target.root.handle))
+			let successor = try await successor(of: transaction, baseLive: live.contains(target.root.handle), image: image)
+			let foreground = foregroundEffects(activated: execution.activated, movedPointer: execution.movedPointer, before: frontBefore, after: desktop.frontAppName())
+			if let successor, successor.root.root.handle != target.root.handle, !gone.contains(where: { $0.target.root.handle == target.root.handle }) {
+				gone.append(touched[0])
+			}
+			let stillOpen = execution.appeared.filter { opened in !gone.contains { $0.target.root.handle == opened.handle } }
+			let roots = stillOpen.compactMap(appearance)
+			let closed = gone.isEmpty ? nil : gone.map(\.target.appearance)
+			guard let successor else {
+				if execution.outcome == .didnt { throw failure(execution) }
+				return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed)
+			}
+			let saved = try lane.save(successor.observation)
+			let next = saved.payload.outline.outline()
+			// A value read back from a web text area is no more than its own step's readback was.
+			let outcome = execution.uncommitted ? execution.outcome : outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
+			if outcome == .didnt { throw failure(execution) }
+			let attached = try await attachOpened(stillOpen, base: target, lane: lane)
+			// A root hanging under another root's tree is reported as itself, in neither tree's changes.
+			let elsewhere = touched.filter { $0.target.root.handle != successor.root.root.handle }.compactMap(\.element) + (attached?.element.map { [$0] } ?? [])
+			let omitting = elsewhere.reduce(into: Set<String>()) { $0.formUnion(saved.payload.outline.refs(of: $1)) }
+			let view: SuccessorView
+			if let reference = successor.reference {
+				let baseOmitting = elsewhere.reduce(into: Set<String>()) { $0.formUnion(reference.outline.refs(of: $1)) }
+				view = successorView(base: reference.outline.outline(), next: next, menusOpenedByBcu: execution.openedMenus, omitting: omitting, baseOmitting: baseOmitting)
+			} else {
+				view = fullView(next, omitting: omitting)
+			}
+			return BCUCore.ActResult(
+				stateId: saved.stateId, baseStateId: transaction.baseStateId, outcome: outcome, verification: verification,
+				delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed,
+				next: successor.root.root.handle == target.root.handle ? nil : successor.root.appearance,
+				opened: attached?.opened,
+				changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
+				image: try await artifact(successor.image, for: saved.stateId)
+			)
+		} catch var error as BCUError {
+			// An action that failed may still have taken the user's front app or pointer.
+			let partial = error.foreground
+			error.foreground = foregroundEffects(
+				activated: delivered?.activated == true || partial?.activated == true,
+				movedPointer: delivered?.movedPointer == true || partial?.pointer == true,
+				before: frontBefore, after: desktop.frontAppName()
+			)
+			throw error
 		}
-		// A root that is gone is a fact like any other; the roots the array touched are checked once, here.
-		let live = Set(try await roots(pid: target.pid).map(\.handle))
-		let touched = distinct([ActedRoot(target: target, element: transaction.base.outline.rootElement)] + execution.acted)
-		var gone = touched.filter { !live.contains($0.target.root.handle) }
-		if !gone.isEmpty {
-			execution.evidence = BCUCore.ActEvidence(source: .root, field: .closed)
-			if execution.outcome == .unknown { execution.outcome = .worked }
-		}
-		let verification = try await verification(params.expect, transaction: transaction, execution: &execution, baseLive: live.contains(target.root.handle))
-		let successor = try await successor(of: transaction, baseLive: live.contains(target.root.handle), image: image)
-		let foreground = foregroundEffects(execution, before: frontBefore, after: desktop.frontAppName())
-		if let successor, successor.root.root.handle != target.root.handle, !gone.contains(where: { $0.target.root.handle == target.root.handle }) {
-			gone.append(touched[0])
-		}
-		let stillOpen = execution.appeared.filter { opened in !gone.contains { $0.target.root.handle == opened.handle } }
-		let roots = stillOpen.compactMap(appearance)
-		let closed = gone.isEmpty ? nil : gone.map(\.target.appearance)
-		guard let successor else {
-			if execution.outcome == .didnt { throw failure(execution) }
-			return BCUCore.ActResult(stateId: nil, baseStateId: transaction.baseStateId, outcome: execution.outcome, verification: verification, delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed)
-		}
-		let saved = try lane.save(successor.observation)
-		let next = saved.payload.outline.outline()
-		// A value read back from a web text area is no more than its own step's readback was.
-		let outcome = execution.uncommitted ? execution.outcome : outcomeAfterObservedValues(execution.outcome, actions: Array(actions.prefix(execution.actionCount))) { next.node($0)?.value }
-		if outcome == .didnt { throw failure(execution) }
-		let attached = try await attachOpened(stillOpen, base: target, lane: lane)
-		// A root hanging under another root's tree is reported as itself, in neither tree's changes.
-		let elsewhere = touched.filter { $0.target.root.handle != successor.root.root.handle }.compactMap(\.element) + (attached?.element.map { [$0] } ?? [])
-		let omitting = elsewhere.reduce(into: Set<String>()) { $0.formUnion(saved.payload.outline.refs(of: $1)) }
-		let view: SuccessorView
-		if let reference = successor.reference {
-			let baseOmitting = elsewhere.reduce(into: Set<String>()) { $0.formUnion(reference.outline.refs(of: $1)) }
-			view = successorView(base: reference.outline.outline(), next: next, menusOpenedByBcu: execution.openedMenus, omitting: omitting, baseOmitting: baseOmitting)
-		} else {
-			view = fullView(next, omitting: omitting)
-		}
-		return BCUCore.ActResult(
-			stateId: saved.stateId, baseStateId: transaction.baseStateId, outcome: outcome, verification: verification,
-			delivery: execution.delivery ?? Delivery.ax.rawValue, foreground: foreground, roots: roots.isEmpty ? nil : roots, closed: closed,
-			next: successor.root.root.handle == target.root.handle ? nil : successor.root.appearance,
-			opened: attached?.opened,
-			changes: view.changes, offscreen: view.offscreen, nodes: view.nodes, shown: view.shown, total: view.total,
-			image: try await artifact(successor.image, for: saved.stateId)
-		)
 	}
 
 	/// What the array is called verified: its own evidence, or the condition the caller put on
@@ -295,13 +309,13 @@ extension Daemon {
 	/// What the actions did to the user's desktop: bcu's own activation and pointer, and a
 	/// front app that changed while they ran, whoever changed it (a sheet can bring its app
 	/// forward). Nothing is left unsaid, and nothing is said when nothing changed.
-	private func foregroundEffects(_ execution: Execution, before: String?, after: String?) -> ForegroundEffects? {
+	private func foregroundEffects(activated: Bool, movedPointer: Bool, before: String?, after: String?) -> ForegroundEffects? {
 		let changed = before != after
-		guard execution.activated || execution.movedPointer || changed else { return nil }
+		guard activated || movedPointer || changed else { return nil }
 		return ForegroundEffects(
-			activated: execution.activated ? true : nil,
-			from: changed ? before : nil, to: changed || execution.activated ? after : nil,
-			pointer: execution.movedPointer ? true : nil
+			activated: activated ? true : nil,
+			from: changed ? before : nil, to: changed || activated ? after : nil,
+			pointer: movedPointer ? true : nil
 		)
 	}
 
@@ -332,30 +346,40 @@ extension Daemon {
 		if headless && batch.count == transaction.steps.count { return try await deliverAsBatch(batch, count: count) }
 		var done: [Execution] = []
 		var trail = Trail(known: transaction.known)
-		for (index, planned) in transaction.steps.enumerated() {
-			var acted = target
-			var result: Execution
-			switch planned.step {
-			case .wait(let ms):
-				try await pause(.milliseconds(ms))
-				result = Execution(waited: ())
-			case .deliver(let step):
-				acted = step.root
-				if index > 0 { try await requireLive(step.root, index: index, count: count) }
-				result = try await climb(step, headless: headless, startsInForeground: startsInForeground, rest: Array(actions[index...]), index: index, count: count)
-			case .locate(let action, let locator):
-				let step = try await locateStep(action, locator, index: index, count: count, base: target, trail: trail, headless: headless)
-				acted = step.root
-				result = try await climb(step, headless: headless, startsInForeground: startsInForeground, rest: Array(actions[index...]), index: index, count: count)
+		// What the steps delivered so far did to the desktop, for an error a later one ends in.
+		var activated = false, movedPointer = false
+		do {
+			for (index, planned) in transaction.steps.enumerated() {
+				var acted = target
+				var result: Execution
+				switch planned.step {
+				case .wait(let ms):
+					try await pause(.milliseconds(ms))
+					result = Execution(waited: ())
+				case .deliver(let step):
+					acted = step.root
+					if index > 0 { try await requireLive(step.root, index: index, count: count) }
+					result = try await climb(step, headless: headless, startsInForeground: startsInForeground, rest: Array(actions[index...]), index: index, count: count)
+				case .locate(let action, let locator):
+					let step = try await locateStep(action, locator, index: index, count: count, base: target, trail: trail, headless: headless)
+					acted = step.root
+					result = try await climb(step, headless: headless, startsInForeground: startsInForeground, rest: Array(actions[index...]), index: index, count: count)
+				}
+				activated = activated || result.activated
+				movedPointer = movedPointer || result.movedPointer
+				trail.appeared.append(result.appeared)
+				if result.outcome != .didnt, let expect = planned.expect {
+					try await verifyStep(expect, index: index, count: count, acted: acted, base: target, closed: result.rootClosed, trail: trail)
+					result.outcome = outcomeAfterCheck(result.outcome, .verified)
+					result.verified = expect
+				}
+				done.append(result)
+				if result.outcome == .didnt { break }
 			}
-			trail.appeared.append(result.appeared)
-			if result.outcome != .didnt, let expect = planned.expect {
-				try await verifyStep(expect, index: index, count: count, acted: acted, base: target, closed: result.rootClosed, trail: trail)
-				result.outcome = outcomeAfterCheck(result.outcome, .verified)
-				result.verified = expect
-			}
-			done.append(result)
-			if result.outcome == .didnt { break }
+		} catch var error as BCUError {
+			if activated { error.foreground = ForegroundEffects(activated: true, pointer: error.foreground?.pointer) }
+			if movedPointer { error.foreground = ForegroundEffects(activated: error.foreground?.activated, pointer: true) }
+			throw error
 		}
 		return Execution(done)
 	}
@@ -400,7 +424,7 @@ extension Daemon {
 			do {
 				return Execution(try await offload { [desktop = self.desktop] in try desktop.act(foreground) }, in: step, headless: headless)
 			} catch let refusal as ForegroundRequired {
-				throw BCUError(.actionFailed, refusal.message)
+				throw BCUError(.actionFailed, refusal.message, foreground: refusal.foreground)
 			}
 		}
 		if startsInForeground { return try await inForeground() }
@@ -408,7 +432,7 @@ extension Daemon {
 		do {
 			report = try await offload { [desktop = self.desktop] in try desktop.act(first) }
 		} catch let refusal as ForegroundRequired {
-			guard !headless else { throw BCUError(.actionFailed, refusal.message) }
+			guard !headless else { throw BCUError(.actionFailed, refusal.message, foreground: refusal.foreground) }
 			guard climbs else { throw refusingTheForeground(refusal.message) }
 			try await ensureUnlocked()
 			return try await inForeground()

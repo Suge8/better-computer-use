@@ -28,17 +28,30 @@ extension Platform {
 
 	/// `deferRootDelta` leaves the root changes to the batch that runs this step.
 	func act(_ request: ActRequest, deferRootDelta: Bool) throws -> ActionReport {
-		// What the app announces while bcu acts, and just after, may be the action's doing.
-		try observedApp(request.pid).acting(lingering: Self.rootChangeTimeout) { try deliver(request, deferRootDelta: deferRootDelta) }
+		var performed = ActPerformed(delivery: request.policy == .background || request.params.pidDelivery ? .pid : .hid)
+		// An action that fails after activating the app or taking the pointer says so too.
+		var effects: ForegroundEffects? {
+			performed.activated == true || performed.movedPointer ? ForegroundEffects(activated: performed.activated == true ? true : nil, pointer: performed.movedPointer ? true : nil) : nil
+		}
+		do {
+			// What the app announces while bcu acts, and just after, may be the action's doing.
+			return try observedApp(request.pid).acting(lingering: Self.rootChangeTimeout) { try deliver(request, deferRootDelta: deferRootDelta, performed: &performed) }
+		} catch var error as BCUError {
+			error.foreground = effects
+			throw error
+		} catch var refusal as ForegroundRequired {
+			refusal.foreground = effects
+			throw refusal
+		}
 	}
 
-	private func deliver(_ request: ActRequest, deferRootDelta: Bool) throws -> ActionReport {
+	private func deliver(_ request: ActRequest, deferRootDelta: Bool, performed: inout ActPerformed) throws -> ActionReport {
 		let record = request.geometry
 		let pid = request.pid
 		let action = request.action
 		let params = request.params
 		let policy = request.policy
-		let delivery: Delivery = policy == .background || params.pidDelivery ? .pid : .hid
+		let delivery = performed.delivery
 		var holdsPhysicalInput = false
 		func acquirePhysicalInputIfNeeded() {
 			if delivery == .hid && !holdsPhysicalInput {
@@ -50,7 +63,6 @@ extension Platform {
 		let pressLike = action == .press || action == .click
 		// Typing an earlier step aimed: it goes to the focus as it is, with nothing focused first.
 		let intoFocus = if case .focus = request.target { true } else { false }
-		var performed = ActPerformed(delivery: delivery)
 		var element: AXUIElement?
 		var rawPoint: CGPoint?
 		// The element the outcome is judged on, and whether the pointer provably reached it.
@@ -645,7 +657,7 @@ extension Platform {
 				stoppedAt = index
 				break
 			} catch let refusal as ForegroundRequired {
-				steps.append(.failed(BCUError(.actionFailed, refusal.message)))
+				steps.append(.failed(BCUError(.actionFailed, refusal.message, foreground: refusal.foreground)))
 				stoppedAt = index
 				break
 			}
