@@ -155,12 +155,32 @@ enum SkyLight {
 		static let focusHalves: useconds_t = 10_000
 	}
 
-	/// One Chromium-trusted click: a move to the target, when asked a primer press outside
-	/// every window, then the real presses. The primer satisfies a page's user-activation gate
-	/// without touching the page, and is the activating click an app that just became active
-	/// drops. It is routed to the target window like the rest, so AppKit also takes it as a
-	/// press outside the view under the pointer: a transient popover or a bubble that closes
-	/// on an outside press closes on it.
+	/// A press and release outside every window, routed to the route's window. It satisfies a
+	/// page's user-activation gate without touching the page, and it is the activating click
+	/// an app that just became active drops. AppKit also takes it as a press outside the view
+	/// under the pointer: a transient popover or a bubble that closes on an outside press
+	/// closes on it.
+	static func primer(along route: PointerRoute) throws {
+		try primer(along: route, button: .left, group: Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff), symbols: try require())
+	}
+
+	private static func primer(along route: PointerRoute, button: CGMouseButton, group: Int64, symbols: Symbols) throws {
+		let (down, up) = mouseTypes(button)
+		for (type, phase) in [(down, Int64(1)), (up, Int64(2))] {
+			guard let event = CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: offscreen, mouseButton: button) else {
+				throw BCUError(.actionFailed, "Failed to create mouse event")
+			}
+			post(event, along: route, at: offscreen, fields: [
+				(Field.phase, phase), (Field.clickState, 1), (Field.buttonNumber, Int64(button.rawValue)),
+				(Field.subtype, touchSubtype), (Field.clickGroup, group),
+			], symbols: symbols)
+			if type == down { usleep(ClickPacing.pressHold) }
+		}
+		usleep(ClickPacing.primerToPress)
+	}
+
+	/// One Chromium-trusted click: a move to the target, for web content a primer (see
+	/// `primer`), then the real presses.
 	static func click(at point: CGPoint, along route: PointerRoute, button: CGMouseButton, clickCount: Int, activationPrimer: Bool) throws {
 		let symbols = try require()
 		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)
@@ -176,12 +196,7 @@ enum SkyLight {
 		}
 		try send(.mouseMoved, at: point, phase: 2, clickState: 0)
 		usleep(ClickPacing.moveToPress)
-		if activationPrimer {
-			try send(down, at: offscreen, phase: 1, clickState: 1)
-			usleep(ClickPacing.pressHold)
-			try send(up, at: offscreen, phase: 2, clickState: 1)
-			usleep(ClickPacing.primerToPress)
-		}
+		if activationPrimer { try primer(along: route, button: button, group: group, symbols: symbols) }
 		for index in 1...max(1, clickCount) {
 			try send(down, at: point, phase: 3, clickState: Int64(index))
 			usleep(ClickPacing.pressHold)

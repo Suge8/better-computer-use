@@ -329,14 +329,14 @@ extension Platform {
 				hitVerified = true
 			}
 			acquirePhysicalInputIfNeeded()
-			// AppKit takes the first press after an app becomes active as the activating click,
-			// which a stock NSView drops; the primer press is that click. An app that already
-			// believes it is active takes the real press, and a primer there would close its
-			// open popovers. AXFrontmost is the app's own NSApp.isActive.
-			let primer = webTarget || boolAttribute(AXUIElementCreateApplication(pid), attribute: kAXFrontmostAttribute as CFString) != true
+			let route = pointerRoute(at: point, pid: pid, windowId: record.windowId, origin: record.windowFrame.origin)
 			if delivery == .pid, !webTarget {
-				// Makes the target app take the click without becoming the front app.
+				// AXFrontmost is the app's own NSApp.isActive. An app that becomes active takes its
+				// next press as the activating click, which a stock NSView drops, so activating it
+				// spends that click on a primer; see "投递梯子" in docs/architecture.md.
+				let wasActive = boolAttribute(AXUIElementCreateApplication(pid), attribute: kAXFrontmostAttribute as CFString) == true
 				try SkyLight.activateWithoutRaise(windowId: record.windowId)
+				if !wasActive { try SkyLight.primer(along: route) }
 				performed.backgroundActivation = true
 			} else {
 				try focusTargetForPhysicalInput()
@@ -347,11 +347,10 @@ extension Platform {
 				try preflight(point)
 				performed.movedPointer = true
 			}
-			let route = pointerRoute(at: point, pid: pid, windowId: record.windowId, origin: record.windowFrame.origin)
 			switch action {
 			case .press, .click:
 				animateCursor(at: point)
-				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery, activationPrimer: primer)
+				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery, activationPrimer: webTarget)
 			case .moveMouse:
 				animateCursor(at: point)
 				try postMouseMove(to: point, pid: pid, delivery: delivery)
