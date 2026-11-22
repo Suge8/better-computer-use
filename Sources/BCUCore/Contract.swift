@@ -101,7 +101,7 @@ public struct InspectUiParams: Codable, Sendable, Equatable {
 }
 
 public enum ActionName: String, Codable, Sendable, CaseIterable {
-	case press, click, doubleClick, setText, typeText, keypress, scroll, drag, moveMouse, wait
+	case press, click, doubleClick, setText, typeText, keypress, scroll, drag, moveMouse, increment, decrement, wait
 }
 
 /// A drag point, in the form the caller wrote it.

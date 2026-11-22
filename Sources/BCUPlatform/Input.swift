@@ -75,9 +75,9 @@ extension Platform {
 		}
 	}
 
-	func postMouseClick(at point: CGPoint, pid: Int32, route: SkyLight.PointerRoute, button: CGMouseButton = .left, clickCount: Int = 1, delivery: Delivery = .hid) throws {
+	func postMouseClick(at point: CGPoint, pid: Int32, route: SkyLight.PointerRoute, button: CGMouseButton = .left, clickCount: Int = 1, delivery: Delivery = .hid, activationPrimer: Bool) throws {
 		if delivery == .pid {
-			try SkyLight.click(at: point, along: route, button: button, clickCount: clickCount)
+			try SkyLight.click(at: point, along: route, button: button, clickCount: clickCount, activationPrimer: activationPrimer)
 			return
 		}
 		physicalInputLock.lock()

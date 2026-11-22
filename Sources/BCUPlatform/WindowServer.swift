@@ -57,6 +57,24 @@ extension Platform {
 		return owners
 	}
 
+	/// Where a pointer event at `point` goes: the window of the same app stacked above
+	/// `windowId` that a real click there would reach (a popover, a completion list, each its
+	/// own window), else `windowId` itself, whose top-left is `origin`.
+	func pointerRoute(at point: CGPoint, pid: Int32, windowId: UInt32, origin: CGPoint) -> SkyLight.PointerRoute {
+		let above = (CGWindowListCopyWindowInfo([.optionOnScreenAboveWindow, .excludeDesktopElements], windowId) as? [[String: Any]]) ?? []
+		for entry in above {
+			guard (entry[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid,
+				((entry[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 0) > 0,
+				let id = (entry[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
+				let boundsDict = entry[kCGWindowBounds as String] as? [String: Any],
+				let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary),
+				bounds.contains(point)
+			else { continue }
+			return SkyLight.PointerRoute(pid: pid, windowId: id, windowOrigin: bounds.origin)
+		}
+		return SkyLight.PointerRoute(pid: pid, windowId: windowId, windowOrigin: origin)
+	}
+
 	func pidForWindowId(_ windowId: UInt32) -> Int32? {
 		windowInfo(windowId: windowId)?.pid
 	}

@@ -39,7 +39,8 @@ extension Platform {
 	}
 
 	/// The element a coordinate lands on inside the target root, climbed at most three levels
-	/// to the control that owns it (the deepest hit is usually a label). System-wide hit
+	/// to the control that owns it (the deepest hit is usually a label), never past a popover:
+	/// its parent is the button that opened it, and pressing that closes it. System-wide hit
 	/// testing sees whatever is on top, so a hit outside the target, or on the window itself,
 	/// falls back to the smallest element of the root that contains the point.
 	func coordinateSubject(at point: CGPoint, pid: Int32, windowId: UInt32) -> AXUIElement? {
@@ -56,6 +57,7 @@ extension Platform {
 		for _ in 0...3 {
 			guard let current = candidate, !isWindowOrApp(current) else { break }
 			if supportsAction(current, action: kAXPressAction as CFString) { return current }
+			if stringAttribute(current, attribute: kAXRoleAttribute as CFString) == kAXPopoverRole as String { break }
 			candidate = parentElement(current)
 		}
 		return hit

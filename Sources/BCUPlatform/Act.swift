@@ -186,7 +186,7 @@ extension Platform {
 				request.cursorOverlay,
 				delivery == .pid,
 				policy != .axOnly,
-				[.press, .click, .moveMouse, .scroll, .drag].contains(action)
+				[.press, .click, .moveMouse, .scroll, .drag, .increment, .decrement].contains(action)
 			else { return }
 			// The overlay joins every Space; over a window in another Space it would draw on the user's.
 			if SpaceView()?.placement(of: record.windowId) == .elsewhere { return }
@@ -343,11 +343,11 @@ extension Platform {
 				try preflight(point)
 				performed.movedPointer = true
 			}
-			let route = SkyLight.PointerRoute(pid: pid, windowId: record.windowId, windowOrigin: record.windowFrame.origin)
+			let route = pointerRoute(at: point, pid: pid, windowId: record.windowId, origin: record.windowFrame.origin)
 			switch action {
 			case .press, .click:
 				animateCursor(at: point)
-				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery)
+				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery, activationPrimer: webTarget)
 			case .moveMouse:
 				animateCursor(at: point)
 				try postMouseMove(to: point, pid: pid, delivery: delivery)
@@ -360,7 +360,7 @@ extension Platform {
 				}
 				animateCursor(at: point)
 				try postMouseDrag(points: path.map { lookPoint(record, x: $0.x, y: $0.y) }, pid: pid, route: route, delivery: delivery)
-			case .setText, .typeText, .keypress:
+			case .setText, .typeText, .keypress, .increment, .decrement:
 				throw BCUError(.invalidArguments, "Action \(action.rawValue) cannot use coordinate grounding")
 			}
 		}
@@ -558,6 +558,16 @@ extension Platform {
 				))
 			}
 			try executeCoordinates(coordinatePoint())
+		} else if let element, action == .increment || action == .decrement {
+			let step = (action == .increment ? kAXIncrementAction : kAXDecrementAction) as CFString
+			var status = AXUIElementPerformAction(element, step)
+			if status == .invalidUIElement, let refreshed = refreshElement() { status = AXUIElementPerformAction(refreshed, step) }
+			if Self.actionNeverArrived(status) {
+				throw BCUError(.actionFailed, "The element did not take \(step)")
+			}
+			performed.grounding = .description
+			performed.delivery = .ax
+			if let cursorPoint = try? coordinatePoint() { animateCursor(at: cursorPoint) }
 		} else if action == .typeText {
 			try focusTargetForBackgroundInput()
 			if let element { try focusForKeys(element) }

@@ -192,7 +192,7 @@ public struct LookResult {
 // MARK: Act
 
 public enum ActAction: String, Sendable {
-	case press, click, moveMouse, scroll, drag, setText, typeText, keypress
+	case press, click, moveMouse, scroll, drag, setText, typeText, keypress, increment, decrement
 }
 
 public enum ActTarget: Sendable {

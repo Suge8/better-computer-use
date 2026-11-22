@@ -20,11 +20,13 @@ private let actionFields: [ActionName: [String]] = [
 	.scroll: ["ref", "find", "x", "y", "scrollX", "scrollY", "expect"],
 	.drag: ["ref", "find", "x", "y", "path", "expect"],
 	.moveMouse: ["ref", "find", "x", "y", "expect"],
+	.increment: ["ref", "find", "expect"],
+	.decrement: ["ref", "find", "expect"],
 	.wait: ["ms", "expect"],
 ]
 
 private let requiredFields: [ActionName: [String]] = [.setText: ["text"], .typeText: ["text"], .keypress: ["keys"], .drag: ["path"]]
-private let targetRequiredActions: Set<ActionName> = [.press, .click, .doubleClick, .setText, .scroll, .moveMouse]
+private let targetRequiredActions: Set<ActionName> = [.press, .click, .doubleClick, .setText, .scroll, .moveMouse, .increment, .decrement]
 private let focusingActions: Set<ActionName> = [.press, .click, .doubleClick, .typeText, .keypress]
 
 private func finite(_ value: JSONValue) -> Double? {
@@ -134,7 +136,9 @@ public func validateActions(_ values: [JSONValue]) throws -> [UiAction] {
 		if name == .typeText || name == .keypress, !targeted, !focusMayExist {
 			throw invalid("\(name.rawValue) without a target requires an earlier focus-establishing action.")
 		}
-		if targetRequiredActions.contains(name), !targeted { throw invalid("\(name.rawValue) requires ref, find, or both x and y.") }
+		if targetRequiredActions.contains(name), !targeted {
+			throw invalid("\(name.rawValue) requires \(actionFields[name]?.contains("x") == true ? "ref, find, or both x and y" : "ref or find").")
+		}
 		// A click, or typing into an element, may leave the keyboard focus there; untargeted
 		// typing after it goes wherever the focus is when its step runs.
 		if focusingActions.contains(name), targeted { focusMayExist = true }
@@ -266,6 +270,8 @@ let ownedCapabilities: [ActionName: [Capability]] = [
 	.setText: [.setText],
 	.typeText: [.typeText],
 	.scroll: [.scroll],
+	.increment: [.increment],
+	.decrement: [.decrement],
 ]
 
 /// The saved state an action runs against: its outline, the capability owners of its view,
@@ -369,7 +375,7 @@ public func prepareAction(_ action: UiAction, environment: ActionEnvironment) th
 	case .keypress: .keys(action.keys ?? [])
 	case .scroll: .scroll(x: Int((action.scrollX ?? 0).rounded()), y: Int((action.scrollY ?? 0).rounded()))
 	case .drag: .drag(try dragPath(action.path ?? [], environment))
-	case .moveMouse, .doubleClick, .wait: .none
+	case .moveMouse, .increment, .decrement, .doubleClick, .wait: .none
 	}
 	return PreparedAction(action: operation, target: target, params: params)
 }

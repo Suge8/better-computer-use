@@ -155,10 +155,12 @@ enum SkyLight {
 		static let focusHalves: useconds_t = 10_000
 	}
 
-	/// One Chromium-trusted click: a move to the target, a primer press outside every
-	/// window that satisfies the user-activation gate without touching the page, then the
-	/// real presses.
-	static func click(at point: CGPoint, along route: PointerRoute, button: CGMouseButton, clickCount: Int) throws {
+	/// One Chromium-trusted click: a move to the target, for web content a primer press outside
+	/// every window that satisfies the user-activation gate without touching the page, then
+	/// the real presses. The primer is routed to the target window like the rest, so AppKit
+	/// takes it as a press outside the view under the pointer: a transient popover or a
+	/// bubble that closes on an outside press closes on it, and native targets go without.
+	static func click(at point: CGPoint, along route: PointerRoute, button: CGMouseButton, clickCount: Int, activationPrimer: Bool) throws {
 		let symbols = try require()
 		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)
 		let (down, up) = mouseTypes(button)
@@ -173,10 +175,12 @@ enum SkyLight {
 		}
 		try send(.mouseMoved, at: point, phase: 2, clickState: 0)
 		usleep(ClickPacing.moveToPress)
-		try send(down, at: offscreen, phase: 1, clickState: 1)
-		usleep(ClickPacing.pressHold)
-		try send(up, at: offscreen, phase: 2, clickState: 1)
-		usleep(ClickPacing.primerToPress)
+		if activationPrimer {
+			try send(down, at: offscreen, phase: 1, clickState: 1)
+			usleep(ClickPacing.pressHold)
+			try send(up, at: offscreen, phase: 2, clickState: 1)
+			usleep(ClickPacing.primerToPress)
+		}
 		for index in 1...max(1, clickCount) {
 			try send(down, at: point, phase: 3, clickState: Int64(index))
 			usleep(ClickPacing.pressHold)
