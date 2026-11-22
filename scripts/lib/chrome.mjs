@@ -1,28 +1,27 @@
-import { spawn } from "node:child_process";
-import { once } from "node:events";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { killProcess, withTimeout } from "./harness.mjs";
+import { killProcess, launchJob, withTimeout } from "./harness.mjs";
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 /**
- * Starts a dedicated Google Chrome on its own profile with DevTools listening, showing `url`.
- * `onSpawn` receives the handle as soon as the process exists, so cleanup reaches a launch
- * that fails halfway.
+ * Starts a dedicated Google Chrome on its own profile with DevTools listening, showing `url`,
+ * as a launchd job like every stand-in app (see launchJob). `onSpawn` receives the handle as
+ * soon as the process exists, so cleanup reaches a launch that fails halfway.
  */
 export async function launchChrome(profile, url, onSpawn) {
 	await fs.mkdir(profile);
 	const watcher = fs.watch(profile);
-	const child = spawn(CHROME, [
+	const { pid, exited } = await launchJob(path.dirname(profile), "chrome", [
+		CHROME,
 		`--user-data-dir=${profile}`,
 		"--remote-debugging-port=0",
 		"--no-first-run",
 		"--no-default-browser-check",
 		"--new-window",
 		url,
-	], { stdio: "ignore" });
-	const chrome = { child, exited: once(child, "exit") };
+	]);
+	const chrome = { pid, exited };
 	onSpawn?.(chrome);
 	const portFile = path.join(profile, "DevToolsActivePort");
 	const ready = (async () => {
@@ -36,7 +35,7 @@ export async function launchChrome(profile, url, onSpawn) {
 	try {
 		const devtools = await withTimeout(Promise.race([
 			ready,
-			chrome.exited.then(([code]) => { throw new Error(`Chrome exited during launch (${code})`); }),
+			chrome.exited.then(() => { throw new Error("Chrome exited during launch"); }),
 		]), "Chrome DevTools to listen", 20_000);
 		return Object.assign(chrome, devtools);
 	} finally {
@@ -45,11 +44,11 @@ export async function launchChrome(profile, url, onSpawn) {
 }
 
 export async function stopChrome(chrome) {
-	if (!chrome || !killProcess(chrome.child.pid, "SIGTERM")) return;
+	if (!chrome || !killProcess(chrome.pid, "SIGTERM")) return;
 	try {
 		await withTimeout(chrome.exited, "the fixture Chrome to exit", 5_000);
 	} catch {
-		if (killProcess(chrome.child.pid, "SIGKILL")) await chrome.exited;
+		if (killProcess(chrome.pid, "SIGKILL")) await chrome.exited;
 	}
 }
 

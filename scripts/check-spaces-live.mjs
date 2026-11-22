@@ -7,16 +7,11 @@
 // sent to a Space of its own; a stand-in for the user's front app keeps the front and its
 // key window throughout, and the user's Space is the one shown at the end.
 import assert from "node:assert/strict";
-import { execFile as execFileCallback, execFileSync, spawn } from "node:child_process";
-import { once } from "node:events";
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createInterface } from "node:readline";
-import { promisify } from "node:util";
-import { desktop, killProcess, launchKeyHolder, makeTemporaryRoot, repoRoot, request, residentEnvironment, runCli, withTimeout } from "./lib/harness.mjs";
-
-const execFile = promisify(execFileCallback);
+import { desktop, killProcess, launchKeyHolder, launchSwiftFixture, makeTemporaryRoot, request, residentEnvironment, runCli, withTimeout } from "./lib/harness.mjs";
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP Spaces (set BCU_LIVE=1)");
@@ -46,21 +41,9 @@ function check(name, assertion) {
 
 /** Compiles and starts the fixture; `announced(word)` resolves on the next line saying `word`. */
 async function launchSubject() {
-	const binary = path.join(directory, "space-window");
-	await execFile("xcrun", ["swiftc", path.join(repoRoot, "scripts", "fixtures", "space-window.swift"), "-o", binary], { timeout: 120_000 });
-	const child = spawn(binary, [logPath, title], { stdio: ["ignore", "pipe", "ignore"] });
-	const exited = once(child, "exit");
-	const lines = createInterface({ input: child.stdout });
-	const announced = (word) => withTimeout(Promise.race([
-		new Promise((resolve) => lines.on("line", function onLine(line) {
-			if (line !== word) return;
-			lines.off("line", onLine);
-			resolve();
-		})),
-		exited.then(([code, signal]) => { throw new Error(`the Space fixture exited (${signal ?? code})`); }),
-	]), `the Space fixture to say ${word}`, 15_000);
-	await announced("ready");
-	return { pid: child.pid, exited, announced, signal: (name) => process.kill(child.pid, name) };
+	const { pid, exited, nextLine } = await launchSwiftFixture(directory, "space-window", [logPath, title], "the Space fixture to say ready");
+	const announced = (word) => nextLine(word, `the Space fixture to say ${word}`);
+	return { pid, exited, announced, signal: (name) => process.kill(pid, name) };
 }
 
 const frontName = (pid) => execFileSync("ps", ["-p", String(pid), "-o", "comm="], { encoding: "utf8" }).trim() || "gone";

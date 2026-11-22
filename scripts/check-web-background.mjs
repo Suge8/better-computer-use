@@ -86,7 +86,7 @@ async function unprovenPress(stateId, ref) {
 
 /** Chrome builds its accessibility tree once an assistive client asks, so wait for the named control. */
 async function observeWindow(name, fieldName) {
-	const roots = await bcu(["find-roots", "--pid", String(chrome.child.pid), "--kind", "window"]);
+	const roots = await bcu(["find-roots", "--pid", String(chrome.pid), "--kind", "window"]);
 	const window = roots.roots.find((candidate) => candidate.title.includes(`bcu web fixture ${name}`));
 	assert(window, `bcu found no window for fixture ${name}: ${roots.roots.map((candidate) => candidate.title).join(", ")}`);
 	const first = await bcu(["observe-ui", "--root", window.ref]);

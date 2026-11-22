@@ -8,13 +8,14 @@
 // gate is skipped where no python3 has a working tkinter on Tk 8.6 or later; the system
 // python3 (Tk 8.5) takes background clicks, so it does not count.
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { once } from "node:events";
+import { execFile as execFileCallback } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createInterface } from "node:readline";
-import { residentEnvironment, killProcess, launchKeyHolder, makeTemporaryRoot, repoRoot, runCli, waitForAxWindow, withTimeout } from "./lib/harness.mjs";
+import { promisify } from "node:util";
+import { residentEnvironment, killProcess, launchJob, launchKeyHolder, makeTemporaryRoot, repoRoot, runCli, waitForAxWindow, withTimeout } from "./lib/harness.mjs";
+
+const execFile = promisify(execFileCallback);
 
 if (process.env.BCU_LIVE !== "1") {
 	console.log("SKIP pointer toolkit (set BCU_LIVE=1)");
@@ -36,15 +37,16 @@ let holder;
 /** Starts the Tk fixture with the first python3 that can run Tk 8.6 or later; undefined when none can. */
 async function launchTk() {
 	for (const python of CANDIDATES) {
-		const child = spawn(python, [path.join(repoRoot, "scripts", "fixtures", "tk-card.py"), logPath, title], { stdio: ["ignore", "pipe", "ignore"] });
-		const exited = once(child, "exit").catch(() => []);
-		child.on("error", () => {});
+		// A launchd job runs with launchd's PATH, so the interpreter is named by its full path.
+		const interpreter = (await execFile("/bin/sh", ["-c", 'command -v "$0"', python]).catch(() => ({ stdout: "" }))).stdout.trim();
+		if (!interpreter) continue;
+		const { pid, exited, lines } = await launchJob(root, "tk-card", [interpreter, path.join(repoRoot, "scripts", "fixtures", "tk-card.py"), logPath, title]);
 		const version = await withTimeout(Promise.race([
-			new Promise((resolve) => createInterface({ input: child.stdout }).on("line", (line) => line.startsWith("ready ") && resolve(line.slice("ready ".length)))),
+			new Promise((resolve) => lines.on("line", (line) => line.startsWith("ready ") && resolve(line.slice("ready ".length)))),
 			exited.then(() => ""),
 		]), "the Tk window", 8_000).catch(() => "");
-		if (Number.parseFloat(version) >= 8.6) return { pid: child.pid, exited };
-		if (child.exitCode === null) killProcess(child.pid, "SIGTERM");
+		if (Number.parseFloat(version) >= 8.6) return { pid, exited };
+		killProcess(pid, "SIGTERM");
 		await exited;
 	}
 	return undefined;

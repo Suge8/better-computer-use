@@ -192,7 +192,7 @@ try {
 			return { result, before, after: await value((await bcu(["observe-ui", "--root", document])).stateId) };
 		});
 		await cell(source, "Chrome web input", async () => {
-			const window = await rootOf(chrome.child.pid, "bcu ime fixture");
+			const window = await rootOf(chrome.pid, "bcu ime fixture");
 			const first = await bcu(["observe-ui", "--root", window]);
 			await bcu(["wait-for", "--state", first.stateId, "--text", "IME field", "--timeout", "10000"]);
 			const state = await bcu(["observe-ui", "--root", window]);

@@ -1,5 +1,7 @@
 import { execFile as execFileCallback, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { once } from "node:events";
+import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -134,25 +136,69 @@ export async function runSwiftReadyProbe(lines, args, description, { timeoutMs =
 }
 
 /**
- * Compiles scripts/fixtures/<name>.swift and runs it until it prints `ready`. `nextReady`
- * resolves on the following `ready`, for fixtures that announce it more than once.
+ * Runs `argv` as a launchd job of its own, the way every stand-in app is started. A spawned
+ * child joins the caller's coalition; when one that registered as an app dies after that
+ * coalition lost its owning app (CuePad replaced by an update), loginwindow counts every
+ * process left in it as the app's subordinates and may terminate them all, the caller's
+ * terminal and agent sessions included. launchd gives each job a coalition of its own. A
+ * bundle opened through LaunchServices would too, but then macOS grants it activation only
+ * cooperatively and the key holder can no longer take the front. Its stdout comes back
+ * through a FIFO as `lines`; that FIFO closing is `exited`, and the job is removed then.
  */
-async function launchSwiftFixture(directory, name, args, waiting) {
+export async function launchJob(directory, name, argv) {
+	const label = `dev.bcu.fixture.${name}.${randomUUID().slice(0, 8)}`;
+	const output = path.join(directory, `${label}.stdout`);
+	const plist = path.join(directory, `${label}.plist`);
+	const domain = `gui/${process.getuid()}`;
+	const xml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+	await fs.writeFile(plist, [
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<plist version="1.0"><dict>`,
+		`<key>Label</key><string>${label}</string>`,
+		`<key>ProgramArguments</key><array>${argv.map((arg) => `<string>${xml(String(arg))}</string>`).join("")}</array>`,
+		`<key>StandardOutPath</key><string>${xml(output)}</string>`,
+		`<key>RunAtLoad</key><true/>`,
+		`<key>KeepAlive</key><false/>`,
+		`<key>ProcessType</key><string>Interactive</string>`,
+		`</dict></plist>`,
+	].join("\n"));
+	await execFile("mkfifo", [output]);
+	// Opened for reading before the job opens it for writing, which blocks until then.
+	const stream = createReadStream(output, { encoding: "utf8" });
+	const lines = createInterface({ input: stream });
+	const exited = once(stream, "close").then(async () => {
+		await execFile("launchctl", ["bootout", `${domain}/${label}`]).catch(() => {});
+		return [];
+	});
+	await execFile("launchctl", ["bootstrap", domain, plist]);
+	const { stdout } = await execFile("launchctl", ["print", `${domain}/${label}`]);
+	const pid = Number(/^\tpid = (\d+)$/m.exec(stdout)?.[1]);
+	if (!Number.isInteger(pid) || pid <= 0) {
+		stream.destroy();
+		throw new Error(`launchd did not start ${name}: ${stdout.trim()}`);
+	}
+	return { pid, exited, lines };
+}
+
+/**
+ * Compiles scripts/fixtures/<name>.swift and runs it as a job until it prints `ready`.
+ * `nextReady` resolves on the following `ready`, for fixtures that announce it more than once.
+ */
+export async function launchSwiftFixture(directory, name, args, waiting) {
 	const binary = path.join(directory, name);
 	await execFile("xcrun", ["swiftc", path.join(repoRoot, "scripts", "fixtures", `${name}.swift`), "-o", binary], { timeout: 120_000 });
-	const child = spawn(binary, args, { stdio: ["ignore", "pipe", "ignore"] });
-	const exited = once(child, "exit");
-	const lines = createInterface({ input: child.stdout });
-	const nextReady = (description) => withTimeout(Promise.race([
+	const { pid, exited, lines } = await launchJob(directory, name, [binary, ...args]);
+	const nextLine = (word, description) => withTimeout(Promise.race([
 		new Promise((resolve) => lines.on("line", function onLine(line) {
-			if (line !== "ready") return;
+			if (line !== word) return;
 			lines.off("line", onLine);
 			resolve();
 		})),
-		exited.then(([code, signal]) => { throw new Error(`the ${name} fixture exited (${signal ?? code})`); }),
+		exited.then(() => { throw new Error(`the ${name} fixture exited`); }),
 	]), description, 15_000);
+	const nextReady = (description) => nextLine("ready", description);
 	await nextReady(waiting);
-	return { pid: child.pid, exited, nextReady };
+	return { pid, exited, nextReady, nextLine };
 }
 
 /** Starts scripts/fixtures/drawn-buttons.swift, a window with no accessible content. */
