@@ -155,11 +155,12 @@ enum SkyLight {
 		static let focusHalves: useconds_t = 10_000
 	}
 
-	/// One Chromium-trusted click: a move to the target, for web content a primer press outside
-	/// every window that satisfies the user-activation gate without touching the page, then
-	/// the real presses. The primer is routed to the target window like the rest, so AppKit
-	/// takes it as a press outside the view under the pointer: a transient popover or a
-	/// bubble that closes on an outside press closes on it, and native targets go without.
+	/// One Chromium-trusted click: a move to the target, when asked a primer press outside
+	/// every window, then the real presses. The primer satisfies a page's user-activation gate
+	/// without touching the page, and is the activating click an app that just became active
+	/// drops. It is routed to the target window like the rest, so AppKit also takes it as a
+	/// press outside the view under the pointer: a transient popover or a bubble that closes
+	/// on an outside press closes on it.
 	static func click(at point: CGPoint, along route: PointerRoute, button: CGMouseButton, clickCount: Int, activationPrimer: Bool) throws {
 		let symbols = try require()
 		let group = Int64(DispatchTime.now().uptimeNanoseconds & 0x7fff_ffff)

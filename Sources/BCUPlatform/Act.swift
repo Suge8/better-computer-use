@@ -329,9 +329,13 @@ extension Platform {
 				hitVerified = true
 			}
 			acquirePhysicalInputIfNeeded()
+			// AppKit takes the first press after an app becomes active as the activating click,
+			// which a stock NSView drops; the primer press is that click. An app that already
+			// believes it is active takes the real press, and a primer there would close its
+			// open popovers. AXFrontmost is the app's own NSApp.isActive.
+			let primer = webTarget || boolAttribute(AXUIElementCreateApplication(pid), attribute: kAXFrontmostAttribute as CFString) != true
 			if delivery == .pid, !webTarget {
-				// A stock NSView drops the first click on an inactive app; this makes the
-				// target app take the click without becoming the front app.
+				// Makes the target app take the click without becoming the front app.
 				try SkyLight.activateWithoutRaise(windowId: record.windowId)
 				performed.backgroundActivation = true
 			} else {
@@ -347,7 +351,7 @@ extension Platform {
 			switch action {
 			case .press, .click:
 				animateCursor(at: point)
-				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery, activationPrimer: webTarget)
+				try postMouseClick(at: point, pid: pid, route: route, button: params.button, clickCount: max(1, min(3, params.clickCount)), delivery: delivery, activationPrimer: primer)
 			case .moveMouse:
 				animateCursor(at: point)
 				try postMouseMove(to: point, pid: pid, delivery: delivery)
